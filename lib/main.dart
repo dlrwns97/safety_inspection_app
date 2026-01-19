@@ -4,6 +4,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'blueprint_pdf_screen.dart';
+import 'marker_model.dart';
+
 void main() {
   runApp(const SafetyInspectionApp());
 }
@@ -28,16 +31,6 @@ class SafetyInspectionApp extends StatelessWidget {
 enum DrawingType { pdf, blank }
 
 enum DrawMode { defect, equipment, freeDraw, eraser }
-
-enum DefectCategory {
-  generalCrack('General crack'),
-  waterLeakage('Water leakage'),
-  concreteSpalling('Concrete spalling'),
-  other('Other defect');
-
-  const DefectCategory(this.label);
-  final String label;
-}
 
 class Site {
   Site({
@@ -104,81 +97,6 @@ class Site {
   );
 }
 
-class Defect {
-  Defect({
-    required this.id,
-    required this.label,
-    required this.pageIndex,
-    required this.category,
-    required this.normalizedX,
-    required this.normalizedY,
-    required this.details,
-  });
-
-  final String id;
-  final String label;
-  final int pageIndex;
-  final DefectCategory category;
-  final double normalizedX;
-  final double normalizedY;
-  final DefectDetails details;
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'label': label,
-    'pageIndex': pageIndex,
-    'category': category.name,
-    'normalizedX': normalizedX,
-    'normalizedY': normalizedY,
-    'details': details.toJson(),
-  };
-
-  factory Defect.fromJson(Map<String, dynamic> json) => Defect(
-    id: json['id'] as String,
-    label: json['label'] as String,
-    pageIndex: json['pageIndex'] as int? ?? 0,
-    category: DefectCategory.values.byName(
-      json['category'] as String? ?? 'generalCrack',
-    ),
-    normalizedX: (json['normalizedX'] as num? ?? 0).toDouble(),
-    normalizedY: (json['normalizedY'] as num? ?? 0).toDouble(),
-    details: DefectDetails.fromJson(
-      json['details'] as Map<String, dynamic>? ?? {},
-    ),
-  );
-}
-
-class DefectDetails {
-  DefectDetails({
-    required this.structuralMember,
-    required this.crackType,
-    required this.widthMm,
-    required this.lengthMm,
-    required this.cause,
-  });
-
-  final String structuralMember;
-  final String crackType;
-  final double widthMm;
-  final double lengthMm;
-  final String cause;
-
-  Map<String, dynamic> toJson() => {
-    'structuralMember': structuralMember,
-    'crackType': crackType,
-    'widthMm': widthMm,
-    'lengthMm': lengthMm,
-    'cause': cause,
-  };
-
-  factory DefectDetails.fromJson(Map<String, dynamic> json) => DefectDetails(
-    structuralMember: json['structuralMember'] as String? ?? '',
-    crackType: json['crackType'] as String? ?? '',
-    widthMm: (json['widthMm'] as num? ?? 0).toDouble(),
-    lengthMm: (json['lengthMm'] as num? ?? 0).toDouble(),
-    cause: json['cause'] as String? ?? '',
-  );
-}
 
 class SiteStorage {
   static const _key = 'inspection_sites';
@@ -491,13 +409,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   late Site _site;
   DrawMode _mode = DrawMode.defect;
-  DefectCategory _activeCategory = DefectCategory.generalCrack;
+  DefectCategory _activeCategory = DefectCategory.crack;
   int _currentPage = 1;
 
   @override
   void initState() {
     super.initState();
     _site = widget.site;
+  }
+
+  Future<void> _openPdfBlueprint() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BlueprintPdfScreen(
+          assetPath: 'assets/pdfs/sample.pdf',
+          filePath: _site.pdfPath,
+          initialDefects: _site.defects,
+          onDefectsChanged: _updateDefectsFromPdf,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateDefectsFromPdf(List<Defect> defects) async {
+    final updatedSite = _site.copyWith(defects: defects);
+    setState(() {
+      _site = updatedSite;
+    });
+    await widget.onSiteUpdated(updatedSite);
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
@@ -509,7 +448,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
-    final detailsResult = await _showDefectDetailsSheet();
+    final detailsResult = await _showDefectDetailsSheet(_activeCategory);
     if (!mounted || detailsResult == null) {
       return;
     }
@@ -535,220 +474,275 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
-  Future<DefectDetails?> _showDefectDetailsSheet() async {
-    return showModalBottomSheet<DefectDetails>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        final formKey = GlobalKey<FormState>();
-        String? structuralMember;
-        String? crackType;
-        String? cause;
-        final widthController = TextEditingController();
-        final lengthController = TextEditingController();
+  Future<DefectDetails?> _showDefectDetailsSheet(
+    DefectCategory category,
+  ) async {
+    final widthController = TextEditingController();
+    final lengthController = TextEditingController();
+    final typeCustomController = TextEditingController();
+    final causeCustomController = TextEditingController();
+    final widthFocusNode = FocusNode();
+    final lengthFocusNode = FocusNode();
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              bool isValid() {
-                final width = double.tryParse(widthController.text);
-                final length = double.tryParse(lengthController.text);
-                return structuralMember != null &&
-                    crackType != null &&
-                    cause != null &&
-                    width != null &&
-                    length != null &&
-                    width > 0 &&
-                    length > 0;
-              }
+    DefectDetails? result;
+    try {
+      result = await showModalBottomSheet<DefectDetails>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) {
+          final formKey = GlobalKey<FormState>();
+          String? structuralMember;
+          DefectOption? defectType;
+          DefectOption? cause;
 
-              return Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Defect details',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: structuralMember,
-                      decoration: const InputDecoration(
-                        labelText: 'Structural member',
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                bool isValid() {
+                  final width = double.tryParse(widthController.text);
+                  final length = double.tryParse(lengthController.text);
+                  final typeCustomValid =
+                      !(defectType?.isCustom ?? false) ||
+                          typeCustomController.text.trim().isNotEmpty;
+                  final causeCustomValid =
+                      !(cause?.isCustom ?? false) ||
+                          causeCustomController.text.trim().isNotEmpty;
+                  return structuralMember != null &&
+                      defectType != null &&
+                      cause != null &&
+                      width != null &&
+                      length != null &&
+                      width > 0 &&
+                      length > 0 &&
+                      typeCustomValid &&
+                      causeCustomValid;
+                }
+
+                return Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '결함 상세',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      items:
-                          const [
-                                'Column',
-                                'Wall',
-                                'Slab',
-                                'Beam',
-                                'Masonry wall',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          structuralMember = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a member' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: crackType,
-                      decoration: const InputDecoration(
-                        labelText: 'Crack type',
-                      ),
-                      items:
-                          const [
-                                'Horizontal',
-                                'Vertical',
-                                'Diagonal',
-                                'Vertical+Horizontal',
-                                'Network',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          crackType = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a crack type' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: widthController,
-                            decoration: const InputDecoration(
-                              labelText: 'Width (mm)',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return 'Enter width';
-                              }
-                              return null;
-                            },
-                            onChanged: (_) => setState(() {}),
-                          ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: structuralMember,
+                        decoration: const InputDecoration(
+                          labelText: '부재',
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: lengthController,
-                            decoration: const InputDecoration(
-                              labelText: 'Length (mm)',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return 'Enter length';
-                              }
-                              return null;
-                            },
-                            onChanged: (_) => setState(() {}),
+                        items: structuralMembers
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            structuralMember = value;
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? '부재를 선택하세요' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<DefectOption>(
+                        value: defectType,
+                        decoration: const InputDecoration(
+                          labelText: '유형',
+                        ),
+                        items: defectTypeOptions[category]
+                            ?.map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item.label),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            defectType = value;
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? '유형을 선택하세요' : null,
+                      ),
+                      if (defectType?.isCustom ?? false) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: typeCustomController,
+                          decoration: const InputDecoration(
+                            labelText: '유형 기타 입력',
                           ),
+                          textInputAction: TextInputAction.next,
+                          validator: (value) {
+                            if ((defectType?.isCustom ?? false) &&
+                                (value == null || value.trim().isEmpty)) {
+                              return '기타 유형을 입력하세요';
+                            }
+                            return null;
+                          },
+                          onChanged: (_) => setState(() {}),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: cause,
-                      decoration: const InputDecoration(labelText: 'Cause'),
-                      items:
-                          const [
-                                'Drying shrinkage',
-                                'Rebar corrosion',
-                                'Joint crack',
-                                'Finish crack',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          cause = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a cause' : null,
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: isValid()
-                              ? () {
-                                  if (formKey.currentState?.validate() ??
-                                      false) {
-                                    Navigator.of(context).pop(
-                                      DefectDetails(
-                                        structuralMember: structuralMember!,
-                                        crackType: crackType!,
-                                        widthMm: double.parse(
-                                          widthController.text.trim(),
-                                        ),
-                                        lengthMm: double.parse(
-                                          lengthController.text.trim(),
-                                        ),
-                                        cause: cause!,
-                                      ),
-                                    );
-                                  }
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: widthController,
+                              focusNode: widthFocusNode,
+                              decoration: const InputDecoration(
+                                labelText: '폭 (mm)',
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: (value) {
+                                final parsed = double.tryParse(value ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return '폭 입력';
                                 }
-                              : null,
-                          child: const Text('Confirm'),
+                                return null;
+                              },
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: lengthController,
+                              focusNode: lengthFocusNode,
+                              decoration: const InputDecoration(
+                                labelText: '길이 (mm)',
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: (value) {
+                                final parsed = double.tryParse(value ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return '길이 입력';
+                                }
+                                return null;
+                              },
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<DefectOption>(
+                        value: cause,
+                        decoration: const InputDecoration(labelText: '원인'),
+                        items: defectCauseOptions[category]
+                            ?.map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item.label),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            cause = value;
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? '원인을 선택하세요' : null,
+                      ),
+                      if (cause?.isCustom ?? false) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: causeCustomController,
+                          decoration: const InputDecoration(
+                            labelText: '원인 기타 입력',
+                          ),
+                          textInputAction: TextInputAction.done,
+                          validator: (value) {
+                            if ((cause?.isCustom ?? false) &&
+                                (value == null || value.trim().isEmpty)) {
+                              return '기타 원인을 입력하세요';
+                            }
+                            return null;
+                          },
+                          onChanged: (_) => setState(() {}),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('취소'),
+                          ),
+                          const Spacer(),
+                          FilledButton(
+                            onPressed: isValid()
+                                ? () {
+                                    if (formKey.currentState?.validate() ??
+                                        false) {
+                                      Navigator.of(context).pop(
+                                        DefectDetails(
+                                          structuralMember: structuralMember!,
+                                          defectType: defectType!.code,
+                                          defectTypeCustomText:
+                                              defectType!.isCustom
+                                                  ? typeCustomController.text
+                                                      .trim()
+                                                  : null,
+                                          widthMm: double.parse(
+                                            widthController.text.trim(),
+                                          ),
+                                          lengthMm: double.parse(
+                                            lengthController.text.trim(),
+                                          ),
+                                          cause: cause!.code,
+                                          causeCustomText: cause!.isCustom
+                                              ? causeCustomController.text
+                                                  .trim()
+                                              : null,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                : null,
+                            child: const Text('확인'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    } finally {
+      widthController.dispose();
+      lengthController.dispose();
+      typeCustomController.dispose();
+      causeCustomController.dispose();
+      widthFocusNode.dispose();
+      lengthFocusNode.dispose();
+    }
+    return result;
   }
 
   Widget _buildDrawingBackground() {
@@ -804,7 +798,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return Positioned(
         left: position.dx - 18,
         top: position.dy - 18,
-        child: _DefectMarker(label: defect.label, category: defect.category),
+        child: DefectMarker(label: defect.label, category: defect.category),
       );
     }).toList();
   }
@@ -922,6 +916,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                onPressed: _openPdfBlueprint,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('PDF 도면 보기'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: LayoutBuilder(
               builder: (context, _) {
@@ -958,44 +964,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DefectMarker extends StatelessWidget {
-  const _DefectMarker({required this.label, required this.category});
-
-  final String label;
-  final DefectCategory category;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.error;
-    return Tooltip(
-      message: category.label,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
-          ),
-        ),
       ),
     );
   }
