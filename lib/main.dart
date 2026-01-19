@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'constants/strings_ko.dart';
+
 void main() {
   runApp(const SafetyInspectionApp());
 }
@@ -18,7 +20,7 @@ class SafetyInspectionApp extends StatelessWidget {
       useMaterial3: true,
     );
     return MaterialApp(
-      title: 'Site Safety Inspection',
+      title: StringsKo.appTitle,
       theme: theme,
       home: const HomeScreen(),
     );
@@ -30,10 +32,10 @@ enum DrawingType { pdf, blank }
 enum DrawMode { defect, equipment, freeDraw, eraser }
 
 enum DefectCategory {
-  generalCrack('General crack'),
-  waterLeakage('Water leakage'),
-  concreteSpalling('Concrete spalling'),
-  other('Other defect');
+  generalCrack('일반 균열'),
+  waterLeakage('누수'),
+  concreteSpalling('콘크리트 박락'),
+  other('기타 결함');
 
   const DefectCategory(this.label);
   final String label;
@@ -285,11 +287,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('New Site'),
+              title: const Text(StringsKo.siteNameTitle),
               content: TextField(
                 controller: controller,
                 decoration: InputDecoration(
-                  labelText: 'Site name',
+                  labelText: StringsKo.siteNameLabel,
                   errorText: errorText,
                 ),
                 textInputAction: TextInputAction.done,
@@ -297,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final value = controller.text.trim();
                   if (value.isEmpty) {
                     setState(() {
-                      errorText = 'Please enter a site name.';
+                      errorText = StringsKo.siteNameRequired;
                     });
                   } else {
                     Navigator.of(context).pop(value);
@@ -307,20 +309,20 @@ class _HomeScreenState extends State<HomeScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: const Text(StringsKo.cancel),
                 ),
                 FilledButton(
                   onPressed: () {
                     final value = controller.text.trim();
                     if (value.isEmpty) {
                       setState(() {
-                        errorText = 'Please enter a site name.';
+                        errorText = StringsKo.siteNameRequired;
                       });
                       return;
                     }
                     Navigator.of(context).pop(value);
                   },
-                  child: const Text('Create'),
+                  child: const Text(StringsKo.create),
                 ),
               ],
             );
@@ -340,8 +342,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.picture_as_pdf_outlined),
-                title: const Text('Import PDF drawing'),
-                subtitle: const Text('Supports large PDFs and multi-page sets'),
+                title: const Text(StringsKo.importPdfTitle),
+                subtitle: const Text(StringsKo.importPdfSubtitle),
                 onTap: () async {
                   final result = await FilePicker.platform.pickFiles(
                     type: FileType.custom,
@@ -368,8 +370,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.grid_view_outlined),
-                title: const Text('Create blank canvas'),
-                subtitle: const Text('Start with a clean sheet'),
+                title: const Text(StringsKo.createBlankTitle),
+                subtitle: const Text(StringsKo.createBlankSubtitle),
                 onTap: () {
                   Navigator.of(
                     context,
@@ -386,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Inspection Sites')),
+      appBar: AppBar(title: const Text(StringsKo.inspectionSitesTitle)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _sites.isEmpty
@@ -403,12 +405,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No sites yet',
+                      StringsKo.noSitesTitle,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Create a site to start marking defects on drawings.',
+                      StringsKo.noSitesDescription,
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -435,8 +437,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: Text(site.name),
                   subtitle: Text(
                     site.drawingType == DrawingType.pdf
-                        ? (site.pdfName ?? 'PDF drawing')
-                        : 'Blank canvas',
+                        ? (site.pdfName ?? StringsKo.pdfDrawingLabel)
+                        : StringsKo.blankCanvasLabel,
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
@@ -455,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createSiteFlow,
         icon: const Icon(Icons.add),
-        label: const Text('New Site'),
+        label: const Text(StringsKo.newSite),
       ),
     );
   }
@@ -491,7 +493,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   late Site _site;
   DrawMode _mode = DrawMode.defect;
-  DefectCategory _activeCategory = DefectCategory.generalCrack;
+  DefectCategory? _activeCategory;
   int _currentPage = 1;
 
   @override
@@ -501,7 +503,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
-    if (_mode != DrawMode.defect) {
+    if (_mode != DrawMode.defect || _activeCategory == null) {
       return;
     }
 
@@ -523,7 +525,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       label: label,
       pageIndex: _currentPage,
-      category: _activeCategory,
+      category: _activeCategory!,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
       details: detailsResult,
@@ -576,66 +578,52 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Defect details',
+                      StringsKo.defectDetailsTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: structuralMember,
                       decoration: const InputDecoration(
-                        labelText: 'Structural member',
+                        labelText: StringsKo.structuralMemberLabel,
                       ),
-                      items:
-                          const [
-                                'Column',
-                                'Wall',
-                                'Slab',
-                                'Beam',
-                                'Masonry wall',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
+                      items: StringsKo.structuralMembers
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         setState(() {
                           structuralMember = value;
                         });
                       },
                       validator: (value) =>
-                          value == null ? 'Please select a member' : null,
+                          value == null ? StringsKo.memberRequired : null,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: crackType,
                       decoration: const InputDecoration(
-                        labelText: 'Crack type',
+                        labelText: StringsKo.crackTypeLabel,
                       ),
-                      items:
-                          const [
-                                'Horizontal',
-                                'Vertical',
-                                'Diagonal',
-                                'Vertical+Horizontal',
-                                'Network',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
+                      items: StringsKo.crackTypes
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         setState(() {
                           crackType = value;
                         });
                       },
                       validator: (value) =>
-                          value == null ? 'Please select a crack type' : null,
+                          value == null ? StringsKo.crackTypeRequired : null,
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -644,7 +632,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           child: TextFormField(
                             controller: widthController,
                             decoration: const InputDecoration(
-                              labelText: 'Width (mm)',
+                              labelText: StringsKo.widthLabel,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -652,7 +640,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                             validator: (value) {
                               final parsed = double.tryParse(value ?? '');
                               if (parsed == null || parsed <= 0) {
-                                return 'Enter width';
+                                return StringsKo.widthRequired;
                               }
                               return null;
                             },
@@ -664,7 +652,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           child: TextFormField(
                             controller: lengthController,
                             decoration: const InputDecoration(
-                              labelText: 'Length (mm)',
+                              labelText: StringsKo.lengthLabel,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -672,7 +660,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                             validator: (value) {
                               final parsed = double.tryParse(value ?? '');
                               if (parsed == null || parsed <= 0) {
-                                return 'Enter length';
+                                return StringsKo.lengthRequired;
                               }
                               return null;
                             },
@@ -684,35 +672,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: cause,
-                      decoration: const InputDecoration(labelText: 'Cause'),
-                      items:
-                          const [
-                                'Drying shrinkage',
-                                'Rebar corrosion',
-                                'Joint crack',
-                                'Finish crack',
-                              ]
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item,
-                                  child: Text(item),
-                                ),
-                              )
-                              .toList(),
+                      decoration: const InputDecoration(
+                        labelText: StringsKo.causeLabel,
+                      ),
+                      items: StringsKo.defectCauses
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         setState(() {
                           cause = value;
                         });
                       },
                       validator: (value) =>
-                          value == null ? 'Please select a cause' : null,
+                          value == null ? StringsKo.causeRequired : null,
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
+                          child: const Text(StringsKo.cancel),
                         ),
                         const Spacer(),
                         FilledButton(
@@ -736,7 +720,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                   }
                                 }
                               : null,
-                          child: const Text('Confirm'),
+                          child: const Text(StringsKo.confirm),
                         ),
                       ],
                     ),
@@ -767,13 +751,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              _site.pdfName ?? 'PDF Drawing Loaded',
+              _site.pdfName ?? StringsKo.pdfDrawingLoaded,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             const Text(
-              'Pinch to zoom and tap to add defects.',
+              StringsKo.pinchToZoomHint,
               textAlign: TextAlign.center,
             ),
           ],
@@ -814,32 +798,96 @@ class _DrawingScreenState extends State<DrawingScreen> {
       children: [
         _ModeButton(
           icon: Icons.bug_report_outlined,
-          label: 'Defect',
+          label: StringsKo.modeDefect,
           isSelected: _mode == DrawMode.defect,
           onTap: () => setState(() => _mode = DrawMode.defect),
         ),
         const SizedBox(height: 12),
         _ModeButton(
           icon: Icons.construction_outlined,
-          label: 'Equipment',
+          label: StringsKo.modeEquipment,
           isSelected: _mode == DrawMode.equipment,
           onTap: () => setState(() => _mode = DrawMode.equipment),
         ),
         const SizedBox(height: 12),
         _ModeButton(
           icon: Icons.brush_outlined,
-          label: 'Free Draw',
+          label: StringsKo.modeFreeDraw,
           isSelected: _mode == DrawMode.freeDraw,
           onTap: () => setState(() => _mode = DrawMode.freeDraw),
         ),
         const SizedBox(height: 12),
         _ModeButton(
           icon: Icons.auto_fix_off_outlined,
-          label: 'Eraser',
+          label: StringsKo.modeEraser,
           isSelected: _mode == DrawMode.eraser,
           onTap: () => setState(() => _mode = DrawMode.eraser),
         ),
       ],
+    );
+  }
+
+  Future<void> _selectDefectCategory() async {
+    final selection = await showModalBottomSheet<DefectCategory>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  StringsKo.selectCategoryTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              ...DefectCategory.values.map(
+                (category) => ListTile(
+                  title: Text(category.label),
+                  onTap: () => Navigator.of(context).pop(category),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selection == null) {
+      return;
+    }
+
+    setState(() {
+      _activeCategory = selection;
+    });
+  }
+
+  Widget _buildDefectCategorySection() {
+    if (_activeCategory == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              StringsKo.selectCategoryHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _selectDefectCategory,
+              icon: const Icon(Icons.category_outlined),
+              label: const Text(StringsKo.selectCategoryButton),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: _buildDefectCategories(),
     );
   }
 
@@ -863,9 +911,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pageLabel = _currentPage == 1
-        ? 'Page 1'
-        : 'Page ${_currentPage.toString()}';
+    final pageLabel = StringsKo.pageLabel(_currentPage);
 
     return Scaffold(
       appBar: AppBar(
@@ -880,7 +926,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   final pageNumber = index + 1;
                   return DropdownMenuItem<int>(
                     value: pageNumber,
-                    child: Text('Page $pageNumber'),
+                    child: Text(StringsKo.pageDropdownLabel(pageNumber)),
                   );
                 }),
                 onChanged: (value) {
@@ -909,16 +955,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_mode == DrawMode.defect)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: _buildDefectCategories(),
-            )
+          if (_mode == DrawMode.defect) _buildDefectCategorySection()
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
-                'Mode controls are placeholders in Phase 1.',
+                StringsKo.modePlaceholder,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -927,7 +969,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
               builder: (context, _) {
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTapDown: _mode == DrawMode.defect ? _handleTap : null,
+                  onTapDown:
+                      _mode == DrawMode.defect && _activeCategory != null
+                          ? _handleTap
+                          : null,
                   child: Stack(
                     children: [
                       InteractiveViewer(
