@@ -27,6 +27,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   static const int _pageCount = 3;
   final TransformationController _transformationController =
       TransformationController();
+  final GlobalKey _canvasKey = GlobalKey();
 
   late Site _site;
   DrawMode _mode = DrawMode.defect;
@@ -41,6 +42,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
+    if (!_isTapWithinCanvas(details)) {
+      return;
+    }
     if (_mode == DrawMode.defect && _activeCategory == null) {
       return;
     }
@@ -104,6 +108,20 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       await widget.onSiteUpdated(_site);
     }
+  }
+
+  bool _isTapWithinCanvas(TapDownDetails details) {
+    final context = _canvasKey.currentContext;
+    final renderObject = context?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return false;
+    }
+
+    final localPosition = renderObject.globalToLocal(details.globalPosition);
+    return localPosition.dx >= 0 &&
+        localPosition.dy >= 0 &&
+        localPosition.dx <= renderObject.size.width &&
+        localPosition.dy <= renderObject.size.height;
   }
 
   Future<DefectDetails?> _showDefectDetailsDialog() async {
@@ -657,22 +675,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, _) {
-                return GestureDetector(
-                  behavior: HitTestBehavior.deferToChild,
-                  onTapDown:
-                      (_mode == DrawMode.defect && _activeCategory != null) ||
+                return Stack(
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.deferToChild,
+                      onTapDown: (_mode == DrawMode.defect &&
+                                  _activeCategory != null) ||
                               (_mode == DrawMode.equipment &&
                                   _activeEquipmentCategory != null)
                           ? _handleTap
                           : null,
-                  child: Stack(
-                    children: [
-                      InteractiveViewer(
+                      child: InteractiveViewer(
                         transformationController: _transformationController,
                         minScale: 0.5,
                         maxScale: 4,
                         constrained: false,
                         child: SizedBox(
+                          key: _canvasKey,
                           width: _canvasSize.width,
                           height: _canvasSize.height,
                           child: Stack(
@@ -684,13 +703,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           ),
                         ),
                       ),
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: _buildModeButtons(),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: _buildModeButtons(),
+                    ),
+                  ],
                 );
               },
             ),
