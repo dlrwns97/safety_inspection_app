@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../constants/strings_ko.dart';
-import '../screens/home_screen.dart';
+import '../models/drawing_enums.dart';
+import '../models/site.dart';
+import '../screens/drawing_screen.dart';
 
 class SafetyInspectionApp extends StatelessWidget {
   const SafetyInspectionApp({super.key});
@@ -12,10 +14,21 @@ class SafetyInspectionApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3A6EA5)),
       useMaterial3: true,
     );
+
+    final initialSite = Site(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: StringsKo.newSite,
+      createdAt: DateTime.now(),
+      drawingType: DrawingType.blank,
+    );
+
     return MaterialApp(
       title: StringsKo.appTitle,
       theme: theme,
-      home: const HomeScreen(),
+      home: DrawingScreen(
+        site: initialSite,
+        onSiteUpdated: (_) async {},
+      ),
     );
   }
 }
