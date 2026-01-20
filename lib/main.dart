@@ -54,19 +54,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -85,37 +72,195 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: const SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: DefectInputPanel(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+class DefectInputPanel extends StatefulWidget {
+  const DefectInputPanel({super.key});
+
+  @override
+  State<DefectInputPanel> createState() => _DefectInputPanelState();
+}
+
+class _DefectInputPanelState extends State<DefectInputPanel> {
+  late final TextEditingController _widthController;
+  late final TextEditingController _lengthController;
+  late final TextEditingController _otherController;
+  late final FocusNode _widthFocusNode;
+  late final FocusNode _lengthFocusNode;
+  late final FocusNode _otherFocusNode;
+
+  String _widthValue = '';
+  String _lengthValue = '';
+  String _otherValue = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _widthController = TextEditingController();
+    _lengthController = TextEditingController();
+    _otherController = TextEditingController();
+    _widthFocusNode = FocusNode();
+    _lengthFocusNode = FocusNode();
+    _otherFocusNode = FocusNode();
+
+    _widthFocusNode.addListener(() {
+      if (!_widthFocusNode.hasFocus) {
+        final currentValue = _widthController.text;
+        if (_widthValue != currentValue) {
+          _widthValue = currentValue;
+        }
+      }
+    });
+    _lengthFocusNode.addListener(() {
+      if (!_lengthFocusNode.hasFocus) {
+        final currentValue = _lengthController.text;
+        if (_lengthValue != currentValue) {
+          _lengthValue = currentValue;
+        }
+      }
+    });
+    _otherFocusNode.addListener(() {
+      if (!_otherFocusNode.hasFocus) {
+        final currentValue = _otherController.text;
+        if (_otherValue != currentValue) {
+          _otherValue = currentValue;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _widthController.dispose();
+    _lengthController.dispose();
+    _otherController.dispose();
+    _widthFocusNode.dispose();
+    _lengthFocusNode.dispose();
+    _otherFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Crack Defect Details',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 12),
+        LabeledTextField(
+          label: 'Width (mm)',
+          controller: _widthController,
+          focusNode: _widthFocusNode,
+          keyboardType: TextInputType.number,
+          onSubmitted: (value) {
+            if (_widthValue != value) {
+              _widthValue = value;
+            }
+          },
+        ),
+        const SizedBox(height: 12),
+        LabeledTextField(
+          label: 'Length (mm)',
+          controller: _lengthController,
+          focusNode: _lengthFocusNode,
+          keyboardType: TextInputType.number,
+          onSubmitted: (value) {
+            if (_lengthValue != value) {
+              _lengthValue = value;
+            }
+          },
+        ),
+        const SizedBox(height: 12),
+        OtherTextField(
+          label: 'Other details',
+          controller: _otherController,
+          focusNode: _otherFocusNode,
+          visible: false,
+          onSubmitted: (value) {
+            if (_otherValue != value) {
+              _otherValue = value;
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class LabeledTextField extends StatelessWidget {
+  const LabeledTextField({
+    super.key,
+    required this.label,
+    required this.controller,
+    required this.focusNode,
+    this.keyboardType,
+    this.onSubmitted,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      onSubmitted: onSubmitted,
+    );
+  }
+}
+
+class OtherTextField extends StatelessWidget {
+  const OtherTextField({
+    super.key,
+    required this.label,
+    required this.controller,
+    required this.focusNode,
+    required this.visible,
+    this.keyboardType,
+    this.onSubmitted,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool visible;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Visibility(
+      visible: visible,
+      maintainState: true,
+      maintainAnimation: true,
+      maintainSize: true,
+      child: LabeledTextField(
+        label: label,
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        onSubmitted: onSubmitted,
       ),
     );
   }
