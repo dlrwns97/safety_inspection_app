@@ -824,7 +824,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(categoryBarHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -834,13 +834,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     children: [
                       if (showDefectHint)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
+                          padding: const EdgeInsets.only(bottom: 0),
                           child: Text(
                             StringsKo.selectDefectCategoryHint,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
-                      _buildDefectCategories(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildDefectCategories(),
+                        ),
+                      ),
                     ],
                   )
                 else if (_mode == DrawMode.equipment)
@@ -849,13 +855,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     children: [
                       if (showEquipmentHint)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
+                          padding: const EdgeInsets.only(bottom: 0),
                           child: Text(
                             StringsKo.selectEquipmentCategoryHint,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
-                      _buildEquipmentCategories(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildEquipmentCategories(),
+                        ),
+                      ),
                     ],
                   )
                 else
