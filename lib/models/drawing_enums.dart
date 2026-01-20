@@ -13,3 +13,13 @@ enum DefectCategory {
   const DefectCategory(this.label);
   final String label;
 }
+
+enum EquipmentCategory {
+  equipment1(StringsKo.equipmentCategory1),
+  equipment2(StringsKo.equipmentCategory2),
+  equipment3(StringsKo.equipmentCategory3),
+  equipment4(StringsKo.equipmentCategory4);
+
+  const EquipmentCategory(this.label);
+  final String label;
+}

@@ -4,6 +4,7 @@ import '../constants/strings_ko.dart';
 import '../models/defect.dart';
 import '../models/defect_details.dart';
 import '../models/drawing_enums.dart';
+import '../models/equipment_marker.dart';
 import '../models/site.dart';
 import '../widgets/mode_button.dart';
 
@@ -30,6 +31,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   late Site _site;
   DrawMode _mode = DrawMode.defect;
   DefectCategory? _activeCategory;
+  EquipmentCategory? _activeEquipmentCategory;
   int _currentPage = 1;
 
   @override
@@ -39,7 +41,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
-    if (_mode != DrawMode.defect || _activeCategory == null) {
+    if (_mode == DrawMode.defect && _activeCategory == null) {
+      return;
+    }
+    if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
+      return;
+    }
+    if (_mode != DrawMode.defect && _mode != DrawMode.equipment) {
       return;
     }
 
@@ -47,36 +55,61 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
-    final detailsResult = await _showDefectDetailsSheet();
-    if (!mounted || detailsResult == null) {
-      return;
+    if (_mode == DrawMode.defect) {
+      final detailsResult = await _showDefectDetailsDialog();
+      if (!mounted || detailsResult == null) {
+        return;
+      }
+
+      final countOnPage = _site.defects
+          .where(
+            (defect) =>
+                defect.pageIndex == _currentPage &&
+                defect.category == _activeCategory,
+          )
+          .length;
+      final label = _activeCategory == DefectCategory.generalCrack
+          ? 'C${countOnPage + 1}'
+          : '${countOnPage + 1}';
+
+      final defect = Defect(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        label: label,
+        pageIndex: _currentPage,
+        category: _activeCategory!,
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        details: detailsResult,
+      );
+
+      setState(() {
+        _site = _site.copyWith(defects: [..._site.defects, defect]);
+      });
+      await widget.onSiteUpdated(_site);
+    } else {
+      final label = '${_site.equipmentMarkers.length + 1}';
+      final marker = EquipmentMarker(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        label: label,
+        pageIndex: _currentPage,
+        category: _activeEquipmentCategory!,
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+      );
+
+      setState(() {
+        _site = _site.copyWith(
+          equipmentMarkers: [..._site.equipmentMarkers, marker],
+        );
+      });
+      await widget.onSiteUpdated(_site);
     }
-
-    final countOnPage = _site.defects
-        .where((defect) => defect.pageIndex == _currentPage)
-        .length;
-    final label = 'C${countOnPage + 1}';
-
-    final defect = Defect(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      label: label,
-      pageIndex: _currentPage,
-      category: _activeCategory!,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      details: detailsResult,
-    );
-
-    setState(() {
-      _site = _site.copyWith(defects: [..._site.defects, defect]);
-    });
-    await widget.onSiteUpdated(_site);
   }
 
-  Future<DefectDetails?> _showDefectDetailsSheet() async {
-    return showModalBottomSheet<DefectDetails>(
+  Future<DefectDetails?> _showDefectDetailsDialog() async {
+    final defectCategory = _activeCategory ?? DefectCategory.generalCrack;
+    return showDialog<DefectDetails>(
       context: context,
-      isScrollControlled: true,
       builder: (context) {
         final formKey = GlobalKey<FormState>();
         String? structuralMember;
@@ -84,187 +117,238 @@ class _DrawingScreenState extends State<DrawingScreen> {
         String? cause;
         final widthController = TextEditingController();
         final lengthController = TextEditingController();
+        final otherTypeController = TextEditingController();
+        final otherCauseController = TextEditingController();
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              bool isValid() {
-                final width = double.tryParse(widthController.text);
-                final length = double.tryParse(lengthController.text);
-                return structuralMember != null &&
-                    crackType != null &&
-                    cause != null &&
-                    width != null &&
-                    length != null &&
-                    width > 0 &&
-                    length > 0;
-              }
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                final typeOptions = _defectTypeOptions(defectCategory);
+                final causeOptions = _defectCauseOptions(defectCategory);
+                final isOtherType = crackType == StringsKo.otherOptionLabel;
+                final isOtherCause = cause == StringsKo.otherOptionLabel;
 
-              return Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      StringsKo.defectDetailsTitle,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: structuralMember,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.structuralMemberLabel,
+                bool isValid() {
+                  final width = double.tryParse(widthController.text);
+                  final length = double.tryParse(lengthController.text);
+                  final hasOtherType = !isOtherType ||
+                      otherTypeController.text.trim().isNotEmpty;
+                  final hasOtherCause = !isOtherCause ||
+                      otherCauseController.text.trim().isNotEmpty;
+                  return structuralMember != null &&
+                      crackType != null &&
+                      cause != null &&
+                      width != null &&
+                      length != null &&
+                      width > 0 &&
+                      length > 0 &&
+                      hasOtherType &&
+                      hasOtherCause;
+                }
+
+                return Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        StringsKo.defectDetailsTitle,
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      items: StringsKo.structuralMembers
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          structuralMember = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectMemberError : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: crackType,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.crackTypeLabel,
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: structuralMember,
+                        decoration: const InputDecoration(
+                          labelText: StringsKo.structuralMemberLabel,
+                        ),
+                        items: StringsKo.structuralMembers
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            structuralMember = value;
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? StringsKo.selectMemberError : null,
                       ),
-                      items: StringsKo.crackTypes
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          crackType = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectCrackTypeError : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: widthController,
-                            decoration: const InputDecoration(
-                              labelText: StringsKo.widthLabel,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return StringsKo.enterWidthError;
-                              }
-                              return null;
-                            },
-                            onChanged: (_) => setState(() {}),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: crackType,
+                        decoration: const InputDecoration(
+                          labelText: StringsKo.crackTypeLabel,
+                        ),
+                        items: typeOptions
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            crackType = value;
+                            if (value != StringsKo.otherOptionLabel) {
+                              otherTypeController.clear();
+                            }
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? StringsKo.selectCrackTypeError : null,
+                      ),
+                      if (isOtherType) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: otherTypeController,
+                          decoration: const InputDecoration(
+                            labelText: StringsKo.otherTypeLabel,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: lengthController,
-                            decoration: const InputDecoration(
-                              labelText: StringsKo.lengthLabel,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return StringsKo.enterLengthError;
-                              }
-                              return null;
-                            },
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: cause,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.causeLabel,
-                      ),
-                      items: StringsKo.defectCauses
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          cause = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectCauseError : null,
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text(StringsKo.cancel),
-                        ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: isValid()
-                              ? () {
-                                  if (formKey.currentState?.validate() ??
-                                      false) {
-                                    Navigator.of(context).pop(
-                                      DefectDetails(
-                                        structuralMember: structuralMember!,
-                                        crackType: crackType!,
-                                        widthMm: double.parse(
-                                          widthController.text.trim(),
-                                        ),
-                                        lengthMm: double.parse(
-                                          lengthController.text.trim(),
-                                        ),
-                                        cause: cause!,
-                                      ),
-                                    );
-                                  }
-                                }
+                          validator: (_) => otherTypeController.text.trim().isEmpty
+                              ? StringsKo.enterOtherTypeError
                               : null,
-                          child: const Text(StringsKo.confirm),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              );
-            },
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: widthController,
+                              decoration: const InputDecoration(
+                                labelText: StringsKo.widthLabel,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              validator: (value) {
+                                final parsed = double.tryParse(value ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return StringsKo.enterWidthError;
+                                }
+                                return null;
+                              },
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: lengthController,
+                              decoration: const InputDecoration(
+                                labelText: StringsKo.lengthLabel,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              validator: (value) {
+                                final parsed = double.tryParse(value ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return StringsKo.enterLengthError;
+                                }
+                                return null;
+                              },
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: cause,
+                        decoration: const InputDecoration(
+                          labelText: StringsKo.causeLabel,
+                        ),
+                        items: causeOptions
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            cause = value;
+                            if (value != StringsKo.otherOptionLabel) {
+                              otherCauseController.clear();
+                            }
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? StringsKo.selectCauseError : null,
+                      ),
+                      if (isOtherCause) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: otherCauseController,
+                          decoration: const InputDecoration(
+                            labelText: StringsKo.otherCauseLabel,
+                          ),
+                          validator: (_) =>
+                              otherCauseController.text.trim().isEmpty
+                                  ? StringsKo.enterOtherCauseError
+                                  : null,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text(StringsKo.cancel),
+                          ),
+                          const Spacer(),
+                          FilledButton(
+                            onPressed: isValid()
+                                ? () {
+                                    if (formKey.currentState?.validate() ??
+                                        false) {
+                                      final resolvedType = isOtherType
+                                          ? otherTypeController.text.trim()
+                                          : crackType!;
+                                      final resolvedCause = isOtherCause
+                                          ? otherCauseController.text.trim()
+                                          : cause!;
+                                      Navigator.of(context).pop(
+                                        DefectDetails(
+                                          structuralMember: structuralMember!,
+                                          crackType: resolvedType,
+                                          widthMm: double.parse(
+                                            widthController.text.trim(),
+                                          ),
+                                          lengthMm: double.parse(
+                                            lengthController.text.trim(),
+                                          ),
+                                          cause: resolvedCause,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                : null,
+                            child: const Text(StringsKo.confirm),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         );
       },
@@ -321,7 +405,29 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return Positioned(
         left: position.dx - 18,
         top: position.dy - 18,
-        child: _DefectMarker(label: defect.label, category: defect.category),
+        child: _DefectMarker(
+          label: defect.label,
+          category: defect.category,
+          color: _defectColor(defect.category),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildEquipmentMarkers() {
+    final markers = _site.equipmentMarkers
+        .where((marker) => marker.pageIndex == _currentPage)
+        .toList();
+
+    return markers.map((marker) {
+      final position = Offset(
+        marker.normalizedX * _canvasSize.width,
+        marker.normalizedY * _canvasSize.height,
+      );
+      return Positioned(
+        left: position.dx - 18,
+        top: position.dy - 18,
+        child: _EquipmentMarker(label: marker.label, category: marker.category),
       );
     }).toList();
   }
@@ -376,6 +482,63 @@ class _DrawingScreenState extends State<DrawingScreen> {
         );
       }).toList(),
     );
+  }
+
+  Widget _buildEquipmentCategories() {
+    return Wrap(
+      spacing: 8,
+      children: EquipmentCategory.values.map((category) {
+        final selected = _activeEquipmentCategory == category;
+        return ChoiceChip(
+          label: Text(category.label),
+          selected: selected,
+          onSelected: (_) {
+            setState(() {
+              _activeEquipmentCategory = category;
+            });
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Color _defectColor(DefectCategory category) {
+    switch (category) {
+      case DefectCategory.generalCrack:
+        return Colors.red;
+      case DefectCategory.waterLeakage:
+        return Colors.blue;
+      case DefectCategory.concreteSpalling:
+        return Colors.green;
+      case DefectCategory.other:
+        return Colors.purple;
+    }
+  }
+
+  List<String> _defectTypeOptions(DefectCategory category) {
+    switch (category) {
+      case DefectCategory.generalCrack:
+        return StringsKo.defectTypesGeneralCrack;
+      case DefectCategory.waterLeakage:
+        return StringsKo.defectTypesWaterLeakage;
+      case DefectCategory.concreteSpalling:
+        return StringsKo.defectTypesConcreteSpalling;
+      case DefectCategory.other:
+        return StringsKo.defectTypesOther;
+    }
+  }
+
+  List<String> _defectCauseOptions(DefectCategory category) {
+    switch (category) {
+      case DefectCategory.generalCrack:
+        return StringsKo.defectCausesGeneralCrack;
+      case DefectCategory.waterLeakage:
+        return StringsKo.defectCausesWaterLeakage;
+      case DefectCategory.concreteSpalling:
+        return StringsKo.defectCausesConcreteSpalling;
+      case DefectCategory.other:
+        return StringsKo.defectCausesOther;
+    }
   }
 
   @override
@@ -442,6 +605,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 ],
               ),
             )
+          else if (_mode == DrawMode.equipment)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_activeEquipmentCategory == null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        StringsKo.selectEquipmentCategoryHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  _buildEquipmentCategories(),
+                ],
+              ),
+            )
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -455,9 +636,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
               builder: (context, _) {
                 return GestureDetector(
                   behavior: HitTestBehavior.deferToChild,
-                  onTapDown: _mode == DrawMode.defect && _activeCategory != null
-                      ? _handleTap
-                      : null,
+                  onTapDown:
+                      (_mode == DrawMode.defect && _activeCategory != null) ||
+                              (_mode == DrawMode.equipment &&
+                                  _activeEquipmentCategory != null)
+                          ? _handleTap
+                          : null,
                   child: Stack(
                     children: [
                       InteractiveViewer(
@@ -472,6 +656,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                             children: [
                               _buildDrawingBackground(),
                               ..._buildDefectMarkers(),
+                              ..._buildEquipmentMarkers(),
                             ],
                           ),
                         ),
@@ -494,14 +679,56 @@ class _DrawingScreenState extends State<DrawingScreen> {
 }
 
 class _DefectMarker extends StatelessWidget {
-  const _DefectMarker({required this.label, required this.category});
+  const _DefectMarker({
+    required this.label,
+    required this.category,
+    required this.color,
+  });
 
   final String label;
   final DefectCategory category;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.error;
+    return Tooltip(
+      message: category.label,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EquipmentMarker extends StatelessWidget {
+  const _EquipmentMarker({required this.label, required this.category});
+
+  final String label;
+  final EquipmentCategory category;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: category.label,
       child: Container(
