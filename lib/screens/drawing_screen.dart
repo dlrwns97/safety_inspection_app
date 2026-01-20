@@ -292,10 +292,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
-            const Text(
-              StringsKo.pdfDrawingHint,
-              textAlign: TextAlign.center,
-            ),
+            const Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
           ],
         ),
       );
@@ -457,7 +454,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
             child: LayoutBuilder(
               builder: (context, _) {
                 return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                  behavior: HitTestBehavior.deferToChild,
                   onTapDown: _mode == DrawMode.defect && _activeCategory != null
                       ? _handleTap
                       : null,
