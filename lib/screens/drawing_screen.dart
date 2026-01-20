@@ -766,7 +766,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pageLabel = StringsKo.pageTitle(_currentPage);
     final showDefectHint =
         _mode == DrawMode.defect && _activeCategory == null;
     final showEquipmentHint =
@@ -774,7 +773,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final showModeHint =
         showDefectHint || showEquipmentHint || _mode == DrawMode.freeDraw ||
             _mode == DrawMode.eraser;
-    final categoryBarHeight = showModeHint ? 96.0 : 76.0;
+    final categoryBarHeight = showModeHint ? 76.0 : 56.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -807,15 +806,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(categoryBarHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  pageLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 4),
                 if (_mode == DrawMode.defect)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
