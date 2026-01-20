@@ -33,8 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createSiteFlow() async {
-    final name = await _promptSiteName();
-    if (!mounted || name == null) {
+    final siteInput = await _promptSiteInfo();
+    if (!mounted || siteInput == null) {
       return;
     }
     final selection = await _selectDrawingType();
@@ -44,8 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final site = Site(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      createdAt: DateTime.now(),
+      name: siteInput.name,
+      createdAt: siteInput.date,
       drawingType: selection.type,
       pdfPath: selection.path,
       pdfName: selection.fileName,
@@ -81,33 +81,71 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<String?> _promptSiteName() async {
+  Future<_SiteInput?> _promptSiteInfo() async {
     final controller = TextEditingController();
     String? errorText;
-    return showDialog<String>(
+    DateTime selectedDate = DateTime.now();
+    return showDialog<_SiteInput>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final formattedDate = MaterialLocalizations.of(
+              context,
+            ).formatShortDate(selectedDate);
             return AlertDialog(
-              title: const Text(StringsKo.newSite),
-              content: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  labelText: StringsKo.siteNameLabel,
-                  errorText: errorText,
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) {
-                  final value = controller.text.trim();
-                  if (value.isEmpty) {
-                    setState(() {
-                      errorText = StringsKo.siteNameRequired;
-                    });
-                  } else {
-                    Navigator.of(context).pop(value);
-                  }
-                },
+              title: const Text(StringsKo.addNewSite),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      labelText: StringsKo.siteNameLabel,
+                      errorText: errorText,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      final value = controller.text.trim();
+                      if (value.isEmpty) {
+                        setState(() {
+                          errorText = StringsKo.siteNameRequired;
+                        });
+                      } else {
+                        Navigator.of(context).pop(
+                          _SiteInput(name: value, date: selectedDate),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(
+                        StringsKo.siteDateLabel,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        label: Text(formattedDate),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
@@ -123,9 +161,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       });
                       return;
                     }
-                    Navigator.of(context).pop(value);
+                    Navigator.of(context).pop(
+                      _SiteInput(name: value, date: selectedDate),
+                    );
                   },
-                  child: const Text(StringsKo.create),
+                  child: const Text(StringsKo.next),
                 ),
               ],
             );
@@ -143,6 +183,12 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 8),
+              Text(
+                StringsKo.selectDrawingTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.picture_as_pdf_outlined),
                 title: const Text(StringsKo.importPdfTitle),
@@ -216,6 +262,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           StringsKo.noSitesSubtitle,
                           textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: _createSiteFlow,
+                          icon: const Icon(Icons.add),
+                          label: const Text(StringsKo.addNewSite),
+                        ),
                       ],
                     ),
                   ),
@@ -261,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createSiteFlow,
         icon: const Icon(Icons.add),
-        label: const Text(StringsKo.newSite),
+        label: const Text(StringsKo.addNewSite),
       ),
     );
   }
@@ -273,4 +325,11 @@ class _DrawingSelection {
   final DrawingType type;
   final String? path;
   final String? fileName;
+}
+
+class _SiteInput {
+  const _SiteInput({required this.name, required this.date});
+
+  final String name;
+  final DateTime date;
 }

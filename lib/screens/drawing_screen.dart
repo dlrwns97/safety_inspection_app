@@ -4,6 +4,7 @@ import '../constants/strings_ko.dart';
 import '../models/defect.dart';
 import '../models/defect_details.dart';
 import '../models/drawing_enums.dart';
+import '../models/equipment_marker.dart';
 import '../models/site.dart';
 import '../widgets/mode_button.dart';
 
@@ -24,11 +25,12 @@ class DrawingScreen extends StatefulWidget {
 class _DrawingScreenState extends State<DrawingScreen> {
   static const Size _canvasSize = Size(1200, 1700);
   static const int _pageCount = 3;
+  static const double _markerDiameter = 28;
   final TransformationController _transformationController =
       TransformationController();
 
   late Site _site;
-  DrawMode _mode = DrawMode.defect;
+  DrawMode _toolMode = DrawMode.defect;
   DefectCategory? _activeCategory;
   int _currentPage = 1;
 
@@ -39,15 +41,20 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
-    if (_mode != DrawMode.defect || _activeCategory == null) {
-      return;
-    }
-
     final scenePoint = _transformationController.toScene(details.localPosition);
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
-    final detailsResult = await _showDefectDetailsSheet();
+    if (_toolMode == DrawMode.equipment) {
+      await _addEquipmentMarker(normalizedX, normalizedY);
+      return;
+    }
+
+    if (_toolMode != DrawMode.defect || _activeCategory == null) {
+      return;
+    }
+
+    final detailsResult = await _showDefectDetailsDialog(_activeCategory!);
     if (!mounted || detailsResult == null) {
       return;
     }
@@ -73,10 +80,46 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
-  Future<DefectDetails?> _showDefectDetailsSheet() async {
-    return showModalBottomSheet<DefectDetails>(
+  Future<void> _addEquipmentMarker(double normalizedX, double normalizedY) async {
+    final countOnPage = _site.equipmentMarkers
+        .where((marker) => marker.pageIndex == _currentPage)
+        .length;
+    final label = 'E${countOnPage + 1}';
+
+    final marker = EquipmentMarker(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      label: label,
+      pageIndex: _currentPage,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+    );
+
+    setState(() {
+      _site = _site.copyWith(
+        equipmentMarkers: [..._site.equipmentMarkers, marker],
+      );
+    });
+    await widget.onSiteUpdated(_site);
+  }
+
+  String _defectDetailsTitle(DefectCategory category) {
+    switch (category) {
+      case DefectCategory.generalCrack:
+        return StringsKo.defectDetailsTitleCrack;
+      case DefectCategory.waterLeakage:
+        return StringsKo.defectDetailsTitleLeakage;
+      case DefectCategory.concreteSpalling:
+        return StringsKo.defectDetailsTitleConcrete;
+      case DefectCategory.other:
+        return StringsKo.defectDetailsTitleOther;
+    }
+  }
+
+  Future<DefectDetails?> _showDefectDetailsDialog(
+    DefectCategory category,
+  ) async {
+    return showDialog<DefectDetails>(
       context: context,
-      isScrollControlled: true,
       builder: (context) {
         final formKey = GlobalKey<FormState>();
         String? structuralMember;
@@ -84,187 +127,191 @@ class _DrawingScreenState extends State<DrawingScreen> {
         String? cause;
         final widthController = TextEditingController();
         final lengthController = TextEditingController();
+        final dialogHeight = MediaQuery.of(context).size.height * 0.5;
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              bool isValid() {
-                final width = double.tryParse(widthController.text);
-                final length = double.tryParse(lengthController.text);
-                return structuralMember != null &&
-                    crackType != null &&
-                    cause != null &&
-                    width != null &&
-                    length != null &&
-                    width > 0 &&
-                    length > 0;
-              }
+        return AlertDialog(
+          title: Text(_defectDetailsTitle(category)),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: dialogHeight,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  bool isValid() {
+                    final width = double.tryParse(widthController.text);
+                    final length = double.tryParse(lengthController.text);
+                    return structuralMember != null &&
+                        crackType != null &&
+                        cause != null &&
+                        width != null &&
+                        length != null &&
+                        width > 0 &&
+                        length > 0;
+                  }
 
-              return Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      StringsKo.defectDetailsTitle,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: structuralMember,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.structuralMemberLabel,
-                      ),
-                      items: StringsKo.structuralMembers
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          structuralMember = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectMemberError : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: crackType,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.crackTypeLabel,
-                      ),
-                      items: StringsKo.crackTypes
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          crackType = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectCrackTypeError : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: widthController,
+                  return SingleChildScrollView(
+                    child: Form(
+                      key: formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: structuralMember,
                             decoration: const InputDecoration(
-                              labelText: StringsKo.widthLabel,
+                              labelText: StringsKo.structuralMemberLabel,
                             ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return StringsKo.enterWidthError;
-                              }
-                              return null;
+                            items: StringsKo.structuralMembers
+                                .map(
+                                  (item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(item),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                structuralMember = value;
+                              });
                             },
-                            onChanged: (_) => setState(() {}),
+                            validator: (value) =>
+                                value == null ? StringsKo.selectMemberError : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: lengthController,
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: crackType,
                             decoration: const InputDecoration(
-                              labelText: StringsKo.lengthLabel,
+                              labelText: StringsKo.crackTypeLabel,
                             ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: (value) {
-                              final parsed = double.tryParse(value ?? '');
-                              if (parsed == null || parsed <= 0) {
-                                return StringsKo.enterLengthError;
-                              }
-                              return null;
+                            items: StringsKo.crackTypes
+                                .map(
+                                  (item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(item),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                crackType = value;
+                              });
                             },
-                            onChanged: (_) => setState(() {}),
+                            validator: (value) =>
+                                value == null ? StringsKo.selectCrackTypeError : null,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: cause,
-                      decoration: const InputDecoration(
-                        labelText: StringsKo.causeLabel,
-                      ),
-                      items: StringsKo.defectCauses
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          cause = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? StringsKo.selectCauseError : null,
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text(StringsKo.cancel),
-                        ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: isValid()
-                              ? () {
-                                  if (formKey.currentState?.validate() ??
-                                      false) {
-                                    Navigator.of(context).pop(
-                                      DefectDetails(
-                                        structuralMember: structuralMember!,
-                                        crackType: crackType!,
-                                        widthMm: double.parse(
-                                          widthController.text.trim(),
-                                        ),
-                                        lengthMm: double.parse(
-                                          lengthController.text.trim(),
-                                        ),
-                                        cause: cause!,
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: widthController,
+                                  decoration: const InputDecoration(
+                                    labelText: StringsKo.widthLabel,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
                                       ),
-                                    );
-                                  }
-                                }
-                              : null,
-                          child: const Text(StringsKo.confirm),
-                        ),
-                      ],
+                                  validator: (value) {
+                                    final parsed = double.tryParse(value ?? '');
+                                    if (parsed == null || parsed <= 0) {
+                                      return StringsKo.enterWidthError;
+                                    }
+                                    return null;
+                                  },
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: lengthController,
+                                  decoration: const InputDecoration(
+                                    labelText: StringsKo.lengthLabel,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator: (value) {
+                                    final parsed = double.tryParse(value ?? '');
+                                    if (parsed == null || parsed <= 0) {
+                                      return StringsKo.enterLengthError;
+                                    }
+                                    return null;
+                                  },
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: cause,
+                            decoration: const InputDecoration(
+                              labelText: StringsKo.causeLabel,
+                            ),
+                            items: StringsKo.defectCauses
+                                .map(
+                                  (item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(item),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                cause = value;
+                              });
+                            },
+                            validator: (value) =>
+                                value == null ? StringsKo.selectCauseError : null,
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text(StringsKo.cancel),
+                              ),
+                              const Spacer(),
+                              FilledButton(
+                                onPressed: isValid()
+                                    ? () {
+                                        if (formKey.currentState?.validate() ??
+                                            false) {
+                                          Navigator.of(context).pop(
+                                            DefectDetails(
+                                              structuralMember: structuralMember!,
+                                              crackType: crackType!,
+                                              widthMm: double.parse(
+                                                widthController.text.trim(),
+                                              ),
+                                              lengthMm: double.parse(
+                                                lengthController.text.trim(),
+                                              ),
+                                              cause: cause!,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    : null,
+                                child: const Text(StringsKo.confirm),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
         );
       },
@@ -319,9 +366,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
         defect.normalizedY * _canvasSize.height,
       );
       return Positioned(
-        left: position.dx - 18,
-        top: position.dy - 18,
-        child: _DefectMarker(label: defect.label, category: defect.category),
+        left: position.dx - _markerDiameter / 2,
+        top: position.dy - _markerDiameter / 2,
+        child: _DefectMarker(
+          label: defect.label,
+          category: defect.category,
+          diameter: _markerDiameter,
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildEquipmentMarkers() {
+    final markers = _site.equipmentMarkers
+        .where((marker) => marker.pageIndex == _currentPage)
+        .toList();
+
+    return markers.map((marker) {
+      final position = Offset(
+        marker.normalizedX * _canvasSize.width,
+        marker.normalizedY * _canvasSize.height,
+      );
+      return Positioned(
+        left: position.dx - _markerDiameter / 2,
+        top: position.dy - _markerDiameter / 2,
+        child: _EquipmentMarker(label: marker.label, diameter: _markerDiameter),
       );
     }).toList();
   }
@@ -332,29 +401,29 @@ class _DrawingScreenState extends State<DrawingScreen> {
         ModeButton(
           icon: Icons.bug_report_outlined,
           label: StringsKo.defectModeLabel,
-          isSelected: _mode == DrawMode.defect,
-          onTap: () => setState(() => _mode = DrawMode.defect),
+          isSelected: _toolMode == DrawMode.defect,
+          onTap: () => setState(() => _toolMode = DrawMode.defect),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.construction_outlined,
           label: StringsKo.equipmentModeLabel,
-          isSelected: _mode == DrawMode.equipment,
-          onTap: () => setState(() => _mode = DrawMode.equipment),
+          isSelected: _toolMode == DrawMode.equipment,
+          onTap: () => setState(() => _toolMode = DrawMode.equipment),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.brush_outlined,
           label: StringsKo.freeDrawModeLabel,
-          isSelected: _mode == DrawMode.freeDraw,
-          onTap: () => setState(() => _mode = DrawMode.freeDraw),
+          isSelected: _toolMode == DrawMode.freeDraw,
+          onTap: () => setState(() => _toolMode = DrawMode.freeDraw),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.auto_fix_off_outlined,
           label: StringsKo.eraserModeLabel,
-          isSelected: _mode == DrawMode.eraser,
-          onTap: () => setState(() => _mode = DrawMode.eraser),
+          isSelected: _toolMode == DrawMode.eraser,
+          onTap: () => setState(() => _toolMode = DrawMode.eraser),
         ),
       ],
     );
@@ -370,7 +439,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           selected: selected,
           onSelected: (_) {
             setState(() {
-              _activeCategory = category;
+              _activeCategory = selected ? null : category;
             });
           },
         );
@@ -424,7 +493,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_mode == DrawMode.defect)
+          if (_toolMode == DrawMode.defect)
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -455,7 +524,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
               builder: (context, _) {
                 return GestureDetector(
                   behavior: HitTestBehavior.deferToChild,
-                  onTapDown: _mode == DrawMode.defect && _activeCategory != null
+                  onTapDown: _toolMode == DrawMode.defect ||
+                          _toolMode == DrawMode.equipment
                       ? _handleTap
                       : null,
                   child: Stack(
@@ -472,6 +542,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                             children: [
                               _buildDrawingBackground(),
                               ..._buildDefectMarkers(),
+                              ..._buildEquipmentMarkers(),
                             ],
                           ),
                         ),
@@ -494,19 +565,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
 }
 
 class _DefectMarker extends StatelessWidget {
-  const _DefectMarker({required this.label, required this.category});
+  const _DefectMarker({
+    required this.label,
+    required this.category,
+    required this.diameter,
+  });
 
   final String label;
   final DefectCategory category;
+  final double diameter;
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.error;
+    final textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Colors.white,
+          fontSize: 11,
+        );
     return Tooltip(
       message: category.label,
       child: Container(
-        width: 36,
-        height: 36,
+        width: diameter,
+        height: diameter,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -521,9 +601,47 @@ class _DefectMarker extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
+            style: textStyle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EquipmentMarker extends StatelessWidget {
+  const _EquipmentMarker({required this.label, required this.diameter});
+
+  final String label;
+  final double diameter;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    final textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Colors.white,
+          fontSize: 11,
+        );
+    return Tooltip(
+      message: StringsKo.equipmentModeLabel,
+      child: Container(
+        width: diameter,
+        height: diameter,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: textStyle,
           ),
         ),
       ),

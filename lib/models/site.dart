@@ -1,5 +1,6 @@
 import 'defect.dart';
 import 'drawing_enums.dart';
+import 'equipment_marker.dart';
 
 class Site {
   Site({
@@ -10,7 +11,9 @@ class Site {
     this.pdfPath,
     this.pdfName,
     List<Defect>? defects,
-  }) : defects = defects ?? [];
+    List<EquipmentMarker>? equipmentMarkers,
+  })  : defects = defects ?? [],
+        equipmentMarkers = equipmentMarkers ?? [];
 
   final String id;
   final String name;
@@ -19,6 +22,7 @@ class Site {
   final String? pdfPath;
   final String? pdfName;
   final List<Defect> defects;
+  final List<EquipmentMarker> equipmentMarkers;
 
   Site copyWith({
     String? id,
@@ -28,6 +32,7 @@ class Site {
     String? pdfPath,
     String? pdfName,
     List<Defect>? defects,
+    List<EquipmentMarker>? equipmentMarkers,
   }) {
     return Site(
       id: id ?? this.id,
@@ -37,6 +42,8 @@ class Site {
       pdfPath: pdfPath ?? this.pdfPath,
       pdfName: pdfName ?? this.pdfName,
       defects: defects ?? List<Defect>.from(this.defects),
+      equipmentMarkers:
+          equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),
     );
   }
 
@@ -48,6 +55,8 @@ class Site {
     'pdfPath': pdfPath,
     'pdfName': pdfName,
     'defects': defects.map((defect) => defect.toJson()).toList(),
+    'equipmentMarkers':
+        equipmentMarkers.map((marker) => marker.toJson()).toList(),
   };
 
   factory Site.fromJson(Map<String, dynamic> json) => Site(
@@ -62,6 +71,9 @@ class Site {
     pdfName: json['pdfName'] as String?,
     defects: (json['defects'] as List<dynamic>? ?? [])
         .map((item) => Defect.fromJson(item as Map<String, dynamic>))
+        .toList(),
+    equipmentMarkers: (json['equipmentMarkers'] as List<dynamic>? ?? [])
+        .map((item) => EquipmentMarker.fromJson(item as Map<String, dynamic>))
         .toList(),
   );
 }
