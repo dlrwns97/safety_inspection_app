@@ -54,13 +54,7 @@ class StringsKo {
   static const otherTypeLabel = '기타 유형';
   static const otherCauseLabel = '기타 원인';
 
-  static const List<String> structuralMembers = [
-    '기둥',
-    '벽',
-    '슬래브',
-    '보',
-    '조적벽',
-  ];
+  static const List<String> structuralMembers = ['기둥', '벽체', '슬래브', '보', '조적벽'];
 
   static const List<String> defectTypesGeneralCrack = [
     '수직 균열',
