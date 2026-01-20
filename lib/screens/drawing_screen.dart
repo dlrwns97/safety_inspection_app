@@ -767,6 +767,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
   @override
   Widget build(BuildContext context) {
     final pageLabel = StringsKo.pageTitle(_currentPage);
+    final showDefectHint =
+        _mode == DrawMode.defect && _activeCategory == null;
+    final showEquipmentHint =
+        _mode == DrawMode.equipment && _activeEquipmentCategory == null;
+    final showModeHint =
+        showDefectHint || showEquipmentHint || _mode == DrawMode.freeDraw ||
+            _mode == DrawMode.eraser;
+    final categoryBarHeight = showModeHint ? 96.0 : 76.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -797,12 +805,53 @@ class _DrawingScreenState extends State<DrawingScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(28),
+          preferredSize: Size.fromHeight(categoryBarHeight),
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              pageLabel,
-              style: Theme.of(context).textTheme.bodySmall,
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pageLabel,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                if (_mode == DrawMode.defect)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showDefectHint)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            StringsKo.selectDefectCategoryHint,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      _buildDefectCategories(),
+                    ],
+                  )
+                else if (_mode == DrawMode.equipment)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showEquipmentHint)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            StringsKo.selectEquipmentCategoryHint,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      _buildEquipmentCategories(),
+                    ],
+                  )
+                else
+                  Text(
+                    StringsKo.modePlaceholder,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
             ),
           ),
         ),
@@ -810,50 +859,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_mode == DrawMode.defect)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_activeCategory == null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        StringsKo.selectDefectCategoryHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  _buildDefectCategories(),
-                ],
-              ),
-            )
-          else if (_mode == DrawMode.equipment)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_activeEquipmentCategory == null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        StringsKo.selectEquipmentCategoryHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  _buildEquipmentCategories(),
-                ],
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(
-                StringsKo.modePlaceholder,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, _) {
