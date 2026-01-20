@@ -252,8 +252,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       hasOtherCause;
                 }
 
-                return SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.5,
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
                   child: SingleChildScrollView(
                     child: Form(
                       key: formKey,
