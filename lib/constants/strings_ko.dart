@@ -18,6 +18,10 @@ class StringsKo {
   static const pdfDrawingLoaded = 'PDF 도면이 로드되었습니다';
   static const pdfDrawingHint = '핀치로 확대하고 탭하여 결함을 추가하세요.';
   static const defectDetailsTitle = '결함 상세';
+  static const defectDetailsTitleGeneralCrack = '균열 결함 상세';
+  static const defectDetailsTitleWaterLeakage = '누수 결함 상세';
+  static const defectDetailsTitleConcreteSpalling = '콘크리트 결함 상세';
+  static const defectDetailsTitleOther = '기타 결함 상세';
   static const structuralMemberLabel = '부재';
   static const crackTypeLabel = '유형';
   static const widthLabel = '폭 (mm)';
