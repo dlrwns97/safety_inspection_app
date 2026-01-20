@@ -103,7 +103,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       await widget.onSiteUpdated(_site);
     } else {
-      final label = '${_site.equipmentMarkers.length + 1}';
+      final equipmentCount = _site.equipmentMarkers
+          .where((marker) => marker.category == _activeEquipmentCategory)
+          .length;
+      final prefix = _equipmentLabelPrefix(_activeEquipmentCategory!);
+      final label = '$prefix${equipmentCount + 1}';
       final marker = EquipmentMarker(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         label: label,
@@ -637,7 +641,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return Positioned(
         left: position.dx - 18,
         top: position.dy - 18,
-        child: _EquipmentMarker(label: marker.label, category: marker.category),
+        child: _EquipmentMarker(
+          label: marker.label,
+          category: marker.category,
+          color: _equipmentColor(marker.category),
+        ),
       );
     }).toList();
   }
@@ -740,6 +748,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return Colors.green;
       case DefectCategory.other:
         return Colors.purple;
+    }
+  }
+
+  String _equipmentLabelPrefix(EquipmentCategory category) {
+    switch (category) {
+      case EquipmentCategory.equipment1:
+        return 'S';
+      case EquipmentCategory.equipment2:
+        return 'F';
+      case EquipmentCategory.equipment3:
+        return 'SH';
+      case EquipmentCategory.equipment4:
+        return 'Co';
+    }
+  }
+
+  Color _equipmentColor(EquipmentCategory category) {
+    switch (category) {
+      case EquipmentCategory.equipment1:
+        return Colors.pinkAccent;
+      case EquipmentCategory.equipment2:
+        return Colors.lightBlueAccent;
+      case EquipmentCategory.equipment3:
+      case EquipmentCategory.equipment4:
+        return Colors.green;
     }
   }
 
@@ -978,14 +1011,18 @@ class _DefectMarker extends StatelessWidget {
 }
 
 class _EquipmentMarker extends StatelessWidget {
-  const _EquipmentMarker({required this.label, required this.category});
+  const _EquipmentMarker({
+    required this.label,
+    required this.category,
+    required this.color,
+  });
 
   final String label;
   final EquipmentCategory category;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: category.label,
       child: Container(
