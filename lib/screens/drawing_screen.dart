@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../constants/strings_ko.dart';
 import '../models/defect.dart';
@@ -34,6 +35,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
   int _currentPage = 1;
+  Defect? _selectedDefect;
+  EquipmentMarker? _selectedEquipment;
+  Offset? _selectedMarkerScenePosition;
 
   @override
   void initState() {
@@ -42,9 +46,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
+    final scenePoint = _transformationController.toScene(details.localPosition);
     if (!_isTapWithinCanvas(details)) {
+      _clearSelectedMarker();
       return;
     }
+
+    final hitResult = _hitTestMarker(scenePoint);
+    if (hitResult != null) {
+      _selectMarker(hitResult);
+      return;
+    }
+
+    _clearSelectedMarker();
     if (_mode == DrawMode.defect && _activeCategory == null) {
       return;
     }
@@ -54,8 +68,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (_mode != DrawMode.defect && _mode != DrawMode.equipment) {
       return;
     }
-
-    final scenePoint = _transformationController.toScene(details.localPosition);
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
@@ -108,6 +120,76 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       await widget.onSiteUpdated(_site);
     }
+  }
+
+  void _selectMarker(_MarkerHitResult result) {
+    setState(() {
+      _selectedDefect = result.defect;
+      _selectedEquipment = result.equipment;
+      _selectedMarkerScenePosition = result.position;
+    });
+  }
+
+  void _clearSelectedMarker() {
+    if (_selectedDefect == null &&
+        _selectedEquipment == null &&
+        _selectedMarkerScenePosition == null) {
+      return;
+    }
+    setState(() {
+      _selectedDefect = null;
+      _selectedEquipment = null;
+      _selectedMarkerScenePosition = null;
+    });
+  }
+
+  _MarkerHitResult? _hitTestMarker(Offset scenePoint) {
+    const hitRadius = 24.0;
+    final hitRadiusSquared = hitRadius * hitRadius;
+    double closestDistance = hitRadiusSquared;
+    Defect? defectHit;
+    EquipmentMarker? equipmentHit;
+    Offset? positionHit;
+
+    for (final defect
+        in _site.defects.where((defect) => defect.pageIndex == _currentPage)) {
+      final position = Offset(
+        defect.normalizedX * _canvasSize.width,
+        defect.normalizedY * _canvasSize.height,
+      );
+      final distance = (scenePoint - position).distanceSquared;
+      if (distance <= closestDistance) {
+        closestDistance = distance;
+        defectHit = defect;
+        equipmentHit = null;
+        positionHit = position;
+      }
+    }
+
+    for (final marker in _site.equipmentMarkers
+        .where((marker) => marker.pageIndex == _currentPage)) {
+      final position = Offset(
+        marker.normalizedX * _canvasSize.width,
+        marker.normalizedY * _canvasSize.height,
+      );
+      final distance = (scenePoint - position).distanceSquared;
+      if (distance <= closestDistance) {
+        closestDistance = distance;
+        defectHit = null;
+        equipmentHit = marker;
+        positionHit = position;
+      }
+    }
+
+    if (positionHit == null) {
+      return null;
+    }
+
+    return _MarkerHitResult(
+      defect: defectHit,
+      equipment: equipmentHit,
+      position: positionHit,
+    );
   }
 
   bool _isTapWithinCanvas(TapDownDetails details) {
@@ -420,6 +502,96 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
+  Widget _buildMarkerPopup(Size viewportSize) {
+    if (_selectedMarkerScenePosition == null ||
+        (_selectedDefect == null && _selectedEquipment == null)) {
+      return const SizedBox.shrink();
+    }
+
+    const popupMaxWidth = 220.0;
+    const popupMargin = 8.0;
+    const lineHeight = 18.0;
+    const verticalPadding = 12.0;
+    final lines = _selectedDefect != null
+        ? _defectPopupLines(_selectedDefect!)
+        : _equipmentPopupLines(_selectedEquipment!);
+    final estimatedHeight =
+        lines.length * lineHeight + verticalPadding * 2;
+
+    final markerViewportPosition = MatrixUtils.transformPoint(
+      _transformationController.value,
+      _selectedMarkerScenePosition!,
+    );
+
+    final desiredLeft = markerViewportPosition.dx + 16;
+    final desiredTop = markerViewportPosition.dy - estimatedHeight - 12;
+
+    final maxLeft = (viewportSize.width - popupMaxWidth - popupMargin)
+        .clamp(0.0, double.infinity);
+    final maxTop = (viewportSize.height - estimatedHeight - popupMargin)
+        .clamp(0.0, double.infinity);
+
+    final left =
+        desiredLeft.clamp(popupMargin, maxLeft == 0 ? popupMargin : maxLeft);
+    final top =
+        desiredTop.clamp(popupMargin, maxTop == 0 ? popupMargin : maxTop);
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: popupMaxWidth),
+        child: Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: verticalPadding,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: lines
+                  .map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        line,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<String> _defectPopupLines(Defect defect) {
+    final details = defect.details;
+    return [
+      defect.label,
+      '${defect.category.label} / ${details.crackType}',
+      '${_formatNumber(details.widthMm)} / ${_formatNumber(details.lengthMm)}',
+      details.cause,
+    ];
+  }
+
+  List<String> _equipmentPopupLines(EquipmentMarker marker) {
+    return [
+      marker.label,
+      marker.category.label,
+    ];
+  }
+
+  String _formatNumber(double value) {
+    if (value % 1 == 0) {
+      return value.toStringAsFixed(0);
+    }
+    return value.toStringAsFixed(1);
+  }
+
   List<Widget> _buildDefectMarkers() {
     final defects = _site.defects
         .where((defect) => defect.pageIndex == _currentPage)
@@ -679,12 +851,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   children: [
                     GestureDetector(
                       behavior: HitTestBehavior.deferToChild,
-                      onTapDown: (_mode == DrawMode.defect &&
-                                  _activeCategory != null) ||
-                              (_mode == DrawMode.equipment &&
-                                  _activeEquipmentCategory != null)
-                          ? _handleTap
-                          : null,
+                      onTapDown: _handleTap,
                       child: InteractiveViewer(
                         transformationController: _transformationController,
                         minScale: 0.5,
@@ -704,6 +871,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                         ),
                       ),
                     ),
+                    _buildMarkerPopup(constraints.biggest),
                     Positioned(
                       top: 16,
                       right: 16,
@@ -718,6 +886,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+}
+
+class _MarkerHitResult {
+  const _MarkerHitResult({
+    required this.defect,
+    required this.equipment,
+    required this.position,
+  });
+
+  final Defect? defect;
+  final EquipmentMarker? equipment;
+  final Offset position;
 }
 
 class _DefectMarker extends StatelessWidget {
