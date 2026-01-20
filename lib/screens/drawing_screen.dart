@@ -677,38 +677,56 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Widget _buildDefectCategories() {
-    return Wrap(
-      spacing: 8,
-      children: DefectCategory.values.map((category) {
-        final selected = _activeCategory == category;
-        return ChoiceChip(
-          label: Text(category.label),
-          selected: selected,
-          onSelected: (_) {
-            setState(() {
-              _activeCategory = category;
-            });
-          },
-        );
-      }).toList(),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: DefectCategory.values.map((category) {
+            final selected = _activeCategory == category;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(category.label),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() {
+                    _activeCategory = category;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
   Widget _buildEquipmentCategories() {
-    return Wrap(
-      spacing: 8,
-      children: EquipmentCategory.values.map((category) {
-        final selected = _activeEquipmentCategory == category;
-        return ChoiceChip(
-          label: Text(category.label),
-          selected: selected,
-          onSelected: (_) {
-            setState(() {
-              _activeEquipmentCategory = category;
-            });
-          },
-        );
-      }).toList(),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: EquipmentCategory.values.map((category) {
+            final selected = _activeEquipmentCategory == category;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(category.label),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() {
+                    _activeEquipmentCategory = category;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
@@ -773,7 +791,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final showModeHint =
         showDefectHint || showEquipmentHint || _mode == DrawMode.freeDraw ||
             _mode == DrawMode.eraser;
-    final categoryBarHeight = showModeHint ? 76.0 : 56.0;
+    final categoryBarHeight = showModeHint ? 64.0 : 48.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -806,7 +824,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(categoryBarHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -816,7 +834,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     children: [
                       if (showDefectHint)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(bottom: 2),
                           child: Text(
                             StringsKo.selectDefectCategoryHint,
                             style: Theme.of(context).textTheme.bodySmall,
@@ -831,7 +849,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     children: [
                       if (showEquipmentHint)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(bottom: 2),
                           child: Text(
                             StringsKo.selectEquipmentCategoryHint,
                             style: Theme.of(context).textTheme.bodySmall,
