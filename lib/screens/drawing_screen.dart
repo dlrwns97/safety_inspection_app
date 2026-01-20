@@ -151,8 +151,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     EquipmentMarker? equipmentHit;
     Offset? positionHit;
 
-    for (final defect
-        in _site.defects.where((defect) => defect.pageIndex == _currentPage)) {
+    for (final defect in _site.defects.where(
+      (defect) => defect.pageIndex == _currentPage,
+    )) {
       final position = Offset(
         defect.normalizedX * _canvasSize.width,
         defect.normalizedY * _canvasSize.height,
@@ -166,8 +167,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
     }
 
-    for (final marker in _site.equipmentMarkers
-        .where((marker) => marker.pageIndex == _currentPage)) {
+    for (final marker in _site.equipmentMarkers.where(
+      (marker) => marker.pageIndex == _currentPage,
+    )) {
       final position = Offset(
         marker.normalizedX * _canvasSize.width,
         marker.normalizedY * _canvasSize.height,
@@ -233,9 +235,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 bool isValid() {
                   final width = double.tryParse(widthController.text);
                   final length = double.tryParse(lengthController.text);
-                  final hasOtherType = !isOtherType ||
+                  final hasOtherType =
+                      !isOtherType ||
                       otherTypeController.text.trim().isNotEmpty;
-                  final hasOtherCause = !isOtherCause ||
+                  final hasOtherCause =
+                      !isOtherCause ||
                       otherCauseController.text.trim().isNotEmpty;
                   return structuralMember != null &&
                       crackType != null &&
@@ -320,8 +324,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                               ),
                               validator: (_) =>
                                   otherTypeController.text.trim().isEmpty
-                                      ? StringsKo.enterOtherTypeError
-                                      : null,
+                                  ? StringsKo.enterOtherTypeError
+                                  : null,
                               onChanged: (_) => setState(() {}),
                             ),
                           ],
@@ -336,8 +340,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                   ),
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                        decimal: true,
+                                      ),
                                   validator: (value) {
                                     final parsed = double.tryParse(value ?? '');
                                     if (parsed == null || parsed <= 0) {
@@ -357,8 +361,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                                   ),
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                        decimal: true,
+                                      ),
                                   validator: (value) {
                                     final parsed = double.tryParse(value ?? '');
                                     if (parsed == null || parsed <= 0) {
@@ -406,8 +410,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                               ),
                               validator: (_) =>
                                   otherCauseController.text.trim().isEmpty
-                                      ? StringsKo.enterOtherCauseError
-                                      : null,
+                                  ? StringsKo.enterOtherCauseError
+                                  : null,
                               onChanged: (_) => setState(() {}),
                             ),
                           ],
@@ -515,8 +519,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final lines = _selectedDefect != null
         ? _defectPopupLines(_selectedDefect!)
         : _equipmentPopupLines(_selectedEquipment!);
-    final estimatedHeight =
-        lines.length * lineHeight + verticalPadding * 2;
+    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
 
     final markerViewportPosition = MatrixUtils.transformPoint(
       _transformationController.value,
@@ -526,15 +529,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final desiredLeft = markerViewportPosition.dx + 16;
     final desiredTop = markerViewportPosition.dy - estimatedHeight - 12;
 
-    final maxLeft = (viewportSize.width - popupMaxWidth - popupMargin)
-        .clamp(0.0, double.infinity);
-    final maxTop = (viewportSize.height - estimatedHeight - popupMargin)
-        .clamp(0.0, double.infinity);
+    final maxLeft = (viewportSize.width - popupMaxWidth - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
+    final maxTop = (viewportSize.height - estimatedHeight - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
 
-    final left =
-        desiredLeft.clamp(popupMargin, maxLeft == 0 ? popupMargin : maxLeft);
-    final top =
-        desiredTop.clamp(popupMargin, maxTop == 0 ? popupMargin : maxTop);
+    final left = desiredLeft.clamp(
+      popupMargin,
+      maxLeft == 0 ? popupMargin : maxLeft,
+    );
+    final top = desiredTop.clamp(
+      popupMargin,
+      maxTop == 0 ? popupMargin : maxTop,
+    );
 
     return Positioned(
       left: left,
@@ -579,10 +590,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   List<String> _equipmentPopupLines(EquipmentMarker marker) {
-    return [
-      marker.label,
-      marker.category.label,
-    ];
+    return [marker.label, marker.category.label];
   }
 
   String _formatNumber(double value) {
@@ -871,12 +879,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                         ),
                       ),
                     ),
-                    _buildMarkerPopup(constraints.biggest),
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: _buildModeButtons(),
-                    ),
+                    _buildMarkerPopup(MediaQuery.of(context).size),
+                    Positioned(top: 16, right: 16, child: _buildModeButtons()),
                   ],
                 );
               },
