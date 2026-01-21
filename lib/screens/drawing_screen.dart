@@ -1329,59 +1329,50 @@ class _DrawingScreenState extends State<DrawingScreen> {
         ),
         const SizedBox(width: 4),
         Flexible(
-          flex: 2,
-          fit: FlexFit.tight,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _modeTitle(_mode),
-                style: Theme.of(context).textTheme.titleSmall,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (showAddButton) ...[
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 18,
-                    onPressed: _handleAddToolAction,
-                    icon: const Icon(Icons.add),
-                    tooltip: '추가',
-                  ),
-                ),
-              ],
-            ],
+          fit: FlexFit.loose,
+          child: Text(
+            _modeTitle(_mode),
+            style: Theme.of(context).textTheme.titleSmall,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: showTabs
-                ? _buildNumberedTabs(
-                    items: _mode == DrawMode.defect
-                        ? DefectCategory.values
-                        : EquipmentCategory.values,
-                    selected: _mode == DrawMode.defect
-                        ? _activeCategory
-                        : _activeEquipmentCategory,
-                    onSelected: (item) {
-                      setState(() {
-                        if (_mode == DrawMode.defect) {
-                          _activeCategory = item as DefectCategory;
-                        } else {
-                          _activeEquipmentCategory =
-                              item as EquipmentCategory;
-                        }
-                      });
-                    },
-                  )
-                : const SizedBox.shrink(),
+        if (showAddButton) ...[
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: 18,
+              onPressed: _handleAddToolAction,
+              icon: const Icon(Icons.add),
+              tooltip: '추가',
+            ),
           ),
-        ),
+        ],
+        if (showTabs) ...[
+          const SizedBox(width: 8),
+          Flexible(
+            fit: FlexFit.loose,
+            child: _buildNumberedTabs(
+              items: _mode == DrawMode.defect
+                  ? DefectCategory.values
+                  : EquipmentCategory.values,
+              selected: _mode == DrawMode.defect
+                  ? _activeCategory
+                  : _activeEquipmentCategory,
+              onSelected: (item) {
+                setState(() {
+                  if (_mode == DrawMode.defect) {
+                    _activeCategory = item as DefectCategory;
+                  } else {
+                    _activeEquipmentCategory = item as EquipmentCategory;
+                  }
+                });
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
