@@ -17,6 +17,7 @@ class StringsKo {
   static const pageLabel = '페이지';
   static const pdfDrawingLoaded = 'PDF 도면이 로드되었습니다';
   static const pdfDrawingHint = '핀치로 확대하고 탭하여 결함을 추가하세요.';
+  static const pdfDrawingLoadFailed = 'PDF 도면을 불러오지 못했습니다.';
   static const defectDetailsTitle = '결함 상세';
   static const defectDetailsTitleGeneralCrack = '균열 결함 상세';
   static const defectDetailsTitleWaterLeakage = '누수 결함 상세';
