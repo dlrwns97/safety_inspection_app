@@ -49,7 +49,7 @@ class StringsKo {
   static const defectCategoryConcreteSpalling = '콘크리트 결함';
   static const defectCategoryOther = '기타 결함';
   static const equipmentCategory1 = '장비1';
-  static const equipmentCategory2 = '장비2';
+  static const equipmentCategory2 = '철근배근간격';
   static const equipmentCategory3 = '장비3';
   static const equipmentCategory4 = '장비4';
   static const otherOptionLabel = '기타';

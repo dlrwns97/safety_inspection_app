@@ -45,6 +45,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     '철골 C찬넬',
     '철골 H형강',
   ];
+  static const List<String> _rebarSpacingMemberOptions = [
+    '기둥',
+    '보',
+    '벽체',
+    '슬래브',
+  ];
   static const Map<String, List<String>> _equipmentMemberSizeLabels = {
     '기둥': ['W', 'H'],
     '보': ['W', 'H'],
@@ -256,7 +262,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           .length;
       final prefix = _equipmentLabelPrefix(_activeEquipmentCategory!);
       final label = '$prefix${equipmentCount + 1}';
-      final marker = EquipmentMarker(
+      final pendingMarker = EquipmentMarker(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         label: label,
         pageIndex: _currentPage,
@@ -266,29 +272,56 @@ class _DrawingScreenState extends State<DrawingScreen> {
         equipmentTypeId: prefix,
       );
 
-      setState(() {
-        _site = _site.copyWith(
-          equipmentMarkers: [..._site.equipmentMarkers, marker],
-        );
-      });
-      await widget.onSiteUpdated(_site);
       if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
         final details = await _showEquipmentDetailsDialog(
-          title: '부재단면치수 ${marker.label}',
-          initialMemberType: marker.memberType,
-          initialSizeValues: marker.sizeValues,
+          title: '부재단면치수 ${pendingMarker.label}',
+          initialMemberType: pendingMarker.memberType,
+          initialSizeValues: pendingMarker.sizeValues,
         );
         if (!mounted || details == null) {
           return;
         }
-        await _updateEquipmentMarker(
-          marker.copyWith(
-            equipmentTypeId: prefix,
-            memberType: details.memberType,
-            sizeValues: details.sizeValues,
-          ),
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          sizeValues: details.sizeValues,
         );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment2) {
+        final details = await _showRebarSpacingDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialNumberText: pendingMarker.numberText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          numberText: details.numberText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
+      setState(() {
+        _site = _site.copyWith(
+          equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
+        );
+      });
+      await widget.onSiteUpdated(_site);
     }
   }
 
@@ -857,16 +890,117 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Future<void> _updateEquipmentMarker(EquipmentMarker updatedMarker) async {
-    final markers = _site.equipmentMarkers
-        .map(
-          (marker) => marker.id == updatedMarker.id ? updatedMarker : marker,
-        )
-        .toList();
-    setState(() {
-      _site = _site.copyWith(equipmentMarkers: markers);
-    });
-    await widget.onSiteUpdated(_site);
+  Future<_RebarSpacingDetails?> _showRebarSpacingDialog({
+    required String title,
+    String? initialMemberType,
+    String? initialNumberText,
+  }) async {
+    return showDialog<_RebarSpacingDetails>(
+      context: context,
+      builder: (context) {
+        final maxWidth = min(
+          MediaQuery.of(context).size.width * 0.6,
+          520.0,
+        );
+        final formKey = GlobalKey<FormState>();
+        String? selectedMember = initialMemberType;
+        final numberController = TextEditingController(
+          text: initialNumberText ?? '',
+        );
+
+        return Dialog(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  final isSaveEnabled = selectedMember != null;
+                  return Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: selectedMember,
+                          decoration: const InputDecoration(
+                            labelText: '부재',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _rebarSpacingMemberOptions
+                              .map(
+                                (option) => DropdownMenuItem(
+                                  value: option,
+                                  child: Text(option),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedMember = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '부재를 선택하세요.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: numberController,
+                          decoration: const InputDecoration(
+                            labelText: '번호',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('취소'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: isSaveEnabled
+                                  ? () {
+                                      if (!(formKey.currentState?.validate() ??
+                                          false)) {
+                                        return;
+                                      }
+                                      Navigator.of(context).pop(
+                                        _RebarSpacingDetails(
+                                          memberType: selectedMember!,
+                                          numberText:
+                                              numberController.text.trim(),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              child: const Text('저장'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildPdfViewer() {
@@ -1191,6 +1325,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment2) {
+        final details = await _showRebarSpacingDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialNumberText: pendingMarker.numberText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          numberText: details.numberText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -1367,6 +1523,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   List<String> _equipmentPopupLines(EquipmentMarker marker) {
+    if (marker.equipmentTypeId == 'F') {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+        lines.add(marker.memberType!);
+      }
+      if (marker.numberText != null && marker.numberText!.isNotEmpty) {
+        lines.add('번호: ${marker.numberText}');
+      }
+      return lines;
+    }
     return [marker.label, marker.category.label];
   }
 
@@ -1747,6 +1913,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  String _equipmentDisplayLabel(EquipmentMarker marker) {
+    if (marker.equipmentTypeId == 'F') {
+      return '철근배근간격 ${marker.label}';
+    }
+    return marker.label;
+  }
+
   Color _equipmentColor(EquipmentCategory category) {
     switch (category) {
       case EquipmentCategory.equipment1:
@@ -1977,6 +2150,16 @@ class _EquipmentDetails {
 
   final String memberType;
   final List<String> sizeValues;
+}
+
+class _RebarSpacingDetails {
+  const _RebarSpacingDetails({
+    required this.memberType,
+    required this.numberText,
+  });
+
+  final String memberType;
+  final String numberText;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {
