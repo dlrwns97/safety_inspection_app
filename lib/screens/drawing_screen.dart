@@ -29,6 +29,7 @@ class DrawingScreen extends StatefulWidget {
 class _DrawingScreenState extends State<DrawingScreen> {
   static const Size _canvasSize = Size(1200, 1700);
   static const int _pageCount = 3;
+  static const double _tapSlop = 8.0;
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
@@ -43,6 +44,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Defect? _selectedDefect;
   EquipmentMarker? _selectedEquipment;
   Offset? _selectedMarkerScenePosition;
+  Offset? _pointerDownPosition;
+  bool _tapCanceled = false;
 
   @override
   void initState() {
@@ -82,9 +85,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
-  Future<void> _handleTap(TapDownDetails details) async {
+  Future<void> _handleTap(TapUpDetails details) async {
+    if (_tapCanceled) {
+      _tapCanceled = false;
+      return;
+    }
     final scenePoint = _transformationController.toScene(details.localPosition);
-    if (!_isTapWithinCanvas(details)) {
+    if (!_isTapWithinCanvas(details.globalPosition)) {
       _clearSelectedMarker();
       return;
     }
@@ -235,14 +242,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  bool _isTapWithinCanvas(TapDownDetails details) {
+  bool _isTapWithinCanvas(Offset globalPosition) {
     final context = _canvasKey.currentContext;
     final renderObject = context?.findRenderObject();
     if (renderObject is! RenderBox || !renderObject.hasSize) {
       return false;
     }
 
-    final localPosition = renderObject.globalToLocal(details.globalPosition);
+    final localPosition = renderObject.globalToLocal(globalPosition);
     return localPosition.dx >= 0 &&
         localPosition.dy >= 0 &&
         localPosition.dx <= renderObject.size.width &&
@@ -737,31 +744,37 @@ class _DrawingScreenState extends State<DrawingScreen> {
           icon: Icons.bug_report_outlined,
           label: StringsKo.defectModeLabel,
           isSelected: _mode == DrawMode.defect,
-          onTap: () => setState(() => _mode = DrawMode.defect),
+          onTap: () => _toggleMode(DrawMode.defect),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.construction_outlined,
           label: StringsKo.equipmentModeLabel,
           isSelected: _mode == DrawMode.equipment,
-          onTap: () => setState(() => _mode = DrawMode.equipment),
+          onTap: () => _toggleMode(DrawMode.equipment),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.brush_outlined,
           label: StringsKo.freeDrawModeLabel,
           isSelected: _mode == DrawMode.freeDraw,
-          onTap: () => setState(() => _mode = DrawMode.freeDraw),
+          onTap: () => _toggleMode(DrawMode.freeDraw),
         ),
         const SizedBox(height: 12),
         ModeButton(
           icon: Icons.auto_fix_off_outlined,
           label: StringsKo.eraserModeLabel,
           isSelected: _mode == DrawMode.eraser,
-          onTap: () => setState(() => _mode = DrawMode.eraser),
+          onTap: () => _toggleMode(DrawMode.eraser),
         ),
       ],
     );
+  }
+
+  void _toggleMode(DrawMode nextMode) {
+    setState(() {
+      _mode = _mode == nextMode ? DrawMode.hand : nextMode;
+    });
   }
 
   Widget _buildDefectCategories() {
@@ -1001,24 +1014,48 @@ class _DrawingScreenState extends State<DrawingScreen> {
               builder: (context, _) {
                 return Stack(
                   children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.deferToChild,
-                      onTapDown: _handleTap,
-                      child: InteractiveViewer(
-                        transformationController: _transformationController,
-                        minScale: 0.5,
-                        maxScale: 4,
-                        constrained: false,
-                        child: SizedBox(
-                          key: _canvasKey,
-                          width: _canvasSize.width,
-                          height: _canvasSize.height,
-                          child: Stack(
-                            children: [
-                              _buildDrawingBackground(),
-                              ..._buildDefectMarkers(),
-                              ..._buildEquipmentMarkers(),
-                            ],
+                    Listener(
+                      onPointerDown: (event) {
+                        _pointerDownPosition = event.localPosition;
+                        _tapCanceled = false;
+                      },
+                      onPointerMove: (event) {
+                        if (_pointerDownPosition == null) {
+                          return;
+                        }
+                        final distance =
+                            (event.localPosition - _pointerDownPosition!)
+                                .distance;
+                        if (distance > _tapSlop) {
+                          _tapCanceled = true;
+                        }
+                      },
+                      onPointerUp: (_) {
+                        _pointerDownPosition = null;
+                      },
+                      onPointerCancel: (_) {
+                        _pointerDownPosition = null;
+                        _tapCanceled = false;
+                      },
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.deferToChild,
+                        onTapUp: _handleTap,
+                        child: InteractiveViewer(
+                          transformationController: _transformationController,
+                          minScale: 0.5,
+                          maxScale: 4,
+                          constrained: false,
+                          child: SizedBox(
+                            key: _canvasKey,
+                            width: _canvasSize.width,
+                            height: _canvasSize.height,
+                            child: Stack(
+                              children: [
+                                _buildDrawingBackground(),
+                                ..._buildDefectMarkers(),
+                                ..._buildEquipmentMarkers(),
+                              ],
+                            ),
                           ),
                         ),
                       ),

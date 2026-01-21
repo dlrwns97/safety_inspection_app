@@ -2,7 +2,7 @@ import '../constants/strings_ko.dart';
 
 enum DrawingType { pdf, blank }
 
-enum DrawMode { defect, equipment, freeDraw, eraser }
+enum DrawMode { hand, defect, equipment, freeDraw, eraser }
 
 enum DefectCategory {
   generalCrack(StringsKo.defectCategoryGeneralCrack),
