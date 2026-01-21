@@ -33,7 +33,6 @@ class DrawingScreen extends StatefulWidget {
 class _DrawingScreenState extends State<DrawingScreen> {
   static const Size _canvasSize = Size(1200, 1700);
   static const double _tapSlop = 8.0;
-  static const double _pageSwipeThreshold = 120.0;
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
@@ -161,7 +160,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
-  Future<void> _handleTap(TapUpDetails details) async {
+  Future<void> _handleCanvasTap(TapUpDetails details) async {
     if (_tapCanceled) {
       _tapCanceled = false;
       return;
@@ -172,7 +171,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return;
     }
 
-    final hitResult = _hitTestMarker(scenePoint);
+    final hitResult = _hitTestMarkerOnCanvas(scenePoint);
     if (hitResult != null) {
       _selectMarker(hitResult);
       return;
@@ -267,7 +266,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
-  _MarkerHitResult? _hitTestMarker(Offset scenePoint) {
+  _MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
     const hitRadius = 24.0;
     final hitRadiusSquared = hitRadius * hitRadius;
     double closestDistance = hitRadiusSquared;
@@ -299,6 +298,61 @@ class _DrawingScreenState extends State<DrawingScreen> {
         marker.normalizedY * _canvasSize.height,
       );
       final distance = (scenePoint - position).distanceSquared;
+      if (distance <= closestDistance) {
+        closestDistance = distance;
+        defectHit = null;
+        equipmentHit = marker;
+        positionHit = position;
+      }
+    }
+
+    if (positionHit == null) {
+      return null;
+    }
+
+    return _MarkerHitResult(
+      defect: defectHit,
+      equipment: equipmentHit,
+      position: positionHit,
+    );
+  }
+
+  _MarkerHitResult? _hitTestMarkerOnPage(
+    Offset pagePoint,
+    Size pageSize,
+    int pageIndex,
+  ) {
+    const hitRadius = 24.0;
+    final hitRadiusSquared = hitRadius * hitRadius;
+    double closestDistance = hitRadiusSquared;
+    Defect? defectHit;
+    EquipmentMarker? equipmentHit;
+    Offset? positionHit;
+
+    for (final defect in _site.defects.where(
+      (defect) => defect.pageIndex == pageIndex,
+    )) {
+      final position = Offset(
+        defect.normalizedX * pageSize.width,
+        defect.normalizedY * pageSize.height,
+      );
+      final distance = (pagePoint - position).distanceSquared;
+      if (distance <= closestDistance) {
+        closestDistance = distance;
+        defectHit = defect;
+        equipmentHit = null;
+        positionHit = position;
+      }
+    }
+
+    for (final marker in _site.equipmentMarkers.where(
+      (marker) => marker.pageIndex == pageIndex,
+    )) {
+      final position = Offset(
+        marker.normalizedX * pageSize.width,
+        marker.normalizedY * pageSize.height,
+      );
+      final distance = (pagePoint - position).distanceSquared;
       if (distance <= closestDistance) {
         closestDistance = distance;
         defectHit = null;
@@ -595,111 +649,175 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildDrawingBackground() {
+  Widget _buildPdfViewer() {
     final theme = Theme.of(context);
-    if (_site.drawingType == DrawingType.pdf) {
-      if (_pdfLoadError != null) {
-        return Container(
-          color: theme.colorScheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _pdfLoadError!,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        );
-      }
-      if (_pdfController != null) {
-        return ClipRect(
-          child: PdfView(
-            controller: _pdfController!,
-            scrollDirection: Axis.vertical,
-            pageSnapping: true,
-            physics: const PageScrollPhysics(),
-            onPageChanged: (page) {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _currentPage = page;
-              });
-            },
-            onDocumentLoaded: (document) {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _pageCount = document.pagesCount;
-                if (_currentPage > _pageCount) {
-                  _currentPage = 1;
-                }
-                _pdfLoadError = null;
-              });
-              debugPrint('PDF loaded with ${document.pagesCount} pages.');
-            },
-            onDocumentError: (error) {
-              debugPrint('Failed to load PDF: $error');
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
-              });
-            },
-            builders: PdfViewBuilders<DefaultBuilderOptions>(
-              options: const DefaultBuilderOptions(
-                loaderSwitchDuration: Duration(milliseconds: 300),
-              ),
-              documentLoaderBuilder: (_) => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              pageLoaderBuilder: (_) => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              pageBuilder: (context, pageImage, pageIndex, document) {
-                final imageProvider = PdfPageImageProvider(
-                  pageImage,
-                  pageIndex + 1,
-                  document.id,
-                );
-                return PhotoViewGalleryPageOptions(
-                  imageProvider: imageProvider,
-                  initialScale: PhotoViewComputedScale.contained,
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 2.0,
-                  basePosition: Alignment.center,
-                );
-              },
-            ),
-          ),
-        );
-      }
+    if (_pdfLoadError != null) {
       return Container(
         color: theme.colorScheme.surfaceContainerHighest,
         alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.picture_as_pdf_outlined,
-              size: 64,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _site.pdfName ?? StringsKo.pdfDrawingLoaded,
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            const Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
-          ],
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          _pdfLoadError!,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+          textAlign: TextAlign.center,
         ),
       );
     }
+    if (_pdfController != null) {
+      return ClipRect(
+        child: PdfView(
+          controller: _pdfController!,
+          scrollDirection: Axis.vertical,
+          pageSnapping: true,
+          physics: const PageScrollPhysics(),
+          onPageChanged: (page) {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _currentPage = page;
+            });
+          },
+          onDocumentLoaded: (document) {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _pageCount = document.pagesCount;
+              if (_currentPage > _pageCount) {
+                _currentPage = 1;
+              }
+              _pdfLoadError = null;
+            });
+            debugPrint('PDF loaded with ${document.pagesCount} pages.');
+          },
+          onDocumentError: (error) {
+            debugPrint('Failed to load PDF: $error');
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+            });
+          },
+          builders: PdfViewBuilders<DefaultBuilderOptions>(
+            options: const DefaultBuilderOptions(
+              loaderSwitchDuration: Duration(milliseconds: 300),
+            ),
+            documentLoaderBuilder: (_) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            pageLoaderBuilder: (_) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            pageBuilder: (context, pageImage, pageIndex, document) {
+              final pageNumber = pageIndex + 1;
+              final imageProvider = PdfPageImageProvider(
+                pageImage,
+                pageNumber,
+                document.id,
+              );
+              final pageSize = Size(
+                pageImage.width.toDouble(),
+                pageImage.height.toDouble(),
+              );
+              return PhotoViewGalleryPageOptions.customChild(
+                customChild: Listener(
+                  onPointerDown: (event) {
+                    _pointerDownPosition = event.localPosition;
+                    _tapCanceled = false;
+                  },
+                  onPointerMove: (event) {
+                    if (_pointerDownPosition == null) {
+                      return;
+                    }
+                    final distance =
+                        (event.localPosition - _pointerDownPosition!).distance;
+                    if (distance > _tapSlop) {
+                      _tapCanceled = true;
+                    }
+                  },
+                  onPointerUp: (_) {
+                    _pointerDownPosition = null;
+                  },
+                  onPointerCancel: (_) {
+                    _pointerDownPosition = null;
+                    _tapCanceled = false;
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTapUp: (details) => _handlePdfTap(
+                      details,
+                      pageSize,
+                      pageNumber,
+                    ),
+                    child: SizedBox(
+                      width: pageSize.width,
+                      height: pageSize.height,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          ..._buildDefectMarkersForPage(
+                            pageSize,
+                            pageNumber,
+                          ),
+                          ..._buildEquipmentMarkersForPage(
+                            pageSize,
+                            pageNumber,
+                          ),
+                          _buildMarkerPopupForPage(
+                            pageSize,
+                            pageNumber,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                childSize: pageSize,
+                initialScale: PhotoViewComputedScale.contained,
+                minScale: PhotoViewComputedScale.contained,
+                maxScale: PhotoViewComputedScale.covered * 2.0,
+                basePosition: Alignment.center,
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return Container(
+      color: theme.colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.picture_as_pdf_outlined,
+            size: 64,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _site.pdfName ?? StringsKo.pdfDrawingLoaded,
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          const Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawingBackground() {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -709,6 +827,95 @@ class _DrawingScreenState extends State<DrawingScreen> {
         painter: _GridPainter(lineColor: theme.colorScheme.outlineVariant),
       ),
     );
+  }
+
+  Future<void> _handlePdfTap(
+    TapUpDetails details,
+    Size pageSize,
+    int pageIndex,
+  ) async {
+    if (_tapCanceled) {
+      _tapCanceled = false;
+      return;
+    }
+    final localPosition = details.localPosition;
+    final hitResult = _hitTestMarkerOnPage(
+      localPosition,
+      pageSize,
+      pageIndex,
+    );
+    if (hitResult != null) {
+      _selectMarker(hitResult);
+      return;
+    }
+
+    _clearSelectedMarker();
+    if (_mode == DrawMode.defect && _activeCategory == null) {
+      return;
+    }
+    if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
+      return;
+    }
+    if (_mode != DrawMode.defect && _mode != DrawMode.equipment) {
+      return;
+    }
+
+    final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
+    final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
+
+    if (_mode == DrawMode.defect) {
+      final detailsResult = await _showDefectDetailsDialog();
+      if (!mounted || detailsResult == null) {
+        return;
+      }
+
+      final countOnPage = _site.defects
+          .where(
+            (defect) =>
+                defect.pageIndex == pageIndex &&
+                defect.category == _activeCategory,
+          )
+          .length;
+      final label = _activeCategory == DefectCategory.generalCrack
+          ? 'C${countOnPage + 1}'
+          : '${countOnPage + 1}';
+
+      final defect = Defect(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        label: label,
+        pageIndex: pageIndex,
+        category: _activeCategory!,
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        details: detailsResult,
+      );
+
+      setState(() {
+        _site = _site.copyWith(defects: [..._site.defects, defect]);
+      });
+      await widget.onSiteUpdated(_site);
+    } else {
+      final equipmentCount = _site.equipmentMarkers
+          .where((marker) => marker.category == _activeEquipmentCategory)
+          .length;
+      final prefix = _equipmentLabelPrefix(_activeEquipmentCategory!);
+      final label = '$prefix${equipmentCount + 1}';
+      final marker = EquipmentMarker(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        label: label,
+        pageIndex: pageIndex,
+        category: _activeEquipmentCategory!,
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+      );
+
+      setState(() {
+        _site = _site.copyWith(
+          equipmentMarkers: [..._site.equipmentMarkers, marker],
+        );
+      });
+      await widget.onSiteUpdated(_site);
+    }
   }
 
   Widget _buildMarkerPopup(Size viewportSize) {
@@ -739,6 +946,89 @@ class _DrawingScreenState extends State<DrawingScreen> {
       double.infinity,
     );
     final maxTop = (viewportSize.height - estimatedHeight - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
+
+    final left = desiredLeft.clamp(
+      popupMargin,
+      maxLeft == 0 ? popupMargin : maxLeft,
+    );
+    final top = desiredTop.clamp(
+      popupMargin,
+      maxTop == 0 ? popupMargin : maxTop,
+    );
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: popupMaxWidth),
+        child: Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: verticalPadding,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: lines
+                  .map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        line,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
+    final selectedDefect = _selectedDefect;
+    final selectedEquipment = _selectedEquipment;
+    if (selectedDefect == null && selectedEquipment == null) {
+      return const SizedBox.shrink();
+    }
+    final selectedPage =
+        selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
+    if (selectedPage != pageIndex) {
+      return const SizedBox.shrink();
+    }
+
+    const popupMaxWidth = 220.0;
+    const popupMargin = 8.0;
+    const lineHeight = 18.0;
+    const verticalPadding = 12.0;
+    final lines = selectedDefect != null
+        ? _defectPopupLines(selectedDefect)
+        : _equipmentPopupLines(selectedEquipment!);
+    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
+
+    final normalizedX =
+        selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX;
+    final normalizedY =
+        selectedDefect?.normalizedY ?? selectedEquipment!.normalizedY;
+    final markerPosition = Offset(
+      normalizedX * pageSize.width,
+      normalizedY * pageSize.height,
+    );
+
+    final desiredLeft = markerPosition.dx + 16;
+    final desiredTop = markerPosition.dy - estimatedHeight - 12;
+
+    final maxLeft = (pageSize.width - popupMaxWidth - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
+    final maxTop = (pageSize.height - estimatedHeight - popupMargin).clamp(
       0.0,
       double.infinity,
     );
@@ -827,6 +1117,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }).toList();
   }
 
+  List<Widget> _buildDefectMarkersForPage(Size pageSize, int pageIndex) {
+    final defects = _site.defects
+        .where((defect) => defect.pageIndex == pageIndex)
+        .toList();
+
+    return defects.map((defect) {
+      final position = Offset(
+        defect.normalizedX * pageSize.width,
+        defect.normalizedY * pageSize.height,
+      );
+      return Positioned(
+        left: position.dx - 18,
+        top: position.dy - 18,
+        child: _DefectMarker(
+          label: defect.label,
+          category: defect.category,
+          color: _defectColor(defect.category),
+        ),
+      );
+    }).toList();
+  }
+
   List<Widget> _buildEquipmentMarkers() {
     final markers = _site.equipmentMarkers
         .where((marker) => marker.pageIndex == _currentPage)
@@ -836,6 +1148,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
       final position = Offset(
         marker.normalizedX * _canvasSize.width,
         marker.normalizedY * _canvasSize.height,
+      );
+      return Positioned(
+        left: position.dx - 18,
+        top: position.dy - 18,
+        child: _EquipmentMarker(
+          label: marker.label,
+          category: marker.category,
+          color: _equipmentColor(marker.category),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildEquipmentMarkersForPage(Size pageSize, int pageIndex) {
+    final markers = _site.equipmentMarkers
+        .where((marker) => marker.pageIndex == pageIndex)
+        .toList();
+
+    return markers.map((marker) {
+      final position = Offset(
+        marker.normalizedX * pageSize.width,
+        marker.normalizedY * pageSize.height,
       );
       return Positioned(
         left: position.dx - 18,
@@ -1047,30 +1381,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
               icon: const Icon(Icons.upload_file_outlined),
               onPressed: _replacePdf,
             ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: _currentPage,
-                items: List.generate(_pageCount, (index) {
-                  final pageNumber = index + 1;
-                  return DropdownMenuItem<int>(
-                    value: pageNumber,
-                    child: Text(StringsKo.pageTitle(pageNumber)),
-                  );
-                }),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _currentPage = value;
-                  });
-                  _pdfController?.jumpToPage(value);
-                },
-              ),
-            ),
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(categoryBarHeight),
@@ -1149,54 +1459,58 @@ class _DrawingScreenState extends State<DrawingScreen> {
               builder: (context, _) {
                 return Stack(
                   children: [
-                    Listener(
-                      onPointerDown: (event) {
-                        _pointerDownPosition = event.localPosition;
-                        _tapCanceled = false;
-                      },
-                      onPointerMove: (event) {
-                        if (_pointerDownPosition == null) {
-                          return;
-                        }
-                        final distance =
-                            (event.localPosition - _pointerDownPosition!)
-                                .distance;
-                        if (distance > _tapSlop) {
-                          _tapCanceled = true;
-                        }
-                      },
-                      onPointerUp: (event) {
-                        _handlePageSwipe(event.localPosition);
-                        _pointerDownPosition = null;
-                      },
-                      onPointerCancel: (_) {
-                        _pointerDownPosition = null;
-                        _tapCanceled = false;
-                      },
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.deferToChild,
-                        onTapUp: _handleTap,
-                        child: InteractiveViewer(
-                          transformationController: _transformationController,
-                          minScale: 0.5,
-                          maxScale: 4,
-                          constrained: false,
-                          child: SizedBox(
-                            key: _canvasKey,
-                            width: _canvasSize.width,
-                            height: _canvasSize.height,
-                            child: Stack(
-                              children: [
-                                _buildDrawingBackground(),
-                                ..._buildDefectMarkers(),
-                                ..._buildEquipmentMarkers(),
-                              ],
+                    if (_site.drawingType == DrawingType.pdf)
+                      _buildPdfViewer()
+                    else
+                      Listener(
+                        onPointerDown: (event) {
+                          _pointerDownPosition = event.localPosition;
+                          _tapCanceled = false;
+                        },
+                        onPointerMove: (event) {
+                          if (_pointerDownPosition == null) {
+                            return;
+                          }
+                          final distance =
+                              (event.localPosition - _pointerDownPosition!)
+                                  .distance;
+                          if (distance > _tapSlop) {
+                            _tapCanceled = true;
+                          }
+                        },
+                        onPointerUp: (_) {
+                          _pointerDownPosition = null;
+                        },
+                        onPointerCancel: (_) {
+                          _pointerDownPosition = null;
+                          _tapCanceled = false;
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.deferToChild,
+                          onTapUp: _handleCanvasTap,
+                          child: InteractiveViewer(
+                            transformationController:
+                                _transformationController,
+                            minScale: 0.5,
+                            maxScale: 4,
+                            constrained: false,
+                            child: SizedBox(
+                              key: _canvasKey,
+                              width: _canvasSize.width,
+                              height: _canvasSize.height,
+                              child: Stack(
+                                children: [
+                                  _buildDrawingBackground(),
+                                  ..._buildDefectMarkers(),
+                                  ..._buildEquipmentMarkers(),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    _buildMarkerPopup(MediaQuery.of(context).size),
+                    if (_site.drawingType != DrawingType.pdf)
+                      _buildMarkerPopup(MediaQuery.of(context).size),
                     Positioned(top: 16, right: 16, child: _buildModeButtons()),
                     _buildPageOverlay(),
                   ],
@@ -1207,30 +1521,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
         ],
       ),
     );
-  }
-
-  void _handlePageSwipe(Offset pointerUpPosition) {
-    if (_site.drawingType != DrawingType.pdf ||
-        _pointerDownPosition == null) {
-      return;
-    }
-    final scale = _transformationController.value.getMaxScaleOnAxis();
-    if (scale > 1.05) {
-      return;
-    }
-    final delta = pointerUpPosition - _pointerDownPosition!;
-    if (delta.dy.abs() < _pageSwipeThreshold ||
-        delta.dy.abs() < delta.dx.abs()) {
-      return;
-    }
-    final nextPage = delta.dy < 0 ? _currentPage + 1 : _currentPage - 1;
-    if (nextPage < 1 || nextPage > _pageCount) {
-      return;
-    }
-    setState(() {
-      _currentPage = nextPage;
-    });
-    _pdfController?.jumpToPage(nextPage);
   }
 
   Widget _buildPageOverlay() {
