@@ -12,6 +12,8 @@ class EquipmentMarker {
     this.memberType,
     this.numberText,
     this.sizeValues,
+    this.maxValueText,
+    this.minValueText,
   });
 
   final String id;
@@ -24,6 +26,8 @@ class EquipmentMarker {
   final String? memberType;
   final String? numberText;
   final List<String>? sizeValues;
+  final String? maxValueText;
+  final String? minValueText;
 
   EquipmentMarker copyWith({
     String? id,
@@ -36,6 +40,8 @@ class EquipmentMarker {
     String? memberType,
     String? numberText,
     List<String>? sizeValues,
+    String? maxValueText,
+    String? minValueText,
   }) {
     return EquipmentMarker(
       id: id ?? this.id,
@@ -48,6 +54,8 @@ class EquipmentMarker {
       memberType: memberType ?? this.memberType,
       numberText: numberText ?? this.numberText,
       sizeValues: sizeValues ?? this.sizeValues,
+      maxValueText: maxValueText ?? this.maxValueText,
+      minValueText: minValueText ?? this.minValueText,
     );
   }
 
@@ -62,6 +70,8 @@ class EquipmentMarker {
     'memberType': memberType,
     'numberText': numberText,
     'sizeValues': sizeValues,
+    'maxValueText': maxValueText,
+    'minValueText': minValueText,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -80,5 +90,7 @@ class EquipmentMarker {
         sizeValues: (json['sizeValues'] as List<dynamic>?)
             ?.map((value) => value.toString())
             .toList(),
+        maxValueText: json['maxValueText'] as String?,
+        minValueText: json['minValueText'] as String?,
       );
 }
