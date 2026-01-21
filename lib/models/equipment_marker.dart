@@ -8,6 +8,9 @@ class EquipmentMarker {
     required this.category,
     required this.normalizedX,
     required this.normalizedY,
+    this.equipmentTypeId,
+    this.memberType,
+    this.sizeValues,
   });
 
   final String id;
@@ -16,6 +19,33 @@ class EquipmentMarker {
   final EquipmentCategory category;
   final double normalizedX;
   final double normalizedY;
+  final String? equipmentTypeId;
+  final String? memberType;
+  final List<String>? sizeValues;
+
+  EquipmentMarker copyWith({
+    String? id,
+    String? label,
+    int? pageIndex,
+    EquipmentCategory? category,
+    double? normalizedX,
+    double? normalizedY,
+    String? equipmentTypeId,
+    String? memberType,
+    List<String>? sizeValues,
+  }) {
+    return EquipmentMarker(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      pageIndex: pageIndex ?? this.pageIndex,
+      category: category ?? this.category,
+      normalizedX: normalizedX ?? this.normalizedX,
+      normalizedY: normalizedY ?? this.normalizedY,
+      equipmentTypeId: equipmentTypeId ?? this.equipmentTypeId,
+      memberType: memberType ?? this.memberType,
+      sizeValues: sizeValues ?? this.sizeValues,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -24,6 +54,9 @@ class EquipmentMarker {
     'category': category.name,
     'normalizedX': normalizedX,
     'normalizedY': normalizedY,
+    'equipmentTypeId': equipmentTypeId,
+    'memberType': memberType,
+    'sizeValues': sizeValues,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -36,5 +69,10 @@ class EquipmentMarker {
         ),
         normalizedX: (json['normalizedX'] as num? ?? 0).toDouble(),
         normalizedY: (json['normalizedY'] as num? ?? 0).toDouble(),
+        equipmentTypeId: json['equipmentTypeId'] as String?,
+        memberType: json['memberType'] as String?,
+        sizeValues: (json['sizeValues'] as List<dynamic>?)
+            ?.map((value) => value.toString())
+            .toList(),
       );
 }
