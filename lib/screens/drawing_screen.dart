@@ -554,9 +554,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
                 });
               },
-              onPageError: (page, error) {
-                debugPrint('Failed to render PDF page $page: $error');
-              },
             ),
           ),
         );
