@@ -1010,6 +1010,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
+        final details = await _showCoreSamplingDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialAvgValueText: pendingMarker.avgValueText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          avgValueText: details.avgValueText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
