@@ -40,7 +40,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   late Site _site;
   PdfController? _pdfController;
   String? _pdfLoadError;
-  DrawMode _mode = DrawMode.defect;
+  DrawMode _mode = DrawMode.hand;
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
   int _currentPage = 1;
@@ -1223,34 +1223,37 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }).toList();
   }
 
-  Widget _buildModeToolRow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _ToolToggleButton(
-          label: StringsKo.defectModeLabel,
-          isSelected: _mode == DrawMode.defect,
-          onTap: () => _toggleMode(DrawMode.defect),
-        ),
-        const SizedBox(width: 8),
-        _ToolToggleButton(
-          label: StringsKo.equipmentModeLabel,
-          isSelected: _mode == DrawMode.equipment,
-          onTap: () => _toggleMode(DrawMode.equipment),
-        ),
-        const SizedBox(width: 8),
-        _ToolToggleButton(
-          label: StringsKo.freeDrawModeLabel,
-          isSelected: _mode == DrawMode.freeDraw,
-          onTap: () => _toggleMode(DrawMode.freeDraw),
-        ),
-        const SizedBox(width: 8),
-        _ToolToggleButton(
-          label: StringsKo.eraserModeLabel,
-          isSelected: _mode == DrawMode.eraser,
-          onTap: () => _toggleMode(DrawMode.eraser),
-        ),
-      ],
+  Widget _buildToolSelectionRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToolToggleButton(
+            label: StringsKo.defectModeLabel,
+            isSelected: _mode == DrawMode.defect,
+            onTap: () => _toggleMode(DrawMode.defect),
+          ),
+          const SizedBox(width: 8),
+          _ToolToggleButton(
+            label: StringsKo.equipmentModeLabel,
+            isSelected: _mode == DrawMode.equipment,
+            onTap: () => _toggleMode(DrawMode.equipment),
+          ),
+          const SizedBox(width: 8),
+          _ToolToggleButton(
+            label: StringsKo.freeDrawModeLabel,
+            isSelected: _mode == DrawMode.freeDraw,
+            onTap: () => _toggleMode(DrawMode.freeDraw),
+          ),
+          const SizedBox(width: 8),
+          _ToolToggleButton(
+            label: StringsKo.eraserModeLabel,
+            isSelected: _mode == DrawMode.eraser,
+            onTap: () => _toggleMode(DrawMode.eraser),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1285,92 +1288,102 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildToolPanelHeader(String label, {bool showAddButton = false}) {
+  bool _isToolSelectionMode() => _mode == DrawMode.hand;
+
+  String _modeTitle(DrawMode mode) {
+    switch (mode) {
+      case DrawMode.defect:
+        return StringsKo.defectModeLabel;
+      case DrawMode.equipment:
+        return StringsKo.equipmentModeLabel;
+      case DrawMode.freeDraw:
+        return StringsKo.freeDrawModeLabel;
+      case DrawMode.eraser:
+        return StringsKo.eraserModeLabel;
+      case DrawMode.hand:
+        return '';
+    }
+  }
+
+  void _returnToToolSelection() {
+    setState(() {
+      _mode = DrawMode.hand;
+    });
+  }
+
+  void _handleAddToolAction() {
+    // TODO: wire to tool-specific add actions when available.
+  }
+
+  Widget _buildToolDetailRow() {
+    final showAddButton =
+        _mode == DrawMode.defect || _mode == DrawMode.equipment;
+    final showTabs = showAddButton;
+
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall,
+        IconButton(
+          tooltip: '뒤로',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _returnToToolSelection,
         ),
-        if (showAddButton) ...[
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 18,
-              onPressed: () {},
-              icon: const Icon(Icons.add),
-              tooltip: '추가',
-            ),
+        const SizedBox(width: 4),
+        Flexible(
+          flex: 2,
+          fit: FlexFit.tight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _modeTitle(_mode),
+                style: Theme.of(context).textTheme.titleSmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (showAddButton) ...[
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 18,
+                    onPressed: _handleAddToolAction,
+                    icon: const Icon(Icons.add),
+                    tooltip: '추가',
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: showTabs
+                ? _buildNumberedTabs(
+                    items: _mode == DrawMode.defect
+                        ? DefectCategory.values
+                        : EquipmentCategory.values,
+                    selected: _mode == DrawMode.defect
+                        ? _activeCategory
+                        : _activeEquipmentCategory,
+                    onSelected: (item) {
+                      setState(() {
+                        if (_mode == DrawMode.defect) {
+                          _activeCategory = item as DefectCategory;
+                        } else {
+                          _activeEquipmentCategory =
+                              item as EquipmentCategory;
+                        }
+                      });
+                    },
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
       ],
     );
-  }
-
-  Widget _buildModePanel() {
-    if (_mode == DrawMode.defect) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildToolPanelHeader(
-            StringsKo.defectModeLabel,
-            showAddButton: true,
-          ),
-          const SizedBox(height: 8),
-          _buildNumberedTabs<DefectCategory>(
-            items: DefectCategory.values,
-            selected: _activeCategory,
-            onSelected: (category) {
-              setState(() {
-                _activeCategory = category;
-              });
-            },
-          ),
-        ],
-      );
-    }
-    if (_mode == DrawMode.equipment) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildToolPanelHeader(
-            StringsKo.equipmentModeLabel,
-            showAddButton: true,
-          ),
-          const SizedBox(height: 8),
-          _buildNumberedTabs<EquipmentCategory>(
-            items: EquipmentCategory.values,
-            selected: _activeEquipmentCategory,
-            onSelected: (category) {
-              setState(() {
-                _activeEquipmentCategory = category;
-              });
-            },
-          ),
-        ],
-      );
-    }
-    if (_mode == DrawMode.freeDraw) {
-      return _buildToolPanelHeader(StringsKo.freeDrawModeLabel);
-    }
-    if (_mode == DrawMode.eraser) {
-      return _buildToolPanelHeader(StringsKo.eraserModeLabel);
-    }
-    return const SizedBox.shrink();
-  }
-
-  double _toolPanelHeight() {
-    if (_mode == DrawMode.defect || _mode == DrawMode.equipment) {
-      return 80;
-    }
-    if (_mode == DrawMode.freeDraw || _mode == DrawMode.eraser) {
-      return 36;
-    }
-    return 0;
   }
 
   Color _defectColor(DefectCategory category) {
@@ -1452,15 +1465,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const toolRowHeight = 44.0;
-    const toolRowVerticalPadding = 8.0;
-    const panelSpacing = 8.0;
-    final panelHeight = _toolPanelHeight();
-    final hasPanel = panelHeight > 0;
-    final toolBarHeight =
-        toolRowHeight +
-        toolRowVerticalPadding * 2 +
-        (hasPanel ? panelSpacing + panelHeight : 0);
+    const toolBarHeight = 56.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -1476,41 +1481,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(toolBarHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: toolRowHeight,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildModeToolRow(),
-                  ),
-                ),
-                if (hasPanel) ...[
-                  const SizedBox(height: panelSpacing),
-                  SizedBox(
-                    height: panelHeight,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _buildModePanel(),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _isToolSelectionMode()
+                  ? _buildToolSelectionRow()
+                  : _buildToolDetailRow(),
             ),
           ),
         ),
