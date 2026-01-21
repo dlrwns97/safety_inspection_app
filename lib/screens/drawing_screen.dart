@@ -43,6 +43,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   DrawMode _mode = DrawMode.hand;
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
+  final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
   int _pageCount = 1;
   Defect? _selectedDefect;
@@ -181,6 +182,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
     _clearSelectedMarker();
     if (_mode == DrawMode.defect && _activeCategory == null) {
+      _showSelectDefectCategoryHint();
       return;
     }
     if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
@@ -891,6 +893,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
     _clearSelectedMarker();
     if (_mode == DrawMode.defect && _activeCategory == null) {
+      _showSelectDefectCategoryHint();
       return;
     }
     if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
@@ -1312,13 +1315,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   void _handleAddToolAction() {
-    // TODO: wire to tool-specific add actions when available.
+    if (_mode == DrawMode.defect) {
+      _showDefectCategoryPicker();
+    }
   }
 
   Widget _buildToolDetailRow() {
     final showAddButton =
         _mode == DrawMode.defect || _mode == DrawMode.equipment;
-    final showTabs = showAddButton;
+    final showTabs = _mode == DrawMode.defect
+        ? _defectTabs.isNotEmpty
+        : showAddButton;
 
     return Row(
       children: [
@@ -1354,27 +1361,89 @@ class _DrawingScreenState extends State<DrawingScreen> {
           const SizedBox(width: 8),
           Flexible(
             fit: FlexFit.loose,
-            child: _buildNumberedTabs(
-              items: _mode == DrawMode.defect
-                  ? DefectCategory.values
-                  : EquipmentCategory.values,
-              selected: _mode == DrawMode.defect
-                  ? _activeCategory
-                  : _activeEquipmentCategory,
-              onSelected: (item) {
-                setState(() {
-                  if (_mode == DrawMode.defect) {
-                    _activeCategory = item as DefectCategory;
-                  } else {
-                    _activeEquipmentCategory = item as EquipmentCategory;
-                  }
-                });
-              },
-            ),
+            child: _mode == DrawMode.defect
+                ? _buildDefectCategoryTabs()
+                : _buildNumberedTabs(
+                    items: EquipmentCategory.values,
+                    selected: _activeEquipmentCategory,
+                    onSelected: (item) {
+                      setState(() {
+                        _activeEquipmentCategory = item;
+                      });
+                    },
+                  ),
           ),
         ],
       ],
     );
+  }
+
+  Widget _buildDefectCategoryTabs() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _defectTabs.map((category) {
+          final isSelected = category == _activeCategory;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(category.label),
+              selected: isSelected,
+              onSelected: (_) {
+                setState(() {
+                  _activeCategory = category;
+                });
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showSelectDefectCategoryHint() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(StringsKo.selectDefectCategoryHint),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _showDefectCategoryPicker() async {
+    final selectedCategory = await showModalBottomSheet<DefectCategory>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final category in DefectCategory.values)
+                _DefectCategoryPickerTile(
+                  category: category,
+                  isSelected: _defectTabs.contains(category),
+                  onTap: _defectTabs.contains(category)
+                      ? null
+                      : () => Navigator.of(context).pop(category),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selectedCategory == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      if (!_defectTabs.contains(selectedCategory)) {
+        _defectTabs.add(selectedCategory);
+      }
+      _activeCategory = selectedCategory;
+    });
   }
 
   Color _defectColor(DefectCategory category) {
@@ -1623,6 +1692,34 @@ class _MarkerHitResult {
   final Defect? defect;
   final EquipmentMarker? equipment;
   final Offset position;
+}
+
+class _DefectCategoryPickerTile extends StatelessWidget {
+  const _DefectCategoryPickerTile({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final DefectCategory category;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      title: Text(category.label),
+      enabled: onTap != null,
+      trailing: isSelected
+          ? Icon(
+              Icons.check,
+              color: theme.colorScheme.primary,
+            )
+          : null,
+      onTap: onTap,
+    );
+  }
 }
 
 class _ToolToggleButton extends StatelessWidget {
