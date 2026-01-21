@@ -63,6 +63,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     '벽체',
     '슬래브',
   ];
+  static const List<String> _carbonationMemberOptions = [
+    '기둥',
+    '보',
+    '벽체',
+    '슬래브',
+  ];
   static const Map<String, List<String>> _equipmentMemberSizeLabels = {
     '기둥': ['W', 'H'],
     '보': ['W', 'H'],
@@ -378,11 +384,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
-        final details = await _showCoreSamplingDialog(
+      if (_activeEquipmentCategory == EquipmentCategory.equipment5) {
+        final details = await _showCarbonationDialog(
           title: _equipmentDisplayLabel(pendingMarker),
           initialMemberType: pendingMarker.memberType,
-          initialAvgValueText: pendingMarker.avgValueText,
+          initialCoverThicknessText: pendingMarker.coverThicknessText,
+          initialDepthText: pendingMarker.depthText,
         );
         if (!mounted || details == null) {
           return;
@@ -390,7 +397,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         final marker = pendingMarker.copyWith(
           equipmentTypeId: prefix,
           memberType: details.memberType,
-          avgValueText: details.avgValueText,
+          coverThicknessText: details.coverThicknessText,
+          depthText: details.depthText,
         );
         setState(() {
           _site = _site.copyWith(
@@ -634,6 +642,26 @@ class _DrawingScreenState extends State<DrawingScreen> {
           memberOptions: _coreSamplingMemberOptions,
           initialMemberType: initialMemberType,
           initialAvgValueText: initialAvgValueText,
+        ),
+      ),
+    );
+  }
+
+  Future<_CarbonationDetails?> _showCarbonationDialog({
+    required String title,
+    String? initialMemberType,
+    String? initialCoverThicknessText,
+    String? initialDepthText,
+  }) async {
+    return _showDetailDialog(
+      () => showDialog<_CarbonationDetails>(
+        context: context,
+        builder: (context) => _CarbonationDialog(
+          title: title,
+          memberOptions: _carbonationMemberOptions,
+          initialMemberType: initialMemberType,
+          initialCoverThicknessText: initialCoverThicknessText,
+          initialDepthText: initialDepthText,
         ),
       ),
     );
@@ -1032,6 +1060,30 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment5) {
+        final details = await _showCarbonationDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialCoverThicknessText: pendingMarker.coverThicknessText,
+          initialDepthText: pendingMarker.depthText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          coverThicknessText: details.coverThicknessText,
+          depthText: details.depthText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -1238,6 +1290,20 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
         lines.add('평균값: ${marker.avgValueText}');
+      }
+      return lines;
+    }
+    if (marker.equipmentTypeId == 'Ch') {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+        lines.add(marker.memberType!);
+      }
+      if (marker.coverThicknessText != null &&
+          marker.coverThicknessText!.isNotEmpty) {
+        lines.add('피복두께: ${marker.coverThicknessText}');
+      }
+      if (marker.depthText != null && marker.depthText!.isNotEmpty) {
+        lines.add('깊이: ${marker.depthText}');
       }
       return lines;
     }
@@ -1630,6 +1696,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return 'SH';
       case EquipmentCategory.equipment4:
         return 'Co';
+      case EquipmentCategory.equipment5:
+        return 'Ch';
     }
   }
 
@@ -1643,6 +1711,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (marker.equipmentTypeId == 'Co') {
       return '코어채취 ${marker.label}';
     }
+    if (marker.equipmentTypeId == 'Ch') {
+      return '콘크리트 탄산화 ${marker.label}';
+    }
     return marker.label;
   }
 
@@ -1655,6 +1726,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       case EquipmentCategory.equipment3:
       case EquipmentCategory.equipment4:
         return Colors.green;
+      case EquipmentCategory.equipment5:
+        return Colors.orangeAccent;
     }
   }
 
@@ -2782,6 +2855,157 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
   }
 }
 
+class _CarbonationDialog extends StatefulWidget {
+  const _CarbonationDialog({
+    required this.title,
+    required this.memberOptions,
+    this.initialMemberType,
+    this.initialCoverThicknessText,
+    this.initialDepthText,
+  });
+
+  final String title;
+  final List<String> memberOptions;
+  final String? initialMemberType;
+  final String? initialCoverThicknessText;
+  final String? initialDepthText;
+
+  @override
+  State<_CarbonationDialog> createState() => _CarbonationDialogState();
+}
+
+class _CarbonationDialogState extends State<_CarbonationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _coverThicknessController = TextEditingController();
+  final _depthController = TextEditingController();
+  String? _selectedMember;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMember = widget.initialMemberType;
+    _coverThicknessController.text = widget.initialCoverThicknessText ?? '';
+    _depthController.text = widget.initialDepthText ?? '';
+  }
+
+  @override
+  void dispose() {
+    _coverThicknessController.dispose();
+    _depthController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = min(
+      MediaQuery.of(context).size.width * 0.5,
+      360.0,
+    );
+    final isSaveEnabled = _selectedMember != null;
+
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedMember,
+                  decoration: const InputDecoration(
+                    labelText: '부재',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: widget.memberOptions
+                      .map(
+                        (option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedMember = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '부재를 선택하세요.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _coverThicknessController,
+                  decoration: const InputDecoration(
+                    labelText: '피복두께',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _depthController,
+                  decoration: const InputDecoration(
+                    labelText: '깊이',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isSaveEnabled
+                          ? () {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              Navigator.of(context).pop(
+                                _CarbonationDetails(
+                                  memberType: _selectedMember!,
+                                  coverThicknessText:
+                                      _coverThicknessController.text.trim(),
+                                  depthText: _depthController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: const Text('저장'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MarkerHitResult {
   const _MarkerHitResult({
     required this.defect,
@@ -2834,6 +3058,18 @@ class _CoreSamplingDetails {
 
   final String memberType;
   final String avgValueText;
+}
+
+class _CarbonationDetails {
+  const _CarbonationDetails({
+    required this.memberType,
+    required this.coverThicknessText,
+    required this.depthText,
+  });
+
+  final String memberType;
+  final String coverThicknessText;
+  final String depthText;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {
