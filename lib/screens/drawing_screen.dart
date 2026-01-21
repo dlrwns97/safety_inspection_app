@@ -662,8 +662,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
               pageBuilder: (context, pageImage, pageIndex, document) {
                 final imageProvider = PdfPageImageProvider(
                   pageImage,
-                  pageIndex,
-                  document,
+                  pageIndex + 1,
+                  document.id,
                 );
                 return PhotoViewGalleryPageOptions(
                   imageProvider: imageProvider,
