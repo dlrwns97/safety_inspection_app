@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 
 import '../constants/strings_ko.dart';
 import '../models/defect.dart';
@@ -37,7 +39,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   final GlobalKey _canvasKey = GlobalKey();
 
   late Site _site;
-  PdfControllerPinch? _pdfController;
+  PdfController? _pdfController;
   String? _pdfLoadError;
   DrawMode _mode = DrawMode.defect;
   DefectCategory? _activeCategory;
@@ -90,7 +92,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       'path=$path, bytes=$fileSize',
     );
     setState(() {
-      _pdfController = PdfControllerPinch(
+      _pdfController = PdfController(
         document: PdfDocument.openFile(path),
       );
       _pdfLoadError = null;
@@ -612,7 +614,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       if (_pdfController != null) {
         return ClipRect(
-          child: PdfViewPinch(
+          child: PdfView(
             controller: _pdfController!,
             scrollDirection: Axis.vertical,
             pageSnapping: true,
@@ -647,7 +649,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
               });
             },
-            builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+            builders: PdfViewBuilders<DefaultBuilderOptions>(
               options: const DefaultBuilderOptions(
                 loaderSwitchDuration: Duration(milliseconds: 300),
               ),
@@ -657,8 +659,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
               pageLoaderBuilder: (_) => const Center(
                 child: CircularProgressIndicator(),
               ),
-              pageBuilder: (context, pageImage, pageIndex) {
-                return _buildPdfPageCard(context, pageImage);
+              pageBuilder: (context, pageImage, pageIndex, document) {
+                final imageProvider = PdfPageImageProvider(
+                  pageImage,
+                  pageIndex,
+                  document,
+                );
+                return PhotoViewGalleryPageOptions(
+                  imageProvider: imageProvider,
+                  initialScale: PhotoViewComputedScale.contained,
+                  minScale: PhotoViewComputedScale.contained,
+                  maxScale: PhotoViewComputedScale.covered * 2.0,
+                  basePosition: Alignment.center,
+                );
               },
             ),
           ),
@@ -694,34 +707,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
       child: CustomPaint(
         painter: _GridPainter(lineColor: theme.colorScheme.outlineVariant),
-      ),
-    );
-  }
-
-  Widget _buildPdfPageCard(BuildContext context, PdfPageImage pageImage) {
-    final theme = Theme.of(context);
-    const borderRadius = BorderRadius.all(Radius.circular(12));
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: borderRadius,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 12,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: Image.memory(
-            pageImage.bytes,
-            fit: BoxFit.contain,
-          ),
-        ),
       ),
     );
   }
