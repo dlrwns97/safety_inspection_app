@@ -19,7 +19,8 @@ enum EquipmentCategory {
   equipment2(StringsKo.equipmentCategory2),
   equipment3(StringsKo.equipmentCategory3),
   equipment4(StringsKo.equipmentCategory4),
-  equipment5(StringsKo.equipmentCategory5);
+  equipment5(StringsKo.equipmentCategory5),
+  equipment6(StringsKo.equipmentCategory6);
 
   const EquipmentCategory(this.label);
   final String label;

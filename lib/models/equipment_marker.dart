@@ -17,6 +17,8 @@ class EquipmentMarker {
     this.avgValueText,
     this.coverThicknessText,
     this.depthText,
+    this.tiltDirection,
+    this.displacementText,
   });
 
   final String id;
@@ -34,6 +36,8 @@ class EquipmentMarker {
   final String? avgValueText;
   final String? coverThicknessText;
   final String? depthText;
+  final String? tiltDirection;
+  final String? displacementText;
 
   EquipmentMarker copyWith({
     String? id,
@@ -51,6 +55,8 @@ class EquipmentMarker {
     String? avgValueText,
     String? coverThicknessText,
     String? depthText,
+    String? tiltDirection,
+    String? displacementText,
   }) {
     return EquipmentMarker(
       id: id ?? this.id,
@@ -68,6 +74,8 @@ class EquipmentMarker {
       avgValueText: avgValueText ?? this.avgValueText,
       coverThicknessText: coverThicknessText ?? this.coverThicknessText,
       depthText: depthText ?? this.depthText,
+      tiltDirection: tiltDirection ?? this.tiltDirection,
+      displacementText: displacementText ?? this.displacementText,
     );
   }
 
@@ -87,6 +95,8 @@ class EquipmentMarker {
     'avgValueText': avgValueText,
     'coverThicknessText': coverThicknessText,
     'depthText': depthText,
+    'tiltDirection': tiltDirection,
+    'displacementText': displacementText,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -110,5 +120,7 @@ class EquipmentMarker {
         avgValueText: json['avgValueText'] as String?,
         coverThicknessText: json['coverThicknessText'] as String?,
         depthText: json['depthText'] as String?,
+        tiltDirection: json['tiltDirection'] as String?,
+        displacementText: json['displacementText'] as String?,
       );
 }

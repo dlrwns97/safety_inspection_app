@@ -53,6 +53,7 @@ class StringsKo {
   static const equipmentCategory3 = '슈미트해머';
   static const equipmentCategory4 = '코어채취';
   static const equipmentCategory5 = '콘크리트 탄산화';
+  static const equipmentCategory6 = '구조물 기울기';
   static const otherOptionLabel = '기타';
   static const otherTypeLabel = '기타 유형';
   static const otherCauseLabel = '기타 원인';
