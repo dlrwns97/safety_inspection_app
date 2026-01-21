@@ -10,6 +10,7 @@ class EquipmentMarker {
     required this.normalizedY,
     this.equipmentTypeId,
     this.memberType,
+    this.numberText,
     this.sizeValues,
   });
 
@@ -21,6 +22,7 @@ class EquipmentMarker {
   final double normalizedY;
   final String? equipmentTypeId;
   final String? memberType;
+  final String? numberText;
   final List<String>? sizeValues;
 
   EquipmentMarker copyWith({
@@ -32,6 +34,7 @@ class EquipmentMarker {
     double? normalizedY,
     String? equipmentTypeId,
     String? memberType,
+    String? numberText,
     List<String>? sizeValues,
   }) {
     return EquipmentMarker(
@@ -43,6 +46,7 @@ class EquipmentMarker {
       normalizedY: normalizedY ?? this.normalizedY,
       equipmentTypeId: equipmentTypeId ?? this.equipmentTypeId,
       memberType: memberType ?? this.memberType,
+      numberText: numberText ?? this.numberText,
       sizeValues: sizeValues ?? this.sizeValues,
     );
   }
@@ -56,6 +60,7 @@ class EquipmentMarker {
     'normalizedY': normalizedY,
     'equipmentTypeId': equipmentTypeId,
     'memberType': memberType,
+    'numberText': numberText,
     'sizeValues': sizeValues,
   };
 
@@ -71,6 +76,7 @@ class EquipmentMarker {
         normalizedY: (json['normalizedY'] as num? ?? 0).toDouble(),
         equipmentTypeId: json['equipmentTypeId'] as String?,
         memberType: json['memberType'] as String?,
+        numberText: json['numberText'] as String?,
         sizeValues: (json['sizeValues'] as List<dynamic>?)
             ?.map((value) => value.toString())
             .toList(),
