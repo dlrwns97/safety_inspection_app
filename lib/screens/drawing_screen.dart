@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -437,6 +438,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return showDialog<DefectDetails>(
       context: context,
       builder: (context) {
+        final maxWidth = min(
+          MediaQuery.of(context).size.width * 0.6,
+          520.0,
+        );
         final formKey = GlobalKey<FormState>();
         String? structuralMember;
         String? crackType;
@@ -447,247 +452,257 @@ class _DrawingScreenState extends State<DrawingScreen> {
         final otherCauseController = TextEditingController();
 
         return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                final typeOptions = _defectTypeOptions(defectCategory);
-                final causeOptions = _defectCauseOptions(defectCategory);
-                final isOtherType = crackType == StringsKo.otherOptionLabel;
-                final isOtherCause = cause == StringsKo.otherOptionLabel;
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  final typeOptions = _defectTypeOptions(defectCategory);
+                  final causeOptions = _defectCauseOptions(defectCategory);
+                  final isOtherType = crackType == StringsKo.otherOptionLabel;
+                  final isOtherCause = cause == StringsKo.otherOptionLabel;
 
-                bool isValid() {
-                  final width = double.tryParse(widthController.text);
-                  final length = double.tryParse(lengthController.text);
-                  final hasOtherType =
-                      !isOtherType ||
-                      otherTypeController.text.trim().isNotEmpty;
-                  final hasOtherCause =
-                      !isOtherCause ||
-                      otherCauseController.text.trim().isNotEmpty;
-                  return structuralMember != null &&
-                      crackType != null &&
-                      cause != null &&
-                      width != null &&
-                      length != null &&
-                      width > 0 &&
-                      length > 0 &&
-                      hasOtherType &&
-                      hasOtherCause;
-                }
+                  bool isValid() {
+                    final width = double.tryParse(widthController.text);
+                    final length = double.tryParse(lengthController.text);
+                    final hasOtherType =
+                        !isOtherType ||
+                        otherTypeController.text.trim().isNotEmpty;
+                    final hasOtherCause =
+                        !isOtherCause ||
+                        otherCauseController.text.trim().isNotEmpty;
+                    return structuralMember != null &&
+                        crackType != null &&
+                        cause != null &&
+                        width != null &&
+                        length != null &&
+                        width > 0 &&
+                        length > 0 &&
+                        hasOtherType &&
+                        hasOtherCause;
+                  }
 
-                return ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Form(
-                      key: formKey,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _defectDialogTitle(defectCategory),
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: structuralMember,
-                            decoration: const InputDecoration(
-                              labelText: StringsKo.structuralMemberLabel,
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.5,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Form(
+                        key: formKey,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _defectDialogTitle(defectCategory),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            items: StringsKo.structuralMembers
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                structuralMember = value;
-                              });
-                            },
-                            validator: (value) => value == null
-                                ? StringsKo.selectMemberError
-                                : null,
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: crackType,
-                            decoration: const InputDecoration(
-                              labelText: StringsKo.crackTypeLabel,
-                            ),
-                            items: typeOptions
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                crackType = value;
-                                if (value != StringsKo.otherOptionLabel) {
-                                  otherTypeController.clear();
-                                }
-                              });
-                            },
-                            validator: (value) => value == null
-                                ? StringsKo.selectCrackTypeError
-                                : null,
-                          ),
-                          if (isOtherType) ...[
                             const SizedBox(height: 12),
-                            TextFormField(
-                              controller: otherTypeController,
+                            DropdownButtonFormField<String>(
+                              value: structuralMember,
                               decoration: const InputDecoration(
-                                labelText: StringsKo.otherTypeLabel,
+                                labelText: StringsKo.structuralMemberLabel,
                               ),
-                              validator: (_) =>
-                                  otherTypeController.text.trim().isEmpty
-                                  ? StringsKo.enterOtherTypeError
+                              items: StringsKo.structuralMembers
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  structuralMember = value;
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? StringsKo.selectMemberError
                                   : null,
-                              onChanged: (_) => setState(() {}),
                             ),
-                          ],
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: widthController,
-                                  decoration: const InputDecoration(
-                                    labelText: StringsKo.widthLabel,
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  validator: (value) {
-                                    final parsed = double.tryParse(value ?? '');
-                                    if (parsed == null || parsed <= 0) {
-                                      return StringsKo.enterWidthError;
-                                    }
-                                    return null;
-                                  },
-                                  onChanged: (_) => setState(() {}),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: lengthController,
-                                  decoration: const InputDecoration(
-                                    labelText: StringsKo.lengthLabel,
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  validator: (value) {
-                                    final parsed = double.tryParse(value ?? '');
-                                    if (parsed == null || parsed <= 0) {
-                                      return StringsKo.enterLengthError;
-                                    }
-                                    return null;
-                                  },
-                                  onChanged: (_) => setState(() {}),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: cause,
-                            decoration: const InputDecoration(
-                              labelText: StringsKo.causeLabel,
-                            ),
-                            items: causeOptions
-                                .map(
-                                  (item) => DropdownMenuItem(
-                                    value: item,
-                                    child: Text(item),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                cause = value;
-                                if (value != StringsKo.otherOptionLabel) {
-                                  otherCauseController.clear();
-                                }
-                              });
-                            },
-                            validator: (value) => value == null
-                                ? StringsKo.selectCauseError
-                                : null,
-                          ),
-                          if (isOtherCause) ...[
                             const SizedBox(height: 12),
-                            TextFormField(
-                              controller: otherCauseController,
+                            DropdownButtonFormField<String>(
+                              value: crackType,
                               decoration: const InputDecoration(
-                                labelText: StringsKo.otherCauseLabel,
+                                labelText: StringsKo.crackTypeLabel,
                               ),
-                              validator: (_) =>
-                                  otherCauseController.text.trim().isEmpty
-                                  ? StringsKo.enterOtherCauseError
+                              items: typeOptions
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  crackType = value;
+                                  if (value != StringsKo.otherOptionLabel) {
+                                    otherTypeController.clear();
+                                  }
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? StringsKo.selectCrackTypeError
                                   : null,
-                              onChanged: (_) => setState(() {}),
                             ),
-                          ],
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text(StringsKo.cancel),
-                              ),
-                              const Spacer(),
-                              FilledButton(
-                                onPressed: isValid()
-                                    ? () {
-                                        if (formKey.currentState?.validate() ??
-                                            false) {
-                                          final resolvedType = isOtherType
-                                              ? otherTypeController.text.trim()
-                                              : crackType!;
-                                          final resolvedCause = isOtherCause
-                                              ? otherCauseController.text.trim()
-                                              : cause!;
-                                          Navigator.of(context).pop(
-                                            DefectDetails(
-                                              structuralMember:
-                                                  structuralMember!,
-                                              crackType: resolvedType,
-                                              widthMm: double.parse(
-                                                widthController.text.trim(),
-                                              ),
-                                              lengthMm: double.parse(
-                                                lengthController.text.trim(),
-                                              ),
-                                              cause: resolvedCause,
-                                            ),
-                                          );
-                                        }
-                                      }
+                            if (isOtherType) ...[
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: otherTypeController,
+                                decoration: const InputDecoration(
+                                  labelText: StringsKo.otherTypeLabel,
+                                ),
+                                validator: (_) =>
+                                    otherTypeController.text.trim().isEmpty
+                                    ? StringsKo.enterOtherTypeError
                                     : null,
-                                child: const Text(StringsKo.confirm),
+                                onChanged: (_) => setState(() {}),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                        ],
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: widthController,
+                                    decoration: const InputDecoration(
+                                      labelText: StringsKo.widthLabel,
+                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    validator: (value) {
+                                      final parsed = double.tryParse(
+                                        value ?? '',
+                                      );
+                                      if (parsed == null || parsed <= 0) {
+                                        return StringsKo.enterWidthError;
+                                      }
+                                      return null;
+                                    },
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: lengthController,
+                                    decoration: const InputDecoration(
+                                      labelText: StringsKo.lengthLabel,
+                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    validator: (value) {
+                                      final parsed = double.tryParse(
+                                        value ?? '',
+                                      );
+                                      if (parsed == null || parsed <= 0) {
+                                        return StringsKo.enterLengthError;
+                                      }
+                                      return null;
+                                    },
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: cause,
+                              decoration: const InputDecoration(
+                                labelText: StringsKo.causeLabel,
+                              ),
+                              items: causeOptions
+                                  .map(
+                                    (item) => DropdownMenuItem(
+                                      value: item,
+                                      child: Text(item),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  cause = value;
+                                  if (value != StringsKo.otherOptionLabel) {
+                                    otherCauseController.clear();
+                                  }
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? StringsKo.selectCauseError
+                                  : null,
+                            ),
+                            if (isOtherCause) ...[
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: otherCauseController,
+                                decoration: const InputDecoration(
+                                  labelText: StringsKo.otherCauseLabel,
+                                ),
+                                validator: (_) =>
+                                    otherCauseController.text.trim().isEmpty
+                                    ? StringsKo.enterOtherCauseError
+                                    : null,
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text(StringsKo.cancel),
+                                ),
+                                const Spacer(),
+                                FilledButton(
+                                  onPressed: isValid()
+                                      ? () {
+                                          if (formKey.currentState
+                                                  ?.validate() ??
+                                              false) {
+                                            final resolvedType = isOtherType
+                                                ? otherTypeController.text
+                                                    .trim()
+                                                : crackType!;
+                                            final resolvedCause = isOtherCause
+                                                ? otherCauseController.text
+                                                    .trim()
+                                                : cause!;
+                                            Navigator.of(context).pop(
+                                              DefectDetails(
+                                                structuralMember:
+                                                    structuralMember!,
+                                                crackType: resolvedType,
+                                                widthMm: double.parse(
+                                                  widthController.text.trim(),
+                                                ),
+                                                lengthMm: double.parse(
+                                                  lengthController.text.trim(),
+                                                ),
+                                                cause: resolvedCause,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      : null,
+                                  child: const Text(StringsKo.confirm),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -703,6 +718,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return showDialog<_EquipmentDetails>(
       context: context,
       builder: (context) {
+        final maxWidth = min(
+          MediaQuery.of(context).size.width * 0.6,
+          520.0,
+        );
         final formKey = GlobalKey<FormState>();
         String? selectedMember = initialMemberType;
         List<String> sizeLabels = selectedMember == null
@@ -721,111 +740,116 @@ class _DrawingScreenState extends State<DrawingScreen> {
         );
 
         return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                final isSaveEnabled = selectedMember != null;
-                return Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: selectedMember,
-                        decoration: const InputDecoration(
-                          labelText: '부재',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _equipmentMemberOptions
-                            .map(
-                              (option) => DropdownMenuItem(
-                                value: option,
-                                child: Text(option),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedMember = value;
-                            sizeLabels = value == null
-                                ? []
-                                : _equipmentMemberSizeLabels[value] ?? [];
-                            sizeControllers = List.generate(
-                              sizeLabels.length,
-                              (index) => TextEditingController(),
-                            );
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '부재를 선택하세요.';
-                          }
-                          return null;
-                        },
-                      ),
-                      if (selectedMember != null) ...[
-                        const SizedBox(height: 16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  final isSaveEnabled = selectedMember != null;
+                  return Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         Text(
-                          '사이즈',
-                          style: Theme.of(context).textTheme.labelLarge,
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(height: 8),
-                        ...List.generate(sizeLabels.length, (index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TextFormField(
-                              controller: sizeControllers[index],
-                              decoration: InputDecoration(
-                                labelText: sizeLabels[index],
-                                border: const OutlineInputBorder(),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: selectedMember,
+                          decoration: const InputDecoration(
+                            labelText: '부재',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _equipmentMemberOptions
+                              .map(
+                                (option) => DropdownMenuItem(
+                                  value: option,
+                                  child: Text(option),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedMember = value;
+                              sizeLabels = value == null
+                                  ? []
+                                  : _equipmentMemberSizeLabels[value] ?? [];
+                              sizeControllers = List.generate(
+                                sizeLabels.length,
+                                (index) => TextEditingController(),
+                              );
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '부재를 선택하세요.';
+                            }
+                            return null;
+                          },
+                        ),
+                        if (selectedMember != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            '사이즈',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          ...List.generate(sizeLabels.length, (index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TextFormField(
+                                controller: sizeControllers[index],
+                                decoration: InputDecoration(
+                                  labelText: sizeLabels[index],
+                                  border: const OutlineInputBorder(),
+                                ),
                               ),
-                            ),
-                          );
-                        }),
-                      ],
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('취소'),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: isSaveEnabled
-                                ? () {
-                                    if (!(formKey.currentState?.validate() ??
-                                        false)) {
-                                      return;
-                                    }
-                                    final memberType = selectedMember!;
-                                    final sizes = sizeControllers
-                                        .map((controller) => controller.text)
-                                        .toList();
-                                    Navigator.of(context).pop(
-                                      _EquipmentDetails(
-                                        memberType: memberType,
-                                        sizeValues: sizes,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                            child: const Text('저장'),
-                          ),
+                            );
+                          }),
                         ],
-                      ),
-                    ],
-                  ),
-                );
-              },
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('취소'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: isSaveEnabled
+                                  ? () {
+                                      if (!(formKey.currentState?.validate() ??
+                                          false)) {
+                                        return;
+                                      }
+                                      final memberType = selectedMember!;
+                                      final sizes = sizeControllers
+                                          .map(
+                                            (controller) => controller.text,
+                                          )
+                                          .toList();
+                                      Navigator.of(context).pop(
+                                        _EquipmentDetails(
+                                          memberType: memberType,
+                                          sizeValues: sizes,
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              child: const Text('저장'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -1135,7 +1159,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           .length;
       final prefix = _equipmentLabelPrefix(_activeEquipmentCategory!);
       final label = '$prefix${equipmentCount + 1}';
-      final marker = EquipmentMarker(
+      final pendingMarker = EquipmentMarker(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         label: label,
         pageIndex: pageIndex,
@@ -1145,29 +1169,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
         equipmentTypeId: prefix,
       );
 
-      setState(() {
-        _site = _site.copyWith(
-          equipmentMarkers: [..._site.equipmentMarkers, marker],
-        );
-      });
-      await widget.onSiteUpdated(_site);
       if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
         final details = await _showEquipmentDetailsDialog(
-          title: '장비 ${marker.label}',
-          initialMemberType: marker.memberType,
-          initialSizeValues: marker.sizeValues,
+          title: '장비 ${pendingMarker.label}',
+          initialMemberType: pendingMarker.memberType,
+          initialSizeValues: pendingMarker.sizeValues,
         );
         if (!mounted || details == null) {
           return;
         }
-        await _updateEquipmentMarker(
-          marker.copyWith(
-            equipmentTypeId: prefix,
-            memberType: details.memberType,
-            sizeValues: details.sizeValues,
-          ),
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          sizeValues: details.sizeValues,
         );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
       }
+      setState(() {
+        _site = _site.copyWith(
+          equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
+        );
+      });
+      await widget.onSiteUpdated(_site);
     }
   }
 
