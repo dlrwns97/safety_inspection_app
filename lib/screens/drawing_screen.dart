@@ -1387,19 +1387,55 @@ class _DrawingScreenState extends State<DrawingScreen> {
           final isSelected = category == _activeCategory;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(category.label),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _activeCategory = category;
-                });
-              },
+            child: GestureDetector(
+              onLongPress: () => _showDeleteDefectTabDialog(category),
+              child: ChoiceChip(
+                label: Text(category.label),
+                selected: isSelected,
+                onSelected: (_) {
+                  setState(() {
+                    _activeCategory = category;
+                  });
+                },
+              ),
             ),
           );
         }).toList(),
       ),
     );
+  }
+
+  Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('결함 탭 삭제'),
+          content: Text("'${category.label}' 탭을 삭제할까요?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _defectTabs.remove(category);
+      if (_activeCategory == category) {
+        _activeCategory = _defectTabs.isNotEmpty ? _defectTabs.first : null;
+      }
+    });
   }
 
   void _showSelectDefectCategoryHint() {
