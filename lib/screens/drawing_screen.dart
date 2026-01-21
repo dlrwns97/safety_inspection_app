@@ -32,6 +32,30 @@ class DrawingScreen extends StatefulWidget {
 class _DrawingScreenState extends State<DrawingScreen> {
   static const Size _canvasSize = Size(1200, 1700);
   static const double _tapSlop = 8.0;
+  static const List<String> _equipmentMemberOptions = [
+    '기둥',
+    '보',
+    '철골 각형강관',
+    '원형기둥',
+    '벽체',
+    '슬래브',
+    '브레이싱',
+    '철골 L형강',
+    '철골 C찬넬',
+    '철골 H형강',
+  ];
+  static const Map<String, List<String>> _equipmentMemberSizeLabels = {
+    '기둥': ['W', 'H'],
+    '보': ['W', 'H'],
+    '철골 각형강관': ['W', 'H'],
+    '원형기둥': ['D'],
+    '벽체': ['D'],
+    '슬래브': ['D'],
+    '브레이싱': ['D'],
+    '철골 L형강': ['A', 'B', 't'],
+    '철골 C찬넬': ['A', 'B', 't'],
+    '철골 H형강': ['H', 'B', 'tw', 'tf'],
+  };
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
@@ -238,6 +262,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         category: _activeEquipmentCategory!,
         normalizedX: normalizedX,
         normalizedY: normalizedY,
+        equipmentTypeId: prefix,
       );
 
       setState(() {
@@ -246,6 +271,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
         );
       });
       await widget.onSiteUpdated(_site);
+      if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
+        final details = await _showEquipmentDetailsDialog(
+          title: '장비 ${marker.label}',
+          initialMemberType: marker.memberType,
+          initialSizeValues: marker.sizeValues,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        await _updateEquipmentMarker(
+          marker.copyWith(
+            equipmentTypeId: prefix,
+            memberType: details.memberType,
+            sizeValues: details.sizeValues,
+          ),
+        );
+      }
     }
   }
 
@@ -653,6 +695,156 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
+  Future<_EquipmentDetails?> _showEquipmentDetailsDialog({
+    required String title,
+    String? initialMemberType,
+    List<String>? initialSizeValues,
+  }) async {
+    return showDialog<_EquipmentDetails>(
+      context: context,
+      builder: (context) {
+        final formKey = GlobalKey<FormState>();
+        String? selectedMember = initialMemberType;
+        List<String> sizeLabels = selectedMember == null
+            ? []
+            : _equipmentMemberSizeLabels[selectedMember] ?? [];
+        List<TextEditingController> sizeControllers = List.generate(
+          sizeLabels.length,
+          (index) {
+            final controller = TextEditingController();
+            if (initialSizeValues != null &&
+                index < initialSizeValues.length) {
+              controller.text = initialSizeValues[index];
+            }
+            return controller;
+          },
+        );
+
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                final isSaveEnabled = selectedMember != null;
+                return Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedMember,
+                        decoration: const InputDecoration(
+                          labelText: '부재',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _equipmentMemberOptions
+                            .map(
+                              (option) => DropdownMenuItem(
+                                value: option,
+                                child: Text(option),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedMember = value;
+                            sizeLabels = value == null
+                                ? []
+                                : _equipmentMemberSizeLabels[value] ?? [];
+                            sizeControllers = List.generate(
+                              sizeLabels.length,
+                              (index) => TextEditingController(),
+                            );
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return '부재를 선택하세요.';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (selectedMember != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          '사이즈',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        ...List.generate(sizeLabels.length, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TextFormField(
+                              controller: sizeControllers[index],
+                              decoration: InputDecoration(
+                                labelText: sizeLabels[index],
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('취소'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: isSaveEnabled
+                                ? () {
+                                    if (!(formKey.currentState?.validate() ??
+                                        false)) {
+                                      return;
+                                    }
+                                    final memberType = selectedMember!;
+                                    final sizes = sizeControllers
+                                        .map((controller) => controller.text)
+                                        .toList();
+                                    Navigator.of(context).pop(
+                                      _EquipmentDetails(
+                                        memberType: memberType,
+                                        sizeValues: sizes,
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child: const Text('저장'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateEquipmentMarker(EquipmentMarker updatedMarker) async {
+    final markers = _site.equipmentMarkers
+        .map(
+          (marker) => marker.id == updatedMarker.id ? updatedMarker : marker,
+        )
+        .toList();
+    setState(() {
+      _site = _site.copyWith(equipmentMarkers: markers);
+    });
+    await widget.onSiteUpdated(_site);
+  }
+
   Widget _buildPdfViewer() {
     final theme = Theme.of(context);
     if (_pdfLoadError != null) {
@@ -950,6 +1142,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         category: _activeEquipmentCategory!,
         normalizedX: normalizedX,
         normalizedY: normalizedY,
+        equipmentTypeId: prefix,
       );
 
       setState(() {
@@ -958,6 +1151,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
         );
       });
       await widget.onSiteUpdated(_site);
+      if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
+        final details = await _showEquipmentDetailsDialog(
+          title: '장비 ${marker.label}',
+          initialMemberType: marker.memberType,
+          initialSizeValues: marker.sizeValues,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        await _updateEquipmentMarker(
+          marker.copyWith(
+            equipmentTypeId: prefix,
+            memberType: details.memberType,
+            sizeValues: details.sizeValues,
+          ),
+        );
+      }
     }
   }
 
@@ -1728,6 +1938,16 @@ class _MarkerHitResult {
   final Defect? defect;
   final EquipmentMarker? equipment;
   final Offset position;
+}
+
+class _EquipmentDetails {
+  const _EquipmentDetails({
+    required this.memberType,
+    required this.sizeValues,
+  });
+
+  final String memberType;
+  final List<String> sizeValues;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {
