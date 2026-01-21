@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../constants/strings_ko.dart';
@@ -28,8 +30,8 @@ class DrawingScreen extends StatefulWidget {
 
 class _DrawingScreenState extends State<DrawingScreen> {
   static const Size _canvasSize = Size(1200, 1700);
-  static const int _pageCount = 3;
   static const double _tapSlop = 8.0;
+  static const double _pageSwipeThreshold = 120.0;
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
@@ -41,6 +43,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
   int _currentPage = 1;
+  int _pageCount = 1;
   Defect? _selectedDefect;
   EquipmentMarker? _selectedEquipment;
   Offset? _selectedMarkerScenePosition;
@@ -66,6 +69,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (path == null || path.isEmpty) {
       return;
     }
+    final previousController = _pdfController;
+    _pdfController = null;
+    previousController?.dispose();
     final file = File(path);
     final exists = await file.exists();
     if (!mounted) {
@@ -78,11 +84,79 @@ class _DrawingScreenState extends State<DrawingScreen> {
       debugPrint('PDF file not found at $path');
       return;
     }
+    final fileSize = await file.length();
+    debugPrint(
+      'Loading PDF: name=${_site.pdfName ?? file.uri.pathSegments.last}, '
+      'path=$path, bytes=$fileSize',
+    );
     setState(() {
       _pdfController = PdfControllerPinch(
         document: PdfDocument.openFile(path),
       );
+      _pdfLoadError = null;
+      _pageCount = 1;
+      _currentPage = 1;
     });
+  }
+
+  Future<void> _replacePdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+    final file = result.files.first;
+    String? pdfPath = file.path;
+    if (pdfPath == null && file.bytes != null) {
+      pdfPath = await _persistPickedPdf(file);
+    }
+    if (!mounted) {
+      return;
+    }
+    if (pdfPath == null || pdfPath.isEmpty) {
+      setState(() {
+        _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+      });
+      return;
+    }
+    setState(() {
+      _site = _site.copyWith(pdfPath: pdfPath, pdfName: file.name);
+      _selectedDefect = null;
+      _selectedEquipment = null;
+      _selectedMarkerScenePosition = null;
+      _currentPage = 1;
+      _pageCount = 1;
+    });
+    await widget.onSiteUpdated(_site);
+    if (!mounted) {
+      return;
+    }
+    await _loadPdfController();
+  }
+
+  Future<String?> _persistPickedPdf(PlatformFile file) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final blueprintDirectory = Directory(
+        '${directory.path}${Platform.pathSeparator}blueprints',
+      );
+      if (!await blueprintDirectory.exists()) {
+        await blueprintDirectory.create(recursive: true);
+      }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = 'drawing_${timestamp}_${file.name}';
+      final savedFile = File(
+        '${blueprintDirectory.path}${Platform.pathSeparator}$filename',
+      );
+      await savedFile.writeAsBytes(file.bytes!, flush: true);
+      return savedFile.path;
+    } catch (error) {
+      debugPrint('Failed to persist picked PDF: $error');
+      return null;
+    }
   }
 
   Future<void> _handleTap(TapUpDetails details) async {
@@ -538,28 +612,53 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       if (_pdfController != null) {
         return ClipRect(
-          child: AbsorbPointer(
-            child: PdfViewPinch(
-              controller: _pdfController!,
-              onDocumentLoaded: (_) {
-                if (!mounted) {
-                  return;
+          child: PdfViewPinch(
+            controller: _pdfController!,
+            scrollDirection: Axis.vertical,
+            pageSnapping: true,
+            physics: const PageScrollPhysics(),
+            onPageChanged: (page) {
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _currentPage = page;
+              });
+            },
+            onDocumentLoaded: (document) {
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _pageCount = document.pagesCount;
+                if (_currentPage > _pageCount) {
+                  _currentPage = 1;
                 }
-                if (_pdfLoadError == null) {
-                  return;
-                }
-                setState(() {
-                  _pdfLoadError = null;
-                });
-              },
-              onDocumentError: (error) {
-                debugPrint('Failed to load PDF: $error');
-                if (!mounted) {
-                  return;
-                }
-                setState(() {
-                  _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
-                });
+                _pdfLoadError = null;
+              });
+              debugPrint('PDF loaded with ${document.pagesCount} pages.');
+            },
+            onDocumentError: (error) {
+              debugPrint('Failed to load PDF: $error');
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+              });
+            },
+            builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+              options: const DefaultBuilderOptions(
+                loaderSwitchDuration: Duration(milliseconds: 300),
+              ),
+              documentLoaderBuilder: (_) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              pageLoaderBuilder: (_) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              pageBuilder: (context, pageImage, pageIndex) {
+                return _buildPdfPageCard(context, pageImage);
               },
             ),
           ),
@@ -595,6 +694,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
       child: CustomPaint(
         painter: _GridPainter(lineColor: theme.colorScheme.outlineVariant),
+      ),
+    );
+  }
+
+  Widget _buildPdfPageCard(BuildContext context, PdfPageImage pageImage) {
+    final theme = Theme.of(context);
+    const borderRadius = BorderRadius.all(Radius.circular(12));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: borderRadius,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: Image.memory(
+            pageImage.bytes,
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
     );
   }
@@ -917,12 +1044,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final showModeHint =
         showDefectHint || showEquipmentHint || _mode == DrawMode.freeDraw ||
             _mode == DrawMode.eraser;
-    final categoryBarHeight = showModeHint ? 64.0 : 48.0;
+    final isPlaceholderMode =
+        _mode != DrawMode.defect && _mode != DrawMode.equipment;
+    final categoryBarHeight = isPlaceholderMode
+        ? 28.0
+        : showModeHint
+            ? 64.0
+            : 48.0;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_site.name),
         actions: [
+          if (_site.drawingType == DrawingType.pdf)
+            IconButton(
+              tooltip: StringsKo.replacePdfTooltip,
+              icon: const Icon(Icons.upload_file_outlined),
+              onPressed: _replacePdf,
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: DropdownButtonHideUnderline(
@@ -942,6 +1081,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   setState(() {
                     _currentPage = value;
                   });
+                  _pdfController?.jumpToPage(value);
                 },
               ),
             ),
@@ -950,7 +1090,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(categoryBarHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+            padding: EdgeInsets.fromLTRB(12, isPlaceholderMode ? 0 : 2, 12, 2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -997,9 +1137,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     ],
                   )
                 else
-                  Text(
-                    StringsKo.modePlaceholder,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      StringsKo.modePlaceholder,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
               ],
             ),
@@ -1030,7 +1180,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                           _tapCanceled = true;
                         }
                       },
-                      onPointerUp: (_) {
+                      onPointerUp: (event) {
+                        _handlePageSwipe(event.localPosition);
                         _pointerDownPosition = null;
                       },
                       onPointerCancel: (_) {
@@ -1062,10 +1213,94 @@ class _DrawingScreenState extends State<DrawingScreen> {
                     ),
                     _buildMarkerPopup(MediaQuery.of(context).size),
                     Positioned(top: 16, right: 16, child: _buildModeButtons()),
+                    _buildPageOverlay(),
                   ],
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handlePageSwipe(Offset pointerUpPosition) {
+    if (_site.drawingType != DrawingType.pdf ||
+        _pointerDownPosition == null) {
+      return;
+    }
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    if (scale > 1.05) {
+      return;
+    }
+    final delta = pointerUpPosition - _pointerDownPosition!;
+    if (delta.dy.abs() < _pageSwipeThreshold ||
+        delta.dy.abs() < delta.dx.abs()) {
+      return;
+    }
+    final nextPage = delta.dy < 0 ? _currentPage + 1 : _currentPage - 1;
+    if (nextPage < 1 || nextPage > _pageCount) {
+      return;
+    }
+    setState(() {
+      _currentPage = nextPage;
+    });
+    _pdfController?.jumpToPage(nextPage);
+  }
+
+  Widget _buildPageOverlay() {
+    if (_site.drawingType != DrawingType.pdf || _pageCount <= 1) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    return Positioned(
+      right: 16,
+      bottom: 16,
+      child: Column(
+        children: [
+          _PageNavButton(
+            icon: Icons.keyboard_arrow_up,
+            onPressed: _currentPage > 1
+                ? () {
+                    final nextPage = _currentPage - 1;
+                    setState(() {
+                      _currentPage = nextPage;
+                    });
+                    _pdfController?.jumpToPage(nextPage);
+                  }
+                : null,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              StringsKo.pageIndicator(_currentPage, _pageCount),
+              style: theme.textTheme.labelMedium,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _PageNavButton(
+            icon: Icons.keyboard_arrow_down,
+            onPressed: _currentPage < _pageCount
+                ? () {
+                    final nextPage = _currentPage + 1;
+                    setState(() {
+                      _currentPage = nextPage;
+                    });
+                    _pdfController?.jumpToPage(nextPage);
+                  }
+                : null,
           ),
         ],
       ),
@@ -1083,6 +1318,26 @@ class _MarkerHitResult {
   final Defect? defect;
   final EquipmentMarker? equipment;
   final Offset position;
+}
+
+class _PageNavButton extends StatelessWidget {
+  const _PageNavButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: IconButton(
+        icon: Icon(icon),
+        onPressed: onPressed,
+      ),
+    );
+  }
 }
 
 class _DefectMarker extends StatelessWidget {
