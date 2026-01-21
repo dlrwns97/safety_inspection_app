@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:pdfx/pdfx.dart';
 
 import '../constants/strings_ko.dart';
 import '../models/defect.dart';
@@ -31,6 +34,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
   final GlobalKey _canvasKey = GlobalKey();
 
   late Site _site;
+  PdfControllerPinch? _pdfController;
+  String? _pdfLoadError;
   DrawMode _mode = DrawMode.defect;
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
@@ -43,6 +48,38 @@ class _DrawingScreenState extends State<DrawingScreen> {
   void initState() {
     super.initState();
     _site = widget.site;
+    _loadPdfController();
+  }
+
+  @override
+  void dispose() {
+    _pdfController?.dispose();
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPdfController() async {
+    final path = _site.pdfPath;
+    if (path == null || path.isEmpty) {
+      return;
+    }
+    final file = File(path);
+    final exists = await file.exists();
+    if (!mounted) {
+      return;
+    }
+    if (!exists) {
+      setState(() {
+        _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+      });
+      debugPrint('PDF file not found at $path');
+      return;
+    }
+    setState(() {
+      _pdfController = PdfControllerPinch(
+        document: PdfDocument.openFile(path),
+      );
+    });
   }
 
   Future<void> _handleTap(TapDownDetails details) async {
@@ -478,6 +515,52 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget _buildDrawingBackground() {
     final theme = Theme.of(context);
     if (_site.drawingType == DrawingType.pdf) {
+      if (_pdfLoadError != null) {
+        return Container(
+          color: theme.colorScheme.surfaceContainerHighest,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _pdfLoadError!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      }
+      if (_pdfController != null) {
+        return ClipRect(
+          child: AbsorbPointer(
+            child: PdfViewPinch(
+              controller: _pdfController!,
+              onDocumentLoaded: (_) {
+                if (!mounted) {
+                  return;
+                }
+                if (_pdfLoadError == null) {
+                  return;
+                }
+                setState(() {
+                  _pdfLoadError = null;
+                });
+              },
+              onDocumentError: (error) {
+                debugPrint('Failed to load PDF: $error');
+                if (!mounted) {
+                  return;
+                }
+                setState(() {
+                  _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+                });
+              },
+              onPageError: (page, error) {
+                debugPrint('Failed to render PDF page $page: $error');
+              },
+            ),
+          ),
+        );
+      }
       return Container(
         color: theme.colorScheme.surfaceContainerHighest,
         alignment: Alignment.center,
