@@ -408,6 +408,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment6) {
+        final details = await _showStructuralTiltDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialDirection: pendingMarker.tiltDirection,
+          initialDisplacementText: pendingMarker.displacementText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          tiltDirection: details.direction,
+          displacementText: details.displacementText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -662,6 +684,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
           initialMemberType: initialMemberType,
           initialCoverThicknessText: initialCoverThicknessText,
           initialDepthText: initialDepthText,
+        ),
+      ),
+    );
+  }
+
+  Future<_StructuralTiltDetails?> _showStructuralTiltDialog({
+    required String title,
+    String? initialDirection,
+    String? initialDisplacementText,
+  }) async {
+    return _showDetailDialog(
+      () => showDialog<_StructuralTiltDetails>(
+        context: context,
+        builder: (context) => _StructuralTiltDialog(
+          title: title,
+          initialDirection: initialDirection,
+          initialDisplacementText: initialDisplacementText,
         ),
       ),
     );
@@ -1084,6 +1123,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment6) {
+        final details = await _showStructuralTiltDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialDirection: pendingMarker.tiltDirection,
+          initialDisplacementText: pendingMarker.displacementText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          tiltDirection: details.direction,
+          displacementText: details.displacementText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -1304,6 +1365,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       if (marker.depthText != null && marker.depthText!.isNotEmpty) {
         lines.add('깊이: ${marker.depthText}');
+      }
+      return lines;
+    }
+    if (marker.equipmentTypeId == 'Tr') {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      if (marker.tiltDirection != null && marker.tiltDirection!.isNotEmpty) {
+        lines.add('방향: ${marker.tiltDirection}');
+      }
+      if (marker.displacementText != null &&
+          marker.displacementText!.isNotEmpty) {
+        lines.add('변위량: ${marker.displacementText}');
       }
       return lines;
     }
@@ -1698,6 +1770,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return 'Co';
       case EquipmentCategory.equipment5:
         return 'Ch';
+      case EquipmentCategory.equipment6:
+        return 'Tr';
     }
   }
 
@@ -1714,6 +1788,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (marker.equipmentTypeId == 'Ch') {
       return '콘크리트 탄산화 ${marker.label}';
     }
+    if (marker.equipmentTypeId == 'Tr') {
+      return '구조물 기울기 ${marker.label}';
+    }
     return marker.label;
   }
 
@@ -1728,6 +1805,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return Colors.green;
       case EquipmentCategory.equipment5:
         return Colors.orangeAccent;
+      case EquipmentCategory.equipment6:
+        return Colors.tealAccent;
     }
   }
 
@@ -3006,6 +3085,143 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
   }
 }
 
+class _StructuralTiltDialog extends StatefulWidget {
+  const _StructuralTiltDialog({
+    required this.title,
+    this.initialDirection,
+    this.initialDisplacementText,
+  });
+
+  final String title;
+  final String? initialDirection;
+  final String? initialDisplacementText;
+
+  @override
+  State<_StructuralTiltDialog> createState() => _StructuralTiltDialogState();
+}
+
+class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _displacementController = TextEditingController();
+  String? _selectedDirection;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDirection = widget.initialDirection;
+    _displacementController.text = widget.initialDisplacementText ?? '';
+  }
+
+  @override
+  void dispose() {
+    _displacementController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = min(
+      MediaQuery.of(context).size.width * 0.45,
+      320.0,
+    );
+    final isSaveEnabled = _selectedDirection != null;
+
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedDirection,
+                  decoration: const InputDecoration(
+                    labelText: '방향',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: '+',
+                      child: Text('+'),
+                    ),
+                    DropdownMenuItem(
+                      value: '-',
+                      child: Text('-'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDirection = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '방향을 선택하세요.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _displacementController,
+                  decoration: const InputDecoration(
+                    labelText: '변위량',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isSaveEnabled
+                          ? () {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              final displacement =
+                                  _displacementController.text.trim();
+                              Navigator.of(context).pop(
+                                _StructuralTiltDetails(
+                                  direction: _selectedDirection!,
+                                  displacementText: displacement.isEmpty
+                                      ? null
+                                      : displacement,
+                                ),
+                              );
+                            }
+                          : null,
+                      child: const Text('저장'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MarkerHitResult {
   const _MarkerHitResult({
     required this.defect,
@@ -3070,6 +3286,16 @@ class _CarbonationDetails {
   final String memberType;
   final String coverThicknessText;
   final String depthText;
+}
+
+class _StructuralTiltDetails {
+  const _StructuralTiltDetails({
+    required this.direction,
+    required this.displacementText,
+  });
+
+  final String direction;
+  final String? displacementText;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {
