@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await blueprintDirectory.create(recursive: true);
       }
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = 'drawing_$timestamp_${file.name}';
+      final filename = 'drawing_${timestamp}_${file.name}';
       final savedFile = File(
         '${blueprintDirectory.path}${Platform.pathSeparator}$filename',
       );
