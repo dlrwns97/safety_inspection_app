@@ -14,7 +14,6 @@ import '../models/defect_details.dart';
 import '../models/drawing_enums.dart';
 import '../models/equipment_marker.dart';
 import '../models/site.dart';
-import '../widgets/mode_button.dart';
 
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
@@ -1224,32 +1223,29 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }).toList();
   }
 
-  Widget _buildModeButtons() {
-    return Column(
+  Widget _buildModeToolRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        ModeButton(
-          icon: Icons.bug_report_outlined,
+        _ToolToggleButton(
           label: StringsKo.defectModeLabel,
           isSelected: _mode == DrawMode.defect,
           onTap: () => _toggleMode(DrawMode.defect),
         ),
-        const SizedBox(height: 12),
-        ModeButton(
-          icon: Icons.construction_outlined,
+        const SizedBox(width: 8),
+        _ToolToggleButton(
           label: StringsKo.equipmentModeLabel,
           isSelected: _mode == DrawMode.equipment,
           onTap: () => _toggleMode(DrawMode.equipment),
         ),
-        const SizedBox(height: 12),
-        ModeButton(
-          icon: Icons.brush_outlined,
+        const SizedBox(width: 8),
+        _ToolToggleButton(
           label: StringsKo.freeDrawModeLabel,
           isSelected: _mode == DrawMode.freeDraw,
           onTap: () => _toggleMode(DrawMode.freeDraw),
         ),
-        const SizedBox(height: 12),
-        ModeButton(
-          icon: Icons.auto_fix_off_outlined,
+        const SizedBox(width: 8),
+        _ToolToggleButton(
           label: StringsKo.eraserModeLabel,
           isSelected: _mode == DrawMode.eraser,
           onTap: () => _toggleMode(DrawMode.eraser),
@@ -1264,58 +1260,117 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
-  Widget _buildDefectCategories() {
+  Widget _buildNumberedTabs<T>({
+    required List<T> items,
+    required T? selected,
+    required ValueChanged<T> onSelected,
+  }) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: DefectCategory.values.map((category) {
-            final selected = _activeCategory == category;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(category.label),
-                selected: selected,
-                onSelected: (_) {
-                  setState(() {
-                    _activeCategory = category;
-                  });
-                },
-              ),
-            );
-          }).toList(),
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(items.length, (index) {
+          final item = items[index];
+          final isSelected = item == selected;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text('${index + 1}'),
+              selected: isSelected,
+              onSelected: (_) => onSelected(item),
+            ),
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildEquipmentCategories() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: EquipmentCategory.values.map((category) {
-            final selected = _activeEquipmentCategory == category;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(category.label),
-                selected: selected,
-                onSelected: (_) {
-                  setState(() {
-                    _activeEquipmentCategory = category;
-                  });
-                },
-              ),
-            );
-          }).toList(),
+  Widget _buildToolPanelHeader(String label, {bool showAddButton = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-      ),
+        if (showAddButton) ...[
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: 18,
+              onPressed: () {},
+              icon: const Icon(Icons.add),
+              tooltip: '추가',
+            ),
+          ),
+        ],
+      ],
     );
+  }
+
+  Widget _buildModePanel() {
+    if (_mode == DrawMode.defect) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildToolPanelHeader(
+            StringsKo.defectModeLabel,
+            showAddButton: true,
+          ),
+          const SizedBox(height: 8),
+          _buildNumberedTabs<DefectCategory>(
+            items: DefectCategory.values,
+            selected: _activeCategory,
+            onSelected: (category) {
+              setState(() {
+                _activeCategory = category;
+              });
+            },
+          ),
+        ],
+      );
+    }
+    if (_mode == DrawMode.equipment) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildToolPanelHeader(
+            StringsKo.equipmentModeLabel,
+            showAddButton: true,
+          ),
+          const SizedBox(height: 8),
+          _buildNumberedTabs<EquipmentCategory>(
+            items: EquipmentCategory.values,
+            selected: _activeEquipmentCategory,
+            onSelected: (category) {
+              setState(() {
+                _activeEquipmentCategory = category;
+              });
+            },
+          ),
+        ],
+      );
+    }
+    if (_mode == DrawMode.freeDraw) {
+      return _buildToolPanelHeader(StringsKo.freeDrawModeLabel);
+    }
+    if (_mode == DrawMode.eraser) {
+      return _buildToolPanelHeader(StringsKo.eraserModeLabel);
+    }
+    return const SizedBox.shrink();
+  }
+
+  double _toolPanelHeight() {
+    if (_mode == DrawMode.defect || _mode == DrawMode.equipment) {
+      return 80;
+    }
+    if (_mode == DrawMode.freeDraw || _mode == DrawMode.eraser) {
+      return 36;
+    }
+    return 0;
   }
 
   Color _defectColor(DefectCategory category) {
@@ -1397,20 +1452,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showDefectHint =
-        _mode == DrawMode.defect && _activeCategory == null;
-    final showEquipmentHint =
-        _mode == DrawMode.equipment && _activeEquipmentCategory == null;
-    final showModeHint =
-        showDefectHint || showEquipmentHint || _mode == DrawMode.freeDraw ||
-            _mode == DrawMode.eraser;
-    final isPlaceholderMode =
-        _mode != DrawMode.defect && _mode != DrawMode.equipment;
-    final categoryBarHeight = isPlaceholderMode
-        ? 28.0
-        : showModeHint
-            ? 64.0
-            : 48.0;
+    const toolRowHeight = 44.0;
+    const toolRowVerticalPadding = 8.0;
+    const panelSpacing = 8.0;
+    final panelHeight = _toolPanelHeight();
+    final hasPanel = panelHeight > 0;
+    final toolBarHeight =
+        toolRowHeight +
+        toolRowVerticalPadding * 2 +
+        (hasPanel ? panelSpacing + panelHeight : 0);
 
     return Scaffold(
       appBar: AppBar(
@@ -1424,69 +1474,42 @@ class _DrawingScreenState extends State<DrawingScreen> {
             ),
         ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(categoryBarHeight),
+          preferredSize: Size.fromHeight(toolBarHeight),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(12, isPlaceholderMode ? 0 : 2, 12, 2),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_mode == DrawMode.defect)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (showDefectHint)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 0),
-                          child: Text(
-                            StringsKo.selectDefectCategoryHint,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildDefectCategories(),
-                        ),
+                SizedBox(
+                  height: toolRowHeight,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildModeToolRow(),
+                  ),
+                ),
+                if (hasPanel) ...[
+                  const SizedBox(height: panelSpacing),
+                  SizedBox(
+                    height: panelHeight,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
                       ),
-                    ],
-                  )
-                else if (_mode == DrawMode.equipment)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (showEquipmentHint)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 0),
-                          child: Text(
-                            StringsKo.selectEquipmentCategoryHint,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildEquipmentCategories(),
-                        ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  )
-                else
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      StringsKo.modePlaceholder,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildModePanel(),
+                      ),
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -1552,7 +1575,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       ),
                     if (_site.drawingType != DrawingType.pdf)
                       _buildMarkerPopup(MediaQuery.of(context).size),
-                    Positioned(top: 16, right: 16, child: _buildModeButtons()),
                     _buildPageOverlay(),
                   ],
                 );
@@ -1634,6 +1656,38 @@ class _MarkerHitResult {
   final Defect? defect;
   final EquipmentMarker? equipment;
   final Offset position;
+}
+
+class _ToolToggleButton extends StatelessWidget {
+  const _ToolToggleButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        backgroundColor:
+            isSelected ? colors.primary : colors.surfaceContainerHighest,
+        foregroundColor:
+            isSelected ? colors.onPrimary : colors.onSurfaceVariant,
+        side: BorderSide(
+          color: isSelected ? colors.primary : colors.outlineVariant,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+    );
+  }
 }
 
 class _PageNavButton extends StatelessWidget {
