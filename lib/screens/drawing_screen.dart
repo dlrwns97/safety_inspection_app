@@ -283,6 +283,39 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       await widget.onSiteUpdated(_site);
     } else {
+      if (_activeEquipmentCategory == EquipmentCategory.equipment8) {
+        final nextIndices = {
+          'Lx': _nextSettlementIndex('Lx'),
+          'Ly': _nextSettlementIndex('Ly'),
+        };
+        final details = await _showSettlementDialog(
+          baseTitle: '부동침하',
+          nextIndexByDirection: nextIndices,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final direction = details.direction;
+        final label = '$direction${_nextSettlementIndex(direction)}';
+        final marker = EquipmentMarker(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          label: label,
+          pageIndex: _currentPage,
+          category: EquipmentCategory.equipment8,
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          equipmentTypeId: direction,
+          tiltDirection: direction,
+          displacementText: details.displacementText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       final equipmentCount = _site.equipmentMarkers
           .where((marker) => marker.category == _activeEquipmentCategory)
           .length;
@@ -736,6 +769,25 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
+  Future<_SettlementDetails?> _showSettlementDialog({
+    required String baseTitle,
+    required Map<String, int> nextIndexByDirection,
+    String? initialDirection,
+    String? initialDisplacementText,
+  }) async {
+    return _showDetailDialog(
+      () => showDialog<_SettlementDetails>(
+        context: context,
+        builder: (context) => _SettlementDialog(
+          baseTitle: baseTitle,
+          nextIndexByDirection: nextIndexByDirection,
+          initialDirection: initialDirection,
+          initialDisplacementText: initialDisplacementText,
+        ),
+      ),
+    );
+  }
+
   Future<_DeflectionDetails?> _showDeflectionDialog({
     required String title,
     String? initialMemberType,
@@ -1046,6 +1098,39 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       await widget.onSiteUpdated(_site);
     } else {
+      if (_activeEquipmentCategory == EquipmentCategory.equipment8) {
+        final nextIndices = {
+          'Lx': _nextSettlementIndex('Lx'),
+          'Ly': _nextSettlementIndex('Ly'),
+        };
+        final details = await _showSettlementDialog(
+          baseTitle: '부동침하',
+          nextIndexByDirection: nextIndices,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final direction = details.direction;
+        final label = '$direction${_nextSettlementIndex(direction)}';
+        final marker = EquipmentMarker(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          label: label,
+          pageIndex: pageIndex,
+          category: EquipmentCategory.equipment8,
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          equipmentTypeId: direction,
+          tiltDirection: direction,
+          displacementText: details.displacementText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       final equipmentCount = _site.equipmentMarkers
           .where((marker) => marker.category == _activeEquipmentCategory)
           .length;
@@ -1457,6 +1542,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       return lines;
     }
+    if (marker.category == EquipmentCategory.equipment8) {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      final direction = _settlementDirection(marker);
+      if (direction != null && direction.isNotEmpty) {
+        lines.add('방향: $direction');
+      }
+      if (marker.displacementText != null &&
+          marker.displacementText!.isNotEmpty) {
+        lines.add('변위량: ${marker.displacementText}');
+      }
+      return lines;
+    }
     if (marker.equipmentTypeId == 'L') {
       final lines = <String>[_equipmentDisplayLabel(marker)];
       if (marker.memberType != null && marker.memberType!.isNotEmpty) {
@@ -1855,6 +1952,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  String? _settlementDirection(EquipmentMarker marker) {
+    final direction = marker.tiltDirection;
+    if (direction != null && direction.isNotEmpty) {
+      return direction;
+    }
+    if (marker.equipmentTypeId == 'Lx' || marker.equipmentTypeId == 'Ly') {
+      return marker.equipmentTypeId;
+    }
+    return null;
+  }
+
+  int _nextSettlementIndex(String direction) {
+    return _site.equipmentMarkers
+            .where(
+              (marker) =>
+                  marker.category == EquipmentCategory.equipment8 &&
+                  _settlementDirection(marker) == direction,
+            )
+            .length +
+        1;
+  }
+
   String _equipmentLabelPrefix(EquipmentCategory category) {
     switch (category) {
       case EquipmentCategory.equipment1:
@@ -1871,10 +1990,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return 'Tr';
       case EquipmentCategory.equipment7:
         return 'L';
+      case EquipmentCategory.equipment8:
+        return 'Lx';
     }
   }
 
   String _equipmentDisplayLabel(EquipmentMarker marker) {
+    if (marker.category == EquipmentCategory.equipment8) {
+      return '부동침하 ${marker.label}';
+    }
     if (marker.equipmentTypeId == 'F') {
       return '철근배근간격 ${marker.label}';
     }
@@ -1911,6 +2035,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return Colors.tealAccent;
       case EquipmentCategory.equipment7:
         return Colors.indigoAccent;
+      case EquipmentCategory.equipment8:
+        return Colors.deepPurpleAccent;
     }
   }
 
@@ -3326,6 +3452,154 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
   }
 }
 
+class _SettlementDialog extends StatefulWidget {
+  const _SettlementDialog({
+    required this.baseTitle,
+    required this.nextIndexByDirection,
+    this.initialDirection,
+    this.initialDisplacementText,
+  });
+
+  final String baseTitle;
+  final Map<String, int> nextIndexByDirection;
+  final String? initialDirection;
+  final String? initialDisplacementText;
+
+  @override
+  State<_SettlementDialog> createState() => _SettlementDialogState();
+}
+
+class _SettlementDialogState extends State<_SettlementDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _displacementController = TextEditingController();
+  String? _selectedDirection;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDirection = widget.initialDirection;
+    _displacementController.text = widget.initialDisplacementText ?? '';
+  }
+
+  @override
+  void dispose() {
+    _displacementController.dispose();
+    super.dispose();
+  }
+
+  String _dialogTitle() {
+    final direction = _selectedDirection;
+    if (direction == null || direction.isEmpty) {
+      return widget.baseTitle;
+    }
+    final nextIndex = widget.nextIndexByDirection[direction] ?? 1;
+    return '${widget.baseTitle} $direction$nextIndex';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = min(
+      MediaQuery.of(context).size.width * 0.4,
+      280.0,
+    );
+    final isSaveEnabled = _selectedDirection != null;
+
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _dialogTitle(),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedDirection,
+                  decoration: const InputDecoration(
+                    labelText: '방향',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Lx',
+                      child: Text('Lx'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Ly',
+                      child: Text('Ly'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDirection = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '방향을 선택하세요.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _displacementController,
+                  decoration: const InputDecoration(
+                    labelText: '변위량',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isSaveEnabled
+                          ? () {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              final displacement =
+                                  _displacementController.text.trim();
+                              Navigator.of(context).pop(
+                                _SettlementDetails(
+                                  direction: _selectedDirection!,
+                                  displacementText: displacement.isEmpty
+                                      ? null
+                                      : displacement,
+                                ),
+                              );
+                            }
+                          : null,
+                      child: const Text('저장'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DeflectionDialog extends StatefulWidget {
   const _DeflectionDialog({
     required this.title,
@@ -3561,6 +3835,16 @@ class _CarbonationDetails {
 
 class _StructuralTiltDetails {
   const _StructuralTiltDetails({
+    required this.direction,
+    required this.displacementText,
+  });
+
+  final String direction;
+  final String? displacementText;
+}
+
+class _SettlementDetails {
+  const _SettlementDetails({
     required this.direction,
     required this.displacementText,
   });
