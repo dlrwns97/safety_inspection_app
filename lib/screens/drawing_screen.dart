@@ -36,6 +36,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
+  final Map<int, Size> _pdfPageSizes = {};
 
   late Site _site;
   PdfController? _pdfController;
@@ -95,6 +96,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         document: PdfDocument.openFile(path),
       );
       _pdfLoadError = null;
+      _pdfPageSizes.clear();
       _pageCount = 1;
       _currentPage = 1;
     });
@@ -128,6 +130,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _selectedDefect = null;
       _selectedEquipment = null;
       _selectedMarkerScenePosition = null;
+      _pdfPageSizes.clear();
       _currentPage = 1;
       _pageCount = 1;
     });
@@ -719,69 +722,38 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 pageNumber,
                 document.id,
               );
-              final pageSize = Size(
-                pageImage.width.toDouble(),
-                pageImage.height.toDouble(),
-              );
+              final fallbackSize =
+                  _pdfPageSizes[pageNumber] ?? _canvasSize;
               return PhotoViewGalleryPageOptions.customChild(
-                customChild: Listener(
-                  onPointerDown: (event) {
-                    _pointerDownPosition = event.localPosition;
-                    _tapCanceled = false;
-                  },
-                  onPointerMove: (event) {
-                    if (_pointerDownPosition == null) {
-                      return;
+                child: FutureBuilder<PdfPageImage>(
+                  future: pageImage,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final data = snapshot.data!;
+                      final pageSize = Size(
+                        data.width.toDouble(),
+                        data.height.toDouble(),
+                      );
+                      if (_pdfPageSizes[pageNumber] != pageSize) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _pdfPageSizes[pageNumber] = pageSize;
+                          });
+                        });
+                      }
+                      return _buildPdfPageLayer(
+                        pageSize: pageSize,
+                        pageNumber: pageNumber,
+                        imageProvider: imageProvider,
+                      );
                     }
-                    final distance =
-                        (event.localPosition - _pointerDownPosition!).distance;
-                    if (distance > _tapSlop) {
-                      _tapCanceled = true;
-                    }
+                    return const Center(child: CircularProgressIndicator());
                   },
-                  onPointerUp: (_) {
-                    _pointerDownPosition = null;
-                  },
-                  onPointerCancel: (_) {
-                    _pointerDownPosition = null;
-                    _tapCanceled = false;
-                  },
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTapUp: (details) => _handlePdfTap(
-                      details,
-                      pageSize,
-                      pageNumber,
-                    ),
-                    child: SizedBox(
-                      width: pageSize.width,
-                      height: pageSize.height,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          ..._buildDefectMarkersForPage(
-                            pageSize,
-                            pageNumber,
-                          ),
-                          ..._buildEquipmentMarkersForPage(
-                            pageSize,
-                            pageNumber,
-                          ),
-                          _buildMarkerPopupForPage(
-                            pageSize,
-                            pageNumber,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
-                childSize: pageSize,
+                childSize: fallbackSize,
                 initialScale: PhotoViewComputedScale.contained,
                 minScale: PhotoViewComputedScale.contained,
                 maxScale: PhotoViewComputedScale.covered * 2.0,
@@ -812,6 +784,73 @@ class _DrawingScreenState extends State<DrawingScreen> {
           const SizedBox(height: 4),
           const Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPdfPageLayer({
+    required Size pageSize,
+    required int pageNumber,
+    required ImageProvider imageProvider,
+  }) {
+    return Listener(
+      onPointerDown: (event) {
+        _pointerDownPosition = event.localPosition;
+        _tapCanceled = false;
+      },
+      onPointerMove: (event) {
+        if (_pointerDownPosition == null) {
+          return;
+        }
+        final distance =
+            (event.localPosition - _pointerDownPosition!).distance;
+        if (distance > _tapSlop) {
+          _tapCanceled = true;
+        }
+      },
+      onPointerUp: (_) {
+        _pointerDownPosition = null;
+      },
+      onPointerCancel: (_) {
+        _pointerDownPosition = null;
+        _tapCanceled = false;
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapUp: (details) => _handlePdfTap(
+          details,
+          pageSize,
+          pageNumber,
+        ),
+        child: AspectRatio(
+          aspectRatio: pageSize.width / pageSize.height,
+          child: SizedBox(
+            width: pageSize.width,
+            height: pageSize.height,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image(
+                    image: imageProvider,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                ..._buildDefectMarkersForPage(
+                  pageSize,
+                  pageNumber,
+                ),
+                ..._buildEquipmentMarkersForPage(
+                  pageSize,
+                  pageNumber,
+                ),
+                _buildMarkerPopupForPage(
+                  pageSize,
+                  pageNumber,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
