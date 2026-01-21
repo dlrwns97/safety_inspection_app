@@ -274,7 +274,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       await widget.onSiteUpdated(_site);
       if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
         final details = await _showEquipmentDetailsDialog(
-          title: '장비 ${marker.label}',
+          title: '부재단면치수 ${marker.label}',
           initialMemberType: marker.memberType,
           initialSizeValues: marker.sizeValues,
         );
@@ -1171,7 +1171,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
       if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
         final details = await _showEquipmentDetailsDialog(
-          title: '장비 ${pendingMarker.label}',
+          title: '부재단면치수 ${pendingMarker.label}',
           initialMemberType: pendingMarker.memberType,
           initialSizeValues: pendingMarker.sizeValues,
         );
