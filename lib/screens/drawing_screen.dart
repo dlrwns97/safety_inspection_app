@@ -730,9 +730,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       final data = snapshot.data!;
+                      final w = (data.width ?? 1).toDouble();
+                      final h = (data.height ?? 1).toDouble();
                       final pageSize = Size(
-                        data.width.toDouble(),
-                        data.height.toDouble(),
+                        w,
+                        h,
                       );
                       if (_pdfPageSizes[pageNumber] != pageSize) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
