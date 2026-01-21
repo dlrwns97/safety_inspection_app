@@ -57,6 +57,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     '벽체',
     '슬래브',
   ];
+  static const List<String> _coreSamplingMemberOptions = [
+    '기둥',
+    '보',
+    '벽체',
+    '슬래브',
+  ];
   static const Map<String, List<String>> _equipmentMemberSizeLabels = {
     '기둥': ['W', 'H'],
     '보': ['W', 'H'],
@@ -350,6 +356,50 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
+        final details = await _showCoreSamplingDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialAvgValueText: pendingMarker.avgValueText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          avgValueText: details.avgValueText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
+        final details = await _showCoreSamplingDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialAvgValueText: pendingMarker.avgValueText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          avgValueText: details.avgValueText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -566,6 +616,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
           initialMemberType: initialMemberType,
           initialMaxValueText: initialMaxValueText,
           initialMinValueText: initialMinValueText,
+        ),
+      ),
+    );
+  }
+
+  Future<_CoreSamplingDetails?> _showCoreSamplingDialog({
+    required String title,
+    String? initialMemberType,
+    String? initialAvgValueText,
+  }) async {
+    return _showDetailDialog(
+      () => showDialog<_CoreSamplingDetails>(
+        context: context,
+        builder: (context) => _CoreSamplingDialog(
+          title: title,
+          memberOptions: _coreSamplingMemberOptions,
+          initialMemberType: initialMemberType,
+          initialAvgValueText: initialAvgValueText,
         ),
       ),
     );
@@ -1141,6 +1209,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       return lines;
     }
+    if (marker.equipmentTypeId == 'Co') {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+        lines.add(marker.memberType!);
+      }
+      if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
+        lines.add('평균값: ${marker.avgValueText}');
+      }
+      return lines;
+    }
     return [marker.label, marker.category.label];
   }
 
@@ -1539,6 +1617,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
     if (marker.equipmentTypeId == 'SH') {
       return '슈미트해머 ${marker.label}';
+    }
+    if (marker.equipmentTypeId == 'Co') {
+      return '코어채취 ${marker.label}';
     }
     return marker.label;
   }
@@ -2545,6 +2626,140 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
   }
 }
 
+class _CoreSamplingDialog extends StatefulWidget {
+  const _CoreSamplingDialog({
+    required this.title,
+    required this.memberOptions,
+    this.initialMemberType,
+    this.initialAvgValueText,
+  });
+
+  final String title;
+  final List<String> memberOptions;
+  final String? initialMemberType;
+  final String? initialAvgValueText;
+
+  @override
+  State<_CoreSamplingDialog> createState() => _CoreSamplingDialogState();
+}
+
+class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _avgValueController = TextEditingController();
+  String? _selectedMember;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMember = widget.initialMemberType;
+    _avgValueController.text = widget.initialAvgValueText ?? '';
+  }
+
+  @override
+  void dispose() {
+    _avgValueController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = min(
+      MediaQuery.of(context).size.width * 0.6,
+      520.0,
+    );
+    final isSaveEnabled = _selectedMember != null;
+
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedMember,
+                  decoration: const InputDecoration(
+                    labelText: '부재',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: widget.memberOptions
+                      .map(
+                        (option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedMember = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '부재를 선택하세요.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _avgValueController,
+                  decoration: const InputDecoration(
+                    labelText: '평균값',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isSaveEnabled
+                          ? () {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              Navigator.of(context).pop(
+                                _CoreSamplingDetails(
+                                  memberType: _selectedMember!,
+                                  avgValueText:
+                                      _avgValueController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: const Text('저장'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MarkerHitResult {
   const _MarkerHitResult({
     required this.defect,
@@ -2587,6 +2802,16 @@ class _SchmidtHammerDetails {
   final String memberType;
   final String maxValueText;
   final String minValueText;
+}
+
+class _CoreSamplingDetails {
+  const _CoreSamplingDetails({
+    required this.memberType,
+    required this.avgValueText,
+  });
+
+  final String memberType;
+  final String avgValueText;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {

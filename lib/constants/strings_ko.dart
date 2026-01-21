@@ -51,7 +51,7 @@ class StringsKo {
   static const equipmentCategory1 = '장비1';
   static const equipmentCategory2 = '철근배근간격';
   static const equipmentCategory3 = '슈미트해머';
-  static const equipmentCategory4 = '장비4';
+  static const equipmentCategory4 = '코어채취';
   static const otherOptionLabel = '기타';
   static const otherTypeLabel = '기타 유형';
   static const otherCauseLabel = '기타 원인';
