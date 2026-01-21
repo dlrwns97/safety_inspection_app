@@ -69,6 +69,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     '벽체',
     '슬래브',
   ];
+  static const List<String> _deflectionMemberOptions = [
+    '보',
+    '슬래브',
+  ];
   static const Map<String, List<String>> _equipmentMemberSizeLabels = {
     '기둥': ['W', 'H'],
     '보': ['W', 'H'],
@@ -430,6 +434,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment7) {
+        final details = await _showDeflectionDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialEndAText: pendingMarker.deflectionEndAText,
+          initialMidBText: pendingMarker.deflectionMidBText,
+          initialEndCText: pendingMarker.deflectionEndCText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          deflectionEndAText: details.endAText,
+          deflectionMidBText: details.midBText,
+          deflectionEndCText: details.endCText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -701,6 +731,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
           title: title,
           initialDirection: initialDirection,
           initialDisplacementText: initialDisplacementText,
+        ),
+      ),
+    );
+  }
+
+  Future<_DeflectionDetails?> _showDeflectionDialog({
+    required String title,
+    String? initialMemberType,
+    String? initialEndAText,
+    String? initialMidBText,
+    String? initialEndCText,
+  }) async {
+    return _showDetailDialog(
+      () => showDialog<_DeflectionDetails>(
+        context: context,
+        builder: (context) => _DeflectionDialog(
+          title: title,
+          memberOptions: _deflectionMemberOptions,
+          initialMemberType: initialMemberType,
+          initialEndAText: initialEndAText,
+          initialMidBText: initialMidBText,
+          initialEndCText: initialEndCText,
         ),
       ),
     );
@@ -1145,6 +1197,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
         await widget.onSiteUpdated(_site);
         return;
       }
+      if (_activeEquipmentCategory == EquipmentCategory.equipment7) {
+        final details = await _showDeflectionDialog(
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialEndAText: pendingMarker.deflectionEndAText,
+          initialMidBText: pendingMarker.deflectionMidBText,
+          initialEndCText: pendingMarker.deflectionEndCText,
+        );
+        if (!mounted || details == null) {
+          return;
+        }
+        final marker = pendingMarker.copyWith(
+          equipmentTypeId: prefix,
+          memberType: details.memberType,
+          deflectionEndAText: details.endAText,
+          deflectionMidBText: details.midBText,
+          deflectionEndCText: details.endCText,
+        );
+        setState(() {
+          _site = _site.copyWith(
+            equipmentMarkers: [..._site.equipmentMarkers, marker],
+          );
+        });
+        await widget.onSiteUpdated(_site);
+        return;
+      }
       setState(() {
         _site = _site.copyWith(
           equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
@@ -1376,6 +1454,25 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (marker.displacementText != null &&
           marker.displacementText!.isNotEmpty) {
         lines.add('변위량: ${marker.displacementText}');
+      }
+      return lines;
+    }
+    if (marker.equipmentTypeId == 'L') {
+      final lines = <String>[_equipmentDisplayLabel(marker)];
+      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+        lines.add(marker.memberType!);
+      }
+      if (marker.deflectionEndAText != null &&
+          marker.deflectionEndAText!.isNotEmpty) {
+        lines.add('A(단부): ${marker.deflectionEndAText}');
+      }
+      if (marker.deflectionMidBText != null &&
+          marker.deflectionMidBText!.isNotEmpty) {
+        lines.add('B(중앙): ${marker.deflectionMidBText}');
+      }
+      if (marker.deflectionEndCText != null &&
+          marker.deflectionEndCText!.isNotEmpty) {
+        lines.add('C(단부): ${marker.deflectionEndCText}');
       }
       return lines;
     }
@@ -1772,6 +1869,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return 'Ch';
       case EquipmentCategory.equipment6:
         return 'Tr';
+      case EquipmentCategory.equipment7:
+        return 'L';
     }
   }
 
@@ -1791,6 +1890,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (marker.equipmentTypeId == 'Tr') {
       return '구조물 기울기 ${marker.label}';
     }
+    if (marker.equipmentTypeId == 'L') {
+      return '부재처짐 ${marker.label}';
+    }
     return marker.label;
   }
 
@@ -1807,6 +1909,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return Colors.orangeAccent;
       case EquipmentCategory.equipment6:
         return Colors.tealAccent;
+      case EquipmentCategory.equipment7:
+        return Colors.indigoAccent;
     }
   }
 
@@ -3222,6 +3326,173 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
   }
 }
 
+class _DeflectionDialog extends StatefulWidget {
+  const _DeflectionDialog({
+    required this.title,
+    required this.memberOptions,
+    this.initialMemberType,
+    this.initialEndAText,
+    this.initialMidBText,
+    this.initialEndCText,
+  });
+
+  final String title;
+  final List<String> memberOptions;
+  final String? initialMemberType;
+  final String? initialEndAText;
+  final String? initialMidBText;
+  final String? initialEndCText;
+
+  @override
+  State<_DeflectionDialog> createState() => _DeflectionDialogState();
+}
+
+class _DeflectionDialogState extends State<_DeflectionDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _endAController = TextEditingController();
+  final _midBController = TextEditingController();
+  final _endCController = TextEditingController();
+  String? _selectedMember;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMember = widget.initialMemberType;
+    _endAController.text = widget.initialEndAText ?? '';
+    _midBController.text = widget.initialMidBText ?? '';
+    _endCController.text = widget.initialEndCText ?? '';
+  }
+
+  @override
+  void dispose() {
+    _endAController.dispose();
+    _midBController.dispose();
+    _endCController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = min(
+      MediaQuery.of(context).size.width * 0.5,
+      360.0,
+    );
+    final isSaveEnabled = _selectedMember != null;
+
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedMember,
+                  decoration: const InputDecoration(
+                    labelText: '부재',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: widget.memberOptions
+                      .map(
+                        (option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedMember = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '부재를 선택하세요.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _endAController,
+                  decoration: const InputDecoration(
+                    labelText: 'A(단부)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _midBController,
+                  decoration: const InputDecoration(
+                    labelText: 'B(중앙)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _endCController,
+                  decoration: const InputDecoration(
+                    labelText: 'C(단부)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('취소'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isSaveEnabled
+                          ? () {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
+                              Navigator.of(context).pop(
+                                _DeflectionDetails(
+                                  memberType: _selectedMember!,
+                                  endAText: _endAController.text.trim(),
+                                  midBText: _midBController.text.trim(),
+                                  endCText: _endCController.text.trim(),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: const Text('저장'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MarkerHitResult {
   const _MarkerHitResult({
     required this.defect,
@@ -3296,6 +3567,20 @@ class _StructuralTiltDetails {
 
   final String direction;
   final String? displacementText;
+}
+
+class _DeflectionDetails {
+  const _DeflectionDetails({
+    required this.memberType,
+    required this.endAText,
+    required this.midBText,
+    required this.endCText,
+  });
+
+  final String memberType;
+  final String endAText;
+  final String midBText;
+  final String endCText;
 }
 
 class _DefectCategoryPickerTile extends StatelessWidget {

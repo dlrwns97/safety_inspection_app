@@ -19,6 +19,9 @@ class EquipmentMarker {
     this.depthText,
     this.tiltDirection,
     this.displacementText,
+    this.deflectionEndAText,
+    this.deflectionMidBText,
+    this.deflectionEndCText,
   });
 
   final String id;
@@ -38,6 +41,9 @@ class EquipmentMarker {
   final String? depthText;
   final String? tiltDirection;
   final String? displacementText;
+  final String? deflectionEndAText;
+  final String? deflectionMidBText;
+  final String? deflectionEndCText;
 
   EquipmentMarker copyWith({
     String? id,
@@ -57,6 +63,9 @@ class EquipmentMarker {
     String? depthText,
     String? tiltDirection,
     String? displacementText,
+    String? deflectionEndAText,
+    String? deflectionMidBText,
+    String? deflectionEndCText,
   }) {
     return EquipmentMarker(
       id: id ?? this.id,
@@ -76,6 +85,9 @@ class EquipmentMarker {
       depthText: depthText ?? this.depthText,
       tiltDirection: tiltDirection ?? this.tiltDirection,
       displacementText: displacementText ?? this.displacementText,
+      deflectionEndAText: deflectionEndAText ?? this.deflectionEndAText,
+      deflectionMidBText: deflectionMidBText ?? this.deflectionMidBText,
+      deflectionEndCText: deflectionEndCText ?? this.deflectionEndCText,
     );
   }
 
@@ -97,6 +109,9 @@ class EquipmentMarker {
     'depthText': depthText,
     'tiltDirection': tiltDirection,
     'displacementText': displacementText,
+    'deflectionEndAText': deflectionEndAText,
+    'deflectionMidBText': deflectionMidBText,
+    'deflectionEndCText': deflectionEndCText,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -122,5 +137,8 @@ class EquipmentMarker {
         depthText: json['depthText'] as String?,
         tiltDirection: json['tiltDirection'] as String?,
         displacementText: json['displacementText'] as String?,
+        deflectionEndAText: json['deflectionEndAText'] as String?,
+        deflectionMidBText: json['deflectionMidBText'] as String?,
+        deflectionEndCText: json['deflectionEndCText'] as String?,
       );
 }
