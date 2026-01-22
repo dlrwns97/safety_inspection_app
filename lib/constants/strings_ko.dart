@@ -12,6 +12,21 @@ class StringsKo {
   static const create = '생성';
   static const delete = '삭제';
   static const deleteSiteTitle = '현장 삭제';
+  static const deleteSiteToTrashMessage =
+      '‘{siteName}’ 현장을 삭제할까요? (휴지통으로 이동합니다.)';
+  static const trashTitle = '휴지통';
+  static const trashMenuLabel = '휴지통';
+  static const trashEmptyTitle = '휴지통이 비어 있습니다';
+  static const trashEmptySubtitle = '삭제한 현장이 이곳에 표시됩니다.';
+  static const restore = '복원';
+  static const permanentDelete = '영구삭제';
+  static const permanentDeleteTitle = '영구 삭제';
+  static const permanentDeleteMessage =
+      '‘{siteName}’ 현장을 영구 삭제할까요? (삭제하면 복구할 수 없습니다.)';
+  static const emptyTrash = '휴지통 비우기';
+  static const emptyTrashTitle = '휴지통 비우기';
+  static const emptyTrashMessage =
+      '휴지통의 현장을 모두 영구 삭제할까요? (삭제하면 복구할 수 없습니다.)';
   static const importPdfTitle = 'PDF 도면 가져오기';
   static const importPdfSubtitle = '대용량 및 다중 페이지 PDF 지원';
   static const createBlankTitle = '빈 캔버스 만들기';
