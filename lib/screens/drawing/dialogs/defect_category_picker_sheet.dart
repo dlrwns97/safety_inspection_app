@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/drawing_enums.dart';
+import 'package:safety_inspection_app/models/drawing_enums.dart';
 
 Future<DefectCategory?> showDefectCategoryPickerSheet({
   required BuildContext context,

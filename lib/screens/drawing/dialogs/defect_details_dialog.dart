@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../constants/strings_ko.dart';
-import '../../models/defect_details.dart';
+import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/models/defect_details.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 Future<DefectDetails?> showDefectDetailsDialog({
@@ -106,7 +106,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _structuralMember,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: StringsKo.structuralMemberLabel,
                   ),
                   items: StringsKo.structuralMembers
@@ -128,7 +128,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _crackType,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: StringsKo.crackTypeLabel,
                   ),
                   items: widget.typeOptions
@@ -154,7 +154,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _otherTypeController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: StringsKo.otherTypeLabel,
                     ),
                     validator: (_) =>
@@ -170,7 +170,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _widthController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: StringsKo.widthLabel,
                         ),
                         keyboardType:
@@ -191,7 +191,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _lengthController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: StringsKo.lengthLabel,
                         ),
                         keyboardType:
@@ -213,7 +213,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _cause,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: StringsKo.causeLabel,
                   ),
                   items: widget.causeOptions
@@ -239,7 +239,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _otherCauseController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: StringsKo.otherCauseLabel,
                     ),
                     validator: (_) =>
@@ -254,7 +254,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text(StringsKo.cancel),
+                      child: Text(StringsKo.cancel),
                     ),
                     const Spacer(),
                     FilledButton(
@@ -283,7 +283,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                               }
                             }
                           : null,
-                      child: const Text(StringsKo.confirm),
+                      child: Text(StringsKo.confirm),
                     ),
                   ],
                 ),
