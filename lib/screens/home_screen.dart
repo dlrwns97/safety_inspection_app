@@ -9,6 +9,7 @@ import '../models/drawing_enums.dart';
 import '../models/site.dart';
 import '../models/site_storage.dart';
 import 'drawing/drawing_screen.dart';
+import 'trash_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,9 +89,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _deleteSite(Site site) async {
-    final updatedSites =
-        _sites.where((existing) => existing.id != site.id).toList();
+  Future<void> _moveSiteToTrash(Site site) async {
+    final updatedSites = _sites
+        .map(
+          (existing) =>
+              existing.id == site.id
+                  ? existing.copyWith(
+                    isDeleted: true,
+                    deletedAt: DateTime.now(),
+                  )
+                  : existing,
+        )
+        .toList();
     await SiteStorage.saveSites(updatedSites);
     if (!mounted) {
       return;
@@ -107,7 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return AlertDialog(
           title: const Text(StringsKo.deleteSiteTitle),
           content: Text(
-            '‘${site.name}’ 현장을 삭제할까요? (삭제하면 복구할 수 없습니다.)',
+            StringsKo.deleteSiteToTrashMessage.replaceAll(
+              '{siteName}',
+              site.name,
+            ),
           ),
           actions: [
             TextButton(
@@ -131,7 +144,17 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    await _deleteSite(site);
+    await _moveSiteToTrash(site);
+  }
+
+  Future<void> _openTrash() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const TrashScreen()));
+    if (!mounted) {
+      return;
+    }
+    await _loadSites();
   }
 
   Future<_SiteDetails?> _promptSiteDetails() async {
@@ -347,11 +370,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeSites = _sites.where((site) => !site.isDeleted).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text(StringsKo.homeTitle)),
+      appBar: AppBar(
+        title: const Text(StringsKo.homeTitle),
+        actions: [
+          PopupMenuButton<_HomeMenuAction>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case _HomeMenuAction.trash:
+                  _openTrash();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: _HomeMenuAction.trash,
+                child: Text(StringsKo.trashMenuLabel),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _sites.isEmpty
+          : activeSites.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -378,10 +421,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 )
               : ListView.separated(
-                  itemCount: _sites.length,
+                  itemCount: activeSites.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final site = _sites[index];
+                    final site = activeSites[index];
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Theme.of(
@@ -440,3 +483,5 @@ class _SiteDetails {
   final String structureType;
   final String inspectionType;
 }
+
+enum _HomeMenuAction { trash }

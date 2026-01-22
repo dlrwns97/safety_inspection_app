@@ -13,6 +13,8 @@ class Site {
     this.inspectionDate,
     this.pdfPath,
     this.pdfName,
+    this.isDeleted = false,
+    this.deletedAt,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
   })  : defects = defects ?? [],
@@ -27,8 +29,12 @@ class Site {
   final DateTime? inspectionDate;
   final String? pdfPath;
   final String? pdfName;
+  final bool isDeleted;
+  final DateTime? deletedAt;
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
+
+  static const _deletedAtSentinel = Object();
 
   Site copyWith({
     String? id,
@@ -40,6 +46,8 @@ class Site {
     DateTime? inspectionDate,
     String? pdfPath,
     String? pdfName,
+    bool? isDeleted,
+    Object? deletedAt = _deletedAtSentinel,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
   }) {
@@ -53,6 +61,11 @@ class Site {
       inspectionDate: inspectionDate ?? this.inspectionDate,
       pdfPath: pdfPath ?? this.pdfPath,
       pdfName: pdfName ?? this.pdfName,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt:
+          deletedAt == _deletedAtSentinel
+              ? this.deletedAt
+              : deletedAt as DateTime?,
       defects: defects ?? List<Defect>.from(this.defects),
       equipmentMarkers:
           equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),
@@ -69,6 +82,8 @@ class Site {
     'inspectionDate': inspectionDate?.toIso8601String(),
     'pdfPath': pdfPath,
     'pdfName': pdfName,
+    'isDeleted': isDeleted,
+    'deletedAt': deletedAt?.toIso8601String(),
     'defects': defects.map((defect) => defect.toJson()).toList(),
     'equipmentMarkers':
         equipmentMarkers.map((marker) => marker.toJson()).toList(),
@@ -81,6 +96,13 @@ class Site {
       inspectionDate = DateTime.tryParse(inspectionDateValue);
     } else if (inspectionDateValue is int) {
       inspectionDate = DateTime.fromMillisecondsSinceEpoch(inspectionDateValue);
+    }
+    final deletedAtValue = json['deletedAt'];
+    DateTime? deletedAt;
+    if (deletedAtValue is String) {
+      deletedAt = DateTime.tryParse(deletedAtValue);
+    } else if (deletedAtValue is int) {
+      deletedAt = DateTime.fromMillisecondsSinceEpoch(deletedAtValue);
     }
     return Site(
       id: json['id'] as String,
@@ -96,6 +118,8 @@ class Site {
       inspectionDate: inspectionDate,
       pdfPath: json['pdfPath'] as String?,
       pdfName: json['pdfName'] as String?,
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      deletedAt: deletedAt,
       defects: (json['defects'] as List<dynamic>? ?? [])
           .map((item) => Defect.fromJson(item as Map<String, dynamic>))
           .toList(),
