@@ -10,6 +10,8 @@ class StringsKo {
   static const inspectionTypeRequired = '점검형식을 선택해주세요.';
   static const cancel = '취소';
   static const create = '생성';
+  static const delete = '삭제';
+  static const deleteSiteTitle = '현장 삭제';
   static const importPdfTitle = 'PDF 도면 가져오기';
   static const importPdfSubtitle = '대용량 및 다중 페이지 PDF 지원';
   static const createBlankTitle = '빈 캔버스 만들기';

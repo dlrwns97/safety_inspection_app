@@ -88,6 +88,52 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _deleteSite(Site site) async {
+    final updatedSites =
+        _sites.where((existing) => existing.id != site.id).toList();
+    await SiteStorage.saveSites(updatedSites);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _sites = updatedSites;
+    });
+  }
+
+  Future<void> _confirmDeleteSite(Site site) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(StringsKo.deleteSiteTitle),
+          content: Text(
+            '‘${site.name}’ 현장을 삭제할까요? (삭제하면 복구할 수 없습니다.)',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(StringsKo.cancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(StringsKo.delete),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || shouldDelete != true) {
+      return;
+    }
+
+    await _deleteSite(site);
+  }
+
   Future<_SiteDetails?> _promptSiteDetails() async {
     final controller = TextEditingController();
     String? nameErrorText;
@@ -362,6 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       },
+                      onLongPress: () => _confirmDeleteSite(site),
                     );
                   },
                 ),
