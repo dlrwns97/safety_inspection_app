@@ -2,8 +2,12 @@ class StringsKo {
   static const appTitle = '현장 안전 점검';
   static const homeTitle = '점검 현장';
   static const newSite = '새 현장';
-  static const siteNameLabel = '현장 이름';
-  static const siteNameRequired = '현장 이름을 입력해주세요.';
+  static const siteNameLabel = '현장명';
+  static const siteNameRequired = '현장명을 입력해주세요.';
+  static const structureTypeLabel = '구조형식';
+  static const structureTypeRequired = '구조형식을 선택해주세요.';
+  static const inspectionTypeLabel = '점검형식';
+  static const inspectionTypeRequired = '점검형식을 선택해주세요.';
   static const cancel = '취소';
   static const create = '생성';
   static const importPdfTitle = 'PDF 도면 가져오기';
@@ -59,6 +63,24 @@ class StringsKo {
   static const otherOptionLabel = '기타';
   static const otherTypeLabel = '기타 유형';
   static const otherCauseLabel = '기타 원인';
+  static const unsetLabel = '미설정';
+  static const noInspectionDateLabel = '날짜없음';
+
+  static const List<String> structureTypes = [
+    '철근콘크리트구조',
+    '철골철근콘크리트구조',
+    '철골구조',
+    '조적조',
+    '조적조+철골조',
+  ];
+
+  static const List<String> inspectionTypes = [
+    '정기안전점검',
+    '정밀안전점검',
+    '정밀안전진단',
+    '내진성능평가',
+    '구조안전진단',
+  ];
 
   static const List<String> structuralMembers = ['기둥', '벽체', '슬래브', '보', '조적벽'];
 

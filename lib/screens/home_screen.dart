@@ -36,8 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createSiteFlow() async {
-    final name = await _promptSiteName();
-    if (!mounted || name == null) {
+    final details = await _promptSiteDetails();
+    if (!mounted || details == null) {
       return;
     }
     final selection = await _selectDrawingType();
@@ -45,11 +45,15 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final inspectionDate = DateTime.now();
     final site = Site(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
+      name: details.name,
       createdAt: DateTime.now(),
       drawingType: selection.type,
+      structureType: details.structureType,
+      inspectionType: details.inspectionType,
+      inspectionDate: inspectionDate,
       pdfPath: selection.path,
       pdfName: selection.fileName,
     );
@@ -84,33 +88,77 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<String?> _promptSiteName() async {
+  Future<_SiteDetails?> _promptSiteDetails() async {
     final controller = TextEditingController();
-    String? errorText;
-    return showDialog<String>(
+    String? nameErrorText;
+    String? structureErrorText;
+    String? inspectionErrorText;
+    String? selectedStructureType;
+    String? selectedInspectionType;
+    return showDialog<_SiteDetails>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               title: const Text(StringsKo.newSite),
-              content: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  labelText: StringsKo.siteNameLabel,
-                  errorText: errorText,
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) {
-                  final value = controller.text.trim();
-                  if (value.isEmpty) {
-                    setState(() {
-                      errorText = StringsKo.siteNameRequired;
-                    });
-                  } else {
-                    Navigator.of(context).pop(value);
-                  }
-                },
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      labelText: StringsKo.siteNameLabel,
+                      errorText: nameErrorText,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedStructureType,
+                    decoration: InputDecoration(
+                      labelText: StringsKo.structureTypeLabel,
+                      errorText: structureErrorText,
+                    ),
+                    items: StringsKo.structureTypes
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedStructureType = value;
+                        structureErrorText = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedInspectionType,
+                    decoration: InputDecoration(
+                      labelText: StringsKo.inspectionTypeLabel,
+                      errorText: inspectionErrorText,
+                    ),
+                    items: StringsKo.inspectionTypes
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedInspectionType = value;
+                        inspectionErrorText = null;
+                      });
+                    },
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
@@ -119,14 +167,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 FilledButton(
                   onPressed: () {
-                    final value = controller.text.trim();
-                    if (value.isEmpty) {
+                    final name = controller.text.trim();
+                    final hasName = name.isNotEmpty;
+                    final hasStructure = selectedStructureType != null;
+                    final hasInspection = selectedInspectionType != null;
+                    if (!hasName || !hasStructure || !hasInspection) {
                       setState(() {
-                        errorText = StringsKo.siteNameRequired;
+                        nameErrorText =
+                            hasName ? null : StringsKo.siteNameRequired;
+                        structureErrorText =
+                            hasStructure ? null : StringsKo.structureTypeRequired;
+                        inspectionErrorText = hasInspection
+                            ? null
+                            : StringsKo.inspectionTypeRequired;
                       });
                       return;
                     }
-                    Navigator.of(context).pop(value);
+                    Navigator.of(context).pop(
+                      _SiteDetails(
+                        name: name,
+                        structureType: selectedStructureType!,
+                        inspectionType: selectedInspectionType!,
+                      ),
+                    );
                   },
                   child: const Text(StringsKo.create),
                 ),
@@ -218,6 +281,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String _formatInspectionDate(DateTime? date) {
+    if (date == null) {
+      return StringsKo.noInspectionDateLabel;
+    }
+    final localDate = date.toLocal();
+    final year = localDate.year.toString().padLeft(4, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final day = localDate.day.toString().padLeft(2, '0');
+    return '$year.$month.$day';
+  }
+
+  String _formatSiteSubtitle(Site site) {
+    final dateText = _formatInspectionDate(site.inspectionDate);
+    final structureType = site.structureType ?? StringsKo.unsetLabel;
+    final inspectionType = site.inspectionType ?? StringsKo.unsetLabel;
+    return '$dateText · $structureType · $inspectionType';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -269,11 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       title: Text(site.name),
-                      subtitle: Text(
-                        site.drawingType == DrawingType.pdf
-                            ? (site.pdfName ?? StringsKo.pdfDrawingLabel)
-                            : StringsKo.blankCanvasLabel,
-                      ),
+                      subtitle: Text(_formatSiteSubtitle(site)),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () async {
                         await Navigator.of(context).push(
@@ -303,4 +380,16 @@ class _DrawingSelection {
   final DrawingType type;
   final String? path;
   final String? fileName;
+}
+
+class _SiteDetails {
+  const _SiteDetails({
+    required this.name,
+    required this.structureType,
+    required this.inspectionType,
+  });
+
+  final String name;
+  final String structureType;
+  final String inspectionType;
 }
