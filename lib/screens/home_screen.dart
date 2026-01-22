@@ -8,7 +8,7 @@ import '../constants/strings_ko.dart';
 import '../models/drawing_enums.dart';
 import '../models/site.dart';
 import '../models/site_storage.dart';
-import 'drawing_screen.dart';
+import 'drawing/drawing_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
