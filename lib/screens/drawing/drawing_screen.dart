@@ -8,12 +8,12 @@ import 'package:pdfx/pdfx.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
-import '../../constants/strings_ko.dart';
-import '../../models/defect.dart';
-import '../../models/defect_details.dart';
-import '../../models/drawing_enums.dart';
-import '../../models/equipment_marker.dart';
-import '../../models/site.dart';
+import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/models/defect.dart';
+import 'package:safety_inspection_app/models/defect_details.dart';
+import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/site.dart';
 import 'dialogs/carbonation_dialog.dart';
 import 'dialogs/core_sampling_dialog.dart';
 import 'dialogs/defect_category_picker_sheet.dart';
@@ -935,7 +935,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
-          const Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
+          Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
         ],
       ),
     );
