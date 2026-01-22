@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'constants/strings_ko.dart';
-import 'screens/home_screen.dart';
+import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/screens/home/home_screen.dart';
 
 void main() {
   runApp(const SafetyInspectionApp());
