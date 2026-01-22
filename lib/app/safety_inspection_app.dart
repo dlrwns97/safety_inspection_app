@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/strings_ko.dart';
 import '../models/drawing_enums.dart';
 import '../models/site.dart';
-import '../screens/drawing_screen.dart';
+import '../screens/drawing/drawing_screen.dart';
 
 class SafetyInspectionApp extends StatelessWidget {
   const SafetyInspectionApp({super.key});
