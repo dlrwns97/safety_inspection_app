@@ -24,6 +24,8 @@ import 'dialogs/rebar_spacing_dialog.dart';
 import 'dialogs/schmidt_hammer_dialog.dart';
 import 'dialogs/settlement_dialog.dart';
 import 'dialogs/structural_tilt_dialog.dart';
+import 'widgets/canvas_marker_layer.dart';
+import 'widgets/pdf_view_layer.dart';
 import 'widgets/tool_detail_row.dart';
 import 'widgets/tool_selection_row.dart';
 
@@ -946,62 +948,56 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) {
-    return Listener(
-      onPointerDown: (event) {
-        _pointerDownPosition = event.localPosition;
-        _tapCanceled = false;
-      },
-      onPointerMove: (event) {
-        if (_pointerDownPosition == null) {
-          return;
-        }
-        final distance =
-            (event.localPosition - _pointerDownPosition!).distance;
-        if (distance > _tapSlop) {
-          _tapCanceled = true;
-        }
-      },
-      onPointerUp: (_) {
-        _pointerDownPosition = null;
-      },
-      onPointerCancel: (_) {
-        _pointerDownPosition = null;
-        _tapCanceled = false;
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTapUp: (details) => _handlePdfTap(
-          details,
-          pageSize,
-          pageNumber,
-        ),
-        child: AspectRatio(
-          aspectRatio: pageSize.width / pageSize.height,
-          child: SizedBox(
-            width: pageSize.width,
-            height: pageSize.height,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image(
-                    image: imageProvider,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                ..._buildDefectMarkersForPage(
-                  pageSize,
-                  pageNumber,
-                ),
-                ..._buildEquipmentMarkersForPage(
-                  pageSize,
-                  pageNumber,
-                ),
-                _buildMarkerPopupForPage(
-                  pageSize,
-                  pageNumber,
-                ),
-              ],
+    return AspectRatio(
+      aspectRatio: pageSize.width / pageSize.height,
+      child: SizedBox(
+        width: pageSize.width,
+        height: pageSize.height,
+        child: CanvasMarkerLayer(
+          onPointerDown: (event) {
+            _pointerDownPosition = event.localPosition;
+            _tapCanceled = false;
+          },
+          onPointerMove: (event) {
+            if (_pointerDownPosition == null) {
+              return;
+            }
+            final distance =
+                (event.localPosition - _pointerDownPosition!).distance;
+            if (distance > _tapSlop) {
+              _tapCanceled = true;
+            }
+          },
+          onPointerUp: (_) {
+            _pointerDownPosition = null;
+          },
+          onPointerCancel: (_) {
+            _pointerDownPosition = null;
+            _tapCanceled = false;
+          },
+          onTapUp: (details) => _handlePdfTap(
+            details,
+            pageSize,
+            pageNumber,
+          ),
+          hitTestBehavior: HitTestBehavior.translucent,
+          childPdfOrCanvas: Image(
+            image: imageProvider,
+            fit: BoxFit.contain,
+          ),
+          markerWidgets: [
+            ..._buildDefectMarkersForPage(
+              pageSize,
+              pageNumber,
             ),
+            ..._buildEquipmentMarkersForPage(
+              pageSize,
+              pageNumber,
+            ),
+          ],
+          miniPopup: _buildMarkerPopupForPage(
+            pageSize,
+            pageNumber,
           ),
         ),
       ),
@@ -1955,7 +1951,27 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 return Stack(
                   children: [
                     if (_site.drawingType == DrawingType.pdf)
-                      _buildPdfViewer()
+                      PdfViewLayer(
+                        pdfViewer: _buildPdfViewer(),
+                        currentPage: _currentPage,
+                        pageCount: _pageCount,
+                        canPrev: _currentPage > 1,
+                        canNext: _currentPage < _pageCount,
+                        onPrevPage: () {
+                          final nextPage = _currentPage - 1;
+                          setState(() {
+                            _currentPage = nextPage;
+                          });
+                          _pdfController?.jumpToPage(nextPage);
+                        },
+                        onNextPage: () {
+                          final nextPage = _currentPage + 1;
+                          setState(() {
+                            _currentPage = nextPage;
+                          });
+                          _pdfController?.jumpToPage(nextPage);
+                        },
+                      )
                     else
                       Listener(
                         onPointerDown: (event) {
@@ -1993,9 +2009,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
                               key: _canvasKey,
                               width: _canvasSize.width,
                               height: _canvasSize.height,
-                              child: Stack(
-                                children: [
-                                  _buildDrawingBackground(),
+                              child: CanvasMarkerLayer(
+                                childPdfOrCanvas: _buildDrawingBackground(),
+                                markerWidgets: [
                                   ..._buildDefectMarkers(),
                                   ..._buildEquipmentMarkers(),
                                 ],
@@ -2006,7 +2022,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       ),
                     if (_site.drawingType != DrawingType.pdf)
                       _buildMarkerPopup(MediaQuery.of(context).size),
-                    _buildPageOverlay(),
                   ],
                 );
               },
@@ -2017,64 +2032,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildPageOverlay() {
-    if (_site.drawingType != DrawingType.pdf || _pageCount <= 1) {
-      return const SizedBox.shrink();
-    }
-    final theme = Theme.of(context);
-    return Positioned(
-      right: 16,
-      bottom: 16,
-      child: Column(
-        children: [
-          _PageNavButton(
-            icon: Icons.keyboard_arrow_up,
-            onPressed: _currentPage > 1
-                ? () {
-                    final nextPage = _currentPage - 1;
-                    setState(() {
-                      _currentPage = nextPage;
-                    });
-                    _pdfController?.jumpToPage(nextPage);
-                  }
-                : null,
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Text(
-              StringsKo.pageIndicator(_currentPage, _pageCount),
-              style: theme.textTheme.labelMedium,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _PageNavButton(
-            icon: Icons.keyboard_arrow_down,
-            onPressed: _currentPage < _pageCount
-                ? () {
-                    final nextPage = _currentPage + 1;
-                    setState(() {
-                      _currentPage = nextPage;
-                    });
-                    _pdfController?.jumpToPage(nextPage);
-                  }
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _MarkerHitResult {
@@ -2087,26 +2044,6 @@ class _MarkerHitResult {
   final Defect? defect;
   final EquipmentMarker? equipment;
   final Offset position;
-}
-
-class _PageNavButton extends StatelessWidget {
-  const _PageNavButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-      shape: const CircleBorder(),
-      elevation: 4,
-      child: IconButton(
-        icon: Icon(icon),
-        onPressed: onPressed,
-      ),
-    );
-  }
 }
 
 class _DefectMarker extends StatelessWidget {
