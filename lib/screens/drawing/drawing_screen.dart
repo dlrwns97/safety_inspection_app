@@ -14,6 +14,7 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
@@ -100,6 +101,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     '철골 C찬넬': ['A', 'B', 't'],
     '철골 H형강': ['H', 'B', 'tw', 'tf'],
   };
+  final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
@@ -233,34 +235,33 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleCanvasTap(TapUpDetails details) async {
-    if (_isDetailDialogOpen) {
-      return;
-    }
-    if (_tapCanceled) {
+    final scenePoint = _transformationController.toScene(details.localPosition);
+    final hitResult = _hitTestMarkerOnCanvas(scenePoint);
+    final decision = _controller.handleCanvasTapDecision(
+      isDetailDialogOpen: _isDetailDialogOpen,
+      tapCanceled: _tapCanceled,
+      isWithinCanvas: _isTapWithinCanvas(details.globalPosition),
+      hasHitResult: hitResult != null,
+      mode: _mode,
+      hasActiveDefectCategory: _activeCategory != null,
+      hasActiveEquipmentCategory: _activeEquipmentCategory != null,
+    );
+    if (decision.resetTapCanceled) {
       _tapCanceled = false;
       return;
     }
-    final scenePoint = _transformationController.toScene(details.localPosition);
-    if (!_isTapWithinCanvas(details.globalPosition)) {
+    if (decision.shouldSelectHit) {
+      _selectMarker(hitResult!);
+      return;
+    }
+    if (decision.shouldClearSelection) {
       _clearSelectedMarker();
-      return;
     }
-
-    final hitResult = _hitTestMarkerOnCanvas(scenePoint);
-    if (hitResult != null) {
-      _selectMarker(hitResult);
-      return;
-    }
-
-    _clearSelectedMarker();
-    if (_mode == DrawMode.defect && _activeCategory == null) {
+    if (decision.shouldShowDefectCategoryHint) {
       _showSelectDefectCategoryHint();
       return;
     }
-    if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
-      return;
-    }
-    if (_mode != DrawMode.defect && _mode != DrawMode.equipment) {
+    if (!decision.shouldCreateMarker) {
       return;
     }
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
@@ -1024,33 +1025,36 @@ class _DrawingScreenState extends State<DrawingScreen> {
     Size pageSize,
     int pageIndex,
   ) async {
-    if (_isDetailDialogOpen) {
-      return;
-    }
-    if (_tapCanceled) {
-      _tapCanceled = false;
-      return;
-    }
     final localPosition = details.localPosition;
     final hitResult = _hitTestMarkerOnPage(
       localPosition,
       pageSize,
       pageIndex,
     );
-    if (hitResult != null) {
-      _selectMarker(hitResult);
+    final decision = _controller.handlePdfTapDecision(
+      isDetailDialogOpen: _isDetailDialogOpen,
+      tapCanceled: _tapCanceled,
+      hasHitResult: hitResult != null,
+      mode: _mode,
+      hasActiveDefectCategory: _activeCategory != null,
+      hasActiveEquipmentCategory: _activeEquipmentCategory != null,
+    );
+    if (decision.resetTapCanceled) {
+      _tapCanceled = false;
       return;
     }
-
-    _clearSelectedMarker();
-    if (_mode == DrawMode.defect && _activeCategory == null) {
+    if (decision.shouldSelectHit) {
+      _selectMarker(hitResult!);
+      return;
+    }
+    if (decision.shouldClearSelection) {
+      _clearSelectedMarker();
+    }
+    if (decision.shouldShowDefectCategoryHint) {
       _showSelectDefectCategoryHint();
       return;
     }
-    if (_mode == DrawMode.equipment && _activeEquipmentCategory == null) {
-      return;
-    }
-    if (_mode != DrawMode.defect && _mode != DrawMode.equipment) {
+    if (!decision.shouldCreateMarker) {
       return;
     }
 
@@ -1614,20 +1618,20 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   void _toggleMode(DrawMode nextMode) {
     setState(() {
-      _mode = _mode == nextMode ? DrawMode.hand : nextMode;
+      _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
 
-  bool _isToolSelectionMode() => _mode == DrawMode.hand;
+  bool _isToolSelectionMode() => _controller.isToolSelectionMode(_mode);
 
   void _returnToToolSelection() {
     setState(() {
-      _mode = DrawMode.hand;
+      _mode = _controller.returnToToolSelection();
     });
   }
 
   void _handleAddToolAction() {
-    if (_mode == DrawMode.defect) {
+    if (_controller.shouldShowDefectCategoryPicker(_mode)) {
       _showDefectCategoryPicker();
     }
   }
@@ -1644,10 +1648,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
 
     setState(() {
-      _defectTabs.remove(category);
-      if (_activeCategory == category) {
-        _activeCategory = _defectTabs.isNotEmpty ? _defectTabs.first : null;
-      }
+      final updated = _controller.removeDefectCategory(
+        tabs: _defectTabs,
+        category: category,
+        activeCategory: _activeCategory,
+      );
+      _defectTabs
+        ..clear()
+        ..addAll(updated.tabs);
+      _activeCategory = updated.activeCategory;
     });
   }
 
@@ -1671,10 +1680,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
 
     setState(() {
-      if (!_defectTabs.contains(selectedCategory)) {
-        _defectTabs.add(selectedCategory);
-      }
-      _activeCategory = selectedCategory;
+      final updated = _controller.addDefectCategory(
+        tabs: _defectTabs,
+        selectedCategory: selectedCategory,
+      );
+      _defectTabs
+        ..clear()
+        ..addAll(updated.tabs);
+      _activeCategory = updated.activeCategory;
     });
   }
 
@@ -1854,13 +1867,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
           onAdd: _handleAddToolAction,
           onDefectSelected: (category) {
             setState(() {
-              _activeCategory = category;
+              _activeCategory = _controller
+                  .selectDefectCategory(
+                    tabs: _defectTabs,
+                    category: category,
+                  )
+                  .activeCategory;
             });
           },
           onDefectLongPress: _showDeleteDefectTabDialog,
           onEquipmentSelected: (item) {
             setState(() {
-              _activeEquipmentCategory = item;
+              _activeEquipmentCategory =
+                  _controller.selectEquipmentCategory(item).activeCategory;
             });
           },
         ),
