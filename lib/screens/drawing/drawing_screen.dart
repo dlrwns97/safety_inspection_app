@@ -14,20 +14,20 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
-import 'dialogs/carbonation_dialog.dart';
-import 'dialogs/core_sampling_dialog.dart';
-import 'dialogs/defect_category_picker_sheet.dart';
-import 'dialogs/defect_details_dialog.dart';
-import 'dialogs/deflection_dialog.dart';
-import 'dialogs/equipment_details_dialog.dart';
-import 'dialogs/rebar_spacing_dialog.dart';
-import 'dialogs/schmidt_hammer_dialog.dart';
-import 'dialogs/settlement_dialog.dart';
-import 'dialogs/structural_tilt_dialog.dart';
-import 'widgets/canvas_marker_layer.dart';
-import 'widgets/pdf_view_layer.dart';
-import 'widgets/tool_detail_row.dart';
-import 'widgets/tool_selection_row.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/defect_category_picker_sheet.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/defect_details_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/equipment_details_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
@@ -1895,8 +1895,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const toolBarHeight = 56.0;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_site.name),
@@ -1908,130 +1906,83 @@ class _DrawingScreenState extends State<DrawingScreen> {
               onPressed: _replacePdf,
             ),
         ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(toolBarHeight),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _isToolSelectionMode()
-                  ? ToolSelectionRow(
-                      mode: _mode,
-                      onToggleMode: _toggleMode,
-                    )
-                  : ToolDetailRow(
-                      mode: _mode,
-                      defectTabs: _defectTabs,
-                      activeCategory: _activeCategory,
-                      activeEquipmentCategory: _activeEquipmentCategory,
-                      onBack: _returnToToolSelection,
-                      onAdd: _handleAddToolAction,
-                      onDefectSelected: (category) {
-                        setState(() {
-                          _activeCategory = category;
-                        });
-                      },
-                      onDefectLongPress: _showDeleteDefectTabDialog,
-                      onEquipmentSelected: (item) {
-                        setState(() {
-                          _activeEquipmentCategory = item;
-                        });
-                      },
-                    ),
-            ),
-          ),
+        bottom: DrawingTopBar(
+          mode: _mode,
+          isToolSelectionMode: _isToolSelectionMode(),
+          defectTabs: _defectTabs,
+          activeCategory: _activeCategory,
+          activeEquipmentCategory: _activeEquipmentCategory,
+          onToggleMode: _toggleMode,
+          onBack: _returnToToolSelection,
+          onAdd: _handleAddToolAction,
+          onDefectSelected: (category) {
+            setState(() {
+              _activeCategory = category;
+            });
+          },
+          onDefectLongPress: _showDeleteDefectTabDialog,
+          onEquipmentSelected: (item) {
+            setState(() {
+              _activeEquipmentCategory = item;
+            });
+          },
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, _) {
-                return Stack(
-                  children: [
-                    if (_site.drawingType == DrawingType.pdf)
-                      PdfViewLayer(
-                        pdfViewer: _buildPdfViewer(),
-                        currentPage: _currentPage,
-                        pageCount: _pageCount,
-                        canPrev: _currentPage > 1,
-                        canNext: _currentPage < _pageCount,
-                        onPrevPage: () {
-                          final nextPage = _currentPage - 1;
-                          setState(() {
-                            _currentPage = nextPage;
-                          });
-                          _pdfController?.jumpToPage(nextPage);
-                        },
-                        onNextPage: () {
-                          final nextPage = _currentPage + 1;
-                          setState(() {
-                            _currentPage = nextPage;
-                          });
-                          _pdfController?.jumpToPage(nextPage);
-                        },
-                      )
-                    else
-                      Listener(
-                        onPointerDown: (event) {
-                          _pointerDownPosition = event.localPosition;
-                          _tapCanceled = false;
-                        },
-                        onPointerMove: (event) {
-                          if (_pointerDownPosition == null) {
-                            return;
-                          }
-                          final distance =
-                              (event.localPosition - _pointerDownPosition!)
-                                  .distance;
-                          if (distance > _tapSlop) {
-                            _tapCanceled = true;
-                          }
-                        },
-                        onPointerUp: (_) {
-                          _pointerDownPosition = null;
-                        },
-                        onPointerCancel: (_) {
-                          _pointerDownPosition = null;
-                          _tapCanceled = false;
-                        },
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.deferToChild,
-                          onTapUp: _handleCanvasTap,
-                          child: InteractiveViewer(
-                            transformationController:
-                                _transformationController,
-                            minScale: 0.5,
-                            maxScale: 4,
-                            constrained: false,
-                            child: SizedBox(
-                              key: _canvasKey,
-                              width: _canvasSize.width,
-                              height: _canvasSize.height,
-                              child: CanvasMarkerLayer(
-                                childPdfOrCanvas: _buildDrawingBackground(),
-                                markerWidgets: [
-                                  ..._buildDefectMarkers(),
-                                  ..._buildEquipmentMarkers(),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (_site.drawingType != DrawingType.pdf)
-                      _buildMarkerPopup(MediaQuery.of(context).size),
-                  ],
-                );
-              },
-            ),
-          ),
+      body: DrawingScaffoldBody(
+        drawingType: _site.drawingType,
+        pdfViewer: _buildPdfViewer(),
+        currentPage: _currentPage,
+        pageCount: _pageCount,
+        canPrevPage: _currentPage > 1,
+        canNextPage: _currentPage < _pageCount,
+        onPrevPage: () {
+          final nextPage = _currentPage - 1;
+          setState(() {
+            _currentPage = nextPage;
+          });
+          _pdfController?.jumpToPage(nextPage);
+        },
+        onNextPage: () {
+          final nextPage = _currentPage + 1;
+          setState(() {
+            _currentPage = nextPage;
+          });
+          _pdfController?.jumpToPage(nextPage);
+        },
+        onCanvasPointerDown: (event) {
+          _pointerDownPosition = event.localPosition;
+          _tapCanceled = false;
+        },
+        onCanvasPointerMove: (event) {
+          if (_pointerDownPosition == null) {
+            return;
+          }
+          final distance =
+              (event.localPosition - _pointerDownPosition!).distance;
+          if (distance > _tapSlop) {
+            _tapCanceled = true;
+          }
+        },
+        onCanvasPointerUp: (_) {
+          _pointerDownPosition = null;
+        },
+        onCanvasPointerCancel: (_) {
+          _pointerDownPosition = null;
+          _tapCanceled = false;
+        },
+        onCanvasTapUp: _handleCanvasTap,
+        transformationController: _transformationController,
+        canvasKey: _canvasKey,
+        canvasSize: _canvasSize,
+        drawingBackground: _buildDrawingBackground(),
+        markerWidgets: [
+          ..._buildDefectMarkers(),
+          ..._buildEquipmentMarkers(),
         ],
+        markerPopup: _buildMarkerPopup(MediaQuery.of(context).size),
       ),
     );
   }
-
 }
 
 class _MarkerHitResult {
