@@ -16,6 +16,7 @@ import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_category_picker_sheet.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_details_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
@@ -27,6 +28,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 
 class DrawingScreen extends StatefulWidget {
@@ -1312,10 +1314,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return const SizedBox.shrink();
     }
 
-    const popupMaxWidth = 220.0;
-    const popupMargin = 8.0;
-    const lineHeight = 18.0;
-    const verticalPadding = 12.0;
+    const popupMaxWidth = MiniMarkerPopup.maxWidth;
+    const popupMargin = MiniMarkerPopup.margin;
+    const lineHeight = MiniMarkerPopup.lineHeight;
+    const verticalPadding = MiniMarkerPopup.verticalPadding;
     final lines = _selectedDefect != null
         ? _defectPopupLines(_selectedDefect!)
         : _equipmentPopupLines(_selectedEquipment!);
@@ -1347,35 +1349,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       maxTop == 0 ? popupMargin : maxTop,
     );
 
-    return Positioned(
+    return MiniMarkerPopup(
       left: left,
       top: top,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: popupMaxWidth),
-        child: Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: verticalPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: lines
-                  .map(
-                    (line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        line,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ),
-      ),
+      lines: lines,
     );
   }
 
@@ -1391,10 +1368,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return const SizedBox.shrink();
     }
 
-    const popupMaxWidth = 220.0;
-    const popupMargin = 8.0;
-    const lineHeight = 18.0;
-    const verticalPadding = 12.0;
+    const popupMaxWidth = MiniMarkerPopup.maxWidth;
+    const popupMargin = MiniMarkerPopup.margin;
+    const lineHeight = MiniMarkerPopup.lineHeight;
+    const verticalPadding = MiniMarkerPopup.verticalPadding;
     final lines = selectedDefect != null
         ? _defectPopupLines(selectedDefect)
         : _equipmentPopupLines(selectedEquipment!);
@@ -1430,35 +1407,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       maxTop == 0 ? popupMargin : maxTop,
     );
 
-    return Positioned(
+    return MiniMarkerPopup(
       left: left,
       top: top,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: popupMaxWidth),
-        child: Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: verticalPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: lines
-                  .map(
-                    (line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        line,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ),
-      ),
+      lines: lines,
     );
   }
 
@@ -1682,24 +1634,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
 
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete = await showDeleteDefectTabDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('결함 탭 삭제'),
-          content: Text("'${category.label}' 탭을 삭제할까요?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('삭제'),
-            ),
-          ],
-        );
-      },
+      category: category,
     );
 
     if (shouldDelete != true || !mounted) {
