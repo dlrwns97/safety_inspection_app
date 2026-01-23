@@ -267,6 +267,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
+    await _createMarkerFromTap(
+      pageIndex: _currentPage,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+    );
+  }
+
+  Future<void> _createMarkerFromTap({
+    required int pageIndex,
+    required double normalizedX,
+    required double normalizedY,
+  }) async {
     if (_mode == DrawMode.defect) {
       final detailsResult = await _showDefectDetailsDialog();
       if (!mounted || detailsResult == null) {
@@ -276,7 +288,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       final countOnPage = _site.defects
           .where(
             (defect) =>
-                defect.pageIndex == _currentPage &&
+                defect.pageIndex == pageIndex &&
                 defect.category == _activeCategory,
           )
           .length;
@@ -287,7 +299,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       final defect = Defect(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         label: label,
-        pageIndex: _currentPage,
+        pageIndex: pageIndex,
         category: _activeCategory!,
         normalizedX: normalizedX,
         normalizedY: normalizedY,
@@ -316,7 +328,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         final marker = EquipmentMarker(
           id: DateTime.now().microsecondsSinceEpoch.toString(),
           label: label,
-          pageIndex: _currentPage,
+          pageIndex: pageIndex,
           category: EquipmentCategory.equipment8,
           normalizedX: normalizedX,
           normalizedY: normalizedY,
@@ -340,7 +352,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       final pendingMarker = EquipmentMarker(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         label: label,
-        pageIndex: _currentPage,
+        pageIndex: pageIndex,
         category: _activeEquipmentCategory!,
         normalizedX: normalizedX,
         normalizedY: normalizedY,
@@ -1061,255 +1073,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
     final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
 
-    if (_mode == DrawMode.defect) {
-      final detailsResult = await _showDefectDetailsDialog();
-      if (!mounted || detailsResult == null) {
-        return;
-      }
-
-      final countOnPage = _site.defects
-          .where(
-            (defect) =>
-                defect.pageIndex == pageIndex &&
-                defect.category == _activeCategory,
-          )
-          .length;
-      final label = _activeCategory == DefectCategory.generalCrack
-          ? 'C${countOnPage + 1}'
-          : '${countOnPage + 1}';
-
-      final defect = Defect(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        label: label,
-        pageIndex: pageIndex,
-        category: _activeCategory!,
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-        details: detailsResult,
-      );
-
-      setState(() {
-        _site = _site.copyWith(defects: [..._site.defects, defect]);
-      });
-      await widget.onSiteUpdated(_site);
-    } else {
-      if (_activeEquipmentCategory == EquipmentCategory.equipment8) {
-        final nextIndices = {
-          'Lx': _nextSettlementIndex('Lx'),
-          'Ly': _nextSettlementIndex('Ly'),
-        };
-        final details = await _showSettlementDialog(
-          baseTitle: '부동침하',
-          nextIndexByDirection: nextIndices,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final direction = details.direction;
-        final label = '$direction${_nextSettlementIndex(direction)}';
-        final marker = EquipmentMarker(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          label: label,
-          pageIndex: pageIndex,
-          category: EquipmentCategory.equipment8,
-          normalizedX: normalizedX,
-          normalizedY: normalizedY,
-          equipmentTypeId: direction,
-          tiltDirection: direction,
-          displacementText: details.displacementText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      final equipmentCount = _site.equipmentMarkers
-          .where((marker) => marker.category == _activeEquipmentCategory)
-          .length;
-      final prefix = _equipmentLabelPrefix(_activeEquipmentCategory!);
-      final label = '$prefix${equipmentCount + 1}';
-      final pendingMarker = EquipmentMarker(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        label: label,
-        pageIndex: pageIndex,
-        category: _activeEquipmentCategory!,
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-        equipmentTypeId: prefix,
-      );
-
-      if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
-        final details = await _showEquipmentDetailsDialog(
-          title: '부재단면치수 ${pendingMarker.label}',
-          initialMemberType: pendingMarker.memberType,
-          initialSizeValues: pendingMarker.sizeValues,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          sizeValues: details.sizeValues,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment2) {
-        final details = await _showRebarSpacingDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialNumberText: pendingMarker.numberText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          numberText: details.numberText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment3) {
-        final details = await _showSchmidtHammerDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialMaxValueText: pendingMarker.maxValueText,
-          initialMinValueText: pendingMarker.minValueText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          maxValueText: details.maxValueText,
-          minValueText: details.minValueText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
-        final details = await _showCoreSamplingDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialAvgValueText: pendingMarker.avgValueText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          avgValueText: details.avgValueText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment5) {
-        final details = await _showCarbonationDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialCoverThicknessText: pendingMarker.coverThicknessText,
-          initialDepthText: pendingMarker.depthText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          coverThicknessText: details.coverThicknessText,
-          depthText: details.depthText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment6) {
-        final details = await _showStructuralTiltDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialDirection: pendingMarker.tiltDirection,
-          initialDisplacementText: pendingMarker.displacementText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          tiltDirection: details.direction,
-          displacementText: details.displacementText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      if (_activeEquipmentCategory == EquipmentCategory.equipment7) {
-        final details = await _showDeflectionDialog(
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialEndAText: pendingMarker.deflectionEndAText,
-          initialMidBText: pendingMarker.deflectionMidBText,
-          initialEndCText: pendingMarker.deflectionEndCText,
-        );
-        if (!mounted || details == null) {
-          return;
-        }
-        final marker = pendingMarker.copyWith(
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          deflectionEndAText: details.endAText,
-          deflectionMidBText: details.midBText,
-          deflectionEndCText: details.endCText,
-        );
-        setState(() {
-          _site = _site.copyWith(
-            equipmentMarkers: [..._site.equipmentMarkers, marker],
-          );
-        });
-        await widget.onSiteUpdated(_site);
-        return;
-      }
-      setState(() {
-        _site = _site.copyWith(
-          equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
-        );
-      });
-      await widget.onSiteUpdated(_site);
-    }
+    await _createMarkerFromTap(
+      pageIndex: pageIndex,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+    );
   }
 
   Widget _buildMarkerPopup(Size viewportSize) {
