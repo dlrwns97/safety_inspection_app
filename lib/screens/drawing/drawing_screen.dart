@@ -30,6 +30,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.d
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -425,30 +426,28 @@ class _DrawingScreenState extends State<DrawingScreen> {
       'Lx': _nextSettlementIndex('Lx'),
       'Ly': _nextSettlementIndex('Ly'),
     };
-    final details = await _showSettlementDialog(
-      baseTitle: '부동침하',
-      nextIndexByDirection: nextIndices,
-    );
-    if (!mounted || details == null) {
-      return;
-    }
-    final direction = details.direction;
-    final label = '$direction${_nextSettlementIndex(direction)}';
-    final marker = EquipmentMarker(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      label: label,
+    final updatedSite = await createEquipment8IfConfirmed(
+      context: context,
+      site: _site,
       pageIndex: pageIndex,
-      category: EquipmentCategory.equipment8,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
-      equipmentTypeId: direction,
-      tiltDirection: direction,
-      displacementText: details.displacementText,
+      nextIndexByDirection: nextIndices,
+      nextSettlementIndex: _nextSettlementIndex,
+      showSettlementDialog: ({
+        required baseTitle,
+        required nextIndexByDirection,
+      }) =>
+          _showSettlementDialog(
+        baseTitle: baseTitle,
+        nextIndexByDirection: nextIndexByDirection,
+      ),
     );
+    if (!mounted || updatedSite == null) {
+      return;
+    }
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
