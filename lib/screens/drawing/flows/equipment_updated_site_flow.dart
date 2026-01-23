@@ -66,106 +66,100 @@ Future<Site?> createEquipmentUpdatedSite({
     String? initialEndCText,
   }) showDeflectionDialog,
 }) async {
-  switch (activeEquipmentCategory) {
-    case EquipmentCategory.equipment1:
-      return createEquipment1IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: '부재단면치수 ${pendingMarker.label}',
-        initialMemberType: pendingMarker.memberType,
-        initialSizeValues: pendingMarker.sizeValues,
-        showEquipmentDetailsDialog: showEquipmentDetailsDialog,
-      );
-    case EquipmentCategory.equipment2:
-      return createEquipment2IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        showRebarSpacingDialog: showRebarSpacingDialog,
-      );
-    case EquipmentCategory.equipment3:
-      return createEquipment3IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        showSchmidtHammerDialog: showSchmidtHammerDialog,
-      );
-    case EquipmentCategory.equipment4:
-      return createEquipment4IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        showCoreSamplingDialog: showCoreSamplingDialog,
-      );
-    case EquipmentCategory.equipment5:
-      return createEquipment5IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        initialMemberType: pendingMarker.memberType,
-        initialCoverThicknessText: pendingMarker.coverThicknessText,
-        initialDepthText: pendingMarker.depthText,
-        showCarbonationDialog: showCarbonationDialog,
-      );
-    case EquipmentCategory.equipment6:
-      return createEquipment6IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        initialDirection: pendingMarker.tiltDirection,
-        initialDisplacementText: pendingMarker.displacementText,
-        showStructuralTiltDialog: showStructuralTiltDialog,
-      );
-    case EquipmentCategory.equipment7:
-      return createEquipment7IfConfirmed(
-        context: context,
-        site: site,
-        pageIndex: pendingMarker.pageIndex,
-        normalizedX: pendingMarker.normalizedX,
-        normalizedY: pendingMarker.normalizedY,
-        pendingMarker: pendingMarker,
-        prefix: prefix,
-        title: equipmentDisplayLabel(pendingMarker),
-        initialMemberType: pendingMarker.memberType,
-        initialEndAText: pendingMarker.deflectionEndAText,
-        initialMidBText: pendingMarker.deflectionMidBText,
-        initialEndCText: pendingMarker.deflectionEndCText,
-        showDeflectionDialog: showDeflectionDialog,
-        memberOptions: deflectionMemberOptions,
-      );
-    case EquipmentCategory.equipment8:
-      return null;
-    default:
-      return null;
+  final handlers = <EquipmentCategory, Future<Site?> Function()>{
+    EquipmentCategory.equipment1: () => createEquipment1IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: '부재단면치수 ${pendingMarker.label}',
+      initialMemberType: pendingMarker.memberType,
+      initialSizeValues: pendingMarker.sizeValues,
+      showEquipmentDetailsDialog: showEquipmentDetailsDialog,
+    ),
+    EquipmentCategory.equipment2: () => createEquipment2IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      showRebarSpacingDialog: showRebarSpacingDialog,
+    ),
+    EquipmentCategory.equipment3: () => createEquipment3IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      showSchmidtHammerDialog: showSchmidtHammerDialog,
+    ),
+    EquipmentCategory.equipment4: () => createEquipment4IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      showCoreSamplingDialog: showCoreSamplingDialog,
+    ),
+    EquipmentCategory.equipment5: () => createEquipment5IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      initialMemberType: pendingMarker.memberType,
+      initialCoverThicknessText: pendingMarker.coverThicknessText,
+      initialDepthText: pendingMarker.depthText,
+      showCarbonationDialog: showCarbonationDialog,
+    ),
+    EquipmentCategory.equipment6: () => createEquipment6IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      initialDirection: pendingMarker.tiltDirection,
+      initialDisplacementText: pendingMarker.displacementText,
+      showStructuralTiltDialog: showStructuralTiltDialog,
+    ),
+    EquipmentCategory.equipment7: () => createEquipment7IfConfirmed(
+      context: context,
+      site: site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+      title: equipmentDisplayLabel(pendingMarker),
+      initialMemberType: pendingMarker.memberType,
+      initialEndAText: pendingMarker.deflectionEndAText,
+      initialMidBText: pendingMarker.deflectionMidBText,
+      initialEndCText: pendingMarker.deflectionEndCText,
+      showDeflectionDialog: showDeflectionDialog,
+      memberOptions: deflectionMemberOptions,
+    ),
+  };
+  final handler = handlers[activeEquipmentCategory];
+  if (handler == null) {
+    return null;
   }
+  return handler();
 }
