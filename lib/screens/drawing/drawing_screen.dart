@@ -28,6 +28,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -584,25 +585,36 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showCarbonationDialog(
+    final updatedSite = await createEquipment5IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
       initialMemberType: pendingMarker.memberType,
       initialCoverThicknessText: pendingMarker.coverThicknessText,
       initialDepthText: pendingMarker.depthText,
+      showCarbonationDialog: ({
+        required title,
+        initialMemberType,
+        initialCoverThicknessText,
+        initialDepthText,
+      }) =>
+          _showCarbonationDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialCoverThicknessText: initialCoverThicknessText,
+        initialDepthText: initialDepthText,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      coverThicknessText: details.coverThicknessText,
-      depthText: details.depthText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
@@ -611,23 +623,33 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showStructuralTiltDialog(
+    final updatedSite = await createEquipment6IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
       initialDirection: pendingMarker.tiltDirection,
       initialDisplacementText: pendingMarker.displacementText,
+      showStructuralTiltDialog: ({
+        required title,
+        initialDirection,
+        initialDisplacementText,
+      }) =>
+          _showStructuralTiltDialog(
+        title: title,
+        initialDirection: initialDirection,
+        initialDisplacementText: initialDisplacementText,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      tiltDirection: details.direction,
-      displacementText: details.displacementText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
