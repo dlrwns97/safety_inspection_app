@@ -1262,63 +1262,88 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   List<String> _equipmentPopupLines(EquipmentMarker marker) {
-    if (marker.equipmentTypeId == 'F') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-        lines.add(marker.memberType!);
-      }
-      if (marker.numberText != null && marker.numberText!.isNotEmpty) {
-        lines.add('번호: ${marker.numberText}');
-      }
-      return lines;
-    }
-    if (marker.equipmentTypeId == 'SH') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-        lines.add(marker.memberType!);
-      }
-      if (marker.maxValueText != null && marker.maxValueText!.isNotEmpty) {
-        lines.add('최댓값: ${marker.maxValueText}');
-      }
-      if (marker.minValueText != null && marker.minValueText!.isNotEmpty) {
-        lines.add('최솟값: ${marker.minValueText}');
-      }
-      return lines;
-    }
-    if (marker.equipmentTypeId == 'Co') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-        lines.add(marker.memberType!);
-      }
-      if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
-        lines.add('평균값: ${marker.avgValueText}');
-      }
-      return lines;
-    }
-    if (marker.equipmentTypeId == 'Ch') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-        lines.add(marker.memberType!);
-      }
-      if (marker.coverThicknessText != null &&
-          marker.coverThicknessText!.isNotEmpty) {
-        lines.add('피복두께: ${marker.coverThicknessText}');
-      }
-      if (marker.depthText != null && marker.depthText!.isNotEmpty) {
-        lines.add('깊이: ${marker.depthText}');
-      }
-      return lines;
-    }
-    if (marker.equipmentTypeId == 'Tr') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.tiltDirection != null && marker.tiltDirection!.isNotEmpty) {
-        lines.add('방향: ${marker.tiltDirection}');
-      }
-      if (marker.displacementText != null &&
-          marker.displacementText!.isNotEmpty) {
-        lines.add('변위량: ${marker.displacementText}');
-      }
-      return lines;
+    final buildersByType = <String, List<String> Function(EquipmentMarker)>{
+      'F': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+          lines.add(marker.memberType!);
+        }
+        if (marker.numberText != null && marker.numberText!.isNotEmpty) {
+          lines.add('번호: ${marker.numberText}');
+        }
+        return lines;
+      },
+      'SH': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+          lines.add(marker.memberType!);
+        }
+        if (marker.maxValueText != null && marker.maxValueText!.isNotEmpty) {
+          lines.add('최댓값: ${marker.maxValueText}');
+        }
+        if (marker.minValueText != null && marker.minValueText!.isNotEmpty) {
+          lines.add('최솟값: ${marker.minValueText}');
+        }
+        return lines;
+      },
+      'Co': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+          lines.add(marker.memberType!);
+        }
+        if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
+          lines.add('평균값: ${marker.avgValueText}');
+        }
+        return lines;
+      },
+      'Ch': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+          lines.add(marker.memberType!);
+        }
+        if (marker.coverThicknessText != null &&
+            marker.coverThicknessText!.isNotEmpty) {
+          lines.add('피복두께: ${marker.coverThicknessText}');
+        }
+        if (marker.depthText != null && marker.depthText!.isNotEmpty) {
+          lines.add('깊이: ${marker.depthText}');
+        }
+        return lines;
+      },
+      'Tr': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.tiltDirection != null && marker.tiltDirection!.isNotEmpty) {
+          lines.add('방향: ${marker.tiltDirection}');
+        }
+        if (marker.displacementText != null &&
+            marker.displacementText!.isNotEmpty) {
+          lines.add('변위량: ${marker.displacementText}');
+        }
+        return lines;
+      },
+      'L': (marker) {
+        final lines = <String>[_equipmentDisplayLabel(marker)];
+        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+          lines.add(marker.memberType!);
+        }
+        if (marker.deflectionEndAText != null &&
+            marker.deflectionEndAText!.isNotEmpty) {
+          lines.add('A(단부): ${marker.deflectionEndAText}');
+        }
+        if (marker.deflectionMidBText != null &&
+            marker.deflectionMidBText!.isNotEmpty) {
+          lines.add('B(중앙): ${marker.deflectionMidBText}');
+        }
+        if (marker.deflectionEndCText != null &&
+            marker.deflectionEndCText!.isNotEmpty) {
+          lines.add('C(단부): ${marker.deflectionEndCText}');
+        }
+        return lines;
+      },
+    };
+    final builder = buildersByType[marker.equipmentTypeId];
+    if (builder != null && marker.equipmentTypeId != 'L') {
+      return builder(marker);
     }
     if (marker.category == EquipmentCategory.equipment8) {
       final lines = <String>[_equipmentDisplayLabel(marker)];
@@ -1332,24 +1357,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
       return lines;
     }
-    if (marker.equipmentTypeId == 'L') {
-      final lines = <String>[_equipmentDisplayLabel(marker)];
-      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-        lines.add(marker.memberType!);
-      }
-      if (marker.deflectionEndAText != null &&
-          marker.deflectionEndAText!.isNotEmpty) {
-        lines.add('A(단부): ${marker.deflectionEndAText}');
-      }
-      if (marker.deflectionMidBText != null &&
-          marker.deflectionMidBText!.isNotEmpty) {
-        lines.add('B(중앙): ${marker.deflectionMidBText}');
-      }
-      if (marker.deflectionEndCText != null &&
-          marker.deflectionEndCText!.isNotEmpty) {
-        lines.add('C(단부): ${marker.deflectionEndCText}');
-      }
-      return lines;
+    if (builder != null) {
+      return builder(marker);
     }
     return [marker.label, marker.category.label];
   }
@@ -1361,92 +1370,88 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return value.toStringAsFixed(1);
   }
 
-  List<Widget> _buildDefectMarkers() {
-    final defects = _site.defects
-        .where((defect) => defect.pageIndex == _currentPage)
+  List<Widget> _buildMarkersForPage<T>({
+    required Iterable<T> items,
+    required int pageIndex,
+    required Size pageSize,
+    required double Function(T) nx,
+    required double Function(T) ny,
+    required Widget Function(T) buildMarker,
+  }) {
+    final filteredItems = items
+        .where((item) => (item as dynamic).pageIndex == pageIndex)
         .toList();
-
-    return defects.map((defect) {
+    return filteredItems.map((item) {
       final position = Offset(
-        defect.normalizedX * _canvasSize.width,
-        defect.normalizedY * _canvasSize.height,
+        nx(item) * pageSize.width,
+        ny(item) * pageSize.height,
       );
       return Positioned(
         left: position.dx - 18,
         top: position.dy - 18,
-        child: _DefectMarker(
-          label: defect.label,
-          category: defect.category,
-          color: _defectColor(defect.category),
-        ),
+        child: buildMarker(item),
       );
     }).toList();
+  }
+
+  List<Widget> _buildDefectMarkers() {
+    return _buildMarkersForPage(
+      items: _site.defects,
+      pageIndex: _currentPage,
+      pageSize: _canvasSize,
+      nx: (defect) => defect.normalizedX,
+      ny: (defect) => defect.normalizedY,
+      buildMarker: (defect) => _DefectMarker(
+        label: defect.label,
+        category: defect.category,
+        color: _defectColor(defect.category),
+      ),
+    );
   }
 
   List<Widget> _buildDefectMarkersForPage(Size pageSize, int pageIndex) {
-    final defects = _site.defects
-        .where((defect) => defect.pageIndex == pageIndex)
-        .toList();
-
-    return defects.map((defect) {
-      final position = Offset(
-        defect.normalizedX * pageSize.width,
-        defect.normalizedY * pageSize.height,
-      );
-      return Positioned(
-        left: position.dx - 18,
-        top: position.dy - 18,
-        child: _DefectMarker(
-          label: defect.label,
-          category: defect.category,
-          color: _defectColor(defect.category),
-        ),
-      );
-    }).toList();
+    return _buildMarkersForPage(
+      items: _site.defects,
+      pageIndex: pageIndex,
+      pageSize: pageSize,
+      nx: (defect) => defect.normalizedX,
+      ny: (defect) => defect.normalizedY,
+      buildMarker: (defect) => _DefectMarker(
+        label: defect.label,
+        category: defect.category,
+        color: _defectColor(defect.category),
+      ),
+    );
   }
 
   List<Widget> _buildEquipmentMarkers() {
-    final markers = _site.equipmentMarkers
-        .where((marker) => marker.pageIndex == _currentPage)
-        .toList();
-
-    return markers.map((marker) {
-      final position = Offset(
-        marker.normalizedX * _canvasSize.width,
-        marker.normalizedY * _canvasSize.height,
-      );
-      return Positioned(
-        left: position.dx - 18,
-        top: position.dy - 18,
-        child: _EquipmentMarker(
-          label: marker.label,
-          category: marker.category,
-          color: _equipmentColor(marker.category),
-        ),
-      );
-    }).toList();
+    return _buildMarkersForPage(
+      items: _site.equipmentMarkers,
+      pageIndex: _currentPage,
+      pageSize: _canvasSize,
+      nx: (marker) => marker.normalizedX,
+      ny: (marker) => marker.normalizedY,
+      buildMarker: (marker) => _EquipmentMarker(
+        label: marker.label,
+        category: marker.category,
+        color: _equipmentColor(marker.category),
+      ),
+    );
   }
 
   List<Widget> _buildEquipmentMarkersForPage(Size pageSize, int pageIndex) {
-    final markers = _site.equipmentMarkers
-        .where((marker) => marker.pageIndex == pageIndex)
-        .toList();
-
-    return markers.map((marker) {
-      final position = Offset(
-        marker.normalizedX * pageSize.width,
-        marker.normalizedY * pageSize.height,
-      );
-      return Positioned(
-        left: position.dx - 18,
-        top: position.dy - 18,
-        child: _EquipmentMarker(
-          label: marker.label,
-          category: marker.category,
-          color: _equipmentColor(marker.category),
-        ),
-      );
-    }).toList();
+    return _buildMarkersForPage(
+      items: _site.equipmentMarkers,
+      pageIndex: pageIndex,
+      pageSize: pageSize,
+      nx: (marker) => marker.normalizedX,
+      ny: (marker) => marker.normalizedY,
+      buildMarker: (marker) => _EquipmentMarker(
+        label: marker.label,
+        category: marker.category,
+        color: _equipmentColor(marker.category),
+      ),
+    );
   }
 
   void _toggleMode(DrawMode nextMode) {
