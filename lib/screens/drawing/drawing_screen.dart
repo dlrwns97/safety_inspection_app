@@ -5,9 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:photo_view/photo_view.dart';
-import 'package:photo_view/photo_view_gallery.dart';
-
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -36,7 +33,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_part
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
@@ -804,184 +801,39 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildPdfViewer() {
-    final theme = Theme.of(context);
-    if (_pdfLoadError != null) {
-      return Container(
-        color: theme.colorScheme.surfaceContainerHighest,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          _pdfLoadError!,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.error,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-    if (_pdfController != null) {
-      return ClipRect(
-        child: PdfView(
-          controller: _pdfController!,
-          scrollDirection: Axis.vertical,
-          pageSnapping: true,
-          physics: const PageScrollPhysics(),
-          onPageChanged: (page) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _currentPage = page;
-            });
-          },
-          onDocumentLoaded: (document) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _pageCount = document.pagesCount;
-              if (_currentPage > _pageCount) {
-                _currentPage = 1;
-              }
-              _pdfLoadError = null;
-            });
-            debugPrint('PDF loaded with ${document.pagesCount} pages.');
-          },
-          onDocumentError: (error) {
-            debugPrint('Failed to load PDF: $error');
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
-            });
-          },
-          builders: PdfViewBuilders<DefaultBuilderOptions>(
-            options: const DefaultBuilderOptions(
-              loaderSwitchDuration: Duration(milliseconds: 300),
-            ),
-            documentLoaderBuilder: (_) => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            pageLoaderBuilder: (_) => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            pageBuilder: (context, pageImage, pageIndex, document) {
-              final pageNumber = pageIndex + 1;
-              final imageProvider = PdfPageImageProvider(
-                pageImage,
-                pageNumber,
-                document.id,
-              );
-              final fallbackSize =
-                  _pdfPageSizes[pageNumber] ?? DrawingCanvasSize;
-              return PhotoViewGalleryPageOptions.customChild(
-                child: FutureBuilder<PdfPageImage>(
-                  future: pageImage,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      final data = snapshot.data!;
-                      final w = (data.width ?? 1).toDouble();
-                      final h = (data.height ?? 1).toDouble();
-                      final pageSize = Size(
-                        w,
-                        h,
-                      );
-                      if (_pdfPageSizes[pageNumber] != pageSize) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() {
-                            _pdfPageSizes[pageNumber] = pageSize;
-                          });
-                        });
-                      }
-                      return _buildPdfPageLayer(
-                        pageSize: pageSize,
-                        pageNumber: pageNumber,
-                        imageProvider: imageProvider,
-                      );
-                    }
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                ),
-                childSize: fallbackSize,
-                initialScale: PhotoViewComputedScale.contained,
-                minScale: PhotoViewComputedScale.contained,
-                maxScale: PhotoViewComputedScale.covered * 2.0,
-                basePosition: Alignment.center,
-              );
-            },
-          ),
-        ),
-      );
-    }
-    return Container(
-      color: theme.colorScheme.surfaceContainerHighest,
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.picture_as_pdf_outlined,
-            size: 64,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _site.pdfName ?? StringsKo.pdfDrawingLoaded,
-            style: theme.textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(StringsKo.pdfDrawingHint, textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPdfPageLayer({
+  Widget _buildPdfPageOverlay({
     required Size pageSize,
     required int pageNumber,
     required ImageProvider imageProvider,
   }) {
-    return AspectRatio(
-      aspectRatio: pageSize.width / pageSize.height,
-      child: SizedBox(
-        width: pageSize.width,
-        height: pageSize.height,
-        child: CanvasMarkerLayer(
-          onPointerDown: (event) => _handlePointerDown(event.localPosition),
-          onPointerMove: (event) => _handlePointerMove(event.localPosition),
-          onPointerUp: (_) => _handlePointerUp(),
-          onPointerCancel: (_) => _handlePointerCancel(),
-          onTapUp: (details) => _handlePdfTap(
-            details,
-            pageSize,
-            pageNumber,
-          ),
-          hitTestBehavior: HitTestBehavior.translucent,
-          childPdfOrCanvas: Image(
-            image: imageProvider,
-            fit: BoxFit.contain,
-          ),
-          markerWidgets: [
-            ..._buildDefectMarkersForPage(
-              pageSize,
-              pageNumber,
-            ),
-            ..._buildEquipmentMarkersForPage(
-              pageSize,
-              pageNumber,
-            ),
-          ],
-          miniPopup: _buildMarkerPopupForPage(
-            pageSize,
-            pageNumber,
-          ),
+    return CanvasMarkerLayer(
+      onPointerDown: (event) => _handlePointerDown(event.localPosition),
+      onPointerMove: (event) => _handlePointerMove(event.localPosition),
+      onPointerUp: (_) => _handlePointerUp(),
+      onPointerCancel: (_) => _handlePointerCancel(),
+      onTapUp: (details) => _handlePdfTap(
+        details,
+        pageSize,
+        pageNumber,
+      ),
+      hitTestBehavior: HitTestBehavior.translucent,
+      childPdfOrCanvas: Image(
+        image: imageProvider,
+        fit: BoxFit.contain,
+      ),
+      markerWidgets: [
+        ..._buildDefectMarkersForPage(
+          pageSize,
+          pageNumber,
         ),
+        ..._buildEquipmentMarkersForPage(
+          pageSize,
+          pageNumber,
+        ),
+      ],
+      miniPopup: _buildMarkerPopupForPage(
+        pageSize,
+        pageNumber,
       ),
     );
   }
@@ -1623,7 +1475,60 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
       body: DrawingScaffoldBody(
         drawingType: _site.drawingType,
-        pdfViewer: _buildPdfViewer(),
+        pdfViewer: PdfDrawingView(
+          pdfController: _pdfController,
+          pdfLoadError: _pdfLoadError,
+          sitePdfName: _site.pdfName,
+          onPageChanged: (page) {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _currentPage = page;
+            });
+          },
+          onDocumentLoaded: (document) {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _pageCount = document.pagesCount;
+              if (_currentPage > _pageCount) {
+                _currentPage = 1;
+              }
+              _pdfLoadError = null;
+            });
+            debugPrint('PDF loaded with ${document.pagesCount} pages.');
+          },
+          onDocumentError: (error) {
+            debugPrint('Failed to load PDF: $error');
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+            });
+          },
+          pageSizes: _pdfPageSizes,
+          onUpdatePageSize: (pageNumber, pageSize) {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              _pdfPageSizes[pageNumber] = pageSize;
+            });
+          },
+          buildPageOverlay: ({
+            required pageSize,
+            required pageNumber,
+            required imageProvider,
+          }) =>
+              _buildPdfPageOverlay(
+            pageSize: pageSize,
+            pageNumber: pageNumber,
+            imageProvider: imageProvider,
+          ),
+        ),
         currentPage: _currentPage,
         pageCount: _pageCount,
         canPrevPage: _currentPage > 1,
