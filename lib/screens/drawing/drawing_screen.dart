@@ -234,6 +234,27 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
+  Future<void> _handleTapCore({
+    required _MarkerHitResult? hitResult,
+    required TapDecision decision,
+    required int pageIndex,
+    required double normalizedX,
+    required double normalizedY,
+  }) async {
+    final shouldCreate = _applyTapDecision(
+      decision: decision,
+      hitResult: hitResult,
+    );
+    if (!shouldCreate) {
+      return;
+    }
+    await _createMarkerFromTap(
+      pageIndex: pageIndex,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+    );
+  }
+
   Future<void> _handleCanvasTap(TapUpDetails details) async {
     final scenePoint = _transformationController.toScene(details.localPosition);
     final hitResult = _hitTestMarkerOnCanvas(scenePoint);
@@ -246,17 +267,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final shouldCreate = _applyTapDecision(
-      decision: decision,
-      hitResult: hitResult,
-    );
-    if (!shouldCreate) {
-      return;
-    }
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
 
-    await _createMarkerFromTap(
+    await _handleTapCore(
+      hitResult: hitResult,
+      decision: decision,
       pageIndex: _currentPage,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
@@ -1065,18 +1081,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final shouldCreate = _applyTapDecision(
-      decision: decision,
-      hitResult: hitResult,
-    );
-    if (!shouldCreate) {
-      return;
-    }
 
     final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
     final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
 
-    await _createMarkerFromTap(
+    await _handleTapCore(
+      hitResult: hitResult,
+      decision: decision,
       pageIndex: pageIndex,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
