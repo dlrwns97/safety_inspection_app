@@ -329,6 +329,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
+  Future<void> _applyUpdatedSiteIfMounted(Site? updatedSite) async {
+    if (!mounted || updatedSite == null) {
+      return;
+    }
+
+    setState(() {
+      _site = updatedSite;
+    });
+    await widget.onSiteUpdated(_site);
+  }
+
   Future<void> _addDefectMarker({
     required int pageIndex,
     required double normalizedX,
@@ -343,14 +354,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       activeCategory: _activeCategory!,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
     );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
+    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   Future<void> _addEquipmentMarker({
@@ -381,40 +385,36 @@ class _DrawingScreenState extends State<DrawingScreen> {
       equipmentTypeId: prefix,
     );
 
-    if (_activeEquipmentCategory == EquipmentCategory.equipment1) {
-      await _addEquipment1Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
+    switch (_activeEquipmentCategory) {
+      case EquipmentCategory.equipment1:
+        await _addEquipment1Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment2:
+        await _addEquipment2Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment3:
+        await _addEquipment3Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment4:
+        await _addEquipment4Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment5:
+        await _addEquipment5Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment6:
+        await _addEquipment6Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment7:
+        await _addEquipment7Marker(pendingMarker: pendingMarker, prefix: prefix);
+        return;
+      case EquipmentCategory.equipment8:
+        return;
+      default:
+        final updatedSite = _site.copyWith(
+          equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
+        );
+        await _applyUpdatedSiteIfMounted(updatedSite);
     }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment2) {
-      await _addEquipment2Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment3) {
-      await _addEquipment3Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment4) {
-      await _addEquipment4Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment5) {
-      await _addEquipment5Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment6) {
-      await _addEquipment6Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    if (_activeEquipmentCategory == EquipmentCategory.equipment7) {
-      await _addEquipment7Marker(pendingMarker: pendingMarker, prefix: prefix);
-      return;
-    }
-    setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
-      );
-    });
-    await widget.onSiteUpdated(_site);
   }
 
   Future<void> _addEquipment8Marker({
@@ -443,13 +443,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         nextIndexByDirection: nextIndexByDirection,
       ),
     );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
+    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   Future<void> _addEquipment1Marker({
