@@ -25,9 +25,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dia
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
@@ -276,27 +274,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
   }
 
-  Future<void> _handleTapCore({
-    required MarkerHitResult? hitResult,
-    required TapDecision decision,
-    required int pageIndex,
-    required double normalizedX,
-    required double normalizedY,
-  }) async {
-    final shouldCreate = _applyTapDecision(
-      decision: decision,
-      hitResult: hitResult,
-    );
-    if (!shouldCreate) {
-      return;
-    }
-    await _createMarkerFromTap(
-      pageIndex: pageIndex,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-    );
-  }
-
   Future<void> _handleCanvasTap(TapUpDetails details) async {
     final scenePoint = _transformationController.toScene(details.localPosition);
     final hitResult = _hitTestMarkerOnCanvas(scenePoint);
@@ -312,58 +289,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (scenePoint.dx / DrawingCanvasSize.width).clamp(0.0, 1.0);
     final normalizedY = (scenePoint.dy / DrawingCanvasSize.height).clamp(0.0, 1.0);
 
-    await _handleTapCore(
+    final updatedSite = await handleTapCore(
+      context: context,
       hitResult: hitResult,
       decision: decision,
       pageIndex: _currentPage,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
+      site: _site,
+      mode: _mode,
+      activeCategory: _activeCategory,
+      activeEquipmentCategory: _activeEquipmentCategory,
+      onResetTapCanceled: () {
+        _tapCanceled = false;
+      },
+      onSelectHit: _selectMarker,
+      onClearSelection: _clearSelectedMarker,
+      onShowDefectCategoryHint: _showSelectDefectCategoryHint,
+      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
+      dialogs: _dialogs,
+      equipmentDisplayLabel: equipmentDisplayLabel,
+      equipmentLabelPrefix: equipmentLabelPrefix,
+      deflectionMemberOptions: DrawingDeflectionMemberOptions,
+      nextSettlementIndex: nextSettlementIndex,
     );
-  }
-
-  bool _applyTapDecision({
-    required TapDecision decision,
-    required MarkerHitResult? hitResult,
-  }) {
-    if (decision.resetTapCanceled) {
-      _tapCanceled = false;
-      return false;
-    }
-    if (decision.shouldSelectHit) {
-      _selectMarker(hitResult!);
-      return false;
-    }
-    if (decision.shouldClearSelection) {
-      _clearSelectedMarker();
-    }
-    if (decision.shouldShowDefectCategoryHint) {
-      _showSelectDefectCategoryHint();
-      return false;
-    }
-    if (!decision.shouldCreateMarker) {
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> _createMarkerFromTap({
-    required int pageIndex,
-    required double normalizedX,
-    required double normalizedY,
-  }) async {
-    if (_mode == DrawMode.defect) {
-      await _addDefectMarker(
-        pageIndex: pageIndex,
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-      );
-      return;
-    }
-    await _addEquipmentMarker(
-      pageIndex: pageIndex,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-    );
+    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   Future<void> _applyUpdatedSiteIfMounted(Site? updatedSite) async {
@@ -375,172 +325,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addDefectMarker({
-    required int pageIndex,
-    required double normalizedX,
-    required double normalizedY,
-  }) async {
-    final updatedSite = await createDefectIfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pageIndex,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      activeCategory: _activeCategory!,
-      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
-    );
-    await _applyUpdatedSiteIfMounted(updatedSite);
-  }
-
-  Future<void> _addEquipmentMarker({
-    required int pageIndex,
-    required double normalizedX,
-    required double normalizedY,
-  }) async {
-    if (_activeEquipmentCategory == EquipmentCategory.equipment8) {
-      await _addEquipment8Marker(
-        pageIndex: pageIndex,
-        normalizedX: normalizedX,
-        normalizedY: normalizedY,
-      );
-      return;
-    }
-    final equipmentCount = _site.equipmentMarkers
-        .where((marker) => marker.category == _activeEquipmentCategory)
-        .length;
-    final prefix = equipmentLabelPrefix(_activeEquipmentCategory!);
-    final label = '$prefix${equipmentCount + 1}';
-    final pendingMarker = EquipmentMarker(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      label: label,
-      pageIndex: pageIndex,
-      category: _activeEquipmentCategory!,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      equipmentTypeId: prefix,
-    );
-
-    final updatedSite = await createEquipmentUpdatedSite(
-      context: context,
-      site: _site,
-      activeEquipmentCategory: _activeEquipmentCategory,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      equipmentDisplayLabel: equipmentDisplayLabel,
-      deflectionMemberOptions: DrawingDeflectionMemberOptions,
-      showEquipmentDetailsDialog: _dialogs.equipmentDetails,
-      showRebarSpacingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialNumberText,
-      }) =>
-          _dialogs.rebarSpacing(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      ),
-      showSchmidtHammerDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialMaxValueText,
-        initialMinValueText,
-      }) =>
-          _dialogs.schmidtHammer(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      ),
-      showCoreSamplingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialAvgValueText,
-      }) =>
-          _dialogs.coreSampling(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      ),
-      showCarbonationDialog: ({
-        required title,
-        initialMemberType,
-        initialCoverThicknessText,
-        initialDepthText,
-      }) =>
-          _dialogs.carbonation(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialCoverThicknessText: initialCoverThicknessText,
-        initialDepthText: initialDepthText,
-      ),
-      showStructuralTiltDialog: ({
-        required title,
-        initialDirection,
-        initialDisplacementText,
-      }) =>
-          _dialogs.structuralTilt(
-        title: title,
-        initialDirection: initialDirection,
-        initialDisplacementText: initialDisplacementText,
-      ),
-      showDeflectionDialog: ({
-        required title,
-        required memberOptions,
-        initialMemberType,
-        initialEndAText,
-        initialMidBText,
-        initialEndCText,
-      }) =>
-          _dialogs.deflection(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      ),
-    );
-    if (updatedSite == null) {
-      return;
-    }
-    await _applyUpdatedSiteIfMounted(updatedSite);
-  }
-
-  Future<void> _addEquipment8Marker({
-    required int pageIndex,
-    required double normalizedX,
-    required double normalizedY,
-  }) async {
-    final nextIndices = {
-      'Lx': nextSettlementIndex(_site, 'Lx'),
-      'Ly': nextSettlementIndex(_site, 'Ly'),
-    };
-    final updatedSite = await createEquipment8IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pageIndex,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      nextIndexByDirection: nextIndices,
-      nextSettlementIndex: (direction) => nextSettlementIndex(_site, direction),
-      showSettlementDialog: ({
-        required baseTitle,
-        required nextIndexByDirection,
-        initialDirection,
-        initialDisplacementText,
-      }) =>
-          _dialogs.settlement(
-        baseTitle: baseTitle,
-        nextIndexByDirection: nextIndexByDirection,
-        initialDirection: initialDirection,
-        initialDisplacementText: initialDisplacementText,
-      ),
-    );
-    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   void _selectMarker(MarkerHitResult result) {
@@ -875,13 +659,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
     final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
 
-    await _handleTapCore(
+    final updatedSite = await handleTapCore(
+      context: context,
       hitResult: hitResult,
       decision: decision,
       pageIndex: pageIndex,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
+      site: _site,
+      mode: _mode,
+      activeCategory: _activeCategory,
+      activeEquipmentCategory: _activeEquipmentCategory,
+      onResetTapCanceled: () {
+        _tapCanceled = false;
+      },
+      onSelectHit: _selectMarker,
+      onClearSelection: _clearSelectedMarker,
+      onShowDefectCategoryHint: _showSelectDefectCategoryHint,
+      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
+      dialogs: _dialogs,
+      equipmentDisplayLabel: equipmentDisplayLabel,
+      equipmentLabelPrefix: equipmentLabelPrefix,
+      deflectionMemberOptions: DrawingDeflectionMemberOptions,
+      nextSettlementIndex: nextSettlementIndex,
     );
+    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   void _handlePointerDown(Offset position) {
