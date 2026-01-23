@@ -246,22 +246,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    if (decision.resetTapCanceled) {
-      _tapCanceled = false;
-      return;
-    }
-    if (decision.shouldSelectHit) {
-      _selectMarker(hitResult!);
-      return;
-    }
-    if (decision.shouldClearSelection) {
-      _clearSelectedMarker();
-    }
-    if (decision.shouldShowDefectCategoryHint) {
-      _showSelectDefectCategoryHint();
-      return;
-    }
-    if (!decision.shouldCreateMarker) {
+    final shouldCreate = _applyTapDecision(
+      decision: decision,
+      hitResult: hitResult,
+    );
+    if (!shouldCreate) {
       return;
     }
     final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
@@ -272,6 +261,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedX: normalizedX,
       normalizedY: normalizedY,
     );
+  }
+
+  bool _applyTapDecision({
+    required TapDecision decision,
+    required _MarkerHitResult? hitResult,
+  }) {
+    if (decision.resetTapCanceled) {
+      _tapCanceled = false;
+      return false;
+    }
+    if (decision.shouldSelectHit) {
+      _selectMarker(hitResult!);
+      return false;
+    }
+    if (decision.shouldClearSelection) {
+      _clearSelectedMarker();
+    }
+    if (decision.shouldShowDefectCategoryHint) {
+      _showSelectDefectCategoryHint();
+      return false;
+    }
+    if (!decision.shouldCreateMarker) {
+      return false;
+    }
+    return true;
   }
 
   Future<void> _createMarkerFromTap({
@@ -1051,22 +1065,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    if (decision.resetTapCanceled) {
-      _tapCanceled = false;
-      return;
-    }
-    if (decision.shouldSelectHit) {
-      _selectMarker(hitResult!);
-      return;
-    }
-    if (decision.shouldClearSelection) {
-      _clearSelectedMarker();
-    }
-    if (decision.shouldShowDefectCategoryHint) {
-      _showSelectDefectCategoryHint();
-      return;
-    }
-    if (!decision.shouldCreateMarker) {
+    final shouldCreate = _applyTapDecision(
+      decision: decision,
+      hitResult: hitResult,
+    );
+    if (!shouldCreate) {
       return;
     }
 
