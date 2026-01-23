@@ -478,7 +478,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
-  MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
+  MarkerHitResult? _hitTestMarker({
+    required Offset point,
+    required Size size,
+    required int pageIndex,
+  }) {
     const hitRadius = 24.0;
     final hitRadiusSquared = hitRadius * hitRadius;
     double closestDistance = hitRadiusSquared;
@@ -487,13 +491,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     Offset? positionHit;
 
     for (final defect in _site.defects.where(
-      (defect) => defect.pageIndex == _currentPage,
+      (defect) => defect.pageIndex == pageIndex,
     )) {
       final position = Offset(
-        defect.normalizedX * DrawingCanvasSize.width,
-        defect.normalizedY * DrawingCanvasSize.height,
+        defect.normalizedX * size.width,
+        defect.normalizedY * size.height,
       );
-      final distance = (scenePoint - position).distanceSquared;
+      final distance = (point - position).distanceSquared;
       if (distance <= closestDistance) {
         closestDistance = distance;
         defectHit = defect;
@@ -503,13 +507,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
 
     for (final marker in _site.equipmentMarkers.where(
-      (marker) => marker.pageIndex == _currentPage,
+      (marker) => marker.pageIndex == pageIndex,
     )) {
       final position = Offset(
-        marker.normalizedX * DrawingCanvasSize.width,
-        marker.normalizedY * DrawingCanvasSize.height,
+        marker.normalizedX * size.width,
+        marker.normalizedY * size.height,
       );
-      final distance = (scenePoint - position).distanceSquared;
+      final distance = (point - position).distanceSquared;
       if (distance <= closestDistance) {
         closestDistance = distance;
         defectHit = null;
@@ -529,58 +533,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
+  MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
+    return _hitTestMarker(
+      point: scenePoint,
+      size: _canvasSize,
+      pageIndex: _currentPage,
+    );
+  }
+
   MarkerHitResult? _hitTestMarkerOnPage(
     Offset pagePoint,
     Size pageSize,
     int pageIndex,
   ) {
-    const hitRadius = 24.0;
-    final hitRadiusSquared = hitRadius * hitRadius;
-    double closestDistance = hitRadiusSquared;
-    Defect? defectHit;
-    EquipmentMarker? equipmentHit;
-    Offset? positionHit;
-
-    for (final defect in _site.defects.where(
-      (defect) => defect.pageIndex == pageIndex,
-    )) {
-      final position = Offset(
-        defect.normalizedX * pageSize.width,
-        defect.normalizedY * pageSize.height,
-      );
-      final distance = (pagePoint - position).distanceSquared;
-      if (distance <= closestDistance) {
-        closestDistance = distance;
-        defectHit = defect;
-        equipmentHit = null;
-        positionHit = position;
-      }
-    }
-
-    for (final marker in _site.equipmentMarkers.where(
-      (marker) => marker.pageIndex == pageIndex,
-    )) {
-      final position = Offset(
-        marker.normalizedX * pageSize.width,
-        marker.normalizedY * pageSize.height,
-      );
-      final distance = (pagePoint - position).distanceSquared;
-      if (distance <= closestDistance) {
-        closestDistance = distance;
-        defectHit = null;
-        equipmentHit = marker;
-        positionHit = position;
-      }
-    }
-
-    if (positionHit == null) {
-      return null;
-    }
-
-    return MarkerHitResult(
-      defect: defectHit,
-      equipment: equipmentHit,
-      position: positionHit,
+    return _hitTestMarker(
+      point: pagePoint,
+      size: pageSize,
+      pageIndex: pageIndex,
     );
   }
 
