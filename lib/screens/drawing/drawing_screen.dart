@@ -948,27 +948,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         width: pageSize.width,
         height: pageSize.height,
         child: CanvasMarkerLayer(
-          onPointerDown: (event) {
-            _pointerDownPosition = event.localPosition;
-            _tapCanceled = false;
-          },
-          onPointerMove: (event) {
-            if (_pointerDownPosition == null) {
-              return;
-            }
-            final distance =
-                (event.localPosition - _pointerDownPosition!).distance;
-            if (distance > DrawingTapSlop) {
-              _tapCanceled = true;
-            }
-          },
-          onPointerUp: (_) {
-            _pointerDownPosition = null;
-          },
-          onPointerCancel: (_) {
-            _pointerDownPosition = null;
-            _tapCanceled = false;
-          },
+          onPointerDown: (event) => _handlePointerDown(event.localPosition),
+          onPointerMove: (event) => _handlePointerMove(event.localPosition),
+          onPointerUp: (_) => _handlePointerUp(),
+          onPointerCancel: (_) => _handlePointerCancel(),
           onTapUp: (details) => _handlePdfTap(
             details,
             pageSize,
@@ -1041,6 +1024,30 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedX: normalizedX,
       normalizedY: normalizedY,
     );
+  }
+
+  void _handlePointerDown(Offset position) {
+    _pointerDownPosition = position;
+    _tapCanceled = false;
+  }
+
+  void _handlePointerMove(Offset position) {
+    if (_pointerDownPosition == null) {
+      return;
+    }
+    final distance = (position - _pointerDownPosition!).distance;
+    if (distance > DrawingTapSlop) {
+      _tapCanceled = true;
+    }
+  }
+
+  void _handlePointerUp() {
+    _pointerDownPosition = null;
+  }
+
+  void _handlePointerCancel() {
+    _pointerDownPosition = null;
+    _tapCanceled = false;
   }
 
   Widget _buildMarkerPopup(Size viewportSize) {
@@ -1630,27 +1637,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
           });
           _pdfController?.jumpToPage(nextPage);
         },
-        onCanvasPointerDown: (event) {
-          _pointerDownPosition = event.localPosition;
-          _tapCanceled = false;
-        },
-        onCanvasPointerMove: (event) {
-          if (_pointerDownPosition == null) {
-            return;
-          }
-          final distance =
-              (event.localPosition - _pointerDownPosition!).distance;
-          if (distance > DrawingTapSlop) {
-            _tapCanceled = true;
-          }
-        },
-        onCanvasPointerUp: (_) {
-          _pointerDownPosition = null;
-        },
-        onCanvasPointerCancel: (_) {
-          _pointerDownPosition = null;
-          _tapCanceled = false;
-        },
+        onCanvasPointerDown: (event) =>
+            _handlePointerDown(event.localPosition),
+        onCanvasPointerMove: (event) =>
+            _handlePointerMove(event.localPosition),
+        onCanvasPointerUp: (_) => _handlePointerUp(),
+        onCanvasPointerCancel: (_) => _handlePointerCancel(),
         onCanvasTapUp: _handleCanvasTap,
         transformationController: _transformationController,
         canvasKey: _canvasKey,
