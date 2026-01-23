@@ -997,44 +997,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return const SizedBox.shrink();
     }
 
-    const popupMaxWidth = MiniMarkerPopup.maxWidth;
-    const popupMargin = MiniMarkerPopup.margin;
-    const lineHeight = MiniMarkerPopup.lineHeight;
-    const verticalPadding = MiniMarkerPopup.verticalPadding;
     final lines = _selectedDefect != null
         ? _defectPopupLines(_selectedDefect!)
         : _equipmentPopupLines(_selectedEquipment!);
-    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
 
     final markerViewportPosition = MatrixUtils.transformPoint(
       _transformationController.value,
       _selectedMarkerScenePosition!,
     );
-
-    final desiredLeft = markerViewportPosition.dx + 16;
-    final desiredTop = markerViewportPosition.dy - estimatedHeight - 12;
-
-    final maxLeft = (viewportSize.width - popupMaxWidth - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
-    final maxTop = (viewportSize.height - estimatedHeight - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
-
-    final left = desiredLeft.clamp(
-      popupMargin,
-      maxLeft == 0 ? popupMargin : maxLeft,
-    );
-    final top = desiredTop.clamp(
-      popupMargin,
-      maxTop == 0 ? popupMargin : maxTop,
-    );
-
-    return MiniMarkerPopup(
-      left: left,
-      top: top,
+    return _buildMiniPopup(
+      markerPosition: markerViewportPosition,
+      containerSize: viewportSize,
       lines: lines,
     );
   }
@@ -1051,14 +1024,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return const SizedBox.shrink();
     }
 
-    const popupMaxWidth = MiniMarkerPopup.maxWidth;
-    const popupMargin = MiniMarkerPopup.margin;
-    const lineHeight = MiniMarkerPopup.lineHeight;
-    const verticalPadding = MiniMarkerPopup.verticalPadding;
     final lines = selectedDefect != null
         ? _defectPopupLines(selectedDefect)
         : _equipmentPopupLines(selectedEquipment!);
-    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
 
     final normalizedX =
         selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX;
@@ -1068,15 +1036,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedX * pageSize.width,
       normalizedY * pageSize.height,
     );
+    return _buildMiniPopup(
+      markerPosition: markerPosition,
+      containerSize: pageSize,
+      lines: lines,
+    );
+  }
+
+  MiniMarkerPopup _buildMiniPopup({
+    required Offset markerPosition,
+    required Size containerSize,
+    required List<String> lines,
+  }) {
+    const popupMaxWidth = MiniMarkerPopup.maxWidth;
+    const popupMargin = MiniMarkerPopup.margin;
+    const lineHeight = MiniMarkerPopup.lineHeight;
+    const verticalPadding = MiniMarkerPopup.verticalPadding;
+    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
 
     final desiredLeft = markerPosition.dx + 16;
     final desiredTop = markerPosition.dy - estimatedHeight - 12;
 
-    final maxLeft = (pageSize.width - popupMaxWidth - popupMargin).clamp(
+    final maxLeft = (containerSize.width - popupMaxWidth - popupMargin).clamp(
       0.0,
       double.infinity,
     );
-    final maxTop = (pageSize.height - estimatedHeight - popupMargin).clamp(
+    final maxTop = (containerSize.height - estimatedHeight - popupMargin).clamp(
       0.0,
       double.infinity,
     );
