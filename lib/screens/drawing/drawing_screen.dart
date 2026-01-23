@@ -474,14 +474,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         initialEndCText: initialEndCText,
       ),
     );
-    if (updatedSite != null) {
-      await _applyUpdatedSiteIfMounted(updatedSite);
+    if (updatedSite == null) {
       return;
     }
-    final fallbackSite = _site.copyWith(
-      equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
-    );
-    await _applyUpdatedSiteIfMounted(fallbackSite);
+    await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
   Future<void> _addEquipment8Marker({
