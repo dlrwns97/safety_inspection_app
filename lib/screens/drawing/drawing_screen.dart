@@ -29,6 +29,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -456,23 +457,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showEquipmentDetailsDialog(
+    final updatedSite = await createEquipment1IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: '부재단면치수 ${pendingMarker.label}',
       initialMemberType: pendingMarker.memberType,
       initialSizeValues: pendingMarker.sizeValues,
+      showEquipmentDetailsDialog: (
+        _, {
+        required title,
+        initialMemberType,
+        initialSizeValues,
+      }) =>
+          _showEquipmentDetailsDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialSizeValues: initialSizeValues,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      sizeValues: details.sizeValues,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
@@ -658,27 +670,42 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showDeflectionDialog(
+    final updatedSite = await createEquipment7IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
       initialMemberType: pendingMarker.memberType,
       initialEndAText: pendingMarker.deflectionEndAText,
       initialMidBText: pendingMarker.deflectionMidBText,
       initialEndCText: pendingMarker.deflectionEndCText,
+      showDeflectionDialog: (
+        _, {
+        required title,
+        required memberOptions,
+        initialMemberType,
+        initialEndAText,
+        initialMidBText,
+        initialEndCText,
+      }) =>
+          _showDeflectionDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialEndAText: initialEndAText,
+        initialMidBText: initialMidBText,
+        initialEndCText: initialEndCText,
+      ),
+      memberOptions: _deflectionMemberOptions,
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      deflectionEndAText: details.endAText,
-      deflectionMidBText: details.midBText,
-      deflectionEndCText: details.endCText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
