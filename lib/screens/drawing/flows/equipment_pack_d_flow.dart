@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
@@ -15,7 +16,8 @@ Future<Site?> createEquipment8IfConfirmed({
   required Future<SettlementDetails?> Function({
     required String baseTitle,
     required Map<String, int> nextIndexByDirection,
-  }) showSettlementDialog,
+  })
+  showSettlementDialog,
 }) async {
   final details = await showSettlementDialog(
     baseTitle: '부동침하',
@@ -37,7 +39,5 @@ Future<Site?> createEquipment8IfConfirmed({
     tiltDirection: direction,
     displacementText: details.displacementText,
   );
-  return site.copyWith(
-    equipmentMarkers: [...site.equipmentMarkers, marker],
-  );
+  return site.copyWith(equipmentMarkers: [...site.equipmentMarkers, marker]);
 }
