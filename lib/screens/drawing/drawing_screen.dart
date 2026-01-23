@@ -27,10 +27,8 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dia
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -340,189 +338,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
-  Future<Site?> _createEquipmentUpdatedSite({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    switch (_activeEquipmentCategory) {
-      case EquipmentCategory.equipment1:
-        return createEquipment1IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: '부재단면치수 ${pendingMarker.label}',
-          initialMemberType: pendingMarker.memberType,
-          initialSizeValues: pendingMarker.sizeValues,
-          showEquipmentDetailsDialog: ({
-            required title,
-            initialMemberType,
-            initialSizeValues,
-          }) =>
-              _showEquipmentDetailsDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialSizeValues: initialSizeValues,
-          ),
-        );
-      case EquipmentCategory.equipment2:
-        return createEquipment2IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          showRebarSpacingDialog: (
-            _, {
-            required title,
-            initialMemberType,
-            initialNumberText,
-          }) =>
-              _showRebarSpacingDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialNumberText: initialNumberText,
-          ),
-        );
-      case EquipmentCategory.equipment3:
-        return createEquipment3IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          showSchmidtHammerDialog: (
-            _, {
-            required title,
-            initialMemberType,
-            initialMaxValueText,
-            initialMinValueText,
-          }) =>
-              _showSchmidtHammerDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialMaxValueText: initialMaxValueText,
-            initialMinValueText: initialMinValueText,
-          ),
-        );
-      case EquipmentCategory.equipment4:
-        return createEquipment4IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          showCoreSamplingDialog: (
-            _, {
-            required title,
-            initialMemberType,
-            initialAvgValueText,
-          }) =>
-              _showCoreSamplingDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialAvgValueText: initialAvgValueText,
-          ),
-        );
-      case EquipmentCategory.equipment5:
-        return createEquipment5IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialCoverThicknessText: pendingMarker.coverThicknessText,
-          initialDepthText: pendingMarker.depthText,
-          showCarbonationDialog: ({
-            required title,
-            initialMemberType,
-            initialCoverThicknessText,
-            initialDepthText,
-          }) =>
-              _showCarbonationDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialCoverThicknessText: initialCoverThicknessText,
-            initialDepthText: initialDepthText,
-          ),
-        );
-      case EquipmentCategory.equipment6:
-        return createEquipment6IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialDirection: pendingMarker.tiltDirection,
-          initialDisplacementText: pendingMarker.displacementText,
-          showStructuralTiltDialog: ({
-            required title,
-            initialDirection,
-            initialDisplacementText,
-          }) =>
-              _showStructuralTiltDialog(
-            title: title,
-            initialDirection: initialDirection,
-            initialDisplacementText: initialDisplacementText,
-          ),
-        );
-      case EquipmentCategory.equipment7:
-        return createEquipment7IfConfirmed(
-          context: context,
-          site: _site,
-          pageIndex: pendingMarker.pageIndex,
-          normalizedX: pendingMarker.normalizedX,
-          normalizedY: pendingMarker.normalizedY,
-          pendingMarker: pendingMarker,
-          prefix: prefix,
-          title: _equipmentDisplayLabel(pendingMarker),
-          initialMemberType: pendingMarker.memberType,
-          initialEndAText: pendingMarker.deflectionEndAText,
-          initialMidBText: pendingMarker.deflectionMidBText,
-          initialEndCText: pendingMarker.deflectionEndCText,
-          showDeflectionDialog: ({
-            required title,
-            required memberOptions,
-            initialMemberType,
-            initialEndAText,
-            initialMidBText,
-            initialEndCText,
-          }) =>
-              _showDeflectionDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialEndAText: initialEndAText,
-            initialMidBText: initialMidBText,
-            initialEndCText: initialEndCText,
-          ),
-          memberOptions: _deflectionMemberOptions,
-        );
-      case EquipmentCategory.equipment8:
-        return null;
-      default:
-        return null;
-    }
-  }
-
   Future<void> _addDefectMarker({
     required int pageIndex,
     required double normalizedX,
@@ -568,9 +383,96 @@ class _DrawingScreenState extends State<DrawingScreen> {
       equipmentTypeId: prefix,
     );
 
-    final updatedSite = await _createEquipmentUpdatedSite(
+    final updatedSite = await createEquipmentUpdatedSite(
+      context: context,
+      site: _site,
+      activeEquipmentCategory: _activeEquipmentCategory,
       pendingMarker: pendingMarker,
       prefix: prefix,
+      equipmentDisplayLabel: _equipmentDisplayLabel,
+      deflectionMemberOptions: _deflectionMemberOptions,
+      showEquipmentDetailsDialog: ({
+        required title,
+        initialMemberType,
+        initialSizeValues,
+      }) =>
+          _showEquipmentDetailsDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialSizeValues: initialSizeValues,
+      ),
+      showRebarSpacingDialog: (
+        ctx, {
+        required title,
+        initialMemberType,
+        initialNumberText,
+      }) =>
+          _showRebarSpacingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialNumberText: initialNumberText,
+      ),
+      showSchmidtHammerDialog: (
+        ctx, {
+        required title,
+        initialMemberType,
+        initialMaxValueText,
+        initialMinValueText,
+      }) =>
+          _showSchmidtHammerDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialMaxValueText: initialMaxValueText,
+        initialMinValueText: initialMinValueText,
+      ),
+      showCoreSamplingDialog: (
+        ctx, {
+        required title,
+        initialMemberType,
+        initialAvgValueText,
+      }) =>
+          _showCoreSamplingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialAvgValueText: initialAvgValueText,
+      ),
+      showCarbonationDialog: ({
+        required title,
+        initialMemberType,
+        initialCoverThicknessText,
+        initialDepthText,
+      }) =>
+          _showCarbonationDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialCoverThicknessText: initialCoverThicknessText,
+        initialDepthText: initialDepthText,
+      ),
+      showStructuralTiltDialog: ({
+        required title,
+        initialDirection,
+        initialDisplacementText,
+      }) =>
+          _showStructuralTiltDialog(
+        title: title,
+        initialDirection: initialDirection,
+        initialDisplacementText: initialDisplacementText,
+      ),
+      showDeflectionDialog: ({
+        required title,
+        required memberOptions,
+        initialMemberType,
+        initialEndAText,
+        initialMidBText,
+        initialEndCText,
+      }) =>
+          _showDeflectionDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialEndAText: initialEndAText,
+        initialMidBText: initialMidBText,
+        initialEndCText: initialEndCText,
+      ),
     );
     if (updatedSite != null) {
       await _applyUpdatedSiteIfMounted(updatedSite);
