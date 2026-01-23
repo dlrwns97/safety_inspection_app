@@ -468,8 +468,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       title: '부재단면치수 ${pendingMarker.label}',
       initialMemberType: pendingMarker.memberType,
       initialSizeValues: pendingMarker.sizeValues,
-      showEquipmentDetailsDialog: (
-        _, {
+      showEquipmentDetailsDialog: ({
         required title,
         initialMemberType,
         initialSizeValues,
@@ -683,8 +682,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       initialEndAText: pendingMarker.deflectionEndAText,
       initialMidBText: pendingMarker.deflectionMidBText,
       initialEndCText: pendingMarker.deflectionEndCText,
-      showDeflectionDialog: (
-        _, {
+      showDeflectionDialog: ({
         required title,
         required memberOptions,
         initialMemberType,
