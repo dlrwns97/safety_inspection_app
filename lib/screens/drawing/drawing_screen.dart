@@ -14,6 +14,7 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
@@ -51,60 +52,6 @@ class DrawingScreen extends StatefulWidget {
 }
 
 class _DrawingScreenState extends State<DrawingScreen> {
-  static const Size _canvasSize = Size(1200, 1700);
-  static const double _tapSlop = 8.0;
-  static const List<String> _equipmentMemberOptions = [
-    '기둥',
-    '보',
-    '철골 각형강관',
-    '원형기둥',
-    '벽체',
-    '슬래브',
-    '브레이싱',
-    '철골 L형강',
-    '철골 C찬넬',
-    '철골 H형강',
-  ];
-  static const List<String> _rebarSpacingMemberOptions = [
-    '기둥',
-    '보',
-    '벽체',
-    '슬래브',
-  ];
-  static const List<String> _schmidtHammerMemberOptions = [
-    '기둥',
-    '보',
-    '벽체',
-    '슬래브',
-  ];
-  static const List<String> _coreSamplingMemberOptions = [
-    '기둥',
-    '보',
-    '벽체',
-    '슬래브',
-  ];
-  static const List<String> _carbonationMemberOptions = [
-    '기둥',
-    '보',
-    '벽체',
-    '슬래브',
-  ];
-  static const List<String> _deflectionMemberOptions = [
-    '보',
-    '슬래브',
-  ];
-  static const Map<String, List<String>> _equipmentMemberSizeLabels = {
-    '기둥': ['W', 'H'],
-    '보': ['W', 'H'],
-    '철골 각형강관': ['W', 'H'],
-    '원형기둥': ['D'],
-    '벽체': ['D'],
-    '슬래브': ['D'],
-    '브레이싱': ['D'],
-    '철골 L형강': ['A', 'B', 't'],
-    '철골 C찬넬': ['A', 'B', 't'],
-    '철골 H형강': ['H', 'B', 'tw', 'tf'],
-  };
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
@@ -271,8 +218,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (scenePoint.dx / _canvasSize.width).clamp(0.0, 1.0);
-    final normalizedY = (scenePoint.dy / _canvasSize.height).clamp(0.0, 1.0);
+    final normalizedX = (scenePoint.dx / DrawingCanvasSize.width).clamp(0.0, 1.0);
+    final normalizedY = (scenePoint.dy / DrawingCanvasSize.height).clamp(0.0, 1.0);
 
     await _handleTapCore(
       hitResult: hitResult,
@@ -391,7 +338,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       pendingMarker: pendingMarker,
       prefix: prefix,
       equipmentDisplayLabel: _equipmentDisplayLabel,
-      deflectionMemberOptions: _deflectionMemberOptions,
+      deflectionMemberOptions: DrawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: ({
         required title,
         initialMemberType,
@@ -543,8 +490,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       (defect) => defect.pageIndex == _currentPage,
     )) {
       final position = Offset(
-        defect.normalizedX * _canvasSize.width,
-        defect.normalizedY * _canvasSize.height,
+        defect.normalizedX * DrawingCanvasSize.width,
+        defect.normalizedY * DrawingCanvasSize.height,
       );
       final distance = (scenePoint - position).distanceSquared;
       if (distance <= closestDistance) {
@@ -559,8 +506,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       (marker) => marker.pageIndex == _currentPage,
     )) {
       final position = Offset(
-        marker.normalizedX * _canvasSize.width,
-        marker.normalizedY * _canvasSize.height,
+        marker.normalizedX * DrawingCanvasSize.width,
+        marker.normalizedY * DrawingCanvasSize.height,
       );
       final distance = (scenePoint - position).distanceSquared;
       if (distance <= closestDistance) {
@@ -672,8 +619,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showEquipmentDetailsDialog(
         context: context,
         title: title,
-        memberOptions: _equipmentMemberOptions,
-        sizeLabelsByMember: _equipmentMemberSizeLabels,
+        memberOptions: DrawingEquipmentMemberOptions,
+        sizeLabelsByMember: DrawingEquipmentMemberSizeLabels,
         initialMemberType: initialMemberType,
         initialSizeValues: initialSizeValues,
       ),
@@ -689,7 +636,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showRebarSpacingDialog(
         context: context,
         title: title,
-        memberOptions: _rebarSpacingMemberOptions,
+        memberOptions: DrawingRebarSpacingMemberOptions,
         initialMemberType: initialMemberType,
         initialNumberText: initialNumberText,
       ),
@@ -706,7 +653,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showSchmidtHammerDialog(
         context: context,
         title: title,
-        memberOptions: _schmidtHammerMemberOptions,
+        memberOptions: DrawingSchmidtHammerMemberOptions,
         initialMemberType: initialMemberType,
         initialMaxValueText: initialMaxValueText,
         initialMinValueText: initialMinValueText,
@@ -723,7 +670,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showCoreSamplingDialog(
         context: context,
         title: title,
-        memberOptions: _coreSamplingMemberOptions,
+        memberOptions: DrawingCoreSamplingMemberOptions,
         initialMemberType: initialMemberType,
         initialAvgValueText: initialAvgValueText,
       ),
@@ -740,7 +687,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showCarbonationDialog(
         context: context,
         title: title,
-        memberOptions: _carbonationMemberOptions,
+        memberOptions: DrawingCarbonationMemberOptions,
         initialMemberType: initialMemberType,
         initialCoverThicknessText: initialCoverThicknessText,
         initialDepthText: initialDepthText,
@@ -791,7 +738,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       () => showDeflectionDialog(
         context: context,
         title: title,
-        memberOptions: _deflectionMemberOptions,
+        memberOptions: DrawingDeflectionMemberOptions,
         initialMemberType: initialMemberType,
         initialEndAText: initialEndAText,
         initialMidBText: initialMidBText,
@@ -871,7 +818,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
                 document.id,
               );
               final fallbackSize =
-                  _pdfPageSizes[pageNumber] ?? _canvasSize;
+                  _pdfPageSizes[pageNumber] ?? DrawingCanvasSize;
               return PhotoViewGalleryPageOptions.customChild(
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
@@ -959,7 +906,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
             }
             final distance =
                 (event.localPosition - _pointerDownPosition!).distance;
-            if (distance > _tapSlop) {
+            if (distance > DrawingTapSlop) {
               _tapCanceled = true;
             }
           },
@@ -1297,7 +1244,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return _buildMarkersForPage(
       items: _site.defects,
       pageIndex: _currentPage,
-      pageSize: _canvasSize,
+      pageSize: DrawingCanvasSize,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
       buildMarker: (defect) => DefectMarkerWidget(
@@ -1327,7 +1274,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return _buildMarkersForPage(
       items: _site.equipmentMarkers,
       pageIndex: _currentPage,
-      pageSize: _canvasSize,
+      pageSize: DrawingCanvasSize,
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
       buildMarker: (marker) => EquipmentMarkerWidget(
@@ -1652,7 +1599,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           }
           final distance =
               (event.localPosition - _pointerDownPosition!).distance;
-          if (distance > _tapSlop) {
+          if (distance > DrawingTapSlop) {
             _tapCanceled = true;
           }
         },
@@ -1666,7 +1613,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onCanvasTapUp: _handleCanvasTap,
         transformationController: _transformationController,
         canvasKey: _canvasKey,
-        canvasSize: _canvasSize,
+        canvasSize: DrawingCanvasSize,
         drawingBackground: _buildDrawingBackground(),
         markerWidgets: [
           ..._buildDefectMarkers(),
