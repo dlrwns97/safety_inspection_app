@@ -1062,22 +1062,26 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   List<String> _equipmentPopupLines(EquipmentMarker marker) {
+    List<String> baseLines(EquipmentMarker marker) =>
+        <String>[_equipmentDisplayLabel(marker)];
+    void addMemberTypeIfPresent(EquipmentMarker marker, List<String> lines) {
+      if (marker.memberType != null && marker.memberType!.isNotEmpty) {
+        lines.add(marker.memberType!);
+      }
+    }
+
     final buildersByType = <String, List<String> Function(EquipmentMarker)>{
       'F': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
-        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-          lines.add(marker.memberType!);
-        }
+        final lines = baseLines(marker);
+        addMemberTypeIfPresent(marker, lines);
         if (marker.numberText != null && marker.numberText!.isNotEmpty) {
           lines.add('번호: ${marker.numberText}');
         }
         return lines;
       },
       'SH': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
-        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-          lines.add(marker.memberType!);
-        }
+        final lines = baseLines(marker);
+        addMemberTypeIfPresent(marker, lines);
         if (marker.maxValueText != null && marker.maxValueText!.isNotEmpty) {
           lines.add('최댓값: ${marker.maxValueText}');
         }
@@ -1087,20 +1091,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return lines;
       },
       'Co': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
-        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-          lines.add(marker.memberType!);
-        }
+        final lines = baseLines(marker);
+        addMemberTypeIfPresent(marker, lines);
         if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
           lines.add('평균값: ${marker.avgValueText}');
         }
         return lines;
       },
       'Ch': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
-        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-          lines.add(marker.memberType!);
-        }
+        final lines = baseLines(marker);
+        addMemberTypeIfPresent(marker, lines);
         if (marker.coverThicknessText != null &&
             marker.coverThicknessText!.isNotEmpty) {
           lines.add('피복두께: ${marker.coverThicknessText}');
@@ -1111,7 +1111,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return lines;
       },
       'Tr': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
+        final lines = baseLines(marker);
         if (marker.tiltDirection != null && marker.tiltDirection!.isNotEmpty) {
           lines.add('방향: ${marker.tiltDirection}');
         }
@@ -1122,10 +1122,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         return lines;
       },
       'L': (marker) {
-        final lines = <String>[_equipmentDisplayLabel(marker)];
-        if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-          lines.add(marker.memberType!);
-        }
+        final lines = baseLines(marker);
+        addMemberTypeIfPresent(marker, lines);
         if (marker.deflectionEndAText != null &&
             marker.deflectionEndAText!.isNotEmpty) {
           lines.add('A(단부): ${marker.deflectionEndAText}');
