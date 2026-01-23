@@ -30,6 +30,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.d
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
@@ -238,7 +239,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<void> _handleTapCore({
-    required _MarkerHitResult? hitResult,
+    required MarkerHitResult? hitResult,
     required TapDecision decision,
     required int pageIndex,
     required double normalizedX,
@@ -284,7 +285,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   bool _applyTapDecision({
     required TapDecision decision,
-    required _MarkerHitResult? hitResult,
+    required MarkerHitResult? hitResult,
   }) {
     if (decision.resetTapCanceled) {
       _tapCanceled = false;
@@ -509,7 +510,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
 
-  void _selectMarker(_MarkerHitResult result) {
+  void _selectMarker(MarkerHitResult result) {
     setState(() {
       _selectedDefect = result.defect;
       _selectedEquipment = result.equipment;
@@ -530,7 +531,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
 
-  _MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
+  MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
     const hitRadius = 24.0;
     final hitRadiusSquared = hitRadius * hitRadius;
     double closestDistance = hitRadiusSquared;
@@ -574,14 +575,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return null;
     }
 
-    return _MarkerHitResult(
+    return MarkerHitResult(
       defect: defectHit,
       equipment: equipmentHit,
       position: positionHit,
     );
   }
 
-  _MarkerHitResult? _hitTestMarkerOnPage(
+  MarkerHitResult? _hitTestMarkerOnPage(
     Offset pagePoint,
     Size pageSize,
     int pageIndex,
@@ -629,7 +630,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return null;
     }
 
-    return _MarkerHitResult(
+    return MarkerHitResult(
       defect: defectHit,
       equipment: equipmentHit,
       position: positionHit,
@@ -1006,7 +1007,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: CustomPaint(
-        painter: _GridPainter(lineColor: theme.colorScheme.outlineVariant),
+        painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
       ),
     );
   }
@@ -1299,7 +1300,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       pageSize: _canvasSize,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
-      buildMarker: (defect) => _DefectMarker(
+      buildMarker: (defect) => DefectMarkerWidget(
         label: defect.label,
         category: defect.category,
         color: _defectColor(defect.category),
@@ -1314,7 +1315,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       pageSize: pageSize,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
-      buildMarker: (defect) => _DefectMarker(
+      buildMarker: (defect) => DefectMarkerWidget(
         label: defect.label,
         category: defect.category,
         color: _defectColor(defect.category),
@@ -1329,7 +1330,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       pageSize: _canvasSize,
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => _EquipmentMarker(
+      buildMarker: (marker) => EquipmentMarkerWidget(
         label: marker.label,
         category: marker.category,
         color: _equipmentColor(marker.category),
@@ -1344,7 +1345,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       pageSize: pageSize,
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => _EquipmentMarker(
+      buildMarker: (marker) => EquipmentMarkerWidget(
         label: marker.label,
         category: marker.category,
         color: _equipmentColor(marker.category),
@@ -1674,127 +1675,5 @@ class _DrawingScreenState extends State<DrawingScreen> {
         markerPopup: _buildMarkerPopup(MediaQuery.of(context).size),
       ),
     );
-  }
-}
-
-class _MarkerHitResult {
-  const _MarkerHitResult({
-    required this.defect,
-    required this.equipment,
-    required this.position,
-  });
-
-  final Defect? defect;
-  final EquipmentMarker? equipment;
-  final Offset position;
-}
-
-class _DefectMarker extends StatelessWidget {
-  const _DefectMarker({
-    required this.label,
-    required this.category,
-    required this.color,
-  });
-
-  final String label;
-  final DefectCategory category;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: category.label,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EquipmentMarker extends StatelessWidget {
-  const _EquipmentMarker({
-    required this.label,
-    required this.category,
-    required this.color,
-  });
-
-  final String label;
-  final EquipmentCategory category;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: category.label,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  _GridPainter({required this.lineColor});
-
-  final Color lineColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const step = 60.0;
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 1;
-
-    for (double x = 0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GridPainter oldDelegate) {
-    return oldDelegate.lineColor != lineColor;
   }
 }
