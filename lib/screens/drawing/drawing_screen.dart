@@ -26,6 +26,8 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dial
 import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -329,34 +331,21 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required double normalizedX,
     required double normalizedY,
   }) async {
-    final detailsResult = await _showDefectDetailsDialog();
-    if (!mounted || detailsResult == null) {
+    final updatedSite = await createDefectIfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pageIndex,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+      activeCategory: _activeCategory!,
+      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
+    );
+    if (!mounted || updatedSite == null) {
       return;
     }
 
-    final countOnPage = _site.defects
-        .where(
-          (defect) =>
-              defect.pageIndex == pageIndex &&
-              defect.category == _activeCategory,
-        )
-        .length;
-    final label = _activeCategory == DefectCategory.generalCrack
-        ? 'C${countOnPage + 1}'
-        : '${countOnPage + 1}';
-
-    final defect = Defect(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      label: label,
-      pageIndex: pageIndex,
-      category: _activeCategory!,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      details: detailsResult,
-    );
-
     setState(() {
-      _site = _site.copyWith(defects: [..._site.defects, defect]);
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
@@ -491,23 +480,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showRebarSpacingDialog(
+    final updatedSite = await createEquipment2IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
-      initialMemberType: pendingMarker.memberType,
-      initialNumberText: pendingMarker.numberText,
+      showRebarSpacingDialog: (
+        _, {
+        required title,
+        initialMemberType,
+        initialNumberText,
+      }) =>
+          _showRebarSpacingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialNumberText: initialNumberText,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      numberText: details.numberText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
@@ -516,25 +514,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showSchmidtHammerDialog(
+    final updatedSite = await createEquipment3IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
-      initialMemberType: pendingMarker.memberType,
-      initialMaxValueText: pendingMarker.maxValueText,
-      initialMinValueText: pendingMarker.minValueText,
+      showSchmidtHammerDialog: (
+        _, {
+        required title,
+        initialMemberType,
+        initialMaxValueText,
+        initialMinValueText,
+      }) =>
+          _showSchmidtHammerDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialMaxValueText: initialMaxValueText,
+        initialMinValueText: initialMinValueText,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      maxValueText: details.maxValueText,
-      minValueText: details.minValueText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
@@ -543,23 +550,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required EquipmentMarker pendingMarker,
     required String prefix,
   }) async {
-    final details = await _showCoreSamplingDialog(
+    final updatedSite = await createEquipment4IfConfirmed(
+      context: context,
+      site: _site,
+      pageIndex: pendingMarker.pageIndex,
+      normalizedX: pendingMarker.normalizedX,
+      normalizedY: pendingMarker.normalizedY,
+      pendingMarker: pendingMarker,
+      prefix: prefix,
       title: _equipmentDisplayLabel(pendingMarker),
-      initialMemberType: pendingMarker.memberType,
-      initialAvgValueText: pendingMarker.avgValueText,
+      showCoreSamplingDialog: (
+        _, {
+        required title,
+        initialMemberType,
+        initialAvgValueText,
+      }) =>
+          _showCoreSamplingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialAvgValueText: initialAvgValueText,
+      ),
     );
-    if (!mounted || details == null) {
+    if (!mounted || updatedSite == null) {
       return;
     }
-    final marker = pendingMarker.copyWith(
-      equipmentTypeId: prefix,
-      memberType: details.memberType,
-      avgValueText: details.avgValueText,
-    );
     setState(() {
-      _site = _site.copyWith(
-        equipmentMarkers: [..._site.equipmentMarkers, marker],
-      );
+      _site = updatedSite;
     });
     await widget.onSiteUpdated(_site);
   }
