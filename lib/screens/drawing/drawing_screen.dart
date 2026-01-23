@@ -27,6 +27,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dial
 import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
@@ -51,104 +52,104 @@ class DrawingScreen extends StatefulWidget {
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
 
-class _DrawingDialogs {
-  _DrawingDialogs(this._state);
-
-  final _DrawingScreenState _state;
-
-  Future<EquipmentDetails?> equipmentDetails({
-    required String title,
-    String? initialMemberType,
-    List<String>? initialSizeValues,
-  }) =>
-      _state._showEquipmentDetailsDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialSizeValues: initialSizeValues,
-      );
-
-  Future<RebarSpacingDetails?> rebarSpacing({
-    required String title,
-    String? initialMemberType,
-    String? initialNumberText,
-  }) =>
-      _state._showRebarSpacingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      );
-
-  Future<SchmidtHammerDetails?> schmidtHammer({
-    required String title,
-    String? initialMemberType,
-    String? initialMaxValueText,
-    String? initialMinValueText,
-  }) =>
-      _state._showSchmidtHammerDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      );
-
-  Future<CoreSamplingDetails?> coreSampling({
-    required String title,
-    String? initialMemberType,
-    String? initialAvgValueText,
-  }) =>
-      _state._showCoreSamplingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      );
-
-  Future<CarbonationDetails?> carbonation({
-    required String title,
-    String? initialMemberType,
-    String? initialCoverThicknessText,
-    String? initialDepthText,
-  }) =>
-      _state._showCarbonationDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialCoverThicknessText: initialCoverThicknessText,
-        initialDepthText: initialDepthText,
-      );
-
-  Future<StructuralTiltDetails?> structuralTilt({
-    required String title,
-    String? initialDirection,
-    String? initialDisplacementText,
-  }) =>
-      _state._showStructuralTiltDialog(
-        title: title,
-        initialDirection: initialDirection,
-        initialDisplacementText: initialDisplacementText,
-      );
-
-  Future<DeflectionDetails?> deflection({
-    required String title,
-    String? initialMemberType,
-    String? initialEndAText,
-    String? initialMidBText,
-    String? initialEndCText,
-  }) =>
-      _state._showDeflectionDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      );
-}
-
 class _DrawingScreenState extends State<DrawingScreen> {
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
-  late final _DrawingDialogs _dialogs = _DrawingDialogs(this);
+  late final DrawingDialogsAdapter _dialogs = DrawingDialogsAdapter(
+    equipmentDetails: ({
+      required title,
+      initialMemberType,
+      initialSizeValues,
+    }) =>
+        _showEquipmentDetailsDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialSizeValues: initialSizeValues,
+    ),
+    rebarSpacing: ({
+      required title,
+      initialMemberType,
+      initialNumberText,
+    }) =>
+        _showRebarSpacingDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialNumberText: initialNumberText,
+    ),
+    schmidtHammer: ({
+      required title,
+      initialMemberType,
+      initialMaxValueText,
+      initialMinValueText,
+    }) =>
+        _showSchmidtHammerDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialMaxValueText: initialMaxValueText,
+      initialMinValueText: initialMinValueText,
+    ),
+    coreSampling: ({
+      required title,
+      initialMemberType,
+      initialAvgValueText,
+    }) =>
+        _showCoreSamplingDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialAvgValueText: initialAvgValueText,
+    ),
+    carbonation: ({
+      required title,
+      initialMemberType,
+      initialCoverThicknessText,
+      initialDepthText,
+    }) =>
+        _showCarbonationDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialCoverThicknessText: initialCoverThicknessText,
+      initialDepthText: initialDepthText,
+    ),
+    structuralTilt: ({
+      required title,
+      initialDirection,
+      initialDisplacementText,
+    }) =>
+        _showStructuralTiltDialog(
+      title: title,
+      initialDirection: initialDirection,
+      initialDisplacementText: initialDisplacementText,
+    ),
+    settlement: ({
+      required baseTitle,
+      required nextIndexByDirection,
+      initialDirection,
+      initialDisplacementText,
+    }) =>
+        _showSettlementDialog(
+      baseTitle: baseTitle,
+      nextIndexByDirection: nextIndexByDirection,
+      initialDirection: initialDirection,
+      initialDisplacementText: initialDisplacementText,
+    ),
+    deflection: ({
+      required title,
+      initialMemberType,
+      initialEndAText,
+      initialMidBText,
+      initialEndCText,
+    }) =>
+        _showDeflectionDialog(
+      title: title,
+      initialMemberType: initialMemberType,
+      initialEndAText: initialEndAText,
+      initialMidBText: initialMidBText,
+      initialEndCText: initialEndCText,
+    ),
+  );
 
   late Site _site;
   PdfController? _pdfController;
@@ -433,7 +434,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: _dialogs.equipmentDetails,
       showRebarSpacingDialog: (
-        _, {
+        context, {
         required title,
         initialMemberType,
         initialNumberText,
@@ -444,7 +445,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         initialNumberText: initialNumberText,
       ),
       showSchmidtHammerDialog: (
-        _, {
+        context, {
         required title,
         initialMemberType,
         initialMaxValueText,
@@ -457,7 +458,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         initialMinValueText: initialMinValueText,
       ),
       showCoreSamplingDialog: (
-        _, {
+        context, {
         required title,
         initialMemberType,
         initialAvgValueText,
@@ -531,10 +532,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
       showSettlementDialog: ({
         required baseTitle,
         required nextIndexByDirection,
+        initialDirection,
+        initialDisplacementText,
       }) =>
-          _showSettlementDialog(
+          _dialogs.settlement(
         baseTitle: baseTitle,
         nextIndexByDirection: nextIndexByDirection,
+        initialDirection: initialDirection,
+        initialDisplacementText: initialDisplacementText,
       ),
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
