@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 
 Future<Site?> createEquipment2IfConfirmed({
   required BuildContext context,
