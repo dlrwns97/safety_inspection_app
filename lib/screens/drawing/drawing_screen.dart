@@ -340,6 +340,189 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
+  Future<Site?> _createEquipmentUpdatedSite({
+    required EquipmentMarker pendingMarker,
+    required String prefix,
+  }) async {
+    switch (_activeEquipmentCategory) {
+      case EquipmentCategory.equipment1:
+        return createEquipment1IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: '부재단면치수 ${pendingMarker.label}',
+          initialMemberType: pendingMarker.memberType,
+          initialSizeValues: pendingMarker.sizeValues,
+          showEquipmentDetailsDialog: ({
+            required title,
+            initialMemberType,
+            initialSizeValues,
+          }) =>
+              _showEquipmentDetailsDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialSizeValues: initialSizeValues,
+          ),
+        );
+      case EquipmentCategory.equipment2:
+        return createEquipment2IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          showRebarSpacingDialog: (
+            _, {
+            required title,
+            initialMemberType,
+            initialNumberText,
+          }) =>
+              _showRebarSpacingDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialNumberText: initialNumberText,
+          ),
+        );
+      case EquipmentCategory.equipment3:
+        return createEquipment3IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          showSchmidtHammerDialog: (
+            _, {
+            required title,
+            initialMemberType,
+            initialMaxValueText,
+            initialMinValueText,
+          }) =>
+              _showSchmidtHammerDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialMaxValueText: initialMaxValueText,
+            initialMinValueText: initialMinValueText,
+          ),
+        );
+      case EquipmentCategory.equipment4:
+        return createEquipment4IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          showCoreSamplingDialog: (
+            _, {
+            required title,
+            initialMemberType,
+            initialAvgValueText,
+          }) =>
+              _showCoreSamplingDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialAvgValueText: initialAvgValueText,
+          ),
+        );
+      case EquipmentCategory.equipment5:
+        return createEquipment5IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialCoverThicknessText: pendingMarker.coverThicknessText,
+          initialDepthText: pendingMarker.depthText,
+          showCarbonationDialog: ({
+            required title,
+            initialMemberType,
+            initialCoverThicknessText,
+            initialDepthText,
+          }) =>
+              _showCarbonationDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialCoverThicknessText: initialCoverThicknessText,
+            initialDepthText: initialDepthText,
+          ),
+        );
+      case EquipmentCategory.equipment6:
+        return createEquipment6IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialDirection: pendingMarker.tiltDirection,
+          initialDisplacementText: pendingMarker.displacementText,
+          showStructuralTiltDialog: ({
+            required title,
+            initialDirection,
+            initialDisplacementText,
+          }) =>
+              _showStructuralTiltDialog(
+            title: title,
+            initialDirection: initialDirection,
+            initialDisplacementText: initialDisplacementText,
+          ),
+        );
+      case EquipmentCategory.equipment7:
+        return createEquipment7IfConfirmed(
+          context: context,
+          site: _site,
+          pageIndex: pendingMarker.pageIndex,
+          normalizedX: pendingMarker.normalizedX,
+          normalizedY: pendingMarker.normalizedY,
+          pendingMarker: pendingMarker,
+          prefix: prefix,
+          title: _equipmentDisplayLabel(pendingMarker),
+          initialMemberType: pendingMarker.memberType,
+          initialEndAText: pendingMarker.deflectionEndAText,
+          initialMidBText: pendingMarker.deflectionMidBText,
+          initialEndCText: pendingMarker.deflectionEndCText,
+          showDeflectionDialog: ({
+            required title,
+            required memberOptions,
+            initialMemberType,
+            initialEndAText,
+            initialMidBText,
+            initialEndCText,
+          }) =>
+              _showDeflectionDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialEndAText: initialEndAText,
+            initialMidBText: initialMidBText,
+            initialEndCText: initialEndCText,
+          ),
+          memberOptions: _deflectionMemberOptions,
+        );
+      case EquipmentCategory.equipment8:
+        return null;
+      default:
+        return null;
+    }
+  }
+
   Future<void> _addDefectMarker({
     required int pageIndex,
     required double normalizedX,
@@ -385,36 +568,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
       equipmentTypeId: prefix,
     );
 
-    switch (_activeEquipmentCategory) {
-      case EquipmentCategory.equipment1:
-        await _addEquipment1Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment2:
-        await _addEquipment2Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment3:
-        await _addEquipment3Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment4:
-        await _addEquipment4Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment5:
-        await _addEquipment5Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment6:
-        await _addEquipment6Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment7:
-        await _addEquipment7Marker(pendingMarker: pendingMarker, prefix: prefix);
-        return;
-      case EquipmentCategory.equipment8:
-        return;
-      default:
-        final updatedSite = _site.copyWith(
-          equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
-        );
-        await _applyUpdatedSiteIfMounted(updatedSite);
+    final updatedSite = await _createEquipmentUpdatedSite(
+      pendingMarker: pendingMarker,
+      prefix: prefix,
+    );
+    if (updatedSite != null) {
+      await _applyUpdatedSiteIfMounted(updatedSite);
+      return;
     }
+    final fallbackSite = _site.copyWith(
+      equipmentMarkers: [..._site.equipmentMarkers, pendingMarker],
+    );
+    await _applyUpdatedSiteIfMounted(fallbackSite);
   }
 
   Future<void> _addEquipment8Marker({
@@ -444,261 +609,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
-  }
-
-  Future<void> _addEquipment1Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment1IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: '부재단면치수 ${pendingMarker.label}',
-      initialMemberType: pendingMarker.memberType,
-      initialSizeValues: pendingMarker.sizeValues,
-      showEquipmentDetailsDialog: ({
-        required title,
-        initialMemberType,
-        initialSizeValues,
-      }) =>
-          _showEquipmentDetailsDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialSizeValues: initialSizeValues,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment2Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment2IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      showRebarSpacingDialog: (
-        _, {
-        required title,
-        initialMemberType,
-        initialNumberText,
-      }) =>
-          _showRebarSpacingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment3Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment3IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      showSchmidtHammerDialog: (
-        _, {
-        required title,
-        initialMemberType,
-        initialMaxValueText,
-        initialMinValueText,
-      }) =>
-          _showSchmidtHammerDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment4Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment4IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      showCoreSamplingDialog: (
-        _, {
-        required title,
-        initialMemberType,
-        initialAvgValueText,
-      }) =>
-          _showCoreSamplingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment5Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment5IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      initialMemberType: pendingMarker.memberType,
-      initialCoverThicknessText: pendingMarker.coverThicknessText,
-      initialDepthText: pendingMarker.depthText,
-      showCarbonationDialog: ({
-        required title,
-        initialMemberType,
-        initialCoverThicknessText,
-        initialDepthText,
-      }) =>
-          _showCarbonationDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialCoverThicknessText: initialCoverThicknessText,
-        initialDepthText: initialDepthText,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment6Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment6IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      initialDirection: pendingMarker.tiltDirection,
-      initialDisplacementText: pendingMarker.displacementText,
-      showStructuralTiltDialog: ({
-        required title,
-        initialDirection,
-        initialDisplacementText,
-      }) =>
-          _showStructuralTiltDialog(
-        title: title,
-        initialDirection: initialDirection,
-        initialDisplacementText: initialDisplacementText,
-      ),
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
-  }
-
-  Future<void> _addEquipment7Marker({
-    required EquipmentMarker pendingMarker,
-    required String prefix,
-  }) async {
-    final updatedSite = await createEquipment7IfConfirmed(
-      context: context,
-      site: _site,
-      pageIndex: pendingMarker.pageIndex,
-      normalizedX: pendingMarker.normalizedX,
-      normalizedY: pendingMarker.normalizedY,
-      pendingMarker: pendingMarker,
-      prefix: prefix,
-      title: _equipmentDisplayLabel(pendingMarker),
-      initialMemberType: pendingMarker.memberType,
-      initialEndAText: pendingMarker.deflectionEndAText,
-      initialMidBText: pendingMarker.deflectionMidBText,
-      initialEndCText: pendingMarker.deflectionEndCText,
-      showDeflectionDialog: ({
-        required title,
-        required memberOptions,
-        initialMemberType,
-        initialEndAText,
-        initialMidBText,
-        initialEndCText,
-      }) =>
-          _showDeflectionDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      ),
-      memberOptions: _deflectionMemberOptions,
-    );
-    if (!mounted || updatedSite == null) {
-      return;
-    }
-    setState(() {
-      _site = updatedSite;
-    });
-    await widget.onSiteUpdated(_site);
   }
 
   void _selectMarker(_MarkerHitResult result) {
