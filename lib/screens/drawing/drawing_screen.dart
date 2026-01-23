@@ -1240,11 +1240,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }).toList();
   }
 
-  List<Widget> _buildDefectMarkers() {
+  Size get _canvasSize => DrawingCanvasSize;
+
+  List<Widget> _buildDefectMarkerWidgets({
+    required Size size,
+    required int pageIndex,
+  }) {
     return _buildMarkersForPage(
       items: _site.defects,
-      pageIndex: _currentPage,
-      pageSize: DrawingCanvasSize,
+      pageIndex: pageIndex,
+      pageSize: size,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
       buildMarker: (defect) => DefectMarkerWidget(
@@ -1252,51 +1257,52 @@ class _DrawingScreenState extends State<DrawingScreen> {
         category: defect.category,
         color: _defectColor(defect.category),
       ),
+    );
+  }
+
+  List<Widget> _buildEquipmentMarkerWidgets({
+    required Size size,
+    required int pageIndex,
+  }) {
+    return _buildMarkersForPage(
+      items: _site.equipmentMarkers,
+      pageIndex: pageIndex,
+      pageSize: size,
+      nx: (marker) => marker.normalizedX,
+      ny: (marker) => marker.normalizedY,
+      buildMarker: (marker) => EquipmentMarkerWidget(
+        label: marker.label,
+        category: marker.category,
+        color: _equipmentColor(marker.category),
+      ),
+    );
+  }
+
+  List<Widget> _buildDefectMarkers() {
+    return _buildDefectMarkerWidgets(
+      size: _canvasSize,
+      pageIndex: _currentPage,
     );
   }
 
   List<Widget> _buildDefectMarkersForPage(Size pageSize, int pageIndex) {
-    return _buildMarkersForPage(
-      items: _site.defects,
+    return _buildDefectMarkerWidgets(
+      size: pageSize,
       pageIndex: pageIndex,
-      pageSize: pageSize,
-      nx: (defect) => defect.normalizedX,
-      ny: (defect) => defect.normalizedY,
-      buildMarker: (defect) => DefectMarkerWidget(
-        label: defect.label,
-        category: defect.category,
-        color: _defectColor(defect.category),
-      ),
     );
   }
 
   List<Widget> _buildEquipmentMarkers() {
-    return _buildMarkersForPage(
-      items: _site.equipmentMarkers,
+    return _buildEquipmentMarkerWidgets(
+      size: _canvasSize,
       pageIndex: _currentPage,
-      pageSize: DrawingCanvasSize,
-      nx: (marker) => marker.normalizedX,
-      ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => EquipmentMarkerWidget(
-        label: marker.label,
-        category: marker.category,
-        color: _equipmentColor(marker.category),
-      ),
     );
   }
 
   List<Widget> _buildEquipmentMarkersForPage(Size pageSize, int pageIndex) {
-    return _buildMarkersForPage(
-      items: _site.equipmentMarkers,
+    return _buildEquipmentMarkerWidgets(
+      size: pageSize,
       pageIndex: pageIndex,
-      pageSize: pageSize,
-      nx: (marker) => marker.normalizedX,
-      ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => EquipmentMarkerWidget(
-        label: marker.label,
-        category: marker.category,
-        color: _equipmentColor(marker.category),
-      ),
     );
   }
 
