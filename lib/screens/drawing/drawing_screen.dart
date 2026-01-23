@@ -1,9 +1,5 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
@@ -27,6 +23,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
@@ -184,60 +181,39 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
     final previousController = _pdfController;
     _pdfController = null;
-    previousController?.dispose();
-    final file = File(path);
-    final exists = await file.exists();
-    if (!mounted) {
-      return;
-    }
-    if (!exists) {
-      setState(() {
-        _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
-      });
-      debugPrint('PDF file not found at $path');
-      return;
-    }
-    final fileSize = await file.length();
-    debugPrint(
-      'Loading PDF: name=${_site.pdfName ?? file.uri.pathSegments.last}, '
-      'path=$path, bytes=$fileSize',
+    final result = await loadPdfControllerForSite(
+      site: _site,
+      previousController: previousController,
     );
+    if (!mounted || result == null) {
+      return;
+    }
     setState(() {
-      _pdfController = PdfController(
-        document: PdfDocument.openFile(path),
-      );
-      _pdfLoadError = null;
-      _pdfPageSizes.clear();
-      _pageCount = 1;
-      _currentPage = 1;
+      _pdfController = result.controller;
+      _pdfLoadError = result.error;
+      if (result.error == null) {
+        _pdfPageSizes
+          ..clear()
+          ..addAll(result.clearedPageSizes);
+        _pageCount = result.pageCount;
+        _currentPage = result.currentPage;
+      }
     });
   }
 
   Future<void> _replacePdf() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) {
+    final result = await replacePdfAndUpdateSite(site: _site);
+    if (!mounted || result == null) {
       return;
     }
-    final file = result.files.first;
-    String? pdfPath = file.path;
-    if (pdfPath == null && file.bytes != null) {
-      pdfPath = await _persistPickedPdf(file);
-    }
-    if (!mounted) {
-      return;
-    }
-    if (pdfPath == null || pdfPath.isEmpty) {
+    if (result.updatedSite == null) {
       setState(() {
-        _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
+        _pdfLoadError = result.error ?? StringsKo.pdfDrawingLoadFailed;
       });
       return;
     }
     setState(() {
-      _site = _site.copyWith(pdfPath: pdfPath, pdfName: file.name);
+      _site = result.updatedSite!;
       _selectedDefect = null;
       _selectedEquipment = null;
       _selectedMarkerScenePosition = null;
@@ -250,28 +226,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return;
     }
     await _loadPdfController();
-  }
-
-  Future<String?> _persistPickedPdf(PlatformFile file) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final blueprintDirectory = Directory(
-        '${directory.path}${Platform.pathSeparator}blueprints',
-      );
-      if (!await blueprintDirectory.exists()) {
-        await blueprintDirectory.create(recursive: true);
-      }
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = 'drawing_${timestamp}_${file.name}';
-      final savedFile = File(
-        '${blueprintDirectory.path}${Platform.pathSeparator}$filename',
-      );
-      await savedFile.writeAsBytes(file.bytes!, flush: true);
-      return savedFile.path;
-    } catch (error) {
-      debugPrint('Failed to persist picked PDF: $error');
-      return null;
-    }
   }
 
   Future<void> _handleCanvasTap(TapUpDetails details) async {
