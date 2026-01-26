@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
+import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 class CoreSamplingDetails {
@@ -69,9 +68,10 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.6,
-      520.0,
+    final maxWidth = dialogMaxWidth(
+      context,
+      widthFactor: 0.6,
+      maxWidth: 520.0,
     );
     final isSaveEnabled = _selectedMember != null;
 
@@ -88,12 +88,9 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            buildDialogDropdownField(
               value: _selectedMember,
-              decoration: const InputDecoration(
-                labelText: '부재',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '부재',
               items: widget.memberOptions
                   .map(
                     (option) => DropdownMenuItem(
@@ -107,50 +104,32 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
                   _selectedMember = value;
                 });
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '부재를 선택하세요.';
-                }
-                return null;
-              },
+              requiredMessage: '부재를 선택하세요.',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            buildDialogTextField(
               controller: _avgValueController,
-              decoration: const InputDecoration(
-                labelText: '평균값',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '평균값',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          Navigator.of(context).pop(
-                            CoreSamplingDetails(
-                              memberType: _selectedMember!,
-                              avgValueText: _avgValueController.text.trim(),
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
+            buildDialogActionButtons(
+              context,
+              onSave: isSaveEnabled
+                  ? () {
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        CoreSamplingDetails(
+                          memberType: _selectedMember!,
+                          avgValueText: _avgValueController.text.trim(),
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         ),
