@@ -4,6 +4,7 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 
 Future<Site?> createDefectIfConfirmed({
   required BuildContext context,
@@ -26,9 +27,8 @@ Future<Site?> createDefectIfConfirmed({
             defect.pageIndex == pageIndex && defect.category == activeCategory,
       )
       .length;
-  final label = activeCategory == DefectCategory.generalCrack
-      ? 'C${countOnPage + 1}'
-      : '${countOnPage + 1}';
+  final labelPrefix = defectLabelPrefix(activeCategory);
+  final label = '$labelPrefix${countOnPage + 1}';
 
   final defect = Defect(
     id: DateTime.now().microsecondsSinceEpoch.toString(),

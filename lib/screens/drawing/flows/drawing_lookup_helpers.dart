@@ -4,17 +4,69 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 
+class DefectCategoryConfig {
+  const DefectCategoryConfig({
+    required this.label,
+    required this.dialogTitle,
+    required this.color,
+    required this.labelPrefix,
+    required this.typeOptions,
+    required this.causeOptions,
+  });
+
+  final String label;
+  final String dialogTitle;
+  final Color color;
+  final String labelPrefix;
+  final List<String> typeOptions;
+  final List<String> causeOptions;
+}
+
+const Map<DefectCategory, DefectCategoryConfig> defectCategoryConfigs = {
+  DefectCategory.generalCrack: DefectCategoryConfig(
+    label: StringsKo.defectCategoryGeneralCrack,
+    dialogTitle: StringsKo.defectDetailsTitleGeneralCrack,
+    color: Colors.red,
+    labelPrefix: 'C',
+    typeOptions: StringsKo.defectTypesGeneralCrack,
+    causeOptions: StringsKo.defectCausesGeneralCrack,
+  ),
+  DefectCategory.waterLeakage: DefectCategoryConfig(
+    label: StringsKo.defectCategoryWaterLeakage,
+    dialogTitle: StringsKo.defectDetailsTitleWaterLeakage,
+    color: Colors.blue,
+    labelPrefix: '',
+    typeOptions: StringsKo.defectTypesWaterLeakage,
+    causeOptions: StringsKo.defectCausesWaterLeakage,
+  ),
+  DefectCategory.concreteSpalling: DefectCategoryConfig(
+    label: StringsKo.defectCategoryConcreteSpalling,
+    dialogTitle: StringsKo.defectDetailsTitleConcreteSpalling,
+    color: Colors.green,
+    labelPrefix: '',
+    typeOptions: StringsKo.defectTypesConcreteSpalling,
+    causeOptions: StringsKo.defectCausesConcreteSpalling,
+  ),
+  DefectCategory.other: DefectCategoryConfig(
+    label: StringsKo.defectCategoryOther,
+    dialogTitle: StringsKo.defectDetailsTitleOther,
+    color: Colors.purple,
+    labelPrefix: '',
+    typeOptions: StringsKo.defectTypesOther,
+    causeOptions: StringsKo.defectCausesOther,
+  ),
+};
+
+DefectCategoryConfig _defectConfig(DefectCategory category) {
+  return defectCategoryConfigs[category]!;
+}
+
 Color defectColor(DefectCategory category) {
-  switch (category) {
-    case DefectCategory.generalCrack:
-      return Colors.red;
-    case DefectCategory.waterLeakage:
-      return Colors.blue;
-    case DefectCategory.concreteSpalling:
-      return Colors.green;
-    case DefectCategory.other:
-      return Colors.purple;
-  }
+  return _defectConfig(category).color;
+}
+
+String defectLabelPrefix(DefectCategory category) {
+  return _defectConfig(category).labelPrefix;
 }
 
 String equipmentLabelPrefix(EquipmentCategory category) {
@@ -44,42 +96,15 @@ Color equipmentColor(EquipmentCategory category) {
 }
 
 List<String> defectTypeOptions(DefectCategory category) {
-  switch (category) {
-    case DefectCategory.generalCrack:
-      return StringsKo.defectTypesGeneralCrack;
-    case DefectCategory.waterLeakage:
-      return StringsKo.defectTypesWaterLeakage;
-    case DefectCategory.concreteSpalling:
-      return StringsKo.defectTypesConcreteSpalling;
-    case DefectCategory.other:
-      return StringsKo.defectTypesOther;
-  }
+  return _defectConfig(category).typeOptions;
 }
 
 List<String> defectCauseOptions(DefectCategory category) {
-  switch (category) {
-    case DefectCategory.generalCrack:
-      return StringsKo.defectCausesGeneralCrack;
-    case DefectCategory.waterLeakage:
-      return StringsKo.defectCausesWaterLeakage;
-    case DefectCategory.concreteSpalling:
-      return StringsKo.defectCausesConcreteSpalling;
-    case DefectCategory.other:
-      return StringsKo.defectCausesOther;
-  }
+  return _defectConfig(category).causeOptions;
 }
 
 String defectDialogTitle(DefectCategory category) {
-  switch (category) {
-    case DefectCategory.generalCrack:
-      return StringsKo.defectDetailsTitleGeneralCrack;
-    case DefectCategory.waterLeakage:
-      return StringsKo.defectDetailsTitleWaterLeakage;
-    case DefectCategory.concreteSpalling:
-      return StringsKo.defectDetailsTitleConcreteSpalling;
-    case DefectCategory.other:
-      return StringsKo.defectDetailsTitleOther;
-  }
+  return _defectConfig(category).dialogTitle;
 }
 
 String formatNumber(double value) {
