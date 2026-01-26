@@ -136,7 +136,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   Future<void> _handleCanvasTap(TapUpDetails details) async {
     final scenePoint = _transformationController.toScene(details.localPosition);
-    final hitResult = _hitTestMarkerOnCanvas(scenePoint);
+    final hitResult = _hitTestMarker(
+      point: scenePoint,
+      size: DrawingCanvasSize,
+      pageIndex: _currentPage,
+    );
     final decision = _controller.handleCanvasTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
@@ -318,26 +322,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       defect: defectHit,
       equipment: equipmentHit,
       position: positionHit,
-    );
-  }
-
-  MarkerHitResult? _hitTestMarkerOnCanvas(Offset scenePoint) {
-    return _hitTestMarker(
-      point: scenePoint,
-      size: _canvasSize,
-      pageIndex: _currentPage,
-    );
-  }
-
-  MarkerHitResult? _hitTestMarkerOnPage(
-    Offset pagePoint,
-    Size pageSize,
-    int pageIndex,
-  ) {
-    return _hitTestMarker(
-      point: pagePoint,
-      size: pageSize,
-      pageIndex: pageIndex,
     );
   }
 
@@ -525,13 +509,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
         fit: BoxFit.contain,
       ),
       markerWidgets: [
-        ..._buildDefectMarkersForPage(
-          pageSize,
-          pageNumber,
+        ..._buildDefectMarkerWidgets(
+          size: pageSize,
+          pageIndex: pageNumber,
         ),
-        ..._buildEquipmentMarkersForPage(
-          pageSize,
-          pageNumber,
+        ..._buildEquipmentMarkerWidgets(
+          size: pageSize,
+          pageIndex: pageNumber,
         ),
       ],
       miniPopup: _buildMarkerPopupForPage(
@@ -560,10 +544,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     int pageIndex,
   ) async {
     final localPosition = details.localPosition;
-    final hitResult = _hitTestMarkerOnPage(
-      localPosition,
-      pageSize,
-      pageIndex,
+    final hitResult = _hitTestMarker(
+      point: localPosition,
+      size: pageSize,
+      pageIndex: pageIndex,
     );
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
@@ -801,8 +785,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }).toList();
   }
 
-  Size get _canvasSize => DrawingCanvasSize;
-
   List<Widget> _buildDefectMarkerWidgets({
     required Size size,
     required int pageIndex,
@@ -839,41 +821,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  List<Widget> _buildDefectMarkers() {
-    return _buildDefectMarkerWidgets(
-      size: _canvasSize,
-      pageIndex: _currentPage,
-    );
-  }
-
-  List<Widget> _buildDefectMarkersForPage(Size pageSize, int pageIndex) {
-    return _buildDefectMarkerWidgets(
-      size: pageSize,
-      pageIndex: pageIndex,
-    );
-  }
-
-  List<Widget> _buildEquipmentMarkers() {
-    return _buildEquipmentMarkerWidgets(
-      size: _canvasSize,
-      pageIndex: _currentPage,
-    );
-  }
-
-  List<Widget> _buildEquipmentMarkersForPage(Size pageSize, int pageIndex) {
-    return _buildEquipmentMarkerWidgets(
-      size: pageSize,
-      pageIndex: pageIndex,
-    );
-  }
-
   void _toggleMode(DrawMode nextMode) {
     setState(() {
       _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
-
-  bool _isToolSelectionMode() => _controller.isToolSelectionMode(_mode);
 
   void _returnToToolSelection() {
     setState(() {
@@ -970,7 +922,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         ],
         bottom: DrawingTopBar(
           mode: _mode,
-          isToolSelectionMode: _isToolSelectionMode(),
+          isToolSelectionMode: _controller.isToolSelectionMode(_mode),
           defectTabs: _defectTabs,
           activeCategory: _activeCategory,
           activeEquipmentCategory: _activeEquipmentCategory,
@@ -1082,8 +1034,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
         canvasSize: DrawingCanvasSize,
         drawingBackground: _buildDrawingBackground(),
         markerWidgets: [
-          ..._buildDefectMarkers(),
-          ..._buildEquipmentMarkers(),
+          ..._buildDefectMarkerWidgets(
+            size: DrawingCanvasSize,
+            pageIndex: _currentPage,
+          ),
+          ..._buildEquipmentMarkerWidgets(
+            size: DrawingCanvasSize,
+            pageIndex: _currentPage,
+          ),
         ],
         markerPopup: _buildMarkerPopup(MediaQuery.of(context).size),
       ),
