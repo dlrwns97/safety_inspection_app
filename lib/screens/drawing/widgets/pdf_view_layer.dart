@@ -47,7 +47,7 @@ class PdfViewLayer extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .surface
-                        .withOpacity(0.9),
+                        .withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(
@@ -84,7 +84,7 @@ class _PageNavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
       shape: const CircleBorder(),
       elevation: 4,
       child: IconButton(
