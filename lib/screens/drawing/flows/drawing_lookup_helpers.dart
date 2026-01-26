@@ -121,3 +121,10 @@ String defectDialogTitle(DefectCategory category) {
       return StringsKo.defectDetailsTitleOther;
   }
 }
+
+String formatNumber(double value) {
+  if (value % 1 == 0) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toStringAsFixed(1);
+}
