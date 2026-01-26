@@ -135,10 +135,3 @@ List<String> equipmentPopupLines(EquipmentMarker marker) {
   }
   return [marker.label, marker.category.label];
 }
-
-String formatNumber(double value) {
-  if (value % 1 == 0) {
-    return value.toStringAsFixed(0);
-  }
-  return value.toStringAsFixed(1);
-}
