@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 
@@ -78,8 +79,8 @@ class DrawingScaffoldBody extends StatelessWidget {
                         onTapUp: onCanvasTapUp,
                         child: InteractiveViewer(
                           transformationController: transformationController,
-                          minScale: 0.5,
-                          maxScale: 4,
+                          minScale: DrawingCanvasMinScale,
+                          maxScale: DrawingCanvasMaxScale,
                           constrained: false,
                           child: SizedBox(
                             key: canvasKey,
