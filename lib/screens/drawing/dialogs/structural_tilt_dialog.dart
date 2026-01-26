@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
+import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 class StructuralTiltDetails {
@@ -65,9 +64,10 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.45,
-      320.0,
+    final maxWidth = dialogMaxWidth(
+      context,
+      widthFactor: 0.45,
+      maxWidth: 320.0,
     );
     final isSaveEnabled = _selectedDirection != null;
 
@@ -84,12 +84,9 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            buildDialogDropdownField(
               value: _selectedDirection,
-              decoration: const InputDecoration(
-                labelText: '방향',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '방향',
               items: const [
                 DropdownMenuItem(
                   value: '+',
@@ -105,53 +102,35 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
                   _selectedDirection = value;
                 });
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '방향을 선택하세요.';
-                }
-                return null;
-              },
+              requiredMessage: '방향을 선택하세요.',
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            buildDialogTextField(
               controller: _displacementController,
-              decoration: const InputDecoration(
-                labelText: '변위량',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '변위량',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          final displacement =
-                              _displacementController.text.trim();
-                          Navigator.of(context).pop(
-                            StructuralTiltDetails(
-                              direction: _selectedDirection!,
-                              displacementText:
-                                  displacement.isEmpty ? null : displacement,
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
+            buildDialogActionButtons(
+              context,
+              onSave: isSaveEnabled
+                  ? () {
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      final displacement =
+                          _displacementController.text.trim();
+                      Navigator.of(context).pop(
+                        StructuralTiltDetails(
+                          direction: _selectedDirection!,
+                          displacementText:
+                              displacement.isEmpty ? null : displacement,
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         ),
