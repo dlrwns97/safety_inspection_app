@@ -680,15 +680,30 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _tapCanceled = false;
   }
 
+  List<String>? _resolveSelectedMarkerLines({
+    required Defect? selectedDefect,
+    required EquipmentMarker? selectedEquipment,
+  }) {
+    if (selectedDefect == null && selectedEquipment == null) {
+      return null;
+    }
+    return selectedDefect != null
+        ? defectPopupLines(selectedDefect)
+        : equipmentPopupLines(selectedEquipment!);
+  }
+
   Widget _buildMarkerPopup(Size viewportSize) {
-    if (_selectedMarkerScenePosition == null ||
-        (_selectedDefect == null && _selectedEquipment == null)) {
+    if (_selectedMarkerScenePosition == null) {
       return const SizedBox.shrink();
     }
 
-    final lines = _selectedDefect != null
-        ? defectPopupLines(_selectedDefect!)
-        : equipmentPopupLines(_selectedEquipment!);
+    final lines = _resolveSelectedMarkerLines(
+      selectedDefect: _selectedDefect,
+      selectedEquipment: _selectedEquipment,
+    );
+    if (lines == null) {
+      return const SizedBox.shrink();
+    }
 
     final markerViewportPosition = MatrixUtils.transformPoint(
       _transformationController.value,
@@ -704,18 +719,19 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
-    if (selectedDefect == null && selectedEquipment == null) {
-      return const SizedBox.shrink();
-    }
     final selectedPage =
         selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
     if (selectedPage != pageIndex) {
       return const SizedBox.shrink();
     }
 
-    final lines = selectedDefect != null
-        ? defectPopupLines(selectedDefect)
-        : equipmentPopupLines(selectedEquipment!);
+    final lines = _resolveSelectedMarkerLines(
+      selectedDefect: selectedDefect,
+      selectedEquipment: selectedEquipment,
+    );
+    if (lines == null) {
+      return const SizedBox.shrink();
+    }
 
     final normalizedX =
         selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX;
