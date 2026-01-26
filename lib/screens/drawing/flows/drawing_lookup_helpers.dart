@@ -61,8 +61,8 @@ DefectCategoryConfig _defectConfig(DefectCategory category) {
   return defectCategoryConfigs[category]!;
 }
 
-Color defectColor(DefectCategory category) {
-  return _defectConfig(category).color;
+DefectCategoryConfig defectCategoryConfig(DefectCategory category) {
+  return _defectConfig(category);
 }
 
 String defectLabelPrefix(DefectCategory category) {
@@ -93,18 +93,6 @@ Color equipmentColor(EquipmentCategory category) {
     return Colors.deepPurpleAccent;
   }
   return DrawingEquipmentFlowConfigs[category]?.color ?? Colors.pinkAccent;
-}
-
-List<String> defectTypeOptions(DefectCategory category) {
-  return _defectConfig(category).typeOptions;
-}
-
-List<String> defectCauseOptions(DefectCategory category) {
-  return _defectConfig(category).causeOptions;
-}
-
-String defectDialogTitle(DefectCategory category) {
-  return _defectConfig(category).dialogTitle;
 }
 
 String formatNumber(double value) {
