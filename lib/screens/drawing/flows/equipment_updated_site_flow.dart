@@ -13,6 +13,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 
 Future<Site?> createEquipmentUpdatedSite({
   required BuildContext context,
@@ -20,7 +21,6 @@ Future<Site?> createEquipmentUpdatedSite({
   required EquipmentCategory? activeEquipmentCategory,
   required EquipmentMarker pendingMarker,
   required String prefix,
-  required String Function(EquipmentMarker) equipmentDisplayLabel,
   required List<String> deflectionMemberOptions,
   required Future<EquipmentDetails?> Function({
     required String title,

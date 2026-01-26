@@ -263,8 +263,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       dialogs: _dialogs,
-      equipmentDisplayLabel: equipmentDisplayLabel,
-      equipmentLabelPrefix: equipmentLabelPrefix,
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
@@ -633,8 +631,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       dialogs: _dialogs,
-      equipmentDisplayLabel: equipmentDisplayLabel,
-      equipmentLabelPrefix: equipmentLabelPrefix,
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );

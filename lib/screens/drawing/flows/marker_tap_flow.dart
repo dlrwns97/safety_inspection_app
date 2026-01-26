@@ -7,6 +7,7 @@ import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
@@ -58,8 +59,6 @@ Future<Site?> handleTapCore({
   required Future<DefectDetails?> Function(BuildContext context)
       showDefectDetailsDialog,
   required DrawingDialogsAdapter dialogs,
-  required String Function(EquipmentMarker marker) equipmentDisplayLabel,
-  required String Function(EquipmentCategory category) equipmentLabelPrefix,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -85,8 +84,6 @@ Future<Site?> handleTapCore({
     normalizedY: normalizedY,
     showDefectDetailsDialog: showDefectDetailsDialog,
     dialogs: dialogs,
-    equipmentDisplayLabel: equipmentDisplayLabel,
-    equipmentLabelPrefix: equipmentLabelPrefix,
     deflectionMemberOptions: deflectionMemberOptions,
     nextSettlementIndex: nextSettlementIndex,
   );
@@ -104,8 +101,6 @@ Future<Site?> createMarkerFromTap({
   required Future<DefectDetails?> Function(BuildContext context)
       showDefectDetailsDialog,
   required DrawingDialogsAdapter dialogs,
-  required String Function(EquipmentMarker marker) equipmentDisplayLabel,
-  required String Function(EquipmentCategory category) equipmentLabelPrefix,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -128,8 +123,6 @@ Future<Site?> createMarkerFromTap({
     normalizedX: normalizedX,
     normalizedY: normalizedY,
     dialogs: dialogs,
-    equipmentDisplayLabel: equipmentDisplayLabel,
-    equipmentLabelPrefix: equipmentLabelPrefix,
     deflectionMemberOptions: deflectionMemberOptions,
     nextSettlementIndex: nextSettlementIndex,
   );
@@ -164,8 +157,6 @@ Future<Site?> addEquipmentMarker({
   required double normalizedX,
   required double normalizedY,
   required DrawingDialogsAdapter dialogs,
-  required String Function(EquipmentMarker marker) equipmentDisplayLabel,
-  required String Function(EquipmentCategory category) equipmentLabelPrefix,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -204,7 +195,6 @@ Future<Site?> addEquipmentMarker({
     activeEquipmentCategory: activeEquipmentCategory,
     pendingMarker: pendingMarker,
     prefix: prefix,
-    equipmentDisplayLabel: equipmentDisplayLabel,
     deflectionMemberOptions: deflectionMemberOptions,
     showEquipmentDetailsDialog: dialogs.equipmentDetails,
     showRebarSpacingDialog: (
