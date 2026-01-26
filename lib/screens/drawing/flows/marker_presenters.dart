@@ -36,81 +36,74 @@ List<String> defectPopupLines(Defect defect) {
   ];
 }
 
+String? _nonEmpty(String? value) =>
+    value != null && value.isNotEmpty ? value : null;
+
+String? _line(String label, String? value) {
+  final resolvedValue = _nonEmpty(value);
+  if (resolvedValue == null) {
+    return null;
+  }
+  return '$label: $resolvedValue';
+}
+
+void _addLine(List<String> lines, String? line) {
+  if (line != null) {
+    lines.add(line);
+  }
+}
+
 List<String> equipmentPopupLines(EquipmentMarker marker) {
   List<String> baseLines(EquipmentMarker marker) =>
       <String>[equipmentDisplayLabel(marker)];
-  void addMemberTypeIfPresent(EquipmentMarker marker, List<String> lines) {
-    if (marker.memberType != null && marker.memberType!.isNotEmpty) {
-      lines.add(marker.memberType!);
-    }
-  }
+  void addMemberTypeIfPresent(EquipmentMarker marker, List<String> lines) =>
+      _addLine(lines, _nonEmpty(marker.memberType));
+  void addLabeledValue(
+    List<String> lines,
+    String label,
+    String? value,
+  ) =>
+      _addLine(lines, _line(label, value));
 
   final buildersByType = <String, List<String> Function(EquipmentMarker)>{
     'F': (marker) {
       final lines = baseLines(marker);
       addMemberTypeIfPresent(marker, lines);
-      if (marker.numberText != null && marker.numberText!.isNotEmpty) {
-        lines.add('번호: ${marker.numberText}');
-      }
+      addLabeledValue(lines, '번호', marker.numberText);
       return lines;
     },
     'SH': (marker) {
       final lines = baseLines(marker);
       addMemberTypeIfPresent(marker, lines);
-      if (marker.maxValueText != null && marker.maxValueText!.isNotEmpty) {
-        lines.add('최댓값: ${marker.maxValueText}');
-      }
-      if (marker.minValueText != null && marker.minValueText!.isNotEmpty) {
-        lines.add('최솟값: ${marker.minValueText}');
-      }
+      addLabeledValue(lines, '최댓값', marker.maxValueText);
+      addLabeledValue(lines, '최솟값', marker.minValueText);
       return lines;
     },
     'Co': (marker) {
       final lines = baseLines(marker);
       addMemberTypeIfPresent(marker, lines);
-      if (marker.avgValueText != null && marker.avgValueText!.isNotEmpty) {
-        lines.add('평균값: ${marker.avgValueText}');
-      }
+      addLabeledValue(lines, '평균값', marker.avgValueText);
       return lines;
     },
     'Ch': (marker) {
       final lines = baseLines(marker);
       addMemberTypeIfPresent(marker, lines);
-      if (marker.coverThicknessText != null &&
-          marker.coverThicknessText!.isNotEmpty) {
-        lines.add('피복두께: ${marker.coverThicknessText}');
-      }
-      if (marker.depthText != null && marker.depthText!.isNotEmpty) {
-        lines.add('깊이: ${marker.depthText}');
-      }
+      addLabeledValue(lines, '피복두께', marker.coverThicknessText);
+      addLabeledValue(lines, '깊이', marker.depthText);
       return lines;
     },
     'Tr': (marker) {
       final lines = baseLines(marker);
-      if (marker.tiltDirection != null && marker.tiltDirection!.isNotEmpty) {
-        lines.add('방향: ${marker.tiltDirection}');
-      }
-      if (marker.displacementText != null &&
-          marker.displacementText!.isNotEmpty) {
-        lines.add('변위량: ${marker.displacementText}');
-      }
+      addLabeledValue(lines, '방향', marker.tiltDirection);
+      addLabeledValue(lines, '변위량', marker.displacementText);
       return lines;
     },
     'L': (marker) {
       final lines = baseLines(marker);
       addMemberTypeIfPresent(marker, lines);
-      if (marker.deflectionEndAText != null &&
-          marker.deflectionEndAText!.isNotEmpty) {
-        lines.add('A(단부): ${marker.deflectionEndAText}');
-      }
-      if (marker.deflectionMidBText != null &&
-          marker.deflectionMidBText!.isNotEmpty) {
-        lines.add('B(중앙): ${marker.deflectionMidBText}');
-      }
-      if (marker.deflectionEndCText != null &&
-          marker.deflectionEndCText!.isNotEmpty) {
-        lines.add('C(단부): ${marker.deflectionEndCText}');
-      }
+      addLabeledValue(lines, 'A(단부)', marker.deflectionEndAText);
+      addLabeledValue(lines, 'B(중앙)', marker.deflectionMidBText);
+      addLabeledValue(lines, 'C(단부)', marker.deflectionEndCText);
       return lines;
     },
   };
@@ -121,13 +114,8 @@ List<String> equipmentPopupLines(EquipmentMarker marker) {
   if (marker.category == EquipmentCategory.equipment8) {
     final lines = <String>[equipmentDisplayLabel(marker)];
     final direction = settlementDirection(marker);
-    if (direction != null && direction.isNotEmpty) {
-      lines.add('방향: $direction');
-    }
-    if (marker.displacementText != null &&
-        marker.displacementText!.isNotEmpty) {
-      lines.add('변위량: ${marker.displacementText}');
-    }
+    _addLine(lines, _line('방향', direction));
+    addLabeledValue(lines, '변위량', marker.displacementText);
     return lines;
   }
   if (builder != null) {
