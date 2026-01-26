@@ -121,9 +121,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await _applyUpdatedSite(
       result.updatedSite!,
       onStateUpdated: () {
-        _selectedDefect = null;
-        _selectedEquipment = null;
-        _selectedMarkerScenePosition = null;
+        _setSelection();
         _pdfPageSizes.clear();
         _currentPage = 1;
         _pageCount = 1;
@@ -258,11 +256,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
+  void _setSelection({Defect? defect, EquipmentMarker? equipment, Offset? position}) {
+    _selectedDefect = defect;
+    _selectedEquipment = equipment;
+    _selectedMarkerScenePosition = position;
+  }
   void _selectMarker(MarkerHitResult result) {
     setState(() {
-      _selectedDefect = result.defect;
-      _selectedEquipment = result.equipment;
-      _selectedMarkerScenePosition = result.position;
+      _setSelection(
+        defect: result.defect,
+        equipment: result.equipment,
+        position: result.position,
+      );
     });
   }
 
@@ -273,9 +278,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return;
     }
     setState(() {
-      _selectedDefect = null;
-      _selectedEquipment = null;
-      _selectedMarkerScenePosition = null;
+      _setSelection();
     });
   }
 
@@ -871,8 +874,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _showDefectCategoryPicker();
     }
   }
-
-
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
     final shouldDelete = await showDeleteDefectTabDialog(
       context: context,
@@ -938,8 +939,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _isDetailDialogOpen = false;
     }
   }
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
