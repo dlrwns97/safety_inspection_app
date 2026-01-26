@@ -693,26 +693,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Widget _buildMarkerPopup(Size viewportSize) {
-    if (_selectedMarkerScenePosition == null) {
-      return const SizedBox.shrink();
-    }
-
-    final lines = _resolveSelectedMarkerLines(
+    final markerScenePosition = _selectedMarkerScenePosition;
+    final markerViewportPosition = markerScenePosition == null
+        ? null
+        : MatrixUtils.transformPoint(
+            _transformationController.value,
+            markerScenePosition,
+          );
+    return _buildMarkerPopupWidget(
       selectedDefect: _selectedDefect,
       selectedEquipment: _selectedEquipment,
-    );
-    if (lines == null) {
-      return const SizedBox.shrink();
-    }
-
-    final markerViewportPosition = MatrixUtils.transformPoint(
-      _transformationController.value,
-      _selectedMarkerScenePosition!,
-    );
-    return _buildMiniPopup(
       markerPosition: markerViewportPosition,
       containerSize: viewportSize,
-      lines: lines,
     );
   }
 
@@ -725,14 +717,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return const SizedBox.shrink();
     }
 
-    final lines = _resolveSelectedMarkerLines(
-      selectedDefect: selectedDefect,
-      selectedEquipment: selectedEquipment,
-    );
-    if (lines == null) {
-      return const SizedBox.shrink();
-    }
-
     final normalizedX =
         selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX;
     final normalizedY =
@@ -741,9 +725,35 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedX * pageSize.width,
       normalizedY * pageSize.height,
     );
-    return _buildMiniPopup(
+    return _buildMarkerPopupWidget(
+      selectedDefect: selectedDefect,
+      selectedEquipment: selectedEquipment,
       markerPosition: markerPosition,
       containerSize: pageSize,
+    );
+  }
+
+  Widget _buildMarkerPopupWidget({
+    required Defect? selectedDefect,
+    required EquipmentMarker? selectedEquipment,
+    required Offset? markerPosition,
+    required Size containerSize,
+  }) {
+    if (markerPosition == null) {
+      return const SizedBox.shrink();
+    }
+
+    final lines = _resolveSelectedMarkerLines(
+      selectedDefect: selectedDefect,
+      selectedEquipment: selectedEquipment,
+    );
+    if (lines == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _buildMiniPopup(
+      markerPosition: markerPosition,
+      containerSize: containerSize,
       lines: lines,
     );
   }
