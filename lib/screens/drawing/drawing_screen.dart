@@ -734,13 +734,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     if (selectedDefect == null && selectedEquipment == null) {
       return null;
     }
-    final lines = selectedDefect != null
-        ? defectPopupLines(selectedDefect)
-        : equipmentPopupLines(selectedEquipment!);
     return _buildMiniPopup(
       markerPosition: markerPosition,
       containerSize: containerSize,
-      lines: lines,
+      lines: selectedDefect != null
+          ? defectPopupLines(selectedDefect)
+          : equipmentPopupLines(selectedEquipment!),
     );
   }
 
