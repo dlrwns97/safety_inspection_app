@@ -582,6 +582,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _pointerDownPosition = position;
     _tapCanceled = false;
   }
+  void _handlePointerDownEvent(PointerDownEvent event) =>
+      _handlePointerDown(event.localPosition);
   void _handlePointerMove(Offset position) {
     if (_pointerDownPosition == null) {
       return;
@@ -591,21 +593,22 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _tapCanceled = true;
     }
   }
+  void _handlePointerMoveEvent(PointerMoveEvent event) =>
+      _handlePointerMove(event.localPosition);
   void _handlePointerUp() => _pointerDownPosition = null;
+  void _handlePointerUpEvent(PointerUpEvent event) => _handlePointerUp();
   void _handlePointerCancel() {
     _pointerDownPosition = null;
     _tapCanceled = false;
   }
+  void _handlePointerCancelEvent(PointerCancelEvent event) =>
+      _handlePointerCancel();
   Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
-    if (markerScenePosition == null) {
-      return null;
-    }
-    final markerViewportPosition = MatrixUtils.transformPoint(
-      _transformationController.value,
-      markerScenePosition,
-    );
-    return _buildMarkerPopupAtPosition(
+    if (markerScenePosition == null) return null;
+    final markerViewportPosition =
+        MatrixUtils.transformPoint(_transformationController.value, markerScenePosition);
+    return _buildMarkerPopupForSelection(
       markerPosition: markerViewportPosition,
       containerSize: viewportSize,
     );
@@ -613,68 +616,53 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget? _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
-    final selectedPage =
-        selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
-    if (selectedPage != pageIndex) {
-      return null;
-    }
-    final normalizedX =
-        selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX;
-    final normalizedY =
-        selectedDefect?.normalizedY ?? selectedEquipment!.normalizedY;
+    final selectedPage = selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
+    if (selectedPage != pageIndex) return null;
     final markerPosition = Offset(
-      normalizedX * pageSize.width,
-      normalizedY * pageSize.height,
+      (selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX) *
+          pageSize.width,
+      (selectedDefect?.normalizedY ?? selectedEquipment!.normalizedY) *
+          pageSize.height,
     );
-    return _buildMarkerPopupAtPosition(
+    return _buildMarkerPopupForSelection(
       markerPosition: markerPosition,
       containerSize: pageSize,
     );
   }
-  Widget? _buildMarkerPopupAtPosition({
+  Widget? _buildMarkerPopupForSelection({
     required Offset markerPosition,
     required Size containerSize,
   }) {
-    final popupLines = _buildPopupLinesForSelection();
-    if (popupLines.isEmpty) {
-      return null;
-    }
+    final selectedDefect = _selectedDefect;
+    final selectedEquipment = _selectedEquipment;
+    final popupLines = selectedDefect != null
+        ? defectPopupLines(selectedDefect)
+        : selectedEquipment != null
+            ? equipmentPopupLines(selectedEquipment)
+            : const [];
+    if (popupLines.isEmpty) return null;
     return _buildMiniPopup(
       markerPosition: markerPosition,
       containerSize: containerSize,
       lines: popupLines,
     );
   }
-  List<String> _buildPopupLinesForSelection() {
-    final selectedDefect = _selectedDefect;
-    if (selectedDefect != null) {
-      return defectPopupLines(selectedDefect);
-    }
-    final selectedEquipment = _selectedEquipment;
-    return selectedEquipment != null
-        ? equipmentPopupLines(selectedEquipment)
-        : const [];
-  }
   MiniMarkerPopup _buildMiniPopup({
     required Offset markerPosition,
     required Size containerSize,
     required List<String> lines,
   }) {
-    const popupMaxWidth = MiniMarkerPopup.maxWidth;
-    const popupMargin = MiniMarkerPopup.margin;
-    const lineHeight = MiniMarkerPopup.lineHeight;
-    const verticalPadding = MiniMarkerPopup.verticalPadding;
+    const popupMaxWidth = MiniMarkerPopup.maxWidth,
+        popupMargin = MiniMarkerPopup.margin,
+        lineHeight = MiniMarkerPopup.lineHeight,
+        verticalPadding = MiniMarkerPopup.verticalPadding;
     final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
     final desiredLeft = markerPosition.dx + 16;
     final desiredTop = markerPosition.dy - estimatedHeight - 12;
-    final maxLeft = (containerSize.width - popupMaxWidth - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
-    final maxTop = (containerSize.height - estimatedHeight - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
+    final maxLeft =
+        (containerSize.width - popupMaxWidth - popupMargin).clamp(0.0, double.infinity);
+    final maxTop =
+        (containerSize.height - estimatedHeight - popupMargin).clamp(0.0, double.infinity);
     final left = desiredLeft.clamp(
       popupMargin,
       maxLeft == 0 ? popupMargin : maxLeft,
@@ -692,34 +680,33 @@ class _DrawingScreenState extends State<DrawingScreen> {
   List<Widget> _buildMarkerWidgetsForPage({
     required Size size,
     required int pageIndex,
-  }) {
-    return [
-      ..._buildMarkersForPage(
-        items: _site.defects,
-        pageIndex: pageIndex,
-        pageSize: size,
-        nx: (defect) => defect.normalizedX,
-        ny: (defect) => defect.normalizedY,
-        buildMarker: (defect) => DefectMarkerWidget(
-          label: defect.label,
-          category: defect.category,
-          color: defectCategoryConfig(defect.category).color,
+  }) =>
+      [
+        ..._buildMarkersForPage(
+          items: _site.defects,
+          pageIndex: pageIndex,
+          pageSize: size,
+          nx: (defect) => defect.normalizedX,
+          ny: (defect) => defect.normalizedY,
+          buildMarker: (defect) => DefectMarkerWidget(
+            label: defect.label,
+            category: defect.category,
+            color: defectCategoryConfig(defect.category).color,
+          ),
         ),
-      ),
-      ..._buildMarkersForPage(
-        items: _site.equipmentMarkers,
-        pageIndex: pageIndex,
-        pageSize: size,
-        nx: (marker) => marker.normalizedX,
-        ny: (marker) => marker.normalizedY,
-        buildMarker: (marker) => EquipmentMarkerWidget(
-          label: marker.label,
-          category: marker.category,
-          color: equipmentColor(marker.category),
+        ..._buildMarkersForPage(
+          items: _site.equipmentMarkers,
+          pageIndex: pageIndex,
+          pageSize: size,
+          nx: (marker) => marker.normalizedX,
+          ny: (marker) => marker.normalizedY,
+          buildMarker: (marker) => EquipmentMarkerWidget(
+            label: marker.label,
+            category: marker.category,
+            color: equipmentColor(marker.category),
+          ),
         ),
-      ),
-    ];
-  }
+      ];
   List<Widget> _buildMarkersForPage<T>({
     required Iterable<T> items,
     required int pageIndex,
@@ -731,17 +718,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final filteredItems = items
         .where((item) => (item as dynamic).pageIndex == pageIndex)
         .toList();
-    return filteredItems.map((item) {
-      final position = Offset(
-        nx(item) * pageSize.width,
-        ny(item) * pageSize.height,
-      );
-      return Positioned(
-        left: position.dx - 18,
-        top: position.dy - 18,
-        child: buildMarker(item),
-      );
-    }).toList();
+    return filteredItems
+        .map((item) => Positioned(
+              left: nx(item) * pageSize.width - 18,
+              top: ny(item) * pageSize.height - 18,
+              child: buildMarker(item),
+            ))
+        .toList();
   }
   void _toggleMode(DrawMode nextMode) {
     setState(() {
@@ -823,7 +806,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         if (_site.drawingType == DrawingType.pdf)
           IconButton(tooltip: StringsKo.replacePdfTooltip, icon: const Icon(Icons.upload_file_outlined), onPressed: _replacePdf),
       ],
-      bottom: DrawingTopBar(
+      bottom: _buildDrawingTopBar(),
+    );
+  }
+  DrawingTopBar _buildDrawingTopBar() => DrawingTopBar(
         mode: _mode,
         isToolSelectionMode: _controller.isToolSelectionMode(_mode),
         defectTabs: _defectTabs,
@@ -832,67 +818,25 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onToggleMode: _toggleMode,
         onBack: _returnToToolSelection,
         onAdd: _handleAddToolAction,
-        onDefectSelected: (category) => setState(() {
-          _activeCategory = _controller
+        onDefectSelected: (category) => setState(
+          () => _activeCategory = _controller
               .selectDefectCategory(tabs: _defectTabs, category: category)
-              .activeCategory;
-        }),
+              .activeCategory,
+        ),
         onDefectLongPress: _showDeleteDefectTabDialog,
-        onEquipmentSelected: (item) => setState(() {
-          _activeEquipmentCategory =
-              _controller.selectEquipmentCategory(item).activeCategory;
-        }),
-      ),
-    );
-  }
+        onEquipmentSelected: (item) => setState(
+          () => _activeEquipmentCategory =
+              _controller.selectEquipmentCategory(item).activeCategory,
+        ),
+      );
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
-    final markerWidgets = _buildMarkerWidgetsForPage(
-      size: DrawingCanvasSize,
-      pageIndex: _currentPage,
-    );
-    final markerPopup = isPdf ? null : _buildMarkerPopup(MediaQuery.of(context).size);
-    final theme = Theme.of(context);
-    final drawingBackground = Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: CustomPaint(
-        painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
-      ),
-    );
-    final pdfViewer = PdfDrawingView(
-      pdfController: _pdfController,
-      pdfLoadError: _pdfLoadError,
-      sitePdfName: _site.pdfName,
-      onPageChanged: _handlePdfPageChanged,
-      onDocumentLoaded: _handlePdfDocumentLoaded,
-      onDocumentError: _handlePdfDocumentError,
-      pageSizes: _pdfPageSizes,
-      onUpdatePageSize: _handleUpdatePageSize,
-      buildPageOverlay: ({
-        required pageSize,
-        required pageNumber,
-        required imageProvider,
-      }) =>
-          CanvasMarkerLayer(
-        onPointerDown: (event) => _handlePointerDown(event.localPosition),
-        onPointerMove: (event) => _handlePointerMove(event.localPosition),
-        onPointerUp: (_) => _handlePointerUp(),
-        onPointerCancel: (_) => _handlePointerCancel(),
-        onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
-        hitTestBehavior: HitTestBehavior.translucent,
-        childPdfOrCanvas: Image(image: imageProvider, fit: BoxFit.contain),
-        markerWidgets:
-            _buildMarkerWidgetsForPage(size: pageSize, pageIndex: pageNumber),
-        miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
-      ),
-    );
+    final markerPopup =
+        isPdf ? null : _buildMarkerPopup(MediaQuery.of(context).size);
     return [
       if (isPdf)
         PdfViewLayer(
-          pdfViewer: pdfViewer,
+          pdfViewer: _buildPdfViewer(),
           currentPage: _currentPage,
           pageCount: _pageCount,
           canPrev: _currentPage > 1,
@@ -901,33 +845,65 @@ class _DrawingScreenState extends State<DrawingScreen> {
           onNextPage: _handleNextPage,
         )
       else
-        Listener(
-          onPointerDown: (event) => _handlePointerDown(event.localPosition),
-          onPointerMove: (event) => _handlePointerMove(event.localPosition),
-          onPointerUp: (_) => _handlePointerUp(),
-          onPointerCancel: (_) => _handlePointerCancel(),
-          child: GestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            onTapUp: _handleCanvasTap,
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: DrawingCanvasMinScale,
-              maxScale: DrawingCanvasMaxScale,
-              constrained: false,
-              child: SizedBox(
-                key: _canvasKey,
-                width: DrawingCanvasSize.width,
-                height: DrawingCanvasSize.height,
-                child: CanvasMarkerLayer(
-                  childPdfOrCanvas: drawingBackground,
-                  markerWidgets: markerWidgets,
-                ),
+        _buildCanvasDrawingLayer(),
+      if (markerPopup != null) markerPopup,
+    ];
+  }
+  PdfDrawingView _buildPdfViewer() => PdfDrawingView(
+        pdfController: _pdfController,
+        pdfLoadError: _pdfLoadError,
+        sitePdfName: _site.pdfName,
+        onPageChanged: _handlePdfPageChanged,
+        onDocumentLoaded: _handlePdfDocumentLoaded,
+        onDocumentError: _handlePdfDocumentError,
+        pageSizes: _pdfPageSizes,
+        onUpdatePageSize: _handleUpdatePageSize,
+        buildPageOverlay: ({required pageSize, required pageNumber, required imageProvider}) =>
+            CanvasMarkerLayer(
+          onPointerDown: _handlePointerDownEvent,
+          onPointerMove: _handlePointerMoveEvent,
+          onPointerUp: _handlePointerUpEvent,
+          onPointerCancel: _handlePointerCancelEvent,
+          onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
+          hitTestBehavior: HitTestBehavior.translucent,
+          childPdfOrCanvas: Image(image: imageProvider, fit: BoxFit.contain),
+          markerWidgets: _buildMarkerWidgetsForPage(size: pageSize, pageIndex: pageNumber),
+          miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
+        ),
+      );
+  Widget _buildCanvasDrawingLayer() {
+    final theme = Theme.of(context);
+    return Listener(
+      onPointerDown: _handlePointerDownEvent,
+      onPointerMove: _handlePointerMoveEvent,
+      onPointerUp: _handlePointerUpEvent,
+      onPointerCancel: _handlePointerCancelEvent,
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onTapUp: _handleCanvasTap,
+        child: InteractiveViewer(
+          transformationController: _transformationController,
+          minScale: DrawingCanvasMinScale,
+          maxScale: DrawingCanvasMaxScale,
+          constrained: false,
+          child: SizedBox(
+            key: _canvasKey,
+            width: DrawingCanvasSize.width,
+            height: DrawingCanvasSize.height,
+            child: CanvasMarkerLayer(
+              childPdfOrCanvas: Container(
+                decoration: BoxDecoration(color: theme.colorScheme.surface, border: Border.all(color: theme.colorScheme.outlineVariant)),
+                child: CustomPaint(painter: GridPainter(lineColor: theme.colorScheme.outlineVariant)),
+              ),
+              markerWidgets: _buildMarkerWidgetsForPage(
+                size: DrawingCanvasSize,
+                pageIndex: _currentPage,
               ),
             ),
           ),
         ),
-      if (markerPopup != null) markerPopup,
-    ];
+      ),
+    );
   }
   void _handlePdfPageChanged(int page) =>
       _setPdfState(() => _currentPage = page);
@@ -963,14 +939,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, _) =>
-                Stack(children: _buildDrawingStackChildren()),
-          ),
-        ),
-      ]),
+      body: LayoutBuilder(
+        builder: (context, _) => Stack(children: _buildDrawingStackChildren()),
+      ),
     );
   }
 }
