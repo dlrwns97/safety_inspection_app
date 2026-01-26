@@ -20,7 +20,6 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dial
 import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
@@ -52,99 +51,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
-  late final DrawingDialogsAdapter _dialogs = DrawingDialogsAdapter(
-    equipmentDetails: ({
-      required title,
-      initialMemberType,
-      initialSizeValues,
-    }) =>
-        _showEquipmentDetailsDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialSizeValues: initialSizeValues,
-    ),
-    rebarSpacing: ({
-      required title,
-      initialMemberType,
-      initialNumberText,
-    }) =>
-        _showRebarSpacingDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialNumberText: initialNumberText,
-    ),
-    schmidtHammer: ({
-      required title,
-      initialMemberType,
-      initialMaxValueText,
-      initialMinValueText,
-    }) =>
-        _showSchmidtHammerDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialMaxValueText: initialMaxValueText,
-      initialMinValueText: initialMinValueText,
-    ),
-    coreSampling: ({
-      required title,
-      initialMemberType,
-      initialAvgValueText,
-    }) =>
-        _showCoreSamplingDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialAvgValueText: initialAvgValueText,
-    ),
-    carbonation: ({
-      required title,
-      initialMemberType,
-      initialCoverThicknessText,
-      initialDepthText,
-    }) =>
-        _showCarbonationDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialCoverThicknessText: initialCoverThicknessText,
-      initialDepthText: initialDepthText,
-    ),
-    structuralTilt: ({
-      required title,
-      initialDirection,
-      initialDisplacementText,
-    }) =>
-        _showStructuralTiltDialog(
-      title: title,
-      initialDirection: initialDirection,
-      initialDisplacementText: initialDisplacementText,
-    ),
-    settlement: ({
-      required baseTitle,
-      required nextIndexByDirection,
-      initialDirection,
-      initialDisplacementText,
-    }) =>
-        _showSettlementDialog(
-      baseTitle: baseTitle,
-      nextIndexByDirection: nextIndexByDirection,
-      initialDirection: initialDirection,
-      initialDisplacementText: initialDisplacementText,
-    ),
-    deflection: ({
-      required title,
-      initialMemberType,
-      initialEndAText,
-      initialMidBText,
-      initialEndCText,
-    }) =>
-        _showDeflectionDialog(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialEndAText: initialEndAText,
-      initialMidBText: initialMidBText,
-      initialEndCText: initialEndCText,
-    ),
-  );
-
   late Site _site;
   PdfController? _pdfController;
   String? _pdfLoadError;
@@ -262,7 +168,67 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onClearSelection: _clearSelectedMarker,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
-      dialogs: _dialogs,
+      showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
+      showRebarSpacingDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialNumberText,
+      }) =>
+          _showRebarSpacingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialNumberText: initialNumberText,
+      ),
+      showSchmidtHammerDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialMaxValueText,
+        initialMinValueText,
+      }) =>
+          _showSchmidtHammerDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialMaxValueText: initialMaxValueText,
+        initialMinValueText: initialMinValueText,
+      ),
+      showCoreSamplingDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialAvgValueText,
+      }) =>
+          _showCoreSamplingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialAvgValueText: initialAvgValueText,
+      ),
+      showCarbonationDialog: _showCarbonationDialog,
+      showStructuralTiltDialog: _showStructuralTiltDialog,
+      showSettlementDialog: ({
+        required baseTitle,
+        required nextIndexByDirection,
+      }) =>
+          _showSettlementDialog(
+        baseTitle: baseTitle,
+        nextIndexByDirection: nextIndexByDirection,
+      ),
+      showDeflectionDialog: ({
+        required title,
+        required memberOptions,
+        initialMemberType,
+        initialEndAText,
+        initialMidBText,
+        initialEndCText,
+      }) =>
+          _showDeflectionDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialEndAText: initialEndAText,
+        initialMidBText: initialMidBText,
+        initialEndCText: initialEndCText,
+      ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
@@ -630,7 +596,67 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onClearSelection: _clearSelectedMarker,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
-      dialogs: _dialogs,
+      showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
+      showRebarSpacingDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialNumberText,
+      }) =>
+          _showRebarSpacingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialNumberText: initialNumberText,
+      ),
+      showSchmidtHammerDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialMaxValueText,
+        initialMinValueText,
+      }) =>
+          _showSchmidtHammerDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialMaxValueText: initialMaxValueText,
+        initialMinValueText: initialMinValueText,
+      ),
+      showCoreSamplingDialog: (
+        context, {
+        required title,
+        initialMemberType,
+        initialAvgValueText,
+      }) =>
+          _showCoreSamplingDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialAvgValueText: initialAvgValueText,
+      ),
+      showCarbonationDialog: _showCarbonationDialog,
+      showStructuralTiltDialog: _showStructuralTiltDialog,
+      showSettlementDialog: ({
+        required baseTitle,
+        required nextIndexByDirection,
+      }) =>
+          _showSettlementDialog(
+        baseTitle: baseTitle,
+        nextIndexByDirection: nextIndexByDirection,
+      ),
+      showDeflectionDialog: ({
+        required title,
+        required memberOptions,
+        initialMemberType,
+        initialEndAText,
+        initialMidBText,
+        initialEndCText,
+      }) =>
+          _showDeflectionDialog(
+        title: title,
+        initialMemberType: initialMemberType,
+        initialEndAText: initialEndAText,
+        initialMidBText: initialMidBText,
+        initialEndCText: initialEndCText,
+      ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
