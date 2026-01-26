@@ -5,8 +5,15 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/equipment_details_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/defect_marker_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/drawing_dialogs_adapter.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_d_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
@@ -58,7 +65,53 @@ Future<Site?> handleTapCore({
   required VoidCallback onShowDefectCategoryHint,
   required Future<DefectDetails?> Function(BuildContext context)
       showDefectDetailsDialog,
-  required DrawingDialogsAdapter dialogs,
+  required Future<EquipmentDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    List<String>? initialSizeValues,
+  }) showEquipmentDetailsDialog,
+  required Future<RebarSpacingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialNumberText,
+  }) showRebarSpacingDialog,
+  required Future<SchmidtHammerDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialMaxValueText,
+    String? initialMinValueText,
+  }) showSchmidtHammerDialog,
+  required Future<CoreSamplingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialAvgValueText,
+  }) showCoreSamplingDialog,
+  required Future<CarbonationDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    String? initialCoverThicknessText,
+    String? initialDepthText,
+  }) showCarbonationDialog,
+  required Future<StructuralTiltDetails?> Function({
+    required String title,
+    String? initialDirection,
+    String? initialDisplacementText,
+  }) showStructuralTiltDialog,
+  required Future<SettlementDetails?> Function({
+    required String baseTitle,
+    required Map<String, int> nextIndexByDirection,
+  }) showSettlementDialog,
+  required Future<DeflectionDetails?> Function({
+    required String title,
+    required List<String> memberOptions,
+    String? initialMemberType,
+    String? initialEndAText,
+    String? initialMidBText,
+    String? initialEndCText,
+  }) showDeflectionDialog,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -83,7 +136,14 @@ Future<Site?> handleTapCore({
     normalizedX: normalizedX,
     normalizedY: normalizedY,
     showDefectDetailsDialog: showDefectDetailsDialog,
-    dialogs: dialogs,
+    showEquipmentDetailsDialog: showEquipmentDetailsDialog,
+    showRebarSpacingDialog: showRebarSpacingDialog,
+    showSchmidtHammerDialog: showSchmidtHammerDialog,
+    showCoreSamplingDialog: showCoreSamplingDialog,
+    showCarbonationDialog: showCarbonationDialog,
+    showStructuralTiltDialog: showStructuralTiltDialog,
+    showSettlementDialog: showSettlementDialog,
+    showDeflectionDialog: showDeflectionDialog,
     deflectionMemberOptions: deflectionMemberOptions,
     nextSettlementIndex: nextSettlementIndex,
   );
@@ -100,7 +160,53 @@ Future<Site?> createMarkerFromTap({
   required double normalizedY,
   required Future<DefectDetails?> Function(BuildContext context)
       showDefectDetailsDialog,
-  required DrawingDialogsAdapter dialogs,
+  required Future<EquipmentDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    List<String>? initialSizeValues,
+  }) showEquipmentDetailsDialog,
+  required Future<RebarSpacingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialNumberText,
+  }) showRebarSpacingDialog,
+  required Future<SchmidtHammerDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialMaxValueText,
+    String? initialMinValueText,
+  }) showSchmidtHammerDialog,
+  required Future<CoreSamplingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialAvgValueText,
+  }) showCoreSamplingDialog,
+  required Future<CarbonationDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    String? initialCoverThicknessText,
+    String? initialDepthText,
+  }) showCarbonationDialog,
+  required Future<StructuralTiltDetails?> Function({
+    required String title,
+    String? initialDirection,
+    String? initialDisplacementText,
+  }) showStructuralTiltDialog,
+  required Future<SettlementDetails?> Function({
+    required String baseTitle,
+    required Map<String, int> nextIndexByDirection,
+  }) showSettlementDialog,
+  required Future<DeflectionDetails?> Function({
+    required String title,
+    required List<String> memberOptions,
+    String? initialMemberType,
+    String? initialEndAText,
+    String? initialMidBText,
+    String? initialEndCText,
+  }) showDeflectionDialog,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -122,7 +228,14 @@ Future<Site?> createMarkerFromTap({
     pageIndex: pageIndex,
     normalizedX: normalizedX,
     normalizedY: normalizedY,
-    dialogs: dialogs,
+    showEquipmentDetailsDialog: showEquipmentDetailsDialog,
+    showRebarSpacingDialog: showRebarSpacingDialog,
+    showSchmidtHammerDialog: showSchmidtHammerDialog,
+    showCoreSamplingDialog: showCoreSamplingDialog,
+    showCarbonationDialog: showCarbonationDialog,
+    showStructuralTiltDialog: showStructuralTiltDialog,
+    showSettlementDialog: showSettlementDialog,
+    showDeflectionDialog: showDeflectionDialog,
     deflectionMemberOptions: deflectionMemberOptions,
     nextSettlementIndex: nextSettlementIndex,
   );
@@ -156,7 +269,53 @@ Future<Site?> addEquipmentMarker({
   required int pageIndex,
   required double normalizedX,
   required double normalizedY,
-  required DrawingDialogsAdapter dialogs,
+  required Future<EquipmentDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    List<String>? initialSizeValues,
+  }) showEquipmentDetailsDialog,
+  required Future<RebarSpacingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialNumberText,
+  }) showRebarSpacingDialog,
+  required Future<SchmidtHammerDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialMaxValueText,
+    String? initialMinValueText,
+  }) showSchmidtHammerDialog,
+  required Future<CoreSamplingDetails?> Function(
+    BuildContext, {
+    required String title,
+    String? initialMemberType,
+    String? initialAvgValueText,
+  }) showCoreSamplingDialog,
+  required Future<CarbonationDetails?> Function({
+    required String title,
+    String? initialMemberType,
+    String? initialCoverThicknessText,
+    String? initialDepthText,
+  }) showCarbonationDialog,
+  required Future<StructuralTiltDetails?> Function({
+    required String title,
+    String? initialDirection,
+    String? initialDisplacementText,
+  }) showStructuralTiltDialog,
+  required Future<SettlementDetails?> Function({
+    required String baseTitle,
+    required Map<String, int> nextIndexByDirection,
+  }) showSettlementDialog,
+  required Future<DeflectionDetails?> Function({
+    required String title,
+    required List<String> memberOptions,
+    String? initialMemberType,
+    String? initialEndAText,
+    String? initialMidBText,
+    String? initialEndCText,
+  }) showDeflectionDialog,
   required List<String> deflectionMemberOptions,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
@@ -170,7 +329,7 @@ Future<Site?> addEquipmentMarker({
       pageIndex: pageIndex,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
-      dialogs: dialogs,
+      showSettlementDialog: showSettlementDialog,
       nextSettlementIndex: nextSettlementIndex,
     );
   }
@@ -196,79 +355,13 @@ Future<Site?> addEquipmentMarker({
     pendingMarker: pendingMarker,
     prefix: prefix,
     deflectionMemberOptions: deflectionMemberOptions,
-    showEquipmentDetailsDialog: dialogs.equipmentDetails,
-    showRebarSpacingDialog: (
-      context, {
-      required title,
-      initialMemberType,
-      initialNumberText,
-    }) =>
-        dialogs.rebarSpacing(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialNumberText: initialNumberText,
-    ),
-    showSchmidtHammerDialog: (
-      context, {
-      required title,
-      initialMemberType,
-      initialMaxValueText,
-      initialMinValueText,
-    }) =>
-        dialogs.schmidtHammer(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialMaxValueText: initialMaxValueText,
-      initialMinValueText: initialMinValueText,
-    ),
-    showCoreSamplingDialog: (
-      context, {
-      required title,
-      initialMemberType,
-      initialAvgValueText,
-    }) =>
-        dialogs.coreSampling(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialAvgValueText: initialAvgValueText,
-    ),
-    showCarbonationDialog: ({
-      required title,
-      initialMemberType,
-      initialCoverThicknessText,
-      initialDepthText,
-    }) =>
-        dialogs.carbonation(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialCoverThicknessText: initialCoverThicknessText,
-      initialDepthText: initialDepthText,
-    ),
-    showStructuralTiltDialog: ({
-      required title,
-      initialDirection,
-      initialDisplacementText,
-    }) =>
-        dialogs.structuralTilt(
-      title: title,
-      initialDirection: initialDirection,
-      initialDisplacementText: initialDisplacementText,
-    ),
-    showDeflectionDialog: ({
-      required title,
-      required memberOptions,
-      initialMemberType,
-      initialEndAText,
-      initialMidBText,
-      initialEndCText,
-    }) =>
-        dialogs.deflection(
-      title: title,
-      initialMemberType: initialMemberType,
-      initialEndAText: initialEndAText,
-      initialMidBText: initialMidBText,
-      initialEndCText: initialEndCText,
-    ),
+    showEquipmentDetailsDialog: showEquipmentDetailsDialog,
+    showRebarSpacingDialog: showRebarSpacingDialog,
+    showSchmidtHammerDialog: showSchmidtHammerDialog,
+    showCoreSamplingDialog: showCoreSamplingDialog,
+    showCarbonationDialog: showCarbonationDialog,
+    showStructuralTiltDialog: showStructuralTiltDialog,
+    showDeflectionDialog: showDeflectionDialog,
   );
 }
 
@@ -278,7 +371,10 @@ Future<Site?> addEquipment8Marker({
   required int pageIndex,
   required double normalizedX,
   required double normalizedY,
-  required DrawingDialogsAdapter dialogs,
+  required Future<SettlementDetails?> Function({
+    required String baseTitle,
+    required Map<String, int> nextIndexByDirection,
+  }) showSettlementDialog,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
   final nextIndices = {
@@ -297,7 +393,7 @@ Future<Site?> addEquipment8Marker({
       required baseTitle,
       required nextIndexByDirection,
     }) =>
-        dialogs.settlement(
+        showSettlementDialog(
       baseTitle: baseTitle,
       nextIndexByDirection: nextIndexByDirection,
     ),
