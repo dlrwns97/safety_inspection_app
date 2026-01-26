@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'marker_details_content.dart';
+
 class MiniMarkerPopup extends StatelessWidget {
   const MiniMarkerPopup({
     super.key,
@@ -31,20 +33,7 @@ class MiniMarkerPopup extends StatelessWidget {
               horizontal: 12,
               vertical: verticalPadding,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: lines
-                  .map(
-                    (line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        line,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
+            child: MarkerDetailsContent(lines: lines),
           ),
         ),
       ),
