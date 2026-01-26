@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:pdfx/pdfx.dart';
+
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 
 const Size DrawingCanvasSize = Size(1200, 1700);
+const double DrawingCanvasMinScale = 0.5;
+const double DrawingCanvasMaxScale = 4.0;
+const PhotoViewComputedScale PdfDrawingInitialScale =
+    PhotoViewComputedScale.contained;
+const PhotoViewComputedScale PdfDrawingMinScale =
+    PhotoViewComputedScale.contained;
+const double PdfDrawingMaxScaleMultiplier = 2.0;
 const double DrawingTapSlop = 8.0;
 const List<String> DrawingEquipmentMemberOptions = [
   '기둥',

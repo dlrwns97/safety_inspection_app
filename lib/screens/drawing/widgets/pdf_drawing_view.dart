@@ -108,9 +108,10 @@ class PdfDrawingView extends StatelessWidget {
                   },
                 ),
                 childSize: fallbackSize,
-                initialScale: PhotoViewComputedScale.contained,
-                minScale: PhotoViewComputedScale.contained,
-                maxScale: PhotoViewComputedScale.covered * 2.0,
+                initialScale: PdfDrawingInitialScale,
+                minScale: PdfDrawingMinScale,
+                maxScale:
+                    PhotoViewComputedScale.covered * PdfDrawingMaxScaleMultiplier,
                 basePosition: Alignment.center,
               );
             },
