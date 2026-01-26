@@ -25,10 +25,10 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.da
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/drawing_scaffold_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -473,48 +473,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
-  Widget _buildPdfPageOverlay({
-    required Size pageSize,
-    required int pageNumber,
-    required ImageProvider imageProvider,
-  }) {
-    return CanvasMarkerLayer(
-      onPointerDown: (event) => _handlePointerDown(event.localPosition),
-      onPointerMove: (event) => _handlePointerMove(event.localPosition),
-      onPointerUp: (_) => _handlePointerUp(),
-      onPointerCancel: (_) => _handlePointerCancel(),
-      onTapUp: (details) => _handlePdfTap(
-        details,
-        pageSize,
-        pageNumber,
-      ),
-      hitTestBehavior: HitTestBehavior.translucent,
-      childPdfOrCanvas: Image(
-        image: imageProvider,
-        fit: BoxFit.contain,
-      ),
-      markerWidgets: _buildMarkerWidgetsForPage(
-        size: pageSize,
-        pageIndex: pageNumber,
-      ),
-      miniPopup: _buildMarkerPopupForPage(
-        pageSize,
-        pageNumber,
-      ),
-    );
-  }
-  Widget _buildDrawingBackground() {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: CustomPaint(
-        painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
-      ),
-    );
-  }
   Future<void> _handlePdfTap(
     TapUpDetails details,
     Size pageSize,
@@ -736,13 +694,29 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required int pageIndex,
   }) {
     return [
-      ..._buildDefectMarkerWidgets(
-        size: size,
+      ..._buildMarkersForPage(
+        items: _site.defects,
         pageIndex: pageIndex,
+        pageSize: size,
+        nx: (defect) => defect.normalizedX,
+        ny: (defect) => defect.normalizedY,
+        buildMarker: (defect) => DefectMarkerWidget(
+          label: defect.label,
+          category: defect.category,
+          color: defectCategoryConfig(defect.category).color,
+        ),
       ),
-      ..._buildEquipmentMarkerWidgets(
-        size: size,
+      ..._buildMarkersForPage(
+        items: _site.equipmentMarkers,
         pageIndex: pageIndex,
+        pageSize: size,
+        nx: (marker) => marker.normalizedX,
+        ny: (marker) => marker.normalizedY,
+        buildMarker: (marker) => EquipmentMarkerWidget(
+          label: marker.label,
+          category: marker.category,
+          color: equipmentColor(marker.category),
+        ),
       ),
     ];
   }
@@ -768,40 +742,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
         child: buildMarker(item),
       );
     }).toList();
-  }
-  List<Widget> _buildDefectMarkerWidgets({
-    required Size size,
-    required int pageIndex,
-  }) {
-    return _buildMarkersForPage(
-      items: _site.defects,
-      pageIndex: pageIndex,
-      pageSize: size,
-      nx: (defect) => defect.normalizedX,
-      ny: (defect) => defect.normalizedY,
-      buildMarker: (defect) => DefectMarkerWidget(
-        label: defect.label,
-        category: defect.category,
-        color: defectCategoryConfig(defect.category).color,
-      ),
-    );
-  }
-  List<Widget> _buildEquipmentMarkerWidgets({
-    required Size size,
-    required int pageIndex,
-  }) {
-    return _buildMarkersForPage(
-      items: _site.equipmentMarkers,
-      pageIndex: pageIndex,
-      pageSize: size,
-      nx: (marker) => marker.normalizedX,
-      ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => EquipmentMarkerWidget(
-        label: marker.label,
-        category: marker.category,
-        color: equipmentColor(marker.category),
-      ),
-    );
   }
   void _toggleMode(DrawMode nextMode) {
     setState(() {
@@ -881,11 +821,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       title: Text(_site.name),
       actions: [
         if (_site.drawingType == DrawingType.pdf)
-          IconButton(
-            tooltip: StringsKo.replacePdfTooltip,
-            icon: const Icon(Icons.upload_file_outlined),
-            onPressed: _replacePdf,
-          ),
+          IconButton(tooltip: StringsKo.replacePdfTooltip, icon: const Icon(Icons.upload_file_outlined), onPressed: _replacePdf),
       ],
       bottom: DrawingTopBar(
         mode: _mode,
@@ -896,56 +832,37 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onToggleMode: _toggleMode,
         onBack: _returnToToolSelection,
         onAdd: _handleAddToolAction,
-        onDefectSelected: (category) {
-          setState(() {
-            _activeCategory = _controller
-                .selectDefectCategory(
-                  tabs: _defectTabs,
-                  category: category,
-                )
-                .activeCategory;
-          });
-        },
+        onDefectSelected: (category) => setState(() {
+          _activeCategory = _controller
+              .selectDefectCategory(tabs: _defectTabs, category: category)
+              .activeCategory;
+        }),
         onDefectLongPress: _showDeleteDefectTabDialog,
-        onEquipmentSelected: (item) {
-          setState(() {
-            _activeEquipmentCategory =
-                _controller.selectEquipmentCategory(item).activeCategory;
-          });
-        },
+        onEquipmentSelected: (item) => setState(() {
+          _activeEquipmentCategory =
+              _controller.selectEquipmentCategory(item).activeCategory;
+        }),
       ),
     );
   }
-  DrawingScaffoldBody _buildDrawingBody() {
-    return DrawingScaffoldBody(
-      drawingType: _site.drawingType,
-      pdfViewer: _buildPdfViewer(),
-      currentPage: _currentPage,
-      pageCount: _pageCount,
-      canPrevPage: _currentPage > 1,
-      canNextPage: _currentPage < _pageCount,
-      onPrevPage: _handlePrevPage,
-      onNextPage: _handleNextPage,
-      onCanvasPointerDown: (event) => _handlePointerDown(event.localPosition),
-      onCanvasPointerMove: (event) => _handlePointerMove(event.localPosition),
-      onCanvasPointerUp: (_) => _handlePointerUp(),
-      onCanvasPointerCancel: (_) => _handlePointerCancel(),
-      onCanvasTapUp: _handleCanvasTap,
-      transformationController: _transformationController,
-      canvasKey: _canvasKey,
-      canvasSize: DrawingCanvasSize,
-      drawingBackground: _buildDrawingBackground(),
-      markerWidgets: _buildMarkerWidgetsForPage(
-        size: DrawingCanvasSize,
-        pageIndex: _currentPage,
-      ),
-      markerPopup: _site.drawingType == DrawingType.pdf
-          ? null
-          : _buildMarkerPopup(MediaQuery.of(context).size),
+  List<Widget> _buildDrawingStackChildren() {
+    final isPdf = _site.drawingType == DrawingType.pdf;
+    final markerWidgets = _buildMarkerWidgetsForPage(
+      size: DrawingCanvasSize,
+      pageIndex: _currentPage,
     );
-  }
-  PdfDrawingView _buildPdfViewer() {
-    return PdfDrawingView(
+    final markerPopup = isPdf ? null : _buildMarkerPopup(MediaQuery.of(context).size);
+    final theme = Theme.of(context);
+    final drawingBackground = Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: CustomPaint(
+        painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
+      ),
+    );
+    final pdfViewer = PdfDrawingView(
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
       sitePdfName: _site.pdfName,
@@ -959,12 +876,58 @@ class _DrawingScreenState extends State<DrawingScreen> {
         required pageNumber,
         required imageProvider,
       }) =>
-          _buildPdfPageOverlay(
-        pageSize: pageSize,
-        pageNumber: pageNumber,
-        imageProvider: imageProvider,
+          CanvasMarkerLayer(
+        onPointerDown: (event) => _handlePointerDown(event.localPosition),
+        onPointerMove: (event) => _handlePointerMove(event.localPosition),
+        onPointerUp: (_) => _handlePointerUp(),
+        onPointerCancel: (_) => _handlePointerCancel(),
+        onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
+        hitTestBehavior: HitTestBehavior.translucent,
+        childPdfOrCanvas: Image(image: imageProvider, fit: BoxFit.contain),
+        markerWidgets:
+            _buildMarkerWidgetsForPage(size: pageSize, pageIndex: pageNumber),
+        miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
       ),
     );
+    return [
+      if (isPdf)
+        PdfViewLayer(
+          pdfViewer: pdfViewer,
+          currentPage: _currentPage,
+          pageCount: _pageCount,
+          canPrev: _currentPage > 1,
+          canNext: _currentPage < _pageCount,
+          onPrevPage: _handlePrevPage,
+          onNextPage: _handleNextPage,
+        )
+      else
+        Listener(
+          onPointerDown: (event) => _handlePointerDown(event.localPosition),
+          onPointerMove: (event) => _handlePointerMove(event.localPosition),
+          onPointerUp: (_) => _handlePointerUp(),
+          onPointerCancel: (_) => _handlePointerCancel(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.deferToChild,
+            onTapUp: _handleCanvasTap,
+            child: InteractiveViewer(
+              transformationController: _transformationController,
+              minScale: DrawingCanvasMinScale,
+              maxScale: DrawingCanvasMaxScale,
+              constrained: false,
+              child: SizedBox(
+                key: _canvasKey,
+                width: DrawingCanvasSize.width,
+                height: DrawingCanvasSize.height,
+                child: CanvasMarkerLayer(
+                  childPdfOrCanvas: drawingBackground,
+                  markerWidgets: markerWidgets,
+                ),
+              ),
+            ),
+          ),
+        ),
+      if (markerPopup != null) markerPopup,
+    ];
   }
   void _handlePdfPageChanged(int page) =>
       _setPdfState(() => _currentPage = page);
@@ -1000,7 +963,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: _buildDrawingBody(),
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, _) =>
+                Stack(children: _buildDrawingStackChildren()),
+          ),
+        ),
+      ]),
     );
   }
 }
