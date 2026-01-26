@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
-import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
