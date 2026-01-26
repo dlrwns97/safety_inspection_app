@@ -683,18 +683,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _tapCanceled = false;
   }
 
-  List<String>? _resolveSelectedMarkerLines({
-    required Defect? selectedDefect,
-    required EquipmentMarker? selectedEquipment,
-  }) {
-    if (selectedDefect == null && selectedEquipment == null) {
-      return null;
-    }
-    return selectedDefect != null
-        ? defectPopupLines(selectedDefect)
-        : equipmentPopupLines(selectedEquipment!);
-  }
-
   Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
     if (markerScenePosition == null) {
@@ -743,14 +731,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required Offset markerPosition,
     required Size containerSize,
   }) {
-    final lines = _resolveSelectedMarkerLines(
-      selectedDefect: selectedDefect,
-      selectedEquipment: selectedEquipment,
-    );
-    if (lines == null) {
+    if (selectedDefect == null && selectedEquipment == null) {
       return null;
     }
-
+    final lines = selectedDefect != null
+        ? defectPopupLines(selectedDefect)
+        : equipmentPopupLines(selectedEquipment!);
     return _buildMiniPopup(
       markerPosition: markerPosition,
       containerSize: containerSize,
