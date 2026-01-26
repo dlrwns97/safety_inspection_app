@@ -32,7 +32,7 @@ Future<Site?> showNewSiteDialog(BuildContext context) {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedStructureType,
+                  initialValue: selectedStructureType,
                   decoration: InputDecoration(
                     labelText: StringsKo.structureTypeLabel,
                     errorText: structureErrorText,
@@ -54,7 +54,7 @@ Future<Site?> showNewSiteDialog(BuildContext context) {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedInspectionType,
+                  initialValue: selectedInspectionType,
                   decoration: InputDecoration(
                     labelText: StringsKo.inspectionTypeLabel,
                     errorText: inspectionErrorText,
