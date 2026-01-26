@@ -350,12 +350,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
 
   Future<DefectDetails?> _showDefectDetailsDialog() async {
     final defectCategory = _activeCategory ?? DefectCategory.generalCrack;
+    final defectConfig = defectCategoryConfig(defectCategory);
     return _showDetailDialog(
       () => showDefectDetailsDialog(
         context: context,
-        title: defectDialogTitle(defectCategory),
-        typeOptions: defectTypeOptions(defectCategory),
-        causeOptions: defectCauseOptions(defectCategory),
+        title: defectConfig.dialogTitle,
+        typeOptions: defectConfig.typeOptions,
+        causeOptions: defectConfig.causeOptions,
       ),
     );
   }
@@ -807,7 +808,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       buildMarker: (defect) => DefectMarkerWidget(
         label: defect.label,
         category: defect.category,
-        color: defectColor(defect.category),
+        color: defectCategoryConfig(defect.category).color,
       ),
     );
   }
