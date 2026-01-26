@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
+import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 class SchmidtHammerDetails {
@@ -68,13 +67,25 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
     _selectedMember = widget.initialMemberType;
     _maxValueController.text = widget.initialMaxValueText ?? '';
     _minValueController.text = widget.initialMinValueText ?? '';
+    _maxValueController.addListener(_handleRangeTextChange);
+    _minValueController.addListener(_handleRangeTextChange);
   }
 
   @override
   void dispose() {
+    _maxValueController.removeListener(_handleRangeTextChange);
+    _minValueController.removeListener(_handleRangeTextChange);
     _maxValueController.dispose();
     _minValueController.dispose();
     super.dispose();
+  }
+
+  void _handleRangeTextChange() {
+    if (_rangeError != null && mounted) {
+      setState(() {
+        _rangeError = null;
+      });
+    }
   }
 
   bool _hasInvalidRange(String minText, String maxText) {
@@ -91,9 +102,10 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.6,
-      520.0,
+    final maxWidth = dialogMaxWidth(
+      context,
+      widthFactor: 0.6,
+      maxWidth: 520.0,
     );
     final isSaveEnabled = _selectedMember != null;
 
@@ -110,12 +122,9 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            buildDialogDropdownField(
               value: _selectedMember,
-              decoration: const InputDecoration(
-                labelText: '부재',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '부재',
               items: widget.memberOptions
                   .map(
                     (option) => DropdownMenuItem(
@@ -129,48 +138,23 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
                   _selectedMember = value;
                 });
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '부재를 선택하세요.';
-                }
-                return null;
-              },
+              requiredMessage: '부재를 선택하세요.',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            buildDialogTextField(
               controller: _maxValueController,
-              decoration: const InputDecoration(
-                labelText: '최댓값',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '최댓값',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              onChanged: (_) {
-                if (_rangeError != null) {
-                  setState(() {
-                    _rangeError = null;
-                  });
-                }
-              },
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            buildDialogTextField(
               controller: _minValueController,
-              decoration: const InputDecoration(
-                labelText: '최솟값',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '최솟값',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              onChanged: (_) {
-                if (_rangeError != null) {
-                  setState(() {
-                    _rangeError = null;
-                  });
-                }
-              },
             ),
             if (_rangeError != null) ...[
               const SizedBox(height: 8),
@@ -183,40 +167,30 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
               ),
             ],
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          final minText = _minValueController.text.trim();
-                          final maxText = _maxValueController.text.trim();
-                          if (_hasInvalidRange(minText, maxText)) {
-                            setState(() {
-                              _rangeError = '최솟값이 최댓값보다 클 수 없습니다.';
-                            });
-                            return;
-                          }
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          Navigator.of(context).pop(
-                            SchmidtHammerDetails(
-                              memberType: _selectedMember!,
-                              maxValueText: maxText,
-                              minValueText: minText,
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
+            buildDialogActionButtons(
+              context,
+              onSave: isSaveEnabled
+                  ? () {
+                      final minText = _minValueController.text.trim();
+                      final maxText = _maxValueController.text.trim();
+                      if (_hasInvalidRange(minText, maxText)) {
+                        setState(() {
+                          _rangeError = '최솟값이 최댓값보다 클 수 없습니다.';
+                        });
+                        return;
+                      }
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        SchmidtHammerDetails(
+                          memberType: _selectedMember!,
+                          maxValueText: maxText,
+                          minValueText: minText,
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         ),

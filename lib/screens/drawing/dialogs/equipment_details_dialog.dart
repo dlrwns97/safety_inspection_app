@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
+import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 class EquipmentDetails {
@@ -105,9 +104,10 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.6,
-      520.0,
+    final maxWidth = dialogMaxWidth(
+      context,
+      widthFactor: 0.6,
+      maxWidth: 520.0,
     );
     final isSaveEnabled = _selectedMember != null;
 
@@ -124,12 +124,9 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            buildDialogDropdownField(
               value: _selectedMember,
-              decoration: const InputDecoration(
-                labelText: '부재',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '부재',
               items: widget.memberOptions
                   .map(
                     (option) => DropdownMenuItem(
@@ -147,12 +144,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
                   _resetSizeControllers(_sizeLabels);
                 });
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '부재를 선택하세요.';
-                }
-                return null;
-              },
+              requiredMessage: '부재를 선택하세요.',
             ),
             if (_selectedMember != null) ...[
               const SizedBox(height: 16),
@@ -164,44 +156,32 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
               ...List.generate(_sizeLabels.length, (index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: TextFormField(
+                  child: buildDialogTextField(
                     controller: _sizeControllers[index],
-                    decoration: InputDecoration(
-                      labelText: _sizeLabels[index],
-                      border: const OutlineInputBorder(),
-                    ),
+                    labelText: _sizeLabels[index],
+                    keyboardType: TextInputType.text,
                   ),
                 );
               }),
             ],
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          Navigator.of(context).pop(
-                            EquipmentDetails(
-                              memberType: _selectedMember!,
-                              sizeValues: _sizeControllers
-                                  .map((controller) => controller.text)
-                                  .toList(),
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
+            buildDialogActionButtons(
+              context,
+              onSave: isSaveEnabled
+                  ? () {
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        EquipmentDetails(
+                          memberType: _selectedMember!,
+                          sizeValues: _sizeControllers
+                              .map((controller) => controller.text)
+                              .toList(),
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         ),
