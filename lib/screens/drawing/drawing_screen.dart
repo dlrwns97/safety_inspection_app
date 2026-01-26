@@ -121,7 +121,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await _applyUpdatedSite(
       result.updatedSite!,
       onStateUpdated: () {
-        _setSelection();
+        _clearSelectionAndPopup(inSetState: false);
         _pdfPageSizes.clear();
         _currentPage = 1;
         _pageCount = 1;
@@ -167,7 +167,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         _tapCanceled = false;
       },
       onSelectHit: _selectMarker,
-      onClearSelection: _clearSelectedMarker,
+      onClearSelection: _clearSelectionAndPopup,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
@@ -256,29 +256,26 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
-  void _setSelection({Defect? defect, EquipmentMarker? equipment, Offset? position}) {
-    _selectedDefect = defect;
-    _selectedEquipment = equipment;
-    _selectedMarkerScenePosition = position;
+  void _clearSelectionAndPopup({bool inSetState = true}) {
+    if (_selectedDefect == null &&
+        _selectedEquipment == null &&
+        _selectedMarkerScenePosition == null) return;
+    void clearSelection() {
+      _selectedDefect = null;
+      _selectedEquipment = null;
+      _selectedMarkerScenePosition = null;
+    }
+    if (inSetState) {
+      setState(clearSelection);
+    } else {
+      clearSelection();
+    }
   }
   void _selectMarker(MarkerHitResult result) {
     setState(() {
-      _setSelection(
-        defect: result.defect,
-        equipment: result.equipment,
-        position: result.position,
-      );
-    });
-  }
-
-  void _clearSelectedMarker() {
-    if (_selectedDefect == null &&
-        _selectedEquipment == null &&
-        _selectedMarkerScenePosition == null) {
-      return;
-    }
-    setState(() {
-      _setSelection();
+      _selectedDefect = result.defect;
+      _selectedEquipment = result.equipment;
+      _selectedMarkerScenePosition = result.position;
     });
   }
 
@@ -589,7 +586,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         _tapCanceled = false;
       },
       onSelectHit: _selectMarker,
-      onClearSelection: _clearSelectedMarker,
+      onClearSelection: _clearSelectionAndPopup,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
