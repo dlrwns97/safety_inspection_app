@@ -663,7 +663,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _pointerDownPosition = position;
     _tapCanceled = false;
   }
-
   void _handlePointerMove(Offset position) {
     if (_pointerDownPosition == null) {
       return;
@@ -673,16 +672,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _tapCanceled = true;
     }
   }
-
   void _handlePointerUp() {
     _pointerDownPosition = null;
   }
-
   void _handlePointerCancel() {
     _pointerDownPosition = null;
     _tapCanceled = false;
   }
-
   Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
     if (markerScenePosition == null) {
@@ -693,13 +689,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       markerScenePosition,
     );
     return _buildMarkerPopupAtPosition(
-      selectedDefect: _selectedDefect,
-      selectedEquipment: _selectedEquipment,
       markerPosition: markerViewportPosition,
       containerSize: viewportSize,
     );
   }
-
   Widget? _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
@@ -718,31 +711,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedY * pageSize.height,
     );
     return _buildMarkerPopupAtPosition(
-      selectedDefect: selectedDefect,
-      selectedEquipment: selectedEquipment,
       markerPosition: markerPosition,
       containerSize: pageSize,
     );
   }
-
   Widget? _buildMarkerPopupAtPosition({
-    required Defect? selectedDefect,
-    required EquipmentMarker? selectedEquipment,
     required Offset markerPosition,
     required Size containerSize,
   }) {
-    if (selectedDefect == null && selectedEquipment == null) {
+    final popupLines = _buildPopupLinesForSelection();
+    if (popupLines.isEmpty) {
       return null;
     }
     return _buildMiniPopup(
       markerPosition: markerPosition,
       containerSize: containerSize,
-      lines: selectedDefect != null
-          ? defectPopupLines(selectedDefect)
-          : equipmentPopupLines(selectedEquipment!),
+      lines: popupLines,
     );
   }
-
+  List<String> _buildPopupLinesForSelection() {
+    final selectedDefect = _selectedDefect;
+    if (selectedDefect != null) {
+      return defectPopupLines(selectedDefect);
+    }
+    final selectedEquipment = _selectedEquipment;
+    return selectedEquipment != null
+        ? equipmentPopupLines(selectedEquipment)
+        : const [];
+  }
   MiniMarkerPopup _buildMiniPopup({
     required Offset markerPosition,
     required Size containerSize,
@@ -781,7 +777,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       lines: lines,
     );
   }
-
   List<Widget> _buildMarkersForPage<T>({
     required Iterable<T> items,
     required int pageIndex,
@@ -805,7 +800,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       );
     }).toList();
   }
-
   List<Widget> _buildDefectMarkerWidgets({
     required Size size,
     required int pageIndex,
@@ -823,7 +817,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
-
   List<Widget> _buildEquipmentMarkerWidgets({
     required Size size,
     required int pageIndex,
@@ -841,19 +834,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
-
   void _toggleMode(DrawMode nextMode) {
     setState(() {
       _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
-
   void _returnToToolSelection() {
     setState(() {
       _mode = _controller.returnToToolSelection();
     });
   }
-
   void _handleAddToolAction() {
     if (_controller.shouldShowDefectCategoryPicker(_mode)) {
       _showDefectCategoryPicker();
