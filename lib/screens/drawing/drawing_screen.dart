@@ -118,16 +118,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
       });
       return;
     }
-    setState(() {
-      _site = result.updatedSite!;
-      _selectedDefect = null;
-      _selectedEquipment = null;
-      _selectedMarkerScenePosition = null;
-      _pdfPageSizes.clear();
-      _currentPage = 1;
-      _pageCount = 1;
-    });
-    await widget.onSiteUpdated(_site);
+    await _applyUpdatedSite(
+      result.updatedSite!,
+      onStateUpdated: () {
+        _selectedDefect = null;
+        _selectedEquipment = null;
+        _selectedMarkerScenePosition = null;
+        _pdfPageSizes.clear();
+        _currentPage = 1;
+        _pageCount = 1;
+      },
+    );
     if (!mounted) {
       return;
     }
@@ -243,8 +244,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
       return;
     }
 
+    await _applyUpdatedSite(updatedSite);
+  }
+
+  Future<void> _applyUpdatedSite(
+    Site updatedSite, {
+    VoidCallback? onStateUpdated,
+  }) async {
     setState(() {
       _site = updatedSite;
+      onStateUpdated?.call();
     });
     await widget.onSiteUpdated(_site);
   }
