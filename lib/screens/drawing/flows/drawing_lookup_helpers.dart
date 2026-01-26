@@ -3,6 +3,7 @@ import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 
 Color defectColor(DefectCategory category) {
   switch (category) {
@@ -18,69 +19,29 @@ Color defectColor(DefectCategory category) {
 }
 
 String equipmentLabelPrefix(EquipmentCategory category) {
-  switch (category) {
-    case EquipmentCategory.equipment1:
-      return 'S';
-    case EquipmentCategory.equipment2:
-      return 'F';
-    case EquipmentCategory.equipment3:
-      return 'SH';
-    case EquipmentCategory.equipment4:
-      return 'Co';
-    case EquipmentCategory.equipment5:
-      return 'Ch';
-    case EquipmentCategory.equipment6:
-      return 'Tr';
-    case EquipmentCategory.equipment7:
-      return 'L';
-    case EquipmentCategory.equipment8:
-      return 'Lx';
+  if (category == EquipmentCategory.equipment8) {
+    return 'Lx';
   }
+  return DrawingEquipmentFlowConfigs[category]?.labelPrefix ?? '';
 }
 
 String equipmentDisplayLabel(EquipmentMarker marker) {
   if (marker.category == EquipmentCategory.equipment8) {
     return '부동침하 ${marker.label}';
   }
-  if (marker.equipmentTypeId == 'F') {
-    return '철근배근간격 ${marker.label}';
+  final config = DrawingEquipmentFlowConfigs[marker.category];
+  final labelPrefix = config?.displayLabelPrefix;
+  if (labelPrefix == null || labelPrefix.isEmpty) {
+    return marker.label;
   }
-  if (marker.equipmentTypeId == 'SH') {
-    return '슈미트해머 ${marker.label}';
-  }
-  if (marker.equipmentTypeId == 'Co') {
-    return '코어채취 ${marker.label}';
-  }
-  if (marker.equipmentTypeId == 'Ch') {
-    return '콘크리트 탄산화 ${marker.label}';
-  }
-  if (marker.equipmentTypeId == 'Tr') {
-    return '구조물 기울기 ${marker.label}';
-  }
-  if (marker.equipmentTypeId == 'L') {
-    return '부재처짐 ${marker.label}';
-  }
-  return marker.label;
+  return '$labelPrefix ${marker.label}';
 }
 
 Color equipmentColor(EquipmentCategory category) {
-  switch (category) {
-    case EquipmentCategory.equipment1:
-      return Colors.pinkAccent;
-    case EquipmentCategory.equipment2:
-      return Colors.lightBlueAccent;
-    case EquipmentCategory.equipment3:
-    case EquipmentCategory.equipment4:
-      return Colors.green;
-    case EquipmentCategory.equipment5:
-      return Colors.orangeAccent;
-    case EquipmentCategory.equipment6:
-      return Colors.tealAccent;
-    case EquipmentCategory.equipment7:
-      return Colors.indigoAccent;
-    case EquipmentCategory.equipment8:
-      return Colors.deepPurpleAccent;
+  if (category == EquipmentCategory.equipment8) {
+    return Colors.deepPurpleAccent;
   }
+  return DrawingEquipmentFlowConfigs[category]?.color ?? Colors.pinkAccent;
 }
 
 List<String> defectTypeOptions(DefectCategory category) {

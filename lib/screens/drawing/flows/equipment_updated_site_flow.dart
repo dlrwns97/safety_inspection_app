@@ -13,7 +13,15 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
+
+String _equipmentDialogTitle(EquipmentCategory category, String label) {
+  final config = DrawingEquipmentFlowConfigs[category];
+  if (config == null) {
+    return label;
+  }
+  return '${config.dialogTitlePrefix} $label';
+}
 
 Future<Site?> createEquipmentUpdatedSite({
   required BuildContext context,
@@ -66,6 +74,10 @@ Future<Site?> createEquipmentUpdatedSite({
     String? initialEndCText,
   }) showDeflectionDialog,
 }) async {
+  final dialogTitle = _equipmentDialogTitle(
+    activeEquipmentCategory ?? pendingMarker.category,
+    pendingMarker.label,
+  );
   final handlers = <EquipmentCategory, Future<Site?> Function()>{
     EquipmentCategory.equipment1: () => createEquipment1IfConfirmed(
       context: context,
@@ -75,7 +87,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: '부재단면치수 ${pendingMarker.label}',
+      title: dialogTitle,
       initialMemberType: pendingMarker.memberType,
       initialSizeValues: pendingMarker.sizeValues,
       showEquipmentDetailsDialog: showEquipmentDetailsDialog,
@@ -88,7 +100,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       showRebarSpacingDialog: showRebarSpacingDialog,
     ),
     EquipmentCategory.equipment3: () => createEquipment3IfConfirmed(
@@ -99,7 +111,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       showSchmidtHammerDialog: showSchmidtHammerDialog,
     ),
     EquipmentCategory.equipment4: () => createEquipment4IfConfirmed(
@@ -110,7 +122,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       showCoreSamplingDialog: showCoreSamplingDialog,
     ),
     EquipmentCategory.equipment5: () => createEquipment5IfConfirmed(
@@ -121,7 +133,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       initialMemberType: pendingMarker.memberType,
       initialCoverThicknessText: pendingMarker.coverThicknessText,
       initialDepthText: pendingMarker.depthText,
@@ -135,7 +147,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       initialDirection: pendingMarker.tiltDirection,
       initialDisplacementText: pendingMarker.displacementText,
       showStructuralTiltDialog: showStructuralTiltDialog,
@@ -148,7 +160,7 @@ Future<Site?> createEquipmentUpdatedSite({
       normalizedY: pendingMarker.normalizedY,
       pendingMarker: pendingMarker,
       prefix: prefix,
-      title: equipmentDisplayLabel(pendingMarker),
+      title: dialogTitle,
       initialMemberType: pendingMarker.memberType,
       initialEndAText: pendingMarker.deflectionEndAText,
       initialMidBText: pendingMarker.deflectionMidBText,
