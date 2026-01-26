@@ -1,7 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
+import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 class DeflectionDetails {
@@ -87,9 +86,10 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.5,
-      360.0,
+    final maxWidth = dialogMaxWidth(
+      context,
+      widthFactor: 0.5,
+      maxWidth: 360.0,
     );
     final isSaveEnabled = _selectedMember != null;
 
@@ -106,12 +106,9 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            buildDialogDropdownField(
               value: _selectedMember,
-              decoration: const InputDecoration(
-                labelText: '부재',
-                border: OutlineInputBorder(),
-              ),
+              labelText: '부재',
               items: widget.memberOptions
                   .map(
                     (option) => DropdownMenuItem(
@@ -125,74 +122,50 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
                   _selectedMember = value;
                 });
               },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '부재를 선택하세요.';
-                }
-                return null;
-              },
+              requiredMessage: '부재를 선택하세요.',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            buildDialogTextField(
               controller: _endAController,
-              decoration: const InputDecoration(
-                labelText: 'A(단부)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'A(단부)',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            buildDialogTextField(
               controller: _midBController,
-              decoration: const InputDecoration(
-                labelText: 'B(중앙)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'B(중앙)',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            buildDialogTextField(
               controller: _endCController,
-              decoration: const InputDecoration(
-                labelText: 'C(단부)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'C(단부)',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          Navigator.of(context).pop(
-                            DeflectionDetails(
-                              memberType: _selectedMember!,
-                              endAText: _endAController.text.trim(),
-                              midBText: _midBController.text.trim(),
-                              endCText: _endCController.text.trim(),
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
+            buildDialogActionButtons(
+              context,
+              onSave: isSaveEnabled
+                  ? () {
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        DeflectionDetails(
+                          memberType: _selectedMember!,
+                          endAText: _endAController.text.trim(),
+                          midBText: _midBController.text.trim(),
+                          endCText: _endCController.text.trim(),
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         ),
