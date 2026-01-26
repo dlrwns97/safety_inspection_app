@@ -15,30 +15,20 @@ const List<String> DrawingEquipmentMemberOptions = [
   '철골 C찬넬',
   '철골 H형강',
 ];
-const List<String> DrawingRebarSpacingMemberOptions = [
+const List<String> DrawingConcreteMemberOptions = [
   '기둥',
   '보',
   '벽체',
   '슬래브',
 ];
-const List<String> DrawingSchmidtHammerMemberOptions = [
-  '기둥',
-  '보',
-  '벽체',
-  '슬래브',
-];
-const List<String> DrawingCoreSamplingMemberOptions = [
-  '기둥',
-  '보',
-  '벽체',
-  '슬래브',
-];
-const List<String> DrawingCarbonationMemberOptions = [
-  '기둥',
-  '보',
-  '벽체',
-  '슬래브',
-];
+const List<String> DrawingRebarSpacingMemberOptions =
+    DrawingConcreteMemberOptions;
+const List<String> DrawingSchmidtHammerMemberOptions =
+    DrawingConcreteMemberOptions;
+const List<String> DrawingCoreSamplingMemberOptions =
+    DrawingConcreteMemberOptions;
+const List<String> DrawingCarbonationMemberOptions =
+    DrawingConcreteMemberOptions;
 const List<String> DrawingDeflectionMemberOptions = [
   '보',
   '슬래브',
