@@ -256,6 +256,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     await widget.onSiteUpdated(_site);
   }
 
+  void _setPdfState(VoidCallback callback) {
+    if (!mounted) {
+      return;
+    }
+    setState(callback);
+  }
+
   void _clearSelectionAndPopup({bool inSetState = true}) {
     if (_selectedDefect == null &&
         _selectedEquipment == null &&
@@ -959,18 +966,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
           pdfLoadError: _pdfLoadError,
           sitePdfName: _site.pdfName,
           onPageChanged: (page) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
+            _setPdfState(() {
               _currentPage = page;
             });
           },
           onDocumentLoaded: (document) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
+            _setPdfState(() {
               _pageCount = document.pagesCount;
               if (_currentPage > _pageCount) {
                 _currentPage = 1;
@@ -981,19 +982,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
           },
           onDocumentError: (error) {
             debugPrint('Failed to load PDF: $error');
-            if (!mounted) {
-              return;
-            }
-            setState(() {
+            _setPdfState(() {
               _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
             });
           },
           pageSizes: _pdfPageSizes,
           onUpdatePageSize: (pageNumber, pageSize) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
+            _setPdfState(() {
               _pdfPageSizes[pageNumber] = pageSize;
             });
           },
