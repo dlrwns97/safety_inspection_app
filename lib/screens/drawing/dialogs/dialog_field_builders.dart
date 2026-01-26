@@ -10,7 +10,7 @@ DropdownButtonFormField<String> buildDialogDropdownField({
   required String requiredMessage,
 }) {
   return DropdownButtonFormField<String>(
-    value: value,
+    initialValue: value,
     decoration: InputDecoration(
       labelText: labelText,
       border: const OutlineInputBorder(),
