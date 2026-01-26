@@ -46,7 +46,7 @@ class DrawingScaffoldBody extends StatelessWidget {
   final Size canvasSize;
   final Widget drawingBackground;
   final List<Widget> markerWidgets;
-  final Widget markerPopup;
+  final Widget? markerPopup;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +94,7 @@ class DrawingScaffoldBody extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (drawingType != DrawingType.pdf) markerPopup,
+                  if (markerPopup != null) markerPopup!,
                 ],
               );
             },

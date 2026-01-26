@@ -692,15 +692,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
         : equipmentPopupLines(selectedEquipment!);
   }
 
-  Widget _buildMarkerPopup(Size viewportSize) {
+  Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
-    final markerViewportPosition = markerScenePosition == null
-        ? null
-        : MatrixUtils.transformPoint(
-            _transformationController.value,
-            markerScenePosition,
-          );
-    return _buildMarkerPopupWidget(
+    if (markerScenePosition == null) {
+      return null;
+    }
+    final markerViewportPosition = MatrixUtils.transformPoint(
+      _transformationController.value,
+      markerScenePosition,
+    );
+    return _buildMarkerPopupAtPosition(
       selectedDefect: _selectedDefect,
       selectedEquipment: _selectedEquipment,
       markerPosition: markerViewportPosition,
@@ -708,13 +709,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
+  Widget? _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
     final selectedPage =
         selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
     if (selectedPage != pageIndex) {
-      return const SizedBox.shrink();
+      return null;
     }
 
     final normalizedX =
@@ -725,7 +726,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       normalizedX * pageSize.width,
       normalizedY * pageSize.height,
     );
-    return _buildMarkerPopupWidget(
+    return _buildMarkerPopupAtPosition(
       selectedDefect: selectedDefect,
       selectedEquipment: selectedEquipment,
       markerPosition: markerPosition,
@@ -733,22 +734,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
   }
 
-  Widget _buildMarkerPopupWidget({
+  Widget? _buildMarkerPopupAtPosition({
     required Defect? selectedDefect,
     required EquipmentMarker? selectedEquipment,
-    required Offset? markerPosition,
+    required Offset markerPosition,
     required Size containerSize,
   }) {
-    if (markerPosition == null) {
-      return const SizedBox.shrink();
-    }
-
     final lines = _resolveSelectedMarkerLines(
       selectedDefect: selectedDefect,
       selectedEquipment: selectedEquipment,
     );
     if (lines == null) {
-      return const SizedBox.shrink();
+      return null;
     }
 
     return _buildMiniPopup(
@@ -1079,7 +1076,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
             pageIndex: _currentPage,
           ),
         ],
-        markerPopup: _buildMarkerPopup(MediaQuery.of(context).size),
+        markerPopup: _site.drawingType == DrawingType.pdf
+            ? null
+            : _buildMarkerPopup(MediaQuery.of(context).size),
       ),
     );
   }
