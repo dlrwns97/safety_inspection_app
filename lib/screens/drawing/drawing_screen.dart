@@ -42,8 +42,7 @@ class DrawingScreen extends StatefulWidget {
 }
 class _DrawingScreenState extends State<DrawingScreen> {
   final DrawingController _controller = DrawingController();
-  final TransformationController _transformationController =
-      TransformationController();
+  final TransformationController _transformationController = TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
   late Site _site;
@@ -153,25 +152,18 @@ class _DrawingScreenState extends State<DrawingScreen> {
       mode: _mode,
       activeCategory: _activeCategory,
       activeEquipmentCategory: _activeEquipmentCategory,
-      onResetTapCanceled: () {
-        _tapCanceled = false;
-      },
+      onResetTapCanceled: () => _tapCanceled = false,
       onSelectHit: _selectMarker,
       onClearSelection: _clearSelectionAndPopup,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
-      showRebarSpacingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialNumberText,
-      }) =>
+      showRebarSpacingDialog: (context, {required title, initialMemberType, initialNumberText}) =>
           _showRebarSpacingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      ),
+            title: title,
+            initialMemberType: initialMemberType,
+            initialNumberText: initialNumberText,
+          ),
       showSchmidtHammerDialog: (
         context, {
         required title,
@@ -180,32 +172,24 @@ class _DrawingScreenState extends State<DrawingScreen> {
         initialMinValueText,
       }) =>
           _showSchmidtHammerDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      ),
-      showCoreSamplingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialAvgValueText,
-      }) =>
+            title: title,
+            initialMemberType: initialMemberType,
+            initialMaxValueText: initialMaxValueText,
+            initialMinValueText: initialMinValueText,
+          ),
+      showCoreSamplingDialog: (context, {required title, initialMemberType, initialAvgValueText}) =>
           _showCoreSamplingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      ),
+            title: title,
+            initialMemberType: initialMemberType,
+            initialAvgValueText: initialAvgValueText,
+          ),
       showCarbonationDialog: _showCarbonationDialog,
       showStructuralTiltDialog: _showStructuralTiltDialog,
-      showSettlementDialog: ({
-        required baseTitle,
-        required nextIndexByDirection,
-      }) =>
+      showSettlementDialog: ({required baseTitle, required nextIndexByDirection}) =>
           _showSettlementDialog(
-        baseTitle: baseTitle,
-        nextIndexByDirection: nextIndexByDirection,
-      ),
+            baseTitle: baseTitle,
+            nextIndexByDirection: nextIndexByDirection,
+          ),
       showDeflectionDialog: ({
         required title,
         required memberOptions,
@@ -215,12 +199,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
         initialEndCText,
       }) =>
           _showDeflectionDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      ),
+            title: title,
+            initialMemberType: initialMemberType,
+            initialEndAText: initialEndAText,
+            initialMidBText: initialMidBText,
+            initialEndCText: initialEndCText,
+          ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
@@ -731,15 +715,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
-  void _returnToToolSelection() {
-    setState(() {
-      _mode = _controller.returnToToolSelection();
-    });
-  }
+  void _returnToToolSelection() =>
+      setState(() => _mode = _controller.returnToToolSelection());
   void _handleAddToolAction() {
-    if (_controller.shouldShowDefectCategoryPicker(_mode)) {
-      _showDefectCategoryPicker();
-    }
+    if (_controller.shouldShowDefectCategoryPicker(_mode)) _showDefectCategoryPicker();
   }
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
     final shouldDelete = await showDeleteDefectTabDialog(
@@ -762,12 +741,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
   }
   void _showSelectDefectCategoryHint() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(StringsKo.selectDefectCategoryHint),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(StringsKo.selectDefectCategoryHint),
+      duration: Duration(seconds: 2),
+    ));
   }
   Future<void> _showDefectCategoryPicker() async {
     final selectedCategory = await showDefectCategoryPickerSheet(
@@ -804,12 +781,17 @@ class _DrawingScreenState extends State<DrawingScreen> {
       title: Text(_site.name),
       actions: [
         if (_site.drawingType == DrawingType.pdf)
-          IconButton(tooltip: StringsKo.replacePdfTooltip, icon: const Icon(Icons.upload_file_outlined), onPressed: _replacePdf),
+          _buildHeaderActions(),
       ],
-      bottom: _buildDrawingTopBar(),
+      bottom: _buildHeaderUi(),
     );
   }
-  DrawingTopBar _buildDrawingTopBar() => DrawingTopBar(
+  Widget _buildHeaderActions() => IconButton(
+        tooltip: StringsKo.replacePdfTooltip,
+        icon: const Icon(Icons.upload_file_outlined),
+        onPressed: _replacePdf,
+      );
+  DrawingTopBar _buildHeaderUi() => DrawingTopBar(
         mode: _mode,
         isToolSelectionMode: _controller.isToolSelectionMode(_mode),
         defectTabs: _defectTabs,
@@ -818,16 +800,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onToggleMode: _toggleMode,
         onBack: _returnToToolSelection,
         onAdd: _handleAddToolAction,
-        onDefectSelected: (category) => setState(
-          () => _activeCategory = _controller
-              .selectDefectCategory(tabs: _defectTabs, category: category)
-              .activeCategory,
-        ),
+        onDefectSelected: (category) => setState(() => _activeCategory = _controller
+            .selectDefectCategory(tabs: _defectTabs, category: category)
+            .activeCategory),
         onDefectLongPress: _showDeleteDefectTabDialog,
-        onEquipmentSelected: (item) => setState(
-          () => _activeEquipmentCategory =
-              _controller.selectEquipmentCategory(item).activeCategory,
-        ),
+        onEquipmentSelected: (item) => setState(() => _activeEquipmentCategory =
+            _controller.selectEquipmentCategory(item).activeCategory),
       );
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
@@ -858,8 +836,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onDocumentError: _handlePdfDocumentError,
         pageSizes: _pdfPageSizes,
         onUpdatePageSize: _handleUpdatePageSize,
-        buildPageOverlay: ({required pageSize, required pageNumber, required imageProvider}) =>
-            CanvasMarkerLayer(
+        buildPageOverlay: ({required pageSize, required pageNumber, required imageProvider}) => CanvasMarkerLayer(
           onPointerDown: _handlePointerDownEvent,
           onPointerMove: _handlePointerMoveEvent,
           onPointerUp: _handlePointerUpEvent,
@@ -925,16 +902,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
   void _handleUpdatePageSize(int pageNumber, Size pageSize) =>
       _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
-  void _handlePrevPage() {
-    final nextPage = _currentPage - 1;
-    setState(() => _currentPage = nextPage);
-    _pdfController?.jumpToPage(nextPage);
-  }
-  void _handleNextPage() {
-    final nextPage = _currentPage + 1;
-    setState(() => _currentPage = nextPage);
-    _pdfController?.jumpToPage(nextPage);
-  }
+  void _handlePrevPage() { final nextPage = _currentPage - 1; setState(() => _currentPage = nextPage); _pdfController?.jumpToPage(nextPage); }
+  void _handleNextPage() { final nextPage = _currentPage + 1; setState(() => _currentPage = nextPage); _pdfController?.jumpToPage(nextPage); }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
