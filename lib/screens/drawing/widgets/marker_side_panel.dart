@@ -131,7 +131,7 @@ class MarkerSidePanel extends StatelessWidget {
         MarkerFilterChips<EquipmentCategory>(
           options: EquipmentCategory.values,
           selected: selectedEquipmentCategory,
-          labelBuilder: _equipmentShortLabel,
+          labelBuilder: equipmentChipLabel,
           onSelected: onEquipmentCategorySelected,
         ),
         const Divider(height: 1),
@@ -228,31 +228,11 @@ class MarkerSidePanel extends StatelessWidget {
         _DetailRowData('처짐 C', marker.deflectionEndCText!),
     ];
     return _DetailSection(
-      title: '장비 $label',
-      subtitle: '${marker.category.label} · 페이지 ${marker.pageIndex}',
+      title: label,
+      subtitle:
+          '${equipmentCategoryDisplayNameKo(marker.category)} · 페이지 ${marker.pageIndex + 1}',
       rows: rows,
     );
-  }
-
-  String _equipmentShortLabel(EquipmentCategory category) {
-    switch (category) {
-      case EquipmentCategory.equipment1:
-        return '장비1';
-      case EquipmentCategory.equipment2:
-        return '철근';
-      case EquipmentCategory.equipment3:
-        return '슈미트';
-      case EquipmentCategory.equipment4:
-        return '코어';
-      case EquipmentCategory.equipment5:
-        return '탄산화';
-      case EquipmentCategory.equipment6:
-        return '기울기';
-      case EquipmentCategory.equipment7:
-        return '처짐';
-      case EquipmentCategory.equipment8:
-        return '침하';
-    }
   }
 }
 
