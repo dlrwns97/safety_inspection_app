@@ -8,6 +8,7 @@ enum DefectCategory {
   generalCrack(StringsKo.defectCategoryGeneralCrack),
   waterLeakage(StringsKo.defectCategoryWaterLeakage),
   concreteSpalling(StringsKo.defectCategoryConcreteSpalling),
+  steelDefect(StringsKo.defectCategorySteelDefect),
   other(StringsKo.defectCategoryOther);
 
   const DefectCategory(this.label);

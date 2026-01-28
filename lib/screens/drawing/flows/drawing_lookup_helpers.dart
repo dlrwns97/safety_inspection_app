@@ -47,6 +47,14 @@ const Map<DefectCategory, DefectCategoryConfig> defectCategoryConfigs = {
     typeOptions: StringsKo.defectTypesConcreteSpalling,
     causeOptions: StringsKo.defectCausesConcreteSpalling,
   ),
+  DefectCategory.steelDefect: DefectCategoryConfig(
+    label: StringsKo.defectCategorySteelDefect,
+    dialogTitle: StringsKo.defectDetailsTitleConcreteSpalling,
+    color: Colors.green,
+    labelPrefix: '',
+    typeOptions: StringsKo.defectTypesConcreteSpalling,
+    causeOptions: StringsKo.defectCausesConcreteSpalling,
+  ),
   DefectCategory.other: DefectCategoryConfig(
     label: StringsKo.defectCategoryOther,
     dialogTitle: StringsKo.defectDetailsTitleOther,
