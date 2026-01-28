@@ -566,9 +566,16 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
     final popupLines = selectedDefect != null
-        ? defectPopupLines(selectedDefect)
+        ? defectPopupLines(
+          defect: selectedDefect,
+          pageIndex: selectedDefect.pageIndex,
+          allDefects: _site.defects,
+        )
         : selectedEquipment != null
-        ? equipmentPopupLines(selectedEquipment)
+        ? equipmentPopupLines(
+          marker: selectedEquipment,
+          allEquipment: _site.equipmentMarkers,
+        )
         : const <String>[];
     if (popupLines.isEmpty) return null;
     return _buildMiniPopup(
