@@ -598,7 +598,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       ny: (marker) => marker.normalizedY,
       buildMarker:
           (marker, selected) => EquipmentMarkerWidget(
-        label: marker.label,
+        label: equipmentDisplayLabel(marker, _site.equipmentMarkers),
         category: marker.category,
         color: equipmentColor(marker.category),
         isSelected: selected,
