@@ -347,7 +347,6 @@ Future<Site?> addEquipmentMarker({
     normalizedY: normalizedY,
     equipmentTypeId: prefix,
   );
-
   return createEquipmentUpdatedSite(
     context: context,
     site: site,
