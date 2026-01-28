@@ -148,77 +148,12 @@ class _DrawingScreenState extends State<DrawingScreen> {
       0.0,
       1.0,
     );
-    final updatedSite = await handleTapCore(
-      context: context,
+    final updatedSite = await _handleTapFlow(
       hitResult: hitResult,
       decision: decision,
       pageIndex: _currentPage,
       normalizedX: normalizedX,
       normalizedY: normalizedY,
-      site: _site,
-      mode: _mode,
-      activeCategory: _activeCategory,
-      activeEquipmentCategory: _activeEquipmentCategory,
-      onResetTapCanceled: () {
-        _tapCanceled = false;
-      },
-      onSelectHit: _selectMarker,
-      onClearSelection: _clearSelectionAndPopup,
-      onShowDefectCategoryHint: _showSelectDefectCategoryHint,
-      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
-      showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
-      showRebarSpacingDialog:
-          (context, {required title, initialMemberType, initialNumberText}) =>
-              _showRebarSpacingDialog(
-                title: title,
-                initialMemberType: initialMemberType,
-                initialNumberText: initialNumberText,
-              ),
-      showSchmidtHammerDialog:
-          (
-            context, {
-            required title,
-            initialMemberType,
-            initialMaxValueText,
-            initialMinValueText,
-          }) => _showSchmidtHammerDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialMaxValueText: initialMaxValueText,
-            initialMinValueText: initialMinValueText,
-          ),
-      showCoreSamplingDialog:
-          (context, {required title, initialMemberType, initialAvgValueText}) =>
-              _showCoreSamplingDialog(
-                title: title,
-                initialMemberType: initialMemberType,
-                initialAvgValueText: initialAvgValueText,
-              ),
-      showCarbonationDialog: _showCarbonationDialog,
-      showStructuralTiltDialog: _showStructuralTiltDialog,
-      showSettlementDialog:
-          ({required baseTitle, required nextIndexByDirection}) =>
-              _showSettlementDialog(
-                baseTitle: baseTitle,
-                nextIndexByDirection: nextIndexByDirection,
-              ),
-      showDeflectionDialog:
-          ({
-            required title,
-            required memberOptions,
-            initialMemberType,
-            initialEndAText,
-            initialMidBText,
-            initialEndCText,
-          }) => _showDeflectionDialog(
-            title: title,
-            initialMemberType: initialMemberType,
-            initialEndAText: initialEndAText,
-            initialMidBText: initialMidBText,
-            initialEndCText: initialEndCText,
-          ),
-      deflectionMemberOptions: DrawingDeflectionMemberOptions,
-      nextSettlementIndex: nextSettlementIndex,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
@@ -491,7 +426,23 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
     final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
     final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
-    final updatedSite = await handleTapCore(
+    final updatedSite = await _handleTapFlow(
+      hitResult: hitResult,
+      decision: decision,
+      pageIndex: pageIndex,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+    );
+    await _applyUpdatedSiteIfMounted(updatedSite);
+  }
+  Future<Site?> _handleTapFlow({
+    required MarkerHitResult? hitResult,
+    required TapDecision decision,
+    required int pageIndex,
+    required double normalizedX,
+    required double normalizedY,
+  }) {
+    return handleTapCore(
       context: context,
       hitResult: hitResult,
       decision: decision,
@@ -563,7 +514,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
-    await _applyUpdatedSiteIfMounted(updatedSite);
   }
   void _handlePointerDown(Offset position) { _pointerDownPosition = position; _tapCanceled = false; }
   void _handlePointerMove(Offset position) {
@@ -861,17 +811,30 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return _wrapWithPointerHandlers(
       behavior: HitTestBehavior.translucent,
       onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
-      child: CanvasMarkerLayer(
-        childPdfOrCanvas: Image(
+      child: _buildMarkerLayer(
+        size: pageSize,
+        pageIndex: pageNumber,
+        miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
+        child: Image(
           image: imageProvider,
           fit: BoxFit.contain,
         ),
-        markerWidgets: _buildMarkerWidgetsForPage(
-          size: pageSize,
-          pageIndex: pageNumber,
-        ),
-        miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
       ),
+    );
+  }
+  CanvasMarkerLayer _buildMarkerLayer({
+    required Widget child,
+    required Size size,
+    required int pageIndex,
+    Widget? miniPopup,
+  }) {
+    return CanvasMarkerLayer(
+      childPdfOrCanvas: child,
+      markerWidgets: _buildMarkerWidgetsForPage(
+        size: size,
+        pageIndex: pageIndex,
+      ),
+      miniPopup: miniPopup,
     );
   }
   Widget _buildCanvasDrawingLayer() {
@@ -891,8 +854,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         key: _canvasKey,
         width: DrawingCanvasSize.width,
         height: DrawingCanvasSize.height,
-        child: CanvasMarkerLayer(
-          childPdfOrCanvas: Container(
+        child: _buildMarkerLayer(
+          size: DrawingCanvasSize,
+          pageIndex: _currentPage,
+          child: Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -900,10 +865,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
             child: CustomPaint(
               painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
             ),
-          ),
-          markerWidgets: _buildMarkerWidgetsForPage(
-            size: DrawingCanvasSize,
-            pageIndex: _currentPage,
           ),
         ),
       ),
