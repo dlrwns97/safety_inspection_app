@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
-import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 
 class DefectCategoryConfig {
@@ -82,18 +81,6 @@ String equipmentLabelPrefix(EquipmentCategory category) {
     return 'Lx';
   }
   return DrawingEquipmentFlowConfigs[category]?.labelPrefix ?? '';
-}
-
-String equipmentDisplayLabel(EquipmentMarker marker) {
-  if (marker.category == EquipmentCategory.equipment8) {
-    return '부동침하 ${marker.label}';
-  }
-  final config = DrawingEquipmentFlowConfigs[marker.category];
-  final labelPrefix = config?.displayLabelPrefix;
-  if (labelPrefix == null || labelPrefix.isEmpty) {
-    return marker.label;
-  }
-  return '$labelPrefix ${marker.label}';
 }
 
 Color equipmentColor(EquipmentCategory category) {
