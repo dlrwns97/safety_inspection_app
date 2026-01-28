@@ -68,6 +68,7 @@ class StringsKo {
   static const defectCategoryGeneralCrack = '균열';
   static const defectCategoryWaterLeakage = '누수';
   static const defectCategoryConcreteSpalling = '콘크리트 결함';
+  static const defectCategorySteelDefect = '철골 결함';
   static const defectCategoryOther = '기타 결함';
   static const equipmentCategory1 = '장비1';
   static const equipmentCategory2 = '철근배근간격';
