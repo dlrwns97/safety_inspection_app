@@ -582,8 +582,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _pointerDownPosition = position;
     _tapCanceled = false;
   }
-  void _handlePointerDownEvent(PointerDownEvent event) =>
-      _handlePointerDown(event.localPosition);
   void _handlePointerMove(Offset position) {
     if (_pointerDownPosition == null) {
       return;
@@ -593,16 +591,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _tapCanceled = true;
     }
   }
-  void _handlePointerMoveEvent(PointerMoveEvent event) =>
-      _handlePointerMove(event.localPosition);
   void _handlePointerUp() => _pointerDownPosition = null;
-  void _handlePointerUpEvent(PointerUpEvent event) => _handlePointerUp();
   void _handlePointerCancel() {
     _pointerDownPosition = null;
     _tapCanceled = false;
   }
-  void _handlePointerCancelEvent(PointerCancelEvent event) =>
-      _handlePointerCancel();
   Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
     if (markerScenePosition == null) return null;
@@ -860,10 +853,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
         onUpdatePageSize: _handleUpdatePageSize,
         buildPageOverlay: ({required pageSize, required pageNumber, required imageProvider}) =>
             CanvasMarkerLayer(
-          onPointerDown: _handlePointerDownEvent,
-          onPointerMove: _handlePointerMoveEvent,
-          onPointerUp: _handlePointerUpEvent,
-          onPointerCancel: _handlePointerCancelEvent,
+          onPointerDown: (e) => _handlePointerDown(e.localPosition),
+          onPointerMove: (e) => _handlePointerMove(e.localPosition),
+          onPointerUp: (_) => _handlePointerUp(),
+          onPointerCancel: (_) => _handlePointerCancel(),
           onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
           hitTestBehavior: HitTestBehavior.translucent,
           childPdfOrCanvas: Image(image: imageProvider, fit: BoxFit.contain),
@@ -874,10 +867,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Widget _buildCanvasDrawingLayer() {
     final theme = Theme.of(context);
     return Listener(
-      onPointerDown: _handlePointerDownEvent,
-      onPointerMove: _handlePointerMoveEvent,
-      onPointerUp: _handlePointerUpEvent,
-      onPointerCancel: _handlePointerCancelEvent,
+      onPointerDown: (e) => _handlePointerDown(e.localPosition),
+      onPointerMove: (e) => _handlePointerMove(e.localPosition),
+      onPointerUp: (_) => _handlePointerUp(),
+      onPointerCancel: (_) => _handlePointerCancel(),
       child: GestureDetector(
         behavior: HitTestBehavior.deferToChild,
         onTapUp: _handleCanvasTap,
