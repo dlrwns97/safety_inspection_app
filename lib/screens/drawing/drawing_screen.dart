@@ -29,6 +29,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.da
 import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -40,6 +41,7 @@ class DrawingScreen extends StatefulWidget {
   @override
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
+
 class _DrawingScreenState extends State<DrawingScreen> {
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
@@ -67,12 +69,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _site = widget.site;
     _loadPdfController();
   }
+
   @override
   void dispose() {
     _pdfController?.dispose();
     _transformationController.dispose();
     super.dispose();
   }
+
   Future<void> _loadPdfController() async {
     final path = _site.pdfPath;
     if (path == null || path.isEmpty) {
@@ -99,6 +103,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       }
     });
   }
+
   Future<void> _replacePdf() async {
     final result = await replacePdfAndUpdateSite(site: _site);
     if (!mounted || result == null) {
@@ -124,6 +129,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
     }
     await _loadPdfController();
   }
+
   Future<void> _handleCanvasTap(TapUpDetails details) async {
     final scenePoint = _transformationController.toScene(details.localPosition);
     final hitResult = _hitTestMarker(
@@ -140,8 +146,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (scenePoint.dx / DrawingCanvasSize.width).clamp(0.0, 1.0);
-    final normalizedY = (scenePoint.dy / DrawingCanvasSize.height).clamp(0.0, 1.0);
+    final normalizedX = (scenePoint.dx / DrawingCanvasSize.width).clamp(
+      0.0,
+      1.0,
+    );
+    final normalizedY = (scenePoint.dy / DrawingCanvasSize.height).clamp(
+      0.0,
+      1.0,
+    );
     final updatedSite = await handleTapCore(
       context: context,
       hitResult: hitResult,
@@ -161,77 +173,69 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
-      showRebarSpacingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialNumberText,
-      }) =>
-          _showRebarSpacingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      ),
-      showSchmidtHammerDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialMaxValueText,
-        initialMinValueText,
-      }) =>
-          _showSchmidtHammerDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      ),
-      showCoreSamplingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialAvgValueText,
-      }) =>
-          _showCoreSamplingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      ),
+      showRebarSpacingDialog:
+          (context, {required title, initialMemberType, initialNumberText}) =>
+              _showRebarSpacingDialog(
+                title: title,
+                initialMemberType: initialMemberType,
+                initialNumberText: initialNumberText,
+              ),
+      showSchmidtHammerDialog:
+          (
+            context, {
+            required title,
+            initialMemberType,
+            initialMaxValueText,
+            initialMinValueText,
+          }) => _showSchmidtHammerDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialMaxValueText: initialMaxValueText,
+            initialMinValueText: initialMinValueText,
+          ),
+      showCoreSamplingDialog:
+          (context, {required title, initialMemberType, initialAvgValueText}) =>
+              _showCoreSamplingDialog(
+                title: title,
+                initialMemberType: initialMemberType,
+                initialAvgValueText: initialAvgValueText,
+              ),
       showCarbonationDialog: _showCarbonationDialog,
       showStructuralTiltDialog: _showStructuralTiltDialog,
-      showSettlementDialog: ({
-        required baseTitle,
-        required nextIndexByDirection,
-      }) =>
-          _showSettlementDialog(
-        baseTitle: baseTitle,
-        nextIndexByDirection: nextIndexByDirection,
-      ),
-      showDeflectionDialog: ({
-        required title,
-        required memberOptions,
-        initialMemberType,
-        initialEndAText,
-        initialMidBText,
-        initialEndCText,
-      }) =>
-          _showDeflectionDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      ),
+      showSettlementDialog:
+          ({required baseTitle, required nextIndexByDirection}) =>
+              _showSettlementDialog(
+                baseTitle: baseTitle,
+                nextIndexByDirection: nextIndexByDirection,
+              ),
+      showDeflectionDialog:
+          ({
+            required title,
+            required memberOptions,
+            initialMemberType,
+            initialEndAText,
+            initialMidBText,
+            initialEndCText,
+          }) => _showDeflectionDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialEndAText: initialEndAText,
+            initialMidBText: initialMidBText,
+            initialEndCText: initialEndCText,
+          ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
+
   Future<void> _applyUpdatedSiteIfMounted(Site? updatedSite) async {
     if (!mounted || updatedSite == null) {
       return;
     }
     await _applyUpdatedSite(updatedSite);
   }
+
   Future<void> _applyUpdatedSite(
     Site updatedSite, {
     VoidCallback? onStateUpdated,
@@ -242,27 +246,32 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
     await widget.onSiteUpdated(_site);
   }
+
   void _setPdfState(VoidCallback callback) {
     if (!mounted) {
       return;
     }
     setState(callback);
   }
+
   void _clearSelectionAndPopup({bool inSetState = true}) {
     if (_selectedDefect == null &&
         _selectedEquipment == null &&
-        _selectedMarkerScenePosition == null) return;
+        _selectedMarkerScenePosition == null)
+      return;
     void clearSelection() {
       _selectedDefect = null;
       _selectedEquipment = null;
       _selectedMarkerScenePosition = null;
     }
+
     if (inSetState) {
       setState(clearSelection);
     } else {
       clearSelection();
     }
   }
+
   void _selectMarker(MarkerHitResult result) {
     setState(() {
       _selectedDefect = result.defect;
@@ -270,6 +279,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _selectedMarkerScenePosition = result.position;
     });
   }
+
   MarkerHitResult? _hitTestMarker({
     required Offset point,
     required Size size,
@@ -320,6 +330,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       position: positionHit,
     );
   }
+
   bool _isTapWithinCanvas(Offset globalPosition) {
     final context = _canvasKey.currentContext;
     final renderObject = context?.findRenderObject();
@@ -332,6 +343,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         localPosition.dx <= renderObject.size.width &&
         localPosition.dy <= renderObject.size.height;
   }
+
   Future<DefectDetails?> _showDefectDetailsDialog() async {
     final defectCategory = _activeCategory ?? DefectCategory.generalCrack;
     final defectConfig = defectCategoryConfig(defectCategory);
@@ -344,6 +356,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<EquipmentDetails?> _showEquipmentDetailsDialog({
     required String title,
     String? initialMemberType,
@@ -360,6 +373,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<RebarSpacingDetails?> _showRebarSpacingDialog({
     required String title,
     String? initialMemberType,
@@ -375,6 +389,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<SchmidtHammerDetails?> _showSchmidtHammerDialog({
     required String title,
     String? initialMemberType,
@@ -392,6 +407,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<CoreSamplingDetails?> _showCoreSamplingDialog({
     required String title,
     String? initialMemberType,
@@ -407,6 +423,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<CarbonationDetails?> _showCarbonationDialog({
     required String title,
     String? initialMemberType,
@@ -424,6 +441,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<StructuralTiltDetails?> _showStructuralTiltDialog({
     required String title,
     String? initialDirection,
@@ -438,6 +456,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<SettlementDetails?> _showSettlementDialog({
     required String baseTitle,
     required Map<String, int> nextIndexByDirection,
@@ -454,6 +473,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<DeflectionDetails?> _showDeflectionDialog({
     required String title,
     String? initialMemberType,
@@ -473,6 +493,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<void> _handlePdfTap(
     TapUpDetails details,
     Size pageSize,
@@ -513,75 +534,67 @@ class _DrawingScreenState extends State<DrawingScreen> {
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
-      showRebarSpacingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialNumberText,
-      }) =>
-          _showRebarSpacingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
-      ),
-      showSchmidtHammerDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialMaxValueText,
-        initialMinValueText,
-      }) =>
-          _showSchmidtHammerDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialMaxValueText: initialMaxValueText,
-        initialMinValueText: initialMinValueText,
-      ),
-      showCoreSamplingDialog: (
-        context, {
-        required title,
-        initialMemberType,
-        initialAvgValueText,
-      }) =>
-          _showCoreSamplingDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialAvgValueText: initialAvgValueText,
-      ),
+      showRebarSpacingDialog:
+          (context, {required title, initialMemberType, initialNumberText}) =>
+              _showRebarSpacingDialog(
+                title: title,
+                initialMemberType: initialMemberType,
+                initialNumberText: initialNumberText,
+              ),
+      showSchmidtHammerDialog:
+          (
+            context, {
+            required title,
+            initialMemberType,
+            initialMaxValueText,
+            initialMinValueText,
+          }) => _showSchmidtHammerDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialMaxValueText: initialMaxValueText,
+            initialMinValueText: initialMinValueText,
+          ),
+      showCoreSamplingDialog:
+          (context, {required title, initialMemberType, initialAvgValueText}) =>
+              _showCoreSamplingDialog(
+                title: title,
+                initialMemberType: initialMemberType,
+                initialAvgValueText: initialAvgValueText,
+              ),
       showCarbonationDialog: _showCarbonationDialog,
       showStructuralTiltDialog: _showStructuralTiltDialog,
-      showSettlementDialog: ({
-        required baseTitle,
-        required nextIndexByDirection,
-      }) =>
-          _showSettlementDialog(
-        baseTitle: baseTitle,
-        nextIndexByDirection: nextIndexByDirection,
-      ),
-      showDeflectionDialog: ({
-        required title,
-        required memberOptions,
-        initialMemberType,
-        initialEndAText,
-        initialMidBText,
-        initialEndCText,
-      }) =>
-          _showDeflectionDialog(
-        title: title,
-        initialMemberType: initialMemberType,
-        initialEndAText: initialEndAText,
-        initialMidBText: initialMidBText,
-        initialEndCText: initialEndCText,
-      ),
+      showSettlementDialog:
+          ({required baseTitle, required nextIndexByDirection}) =>
+              _showSettlementDialog(
+                baseTitle: baseTitle,
+                nextIndexByDirection: nextIndexByDirection,
+              ),
+      showDeflectionDialog:
+          ({
+            required title,
+            required memberOptions,
+            initialMemberType,
+            initialEndAText,
+            initialMidBText,
+            initialEndCText,
+          }) => _showDeflectionDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialEndAText: initialEndAText,
+            initialMidBText: initialMidBText,
+            initialEndCText: initialEndCText,
+          ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
+
   void _handlePointerDown(Offset position) {
     _pointerDownPosition = position;
     _tapCanceled = false;
   }
+
   void _handlePointerDownEvent(PointerDownEvent event) =>
       _handlePointerDown(event.localPosition);
   void _handlePointerMove(Offset position) {
@@ -593,6 +606,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _tapCanceled = true;
     }
   }
+
   void _handlePointerMoveEvent(PointerMoveEvent event) =>
       _handlePointerMove(event.localPosition);
   void _handlePointerUp() => _pointerDownPosition = null;
@@ -601,22 +615,27 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _pointerDownPosition = null;
     _tapCanceled = false;
   }
+
   void _handlePointerCancelEvent(PointerCancelEvent event) =>
       _handlePointerCancel();
   Widget? _buildMarkerPopup(Size viewportSize) {
     final markerScenePosition = _selectedMarkerScenePosition;
     if (markerScenePosition == null) return null;
-    final markerViewportPosition =
-        MatrixUtils.transformPoint(_transformationController.value, markerScenePosition);
+    final markerViewportPosition = MatrixUtils.transformPoint(
+      _transformationController.value,
+      markerScenePosition,
+    );
     return _buildMarkerPopupForSelection(
       markerPosition: markerViewportPosition,
       containerSize: viewportSize,
     );
   }
+
   Widget? _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
     final selectedDefect = _selectedDefect;
     final selectedEquipment = _selectedEquipment;
-    final selectedPage = selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
+    final selectedPage =
+        selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
     if (selectedPage != pageIndex) return null;
     final markerPosition = Offset(
       (selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX) *
@@ -629,6 +648,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       containerSize: pageSize,
     );
   }
+
   Widget? _buildMarkerPopupForSelection({
     required Offset markerPosition,
     required Size containerSize,
@@ -638,8 +658,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final popupLines = selectedDefect != null
         ? defectPopupLines(selectedDefect)
         : selectedEquipment != null
-            ? equipmentPopupLines(selectedEquipment)
-            : const [];
+        ? equipmentPopupLines(selectedEquipment)
+        : const <String>[];
     if (popupLines.isEmpty) return null;
     return _buildMiniPopup(
       markerPosition: markerPosition,
@@ -647,6 +667,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       lines: popupLines,
     );
   }
+
   MiniMarkerPopup _buildMiniPopup({
     required Offset markerPosition,
     required Size containerSize,
@@ -659,10 +680,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
     final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
     final desiredLeft = markerPosition.dx + 16;
     final desiredTop = markerPosition.dy - estimatedHeight - 12;
-    final maxLeft =
-        (containerSize.width - popupMaxWidth - popupMargin).clamp(0.0, double.infinity);
-    final maxTop =
-        (containerSize.height - estimatedHeight - popupMargin).clamp(0.0, double.infinity);
+    final maxLeft = (containerSize.width - popupMaxWidth - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
+    final maxTop = (containerSize.height - estimatedHeight - popupMargin).clamp(
+      0.0,
+      double.infinity,
+    );
     final left = desiredLeft.clamp(
       popupMargin,
       maxLeft == 0 ? popupMargin : maxLeft,
@@ -671,42 +696,38 @@ class _DrawingScreenState extends State<DrawingScreen> {
       popupMargin,
       maxTop == 0 ? popupMargin : maxTop,
     );
-    return MiniMarkerPopup(
-      left: left,
-      top: top,
-      lines: lines,
-    );
+    return MiniMarkerPopup(left: left, top: top, lines: lines);
   }
+
   List<Widget> _buildMarkerWidgetsForPage({
     required Size size,
     required int pageIndex,
-  }) =>
-      [
-        ..._buildMarkersForPage(
-          items: _site.defects,
-          pageIndex: pageIndex,
-          pageSize: size,
-          nx: (defect) => defect.normalizedX,
-          ny: (defect) => defect.normalizedY,
-          buildMarker: (defect) => DefectMarkerWidget(
-            label: defect.label,
-            category: defect.category,
-            color: defectCategoryConfig(defect.category).color,
-          ),
-        ),
-        ..._buildMarkersForPage(
-          items: _site.equipmentMarkers,
-          pageIndex: pageIndex,
-          pageSize: size,
-          nx: (marker) => marker.normalizedX,
-          ny: (marker) => marker.normalizedY,
-          buildMarker: (marker) => EquipmentMarkerWidget(
-            label: marker.label,
-            category: marker.category,
-            color: equipmentColor(marker.category),
-          ),
-        ),
-      ];
+  }) => [
+    ..._buildMarkersForPage(
+      items: _site.defects,
+      pageIndex: pageIndex,
+      pageSize: size,
+      nx: (defect) => defect.normalizedX,
+      ny: (defect) => defect.normalizedY,
+      buildMarker: (defect) => DefectMarkerWidget(
+        label: defect.label,
+        category: defect.category,
+        color: defectCategoryConfig(defect.category).color,
+      ),
+    ),
+    ..._buildMarkersForPage(
+      items: _site.equipmentMarkers,
+      pageIndex: pageIndex,
+      pageSize: size,
+      nx: (marker) => marker.normalizedX,
+      ny: (marker) => marker.normalizedY,
+      buildMarker: (marker) => EquipmentMarkerWidget(
+        label: marker.label,
+        category: marker.category,
+        color: equipmentColor(marker.category),
+      ),
+    ),
+  ];
   List<Widget> _buildMarkersForPage<T>({
     required Iterable<T> items,
     required int pageIndex,
@@ -719,28 +740,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
         .where((item) => (item as dynamic).pageIndex == pageIndex)
         .toList();
     return filteredItems
-        .map((item) => Positioned(
-              left: nx(item) * pageSize.width - 18,
-              top: ny(item) * pageSize.height - 18,
-              child: buildMarker(item),
-            ))
+        .map(
+          (item) => Positioned(
+            left: nx(item) * pageSize.width - 18,
+            top: ny(item) * pageSize.height - 18,
+            child: buildMarker(item),
+          ),
+        )
         .toList();
   }
+
   void _toggleMode(DrawMode nextMode) {
     setState(() {
       _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
+
   void _returnToToolSelection() {
     setState(() {
       _mode = _controller.returnToToolSelection();
     });
   }
+
   void _handleAddToolAction() {
     if (_controller.shouldShowDefectCategoryPicker(_mode)) {
       _showDefectCategoryPicker();
     }
   }
+
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
     final shouldDelete = await showDeleteDefectTabDialog(
       context: context,
@@ -761,6 +788,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _activeCategory = updated.activeCategory;
     });
   }
+
   void _showSelectDefectCategoryHint() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -769,6 +797,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   Future<void> _showDefectCategoryPicker() async {
     final selectedCategory = await showDefectCategoryPickerSheet(
       context: context,
@@ -788,6 +817,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _activeCategory = updated.activeCategory;
     });
   }
+
   Future<T?> _showDetailDialog<T>(Future<T?> Function() dialogBuilder) async {
     if (_isDetailDialogOpen) {
       return null;
@@ -799,40 +829,48 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _isDetailDialogOpen = false;
     }
   }
+
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: Text(_site.name),
       actions: [
         if (_site.drawingType == DrawingType.pdf)
-          IconButton(tooltip: StringsKo.replacePdfTooltip, icon: const Icon(Icons.upload_file_outlined), onPressed: _replacePdf),
+          IconButton(
+            tooltip: StringsKo.replacePdfTooltip,
+            icon: const Icon(Icons.upload_file_outlined),
+            onPressed: _replacePdf,
+          ),
       ],
       bottom: _buildDrawingTopBar(),
     );
   }
+
   DrawingTopBar _buildDrawingTopBar() => DrawingTopBar(
-        mode: _mode,
-        isToolSelectionMode: _controller.isToolSelectionMode(_mode),
-        defectTabs: _defectTabs,
-        activeCategory: _activeCategory,
-        activeEquipmentCategory: _activeEquipmentCategory,
-        onToggleMode: _toggleMode,
-        onBack: _returnToToolSelection,
-        onAdd: _handleAddToolAction,
-        onDefectSelected: (category) => setState(
-          () => _activeCategory = _controller
-              .selectDefectCategory(tabs: _defectTabs, category: category)
-              .activeCategory,
-        ),
-        onDefectLongPress: _showDeleteDefectTabDialog,
-        onEquipmentSelected: (item) => setState(
-          () => _activeEquipmentCategory =
-              _controller.selectEquipmentCategory(item).activeCategory,
-        ),
-      );
+    mode: _mode,
+    isToolSelectionMode: _controller.isToolSelectionMode(_mode),
+    defectTabs: _defectTabs,
+    activeCategory: _activeCategory,
+    activeEquipmentCategory: _activeEquipmentCategory,
+    onToggleMode: _toggleMode,
+    onBack: _returnToToolSelection,
+    onAdd: _handleAddToolAction,
+    onDefectSelected: (category) => setState(
+      () => _activeCategory = _controller
+          .selectDefectCategory(tabs: _defectTabs, category: category)
+          .activeCategory,
+    ),
+    onDefectLongPress: _showDeleteDefectTabDialog,
+    onEquipmentSelected: (item) => setState(
+      () => _activeEquipmentCategory = _controller
+          .selectEquipmentCategory(item)
+          .activeCategory,
+    ),
+  );
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
-    final markerPopup =
-        isPdf ? null : _buildMarkerPopup(MediaQuery.of(context).size);
+    final markerPopup = isPdf
+        ? null
+        : _buildMarkerPopup(MediaQuery.of(context).size);
     return [
       if (isPdf)
         PdfViewLayer(
@@ -849,28 +887,37 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (markerPopup != null) markerPopup,
     ];
   }
+
   PdfDrawingView _buildPdfViewer() => PdfDrawingView(
-        pdfController: _pdfController,
-        pdfLoadError: _pdfLoadError,
-        sitePdfName: _site.pdfName,
-        onPageChanged: _handlePdfPageChanged,
-        onDocumentLoaded: _handlePdfDocumentLoaded,
-        onDocumentError: _handlePdfDocumentError,
-        pageSizes: _pdfPageSizes,
-        onUpdatePageSize: _handleUpdatePageSize,
-        buildPageOverlay: ({required pageSize, required pageNumber, required imageProvider}) =>
+    pdfController: _pdfController,
+    pdfLoadError: _pdfLoadError,
+    sitePdfName: _site.pdfName,
+    onPageChanged: _handlePdfPageChanged,
+    onDocumentLoaded: _handlePdfDocumentLoaded,
+    onDocumentError: _handlePdfDocumentError,
+    pageSizes: _pdfPageSizes,
+    onUpdatePageSize: _handleUpdatePageSize,
+    buildPageOverlay:
+        ({required pageSize, required pageNumber, required imageProvider}) =>
             CanvasMarkerLayer(
-          onPointerDown: _handlePointerDownEvent,
-          onPointerMove: _handlePointerMoveEvent,
-          onPointerUp: _handlePointerUpEvent,
-          onPointerCancel: _handlePointerCancelEvent,
-          onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
-          hitTestBehavior: HitTestBehavior.translucent,
-          childPdfOrCanvas: Image(image: imageProvider, fit: BoxFit.contain),
-          markerWidgets: _buildMarkerWidgetsForPage(size: pageSize, pageIndex: pageNumber),
-          miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
-        ),
-      );
+              onPointerDown: _handlePointerDownEvent,
+              onPointerMove: _handlePointerMoveEvent,
+              onPointerUp: _handlePointerUpEvent,
+              onPointerCancel: _handlePointerCancelEvent,
+              onTapUp: (details) =>
+                  _handlePdfTap(details, pageSize, pageNumber),
+              hitTestBehavior: HitTestBehavior.translucent,
+              childPdfOrCanvas: Image(
+                image: imageProvider,
+                fit: BoxFit.contain,
+              ),
+              markerWidgets: _buildMarkerWidgetsForPage(
+                size: pageSize,
+                pageIndex: pageNumber,
+              ),
+              miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
+            ),
+  );
   Widget _buildCanvasDrawingLayer() {
     final theme = Theme.of(context);
     return Listener(
@@ -892,8 +939,15 @@ class _DrawingScreenState extends State<DrawingScreen> {
             height: DrawingCanvasSize.height,
             child: CanvasMarkerLayer(
               childPdfOrCanvas: Container(
-                decoration: BoxDecoration(color: theme.colorScheme.surface, border: Border.all(color: theme.colorScheme.outlineVariant)),
-                child: CustomPaint(painter: GridPainter(lineColor: theme.colorScheme.outlineVariant)),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: CustomPaint(
+                  painter: GridPainter(
+                    lineColor: theme.colorScheme.outlineVariant,
+                  ),
+                ),
               ),
               markerWidgets: _buildMarkerWidgetsForPage(
                 size: DrawingCanvasSize,
@@ -905,6 +959,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
       ),
     );
   }
+
   void _handlePdfPageChanged(int page) =>
       _setPdfState(() => _currentPage = page);
   void _handlePdfDocumentLoaded(PdfDocument document) {
@@ -917,12 +972,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
     });
     debugPrint('PDF loaded with ${document.pagesCount} pages.');
   }
+
   void _handlePdfDocumentError(Object error) {
     debugPrint('Failed to load PDF: $error');
     _setPdfState(() {
       _pdfLoadError = StringsKo.pdfDrawingLoadFailed;
     });
   }
+
   void _handleUpdatePageSize(int pageNumber, Size pageSize) =>
       _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
   void _handlePrevPage() {
@@ -930,11 +987,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     setState(() => _currentPage = nextPage);
     _pdfController?.jumpToPage(nextPage);
   }
+
   void _handleNextPage() {
     final nextPage = _currentPage + 1;
     setState(() => _currentPage = nextPage);
     _pdfController?.jumpToPage(nextPage);
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
