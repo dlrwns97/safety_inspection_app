@@ -5,7 +5,6 @@ class CanvasMarkerLayer extends StatelessWidget {
     super.key,
     required this.childPdfOrCanvas,
     required this.markerWidgets,
-    this.miniPopup,
     this.onPointerDown,
     this.onPointerMove,
     this.onPointerUp,
@@ -17,7 +16,6 @@ class CanvasMarkerLayer extends StatelessWidget {
 
   final Widget childPdfOrCanvas;
   final List<Widget> markerWidgets;
-  final Widget? miniPopup;
   final PointerDownEventListener? onPointerDown;
   final PointerMoveEventListener? onPointerMove;
   final PointerUpEventListener? onPointerUp;
@@ -31,7 +29,6 @@ class CanvasMarkerLayer extends StatelessWidget {
     final stackChildren = <Widget>[
       if (fillChild) Positioned.fill(child: childPdfOrCanvas) else childPdfOrCanvas,
       ...markerWidgets,
-      if (miniPopup != null) miniPopup!,
     ];
 
     Widget content = Stack(children: stackChildren);

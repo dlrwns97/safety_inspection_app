@@ -21,12 +21,11 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/mini_marker_popup.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 class DrawingScreen extends StatefulWidget {
@@ -40,18 +39,22 @@ class DrawingScreen extends StatefulWidget {
   @override
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
-class _DrawingScreenState extends State<DrawingScreen> {
+class _DrawingScreenState extends State<DrawingScreen>
+    with SingleTickerProviderStateMixin {
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
   late Site _site;
+  late final TabController _sidePanelController;
   PdfController? _pdfController;
   String? _pdfLoadError;
   DrawMode _mode = DrawMode.hand;
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
+  DefectCategory? _sidePanelDefectCategory;
+  EquipmentCategory? _sidePanelEquipmentCategory;
   final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
   int _pageCount = 1;
@@ -65,12 +68,14 @@ class _DrawingScreenState extends State<DrawingScreen> {
   void initState() {
     super.initState();
     _site = widget.site;
+    _sidePanelController = TabController(length: 3, vsync: this);
     _loadPdfController();
   }
   @override
   void dispose() {
     _pdfController?.dispose();
     _transformationController.dispose();
+    _sidePanelController.dispose();
     super.dispose();
   }
   Future<void> _loadPdfController() async {
@@ -201,6 +206,31 @@ class _DrawingScreenState extends State<DrawingScreen> {
       _selectedEquipment = result.equipment;
       _selectedMarkerScenePosition = result.position;
     });
+    _switchToDetailTab();
+  }
+
+  void _selectDefectFromPanel(Defect defect) {
+    setState(() {
+      _selectedDefect = defect;
+      _selectedEquipment = null;
+      _selectedMarkerScenePosition = null;
+    });
+    _switchToDetailTab();
+  }
+
+  void _selectEquipmentFromPanel(EquipmentMarker marker) {
+    setState(() {
+      _selectedDefect = null;
+      _selectedEquipment = marker;
+      _selectedMarkerScenePosition = null;
+    });
+    _switchToDetailTab();
+  }
+
+  void _switchToDetailTab() {
+    if (_sidePanelController.index != 2) {
+      _sidePanelController.animateTo(2);
+    }
   }
   MarkerHitResult? _hitTestMarker({
     required Offset point,
@@ -515,7 +545,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
       nextSettlementIndex: nextSettlementIndex,
     );
   }
-  void _handlePointerDown(Offset position) { _pointerDownPosition = position; _tapCanceled = false; }
+  void _handlePointerDown(Offset position) {
+    _pointerDownPosition = position;
+    _tapCanceled = false;
+  }
   void _handlePointerMove(Offset position) {
     if (_pointerDownPosition == null) {
       return;
@@ -530,90 +563,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     _pointerDownPosition = null;
     _tapCanceled = false;
   }
-  Widget? _buildMarkerPopup(Size viewportSize) {
-    final markerScenePosition = _selectedMarkerScenePosition;
-    if (markerScenePosition == null) return null;
-    final markerViewportPosition = MatrixUtils.transformPoint(
-      _transformationController.value,
-      markerScenePosition,
-    );
-    return _buildMarkerPopupForSelection(
-      markerPosition: markerViewportPosition,
-      containerSize: viewportSize,
-    );
-  }
-  Widget? _buildMarkerPopupForPage(Size pageSize, int pageIndex) {
-    final selectedDefect = _selectedDefect;
-    final selectedEquipment = _selectedEquipment;
-    final selectedPage =
-        selectedDefect?.pageIndex ?? selectedEquipment?.pageIndex;
-    if (selectedPage != pageIndex) return null;
-    final markerPosition = Offset(
-      (selectedDefect?.normalizedX ?? selectedEquipment!.normalizedX) *
-          pageSize.width,
-      (selectedDefect?.normalizedY ?? selectedEquipment!.normalizedY) *
-          pageSize.height,
-    );
-    return _buildMarkerPopupForSelection(
-      markerPosition: markerPosition,
-      containerSize: pageSize,
-    );
-  }
-  Widget? _buildMarkerPopupForSelection({
-    required Offset markerPosition,
-    required Size containerSize,
-  }) {
-    final selectedDefect = _selectedDefect;
-    final selectedEquipment = _selectedEquipment;
-    final popupLines = selectedDefect != null
-        ? defectPopupLines(
-          defect: selectedDefect,
-          pageIndex: selectedDefect.pageIndex,
-          allDefects: _site.defects,
-        )
-        : selectedEquipment != null
-        ? equipmentPopupLines(
-          marker: selectedEquipment,
-          allEquipment: _site.equipmentMarkers,
-        )
-        : const <String>[];
-    if (popupLines.isEmpty) return null;
-    return _buildMiniPopup(
-      markerPosition: markerPosition,
-      containerSize: containerSize,
-      lines: popupLines,
-    );
-  }
-  MiniMarkerPopup _buildMiniPopup({
-    required Offset markerPosition,
-    required Size containerSize,
-    required List<String> lines,
-  }) {
-    const popupMaxWidth = MiniMarkerPopup.maxWidth,
-        popupMargin = MiniMarkerPopup.margin,
-        lineHeight = MiniMarkerPopup.lineHeight,
-        verticalPadding = MiniMarkerPopup.verticalPadding;
-    final estimatedHeight = lines.length * lineHeight + verticalPadding * 2;
-    final desiredLeft = markerPosition.dx + 16;
-    final desiredTop = markerPosition.dy - estimatedHeight - 12;
-    final maxLeft = (containerSize.width - popupMaxWidth - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
-    final maxTop = (containerSize.height - estimatedHeight - popupMargin).clamp(
-      0.0,
-      double.infinity,
-    );
-    final left = desiredLeft.clamp(
-      popupMargin,
-      maxLeft == 0 ? popupMargin : maxLeft,
-    );
-    final top = desiredTop.clamp(
-      popupMargin,
-      maxTop == 0 ? popupMargin : maxTop,
-    );
-    return MiniMarkerPopup(left: left, top: top, lines: lines);
-  }
   List<Widget> _buildMarkerWidgetsForPage({
     required Size size,
     required int pageIndex,
@@ -622,24 +571,36 @@ class _DrawingScreenState extends State<DrawingScreen> {
       items: _site.defects,
       pageIndex: pageIndex,
       pageSize: size,
+      isSelected:
+          (defect) =>
+              _selectedDefect != null &&
+              _isSameDefect(defect, _selectedDefect!),
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
-      buildMarker: (defect) => DefectMarkerWidget(
+      buildMarker:
+          (defect, selected) => DefectMarkerWidget(
         label: defect.label,
         category: defect.category,
         color: defectCategoryConfig(defect.category).color,
+        isSelected: selected,
       ),
     ),
     ..._buildMarkersForPage(
       items: _site.equipmentMarkers,
       pageIndex: pageIndex,
       pageSize: size,
+      isSelected:
+          (marker) =>
+              _selectedEquipment != null &&
+              _isSameEquipment(marker, _selectedEquipment!),
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
-      buildMarker: (marker) => EquipmentMarkerWidget(
+      buildMarker:
+          (marker, selected) => EquipmentMarkerWidget(
         label: marker.label,
         category: marker.category,
         color: equipmentColor(marker.category),
+        isSelected: selected,
       ),
     ),
   ];
@@ -647,9 +608,10 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required Iterable<T> items,
     required int pageIndex,
     required Size pageSize,
+    required bool Function(T) isSelected,
     required double Function(T) nx,
     required double Function(T) ny,
-    required Widget Function(T) buildMarker,
+    required Widget Function(T, bool) buildMarker,
   }) {
     final filteredItems = items
         .where((item) => (item as dynamic).pageIndex == pageIndex)
@@ -659,10 +621,22 @@ class _DrawingScreenState extends State<DrawingScreen> {
           (item) => Positioned(
             left: nx(item) * pageSize.width - 18,
             top: ny(item) * pageSize.height - 18,
-            child: buildMarker(item),
+            child: buildMarker(item, isSelected(item)),
           ),
         )
         .toList();
+  }
+  bool _isSameDefect(Defect first, Defect second) {
+    if (first.id.isNotEmpty && second.id.isNotEmpty) {
+      return first.id == second.id;
+    }
+    return identical(first, second);
+  }
+  bool _isSameEquipment(EquipmentMarker first, EquipmentMarker second) {
+    if (first.id.isNotEmpty && second.id.isNotEmpty) {
+      return first.id == second.id;
+    }
+    return identical(first, second);
   }
   void _toggleMode(DrawMode nextMode) {
     setState(() {
@@ -774,9 +748,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
   );
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
-    final markerPopup = isPdf
-        ? null
-        : _buildMarkerPopup(MediaQuery.of(context).size);
     return [
       if (isPdf)
         PdfViewLayer(
@@ -790,7 +761,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
         )
       else
         _buildCanvasDrawingLayer(),
-      if (markerPopup != null) markerPopup,
     ];
   }
   PdfDrawingView _buildPdfViewer() => PdfDrawingView(
@@ -821,7 +791,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
       child: _buildMarkerLayer(
         size: pageSize,
         pageIndex: pageNumber,
-        miniPopup: _buildMarkerPopupForPage(pageSize, pageNumber),
         child: Image(
           image: imageProvider,
           fit: BoxFit.contain,
@@ -833,7 +802,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
     required Widget child,
     required Size size,
     required int pageIndex,
-    Widget? miniPopup,
   }) {
     return CanvasMarkerLayer(
       childPdfOrCanvas: child,
@@ -841,7 +809,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
         size: size,
         pageIndex: pageIndex,
       ),
-      miniPopup: miniPopup,
     );
   }
   Widget _buildCanvasDrawingLayer() {
@@ -929,7 +896,53 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: LayoutBuilder(
-        builder: (context, _) => Stack(children: _buildDrawingStackChildren()),
+        builder: (context, constraints) {
+          final showSidePanel = constraints.maxWidth >= 900;
+          final drawingStack = Stack(children: _buildDrawingStackChildren());
+          if (!showSidePanel) {
+            return drawingStack;
+          }
+          final defectFilter =
+              _sidePanelDefectCategory ??
+              _activeCategory ??
+              DefectCategory.values.first;
+          final equipmentFilter =
+              _sidePanelEquipmentCategory ??
+              _activeEquipmentCategory ??
+              EquipmentCategory.values.first;
+          return Row(
+            children: [
+              Expanded(child: drawingStack),
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: 320,
+                  maxWidth: 360,
+                ),
+                child: SizedBox(
+                  width: 340,
+                  child: MarkerSidePanel(
+                    tabController: _sidePanelController,
+                    currentPage: _currentPage,
+                    defects: _site.defects,
+                    equipmentMarkers: _site.equipmentMarkers,
+                    selectedDefect: _selectedDefect,
+                    selectedEquipment: _selectedEquipment,
+                    selectedDefectCategory: defectFilter,
+                    selectedEquipmentCategory: equipmentFilter,
+                    onSelectDefect: _selectDefectFromPanel,
+                    onSelectEquipment: _selectEquipmentFromPanel,
+                    onDefectCategorySelected: (category) => setState(
+                      () => _sidePanelDefectCategory = category,
+                    ),
+                    onEquipmentCategorySelected: (category) => setState(
+                      () => _sidePanelEquipmentCategory = category,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
