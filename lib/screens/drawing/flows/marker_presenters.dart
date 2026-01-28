@@ -141,6 +141,48 @@ String equipmentDisplayLabel(
   return '$prefix$sequence';
 }
 
+String equipmentChipLabel(EquipmentCategory category) {
+  switch (category) {
+    case EquipmentCategory.equipment1:
+      return '치수';
+    case EquipmentCategory.equipment2:
+      return '철근';
+    case EquipmentCategory.equipment3:
+      return '슈미트';
+    case EquipmentCategory.equipment4:
+      return '코어';
+    case EquipmentCategory.equipment5:
+      return '탄산화';
+    case EquipmentCategory.equipment6:
+      return '기울기';
+    case EquipmentCategory.equipment7:
+      return '처짐';
+    case EquipmentCategory.equipment8:
+      return '부동침하';
+  }
+}
+
+String equipmentCategoryDisplayNameKo(EquipmentCategory category) {
+  switch (category) {
+    case EquipmentCategory.equipment1:
+      return '부재단면치수';
+    case EquipmentCategory.equipment2:
+      return '철근배근탐사';
+    case EquipmentCategory.equipment3:
+      return '슈미트해머';
+    case EquipmentCategory.equipment4:
+      return '코어채취';
+    case EquipmentCategory.equipment5:
+      return '콘크리트 탄산화';
+    case EquipmentCategory.equipment6:
+      return '구조물 기울기';
+    case EquipmentCategory.equipment7:
+      return '부재처짐';
+    case EquipmentCategory.equipment8:
+      return '구조물 부동침하';
+  }
+}
+
 List<String> defectPopupLines({
   required Defect defect,
   required int pageIndex,
