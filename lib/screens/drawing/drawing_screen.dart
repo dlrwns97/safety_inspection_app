@@ -639,7 +639,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         ? defectPopupLines(selectedDefect)
         : selectedEquipment != null
             ? equipmentPopupLines(selectedEquipment)
-            : const [];
+            : const <String>[];
     if (popupLines.isEmpty) return null;
     return _buildMiniPopup(
       markerPosition: markerPosition,
