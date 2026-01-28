@@ -141,11 +141,7 @@ class MarkerSidePanel extends StatelessWidget {
             emptyLabel: '현재 페이지에 장비 마커가 없습니다.',
             onTap: onSelectEquipment,
             titleBuilder: (marker) {
-              final number = equipmentGlobalNumber(
-                equipment: marker,
-                allEquipment: equipmentMarkers,
-              );
-              return 'F$number';
+              return equipmentDisplayLabel(marker, equipmentMarkers);
             },
             subtitleBuilder: (marker) =>
                 marker.memberType?.isNotEmpty == true
@@ -202,10 +198,7 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
-    final number = equipmentGlobalNumber(
-      equipment: marker,
-      allEquipment: equipmentMarkers,
-    );
+    final label = equipmentDisplayLabel(marker, equipmentMarkers);
     final rows = <_DetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         _DetailRowData('부재', marker.memberType!),
@@ -235,7 +228,7 @@ class MarkerSidePanel extends StatelessWidget {
         _DetailRowData('처짐 C', marker.deflectionEndCText!),
     ];
     return _DetailSection(
-      title: '장비 F$number',
+      title: '장비 $label',
       subtitle: '${marker.category.label} · 페이지 ${marker.pageIndex}',
       rows: rows,
     );

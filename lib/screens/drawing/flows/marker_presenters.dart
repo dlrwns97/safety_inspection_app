@@ -45,12 +45,100 @@ int equipmentGlobalNumber({
   required EquipmentMarker equipment,
   required List<EquipmentMarker> allEquipment,
 }) {
-  final indexById = equipment.id.isNotEmpty
-      ? allEquipment.indexWhere((item) => item.id == equipment.id)
-      : -1;
+  final indexById =
+      equipment.id.isNotEmpty
+          ? allEquipment.indexWhere((item) => item.id == equipment.id)
+          : -1;
   final resolvedIndex =
       indexById != -1 ? indexById : allEquipment.indexOf(equipment);
   return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
+}
+
+String equipmentPrefixFor(EquipmentCategory category) {
+  switch (category) {
+    case EquipmentCategory.equipment1:
+      return 'S';
+    case EquipmentCategory.equipment2:
+      return 'F';
+    case EquipmentCategory.equipment3:
+      return 'Sh';
+    case EquipmentCategory.equipment4:
+      return 'Co';
+    case EquipmentCategory.equipment5:
+      return 'Ch';
+    case EquipmentCategory.equipment6:
+      return 'Tr';
+    case EquipmentCategory.equipment7:
+      return 'Df';
+    case EquipmentCategory.equipment8:
+      return '';
+  }
+}
+
+int _equipmentIndexInList(
+  EquipmentMarker marker,
+  List<EquipmentMarker> markers,
+) {
+  final indexById =
+      marker.id.isNotEmpty
+          ? markers.indexWhere((item) => item.id == marker.id)
+          : -1;
+  final resolvedIndex = indexById != -1 ? indexById : markers.indexOf(marker);
+  return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
+}
+
+int equipmentSequenceWithinCategory(
+  EquipmentMarker marker,
+  List<EquipmentMarker> all,
+) {
+  final categoryMarkers =
+      all.where((item) => item.category == marker.category).toList();
+  return _equipmentIndexInList(marker, categoryMarkers);
+}
+
+int settlementSequenceWithinDirection(
+  EquipmentMarker marker,
+  List<EquipmentMarker> all,
+) {
+  final direction = settlementDirection(marker);
+  if (direction == null || direction.isEmpty) {
+    return 0;
+  }
+  final directionMarkers =
+      all
+          .where(
+            (item) =>
+                item.category == EquipmentCategory.equipment8 &&
+                settlementDirection(item) == direction,
+          )
+          .toList();
+  return _equipmentIndexInList(marker, directionMarkers);
+}
+
+String equipmentDisplayLabel(
+  EquipmentMarker marker,
+  List<EquipmentMarker> all,
+) {
+  if (marker.category == EquipmentCategory.equipment8) {
+    final direction = settlementDirection(marker);
+    if (direction == null || direction.isEmpty) {
+      return marker.label;
+    }
+    final sequence = settlementSequenceWithinDirection(marker, all);
+    if (sequence <= 0) {
+      return marker.label;
+    }
+    return '$direction$sequence';
+  }
+  final prefix = equipmentPrefixFor(marker.category);
+  if (prefix.isEmpty) {
+    return marker.label;
+  }
+  final sequence = equipmentSequenceWithinCategory(marker, all);
+  if (sequence <= 0) {
+    return marker.label;
+  }
+  return '$prefix$sequence';
 }
 
 List<String> defectPopupLines({
@@ -70,9 +158,6 @@ List<String> equipmentPopupLines({
   required EquipmentMarker marker,
   required List<EquipmentMarker> allEquipment,
 }) {
-  final number = equipmentGlobalNumber(
-    equipment: marker,
-    allEquipment: allEquipment,
-  );
-  return [number.toString()];
+  final label = equipmentDisplayLabel(marker, allEquipment);
+  return [label];
 }
