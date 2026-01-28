@@ -262,6 +262,60 @@ Future<Site?> addDefectMarker({
   );
 }
 
+class _EquipmentMarkerDraft {
+  const _EquipmentMarkerDraft({
+    required this.prefix,
+    required this.marker,
+  });
+
+  final String prefix;
+  final EquipmentMarker marker;
+}
+
+bool _isEquipment8(EquipmentCategory category) {
+  return category == EquipmentCategory.equipment8;
+}
+
+int _equipmentCountForCategory(Site site, EquipmentCategory category) {
+  return site.equipmentMarkers
+      .where((marker) => marker.category == category)
+      .length;
+}
+
+_EquipmentMarkerDraft _buildEquipmentMarkerDraft({
+  required Site site,
+  required EquipmentCategory category,
+  required int pageIndex,
+  required double normalizedX,
+  required double normalizedY,
+}) {
+  final equipmentCount = _equipmentCountForCategory(site, category);
+  final prefix = equipmentLabelPrefix(category);
+  final label = '$prefix${equipmentCount + 1}';
+  return _EquipmentMarkerDraft(
+    prefix: prefix,
+    marker: EquipmentMarker(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      label: label,
+      pageIndex: pageIndex,
+      category: category,
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+      equipmentTypeId: prefix,
+    ),
+  );
+}
+
+Map<String, int> _buildSettlementNextIndices(
+  Site site,
+  int Function(Site site, String direction) nextSettlementIndex,
+) {
+  return {
+    'Lx': nextSettlementIndex(site, 'Lx'),
+    'Ly': nextSettlementIndex(site, 'Ly'),
+  };
+}
+
 Future<Site?> addEquipmentMarker({
   required BuildContext context,
   required Site site,
@@ -322,7 +376,7 @@ Future<Site?> addEquipmentMarker({
   if (activeEquipmentCategory == null) {
     return null;
   }
-  if (activeEquipmentCategory == EquipmentCategory.equipment8) {
+  if (_isEquipment8(activeEquipmentCategory)) {
     return addEquipment8Marker(
       context: context,
       site: site,
@@ -333,27 +387,20 @@ Future<Site?> addEquipmentMarker({
       nextSettlementIndex: nextSettlementIndex,
     );
   }
-  final equipmentCount = site.equipmentMarkers
-      .where((marker) => marker.category == activeEquipmentCategory)
-      .length;
-  final prefix = equipmentLabelPrefix(activeEquipmentCategory);
-  final label = '$prefix${equipmentCount + 1}';
-  final pendingMarker = EquipmentMarker(
-    id: DateTime.now().microsecondsSinceEpoch.toString(),
-    label: label,
-    pageIndex: pageIndex,
+  final draft = _buildEquipmentMarkerDraft(
+    site: site,
     category: activeEquipmentCategory,
+    pageIndex: pageIndex,
     normalizedX: normalizedX,
     normalizedY: normalizedY,
-    equipmentTypeId: prefix,
   );
 
   return createEquipmentUpdatedSite(
     context: context,
     site: site,
     activeEquipmentCategory: activeEquipmentCategory,
-    pendingMarker: pendingMarker,
-    prefix: prefix,
+    pendingMarker: draft.marker,
+    prefix: draft.prefix,
     deflectionMemberOptions: deflectionMemberOptions,
     showEquipmentDetailsDialog: showEquipmentDetailsDialog,
     showRebarSpacingDialog: showRebarSpacingDialog,
@@ -377,10 +424,7 @@ Future<Site?> addEquipment8Marker({
   }) showSettlementDialog,
   required int Function(Site site, String direction) nextSettlementIndex,
 }) async {
-  final nextIndices = {
-    'Lx': nextSettlementIndex(site, 'Lx'),
-    'Ly': nextSettlementIndex(site, 'Ly'),
-  };
+  final nextIndices = _buildSettlementNextIndices(site, nextSettlementIndex);
   return createEquipment8IfConfirmed(
     context: context,
     site: site,
