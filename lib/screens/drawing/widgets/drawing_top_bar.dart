@@ -11,12 +11,14 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.defectTabs,
     required this.activeCategory,
     required this.activeEquipmentCategory,
+    required this.equipmentTabs,
     required this.onToggleMode,
     required this.onBack,
     required this.onAdd,
     required this.onDefectSelected,
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
+    required this.onEquipmentLongPress,
   });
 
   static const double _toolBarHeight = 56.0;
@@ -26,12 +28,14 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<DefectCategory> defectTabs;
   final DefectCategory? activeCategory;
   final EquipmentCategory? activeEquipmentCategory;
+  final List<EquipmentCategory> equipmentTabs;
   final ValueChanged<DrawMode> onToggleMode;
   final VoidCallback onBack;
   final VoidCallback onAdd;
   final ValueChanged<DefectCategory> onDefectSelected;
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
+  final ValueChanged<EquipmentCategory> onEquipmentLongPress;
 
   @override
   Size get preferredSize => const Size.fromHeight(_toolBarHeight);
@@ -52,11 +56,13 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
                 defectTabs: defectTabs,
                 activeCategory: activeCategory,
                 activeEquipmentCategory: activeEquipmentCategory,
+                equipmentTabs: equipmentTabs,
                 onBack: onBack,
                 onAdd: onAdd,
                 onDefectSelected: onDefectSelected,
                 onDefectLongPress: onDefectLongPress,
                 onEquipmentSelected: onEquipmentSelected,
+                onEquipmentLongPress: onEquipmentLongPress,
               ),
       ),
     );
