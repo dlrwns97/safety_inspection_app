@@ -47,6 +47,8 @@ class MarkerSidePanel extends StatelessWidget {
 
   int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
 
+  int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
+
   static const List<DefectCategory> defectCategories = [
     DefectCategory.generalCrack,
     DefectCategory.waterLeakage,
