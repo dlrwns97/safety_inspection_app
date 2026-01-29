@@ -1008,7 +1008,7 @@ class _DrawingScreenState extends State<DrawingScreen>
                   ),
                   markerScale: _markerScale,
                   onMarkerScaleChanged: (value) => setState(
-                    () => _markerScale = value.clamp(0.5, 2.0),
+                    () => _markerScale = value.clamp(0.2, 2.0),
                   ),
                   isMarkerScaleLocked: _isMarkerScaleLocked,
                   onToggleMarkerScaleLock: () => setState(
