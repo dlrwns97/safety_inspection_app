@@ -15,6 +15,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dial
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_equipment_tab_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_category_picker_sheet.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/equipment_category_picker_sheet.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_details_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/equipment_details_dialog.dart';
@@ -672,6 +673,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   void _handleAddToolAction() {
     if (_controller.shouldShowDefectCategoryPicker(_mode)) {
       _showDefectCategoryPicker();
+      return;
+    }
+    if (_mode == DrawMode.equipment) {
+      _showEquipmentCategoryPicker();
     }
   }
   void _initializeDefectTabs() {
@@ -817,6 +822,34 @@ class _DrawingScreenState extends State<DrawingScreen>
           ..clear()
           ..addAll(updated.tabs);
         _activeCategory = updated.activeCategory;
+      },
+    );
+  }
+
+  Future<void> _showEquipmentCategoryPicker() async {
+    if (EquipmentCategory.values.isEmpty) {
+      return;
+    }
+    final selectedCategory = await showEquipmentCategoryPickerSheet(
+      context: context,
+      selectedCategories: _visibleEquipmentCategories,
+    );
+    if (selectedCategory == null || !mounted) {
+      return;
+    }
+    final updatedCategories = Set<EquipmentCategory>.from(
+      _visibleEquipmentCategories,
+    )..add(selectedCategory);
+    await _applyUpdatedSite(
+      _site.copyWith(
+        visibleEquipmentCategoryNames:
+            updatedCategories.map((category) => category.name).toList(),
+      ),
+      onStateUpdated: () {
+        _visibleEquipmentCategories
+          ..clear()
+          ..addAll(updatedCategories);
+        _activeEquipmentCategory = selectedCategory;
       },
     );
   }
