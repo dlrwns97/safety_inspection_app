@@ -14,6 +14,7 @@ class PdfDrawingView extends StatelessWidget {
     required this.onDocumentLoaded,
     required this.onDocumentError,
     required this.pageSizes,
+    required this.pdfViewVersion,
     required this.onUpdatePageSize,
     required this.buildPageOverlay,
   });
@@ -25,6 +26,7 @@ class PdfDrawingView extends StatelessWidget {
   final ValueChanged<PdfDocument> onDocumentLoaded;
   final ValueChanged<Object> onDocumentError;
   final Map<int, Size> pageSizes;
+  final int pdfViewVersion;
   final void Function(int pageNumber, Size pageSize) onUpdatePageSize;
   final Widget Function({
     required Size pageSize,
@@ -52,6 +54,7 @@ class PdfDrawingView extends StatelessWidget {
     if (pdfController != null) {
       return ClipRect(
         child: PdfView(
+          key: ValueKey(pdfViewVersion),
           controller: pdfController!,
           scrollDirection: Axis.vertical,
           pageSnapping: true,
@@ -86,20 +89,23 @@ class PdfDrawingView extends StatelessWidget {
                       final data = snapshot.data!;
                       final w = (data.width ?? 1).toDouble();
                       final h = (data.height ?? 1).toDouble();
-                      final pageSize = Size(
+                      final imageSize = Size(
                         w,
                         h,
                       );
-                      if (pageSizes[pageNumber] != pageSize) {
+                      final resolvedSize =
+                          pageSizes[pageNumber] ?? imageSize;
+                      if (pageSizes[pageNumber] == null &&
+                          pageSizes[pageNumber] != imageSize) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!context.mounted) {
                             return;
                           }
-                          onUpdatePageSize(pageNumber, pageSize);
+                          onUpdatePageSize(pageNumber, imageSize);
                         });
                       }
                       return _buildPdfPageLayer(
-                        pageSize: pageSize,
+                        pageSize: resolvedSize,
                         pageNumber: pageNumber,
                         imageProvider: imageProvider,
                       );
