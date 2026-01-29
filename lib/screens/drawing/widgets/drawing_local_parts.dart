@@ -33,7 +33,7 @@ class DefectMarkerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = isSelected
-        ? Theme.of(context).colorScheme.onPrimary
+        ? Colors.black
         : Colors.transparent;
     return Tooltip(
       message: category.label,
@@ -43,7 +43,7 @@ class DefectMarkerWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: Border.all(color: borderColor, width: isSelected ? 3 : 0),
+          border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
           boxShadow: const [
             BoxShadow(
               color: Colors.black26,
@@ -82,7 +82,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = isSelected
-        ? Theme.of(context).colorScheme.onPrimary
+        ? Colors.black
         : Colors.transparent;
     return Tooltip(
       message: category.label,
@@ -92,7 +92,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: isSelected ? 3 : 0),
+          border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
           boxShadow: const [
             BoxShadow(
               color: Colors.black26,
