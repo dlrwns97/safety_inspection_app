@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/numbered_tabs.dart';
 
 class ToolHeaderRow extends StatelessWidget {
@@ -11,22 +12,26 @@ class ToolHeaderRow extends StatelessWidget {
     required this.defectTabs,
     required this.activeCategory,
     required this.activeEquipmentCategory,
+    required this.equipmentTabs,
     required this.onBack,
     required this.onAdd,
     required this.onDefectSelected,
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
+    required this.onEquipmentLongPress,
   });
 
   final DrawMode mode;
   final List<DefectCategory> defectTabs;
   final DefectCategory? activeCategory;
   final EquipmentCategory? activeEquipmentCategory;
+  final List<EquipmentCategory> equipmentTabs;
   final VoidCallback onBack;
   final VoidCallback onAdd;
   final ValueChanged<DefectCategory> onDefectSelected;
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
+  final ValueChanged<EquipmentCategory> onEquipmentLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -76,10 +81,11 @@ class ToolHeaderRow extends StatelessWidget {
                     onLongPress: onDefectLongPress,
                   )
                 : NumberedTabs<EquipmentCategory>(
-                    items: EquipmentCategory.values,
+                    items: equipmentTabs,
                     selected: activeEquipmentCategory,
                     onSelected: onEquipmentSelected,
-                    labels: _equipmentTabLabels,
+                    labelBuilder: equipmentChipLabel,
+                    onLongPress: onEquipmentLongPress,
                   ),
           ),
         ],
@@ -102,17 +108,6 @@ class ToolHeaderRow extends StatelessWidget {
     }
   }
 }
-
-const List<String> _equipmentTabLabels = [
-  '치수',
-  '철근',
-  '슈미트',
-  '코어',
-  '탄산화',
-  '기울기',
-  '처짐',
-  '부동침하',
-];
 
 String _shortTopDefectLabel(DefectCategory category) {
   switch (category) {

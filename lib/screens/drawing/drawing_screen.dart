@@ -13,6 +13,7 @@ import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/delete_equipment_tab_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_category_picker_sheet.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_details_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
@@ -712,6 +713,26 @@ class _DrawingScreenState extends State<DrawingScreen>
       },
     );
   }
+  Future<void> _showDeleteEquipmentTabDialog(EquipmentCategory category) async {
+    if (_visibleEquipmentCategories.length <= 1) {
+      return;
+    }
+    final shouldDelete = await showDeleteEquipmentTabDialog(
+      context: context,
+      category: category,
+    );
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+    setState(() {
+      _visibleEquipmentCategories.remove(category);
+      if (_activeEquipmentCategory == category) {
+        _activeEquipmentCategory = EquipmentCategory.values.firstWhere(
+          (value) => _visibleEquipmentCategories.contains(value),
+        );
+      }
+    });
+  }
   void _showSelectDefectCategoryHint() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -776,6 +797,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     defectTabs: _defectTabs,
     activeCategory: _activeCategory,
     activeEquipmentCategory: _activeEquipmentCategory,
+    equipmentTabs: EquipmentCategory.values
+        .where((category) => _visibleEquipmentCategories.contains(category))
+        .toList(),
     onToggleMode: _toggleMode,
     onBack: _returnToToolSelection,
     onAdd: _handleAddToolAction,
@@ -790,6 +814,7 @@ class _DrawingScreenState extends State<DrawingScreen>
           .selectEquipmentCategory(item)
           .activeCategory,
     ),
+    onEquipmentLongPress: _showDeleteEquipmentTabDialog,
   );
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
