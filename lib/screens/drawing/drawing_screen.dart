@@ -73,6 +73,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _tapCanceled = false;
   bool _isDetailDialogOpen = false;
   double _markerScale = 1.0;
+  bool _isMarkerScaleLocked = false;
   @override
   void initState() {
     super.initState();
@@ -1007,7 +1008,11 @@ class _DrawingScreenState extends State<DrawingScreen>
                   ),
                   markerScale: _markerScale,
                   onMarkerScaleChanged: (value) => setState(
-                    () => _markerScale = value.clamp(0.8, 1.4),
+                    () => _markerScale = value.clamp(0.5, 2.0),
+                  ),
+                  isMarkerScaleLocked: _isMarkerScaleLocked,
+                  onToggleMarkerScaleLock: () => setState(
+                    () => _isMarkerScaleLocked = !_isMarkerScaleLocked,
                   ),
                 ),
               ),

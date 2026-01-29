@@ -5,13 +5,17 @@ class MarkerControlsBar extends StatelessWidget {
     super.key,
     required this.markerScale,
     required this.onMarkerScaleChanged,
+    required this.isLocked,
+    required this.onToggleLock,
   });
 
   final double markerScale;
   final ValueChanged<double> onMarkerScaleChanged;
+  final bool isLocked;
+  final VoidCallback onToggleLock;
 
-  static const double _minScale = 0.8;
-  static const double _maxScale = 1.4;
+  static const double _minScale = 0.5;
+  static const double _maxScale = 2.0;
   static const double _step = 0.1;
 
   double _clamp(double value) =>
@@ -28,6 +32,7 @@ class MarkerControlsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final percentText = '${(markerScale * 100).round()}%';
+    final isEnabled = !isLocked;
     final iconButtonStyle = IconButton.styleFrom(
       minimumSize: const Size(32, 32),
       padding: EdgeInsets.zero,
@@ -53,24 +58,33 @@ class MarkerControlsBar extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             IconButton(
+              icon: Icon(isLocked ? Icons.lock : Icons.lock_open),
+              tooltip: isLocked ? '잠금' : '잠금 해제',
+              onPressed: onToggleLock,
+              style: iconButtonStyle,
+            ),
+            const SizedBox(width: 2),
+            IconButton(
               icon: const Icon(Icons.remove),
               tooltip: '축소',
-              onPressed: () => _update(_snap(markerScale - _step)),
+              onPressed:
+                  isEnabled ? () => _update(_snap(markerScale - _step)) : null,
               style: iconButtonStyle,
             ),
             Expanded(
               child: Slider(
                 min: _minScale,
                 max: _maxScale,
-                divisions: 6,
+                divisions: 15,
                 value: _clamp(markerScale),
-                onChanged: _update,
+                onChanged: isEnabled ? _update : null,
               ),
             ),
             IconButton(
               icon: const Icon(Icons.add),
               tooltip: '확대',
-              onPressed: () => _update(_snap(markerScale + _step)),
+              onPressed:
+                  isEnabled ? () => _update(_snap(markerScale + _step)) : null,
               style: iconButtonStyle,
             ),
             const SizedBox(width: 4),
@@ -80,7 +94,7 @@ class MarkerControlsBar extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             TextButton(
-              onPressed: () => _update(1.0),
+              onPressed: isEnabled ? () => _update(1.0) : null,
               style: resetButtonStyle,
               child: const Text('100%'),
             ),
