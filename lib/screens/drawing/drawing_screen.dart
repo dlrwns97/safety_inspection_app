@@ -79,6 +79,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   void initState() {
     super.initState();
     _site = widget.site;
+    _initializeDefectTabs();
     _sidePanelController = TabController(length: 4, vsync: this);
     _loadPdfController();
   }
@@ -672,6 +673,22 @@ class _DrawingScreenState extends State<DrawingScreen>
       _showDefectCategoryPicker();
     }
   }
+  void _initializeDefectTabs() {
+    final tabs = <DefectCategory>[];
+    for (final name in _site.visibleDefectCategoryNames) {
+      final matches =
+          DefectCategory.values.where((category) => category.name == name);
+      if (matches.isNotEmpty) {
+        tabs.add(matches.first);
+      }
+    }
+    if (tabs.isEmpty) {
+      tabs.addAll(DefectCategory.values);
+    }
+    _defectTabs
+      ..clear()
+      ..addAll(tabs);
+  }
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
     final shouldDelete = await showDeleteDefectTabDialog(
       context: context,
@@ -680,17 +697,23 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (shouldDelete != true || !mounted) {
       return;
     }
-    setState(() {
-      final updated = _controller.removeDefectCategory(
-        tabs: _defectTabs,
-        category: category,
-        activeCategory: _activeCategory,
-      );
-      _defectTabs
-        ..clear()
-        ..addAll(updated.tabs);
-      _activeCategory = updated.activeCategory;
-    });
+    final updated = _controller.removeDefectCategory(
+      tabs: _defectTabs,
+      category: category,
+      activeCategory: _activeCategory,
+    );
+    await _applyUpdatedSite(
+      _site.copyWith(
+        visibleDefectCategoryNames:
+            updated.tabs.map((tab) => tab.name).toList(),
+      ),
+      onStateUpdated: () {
+        _defectTabs
+          ..clear()
+          ..addAll(updated.tabs);
+        _activeCategory = updated.activeCategory;
+      },
+    );
   }
   void _showSelectDefectCategoryHint() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -708,16 +731,22 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (selectedCategory == null || !mounted) {
       return;
     }
-    setState(() {
-      final updated = _controller.addDefectCategory(
-        tabs: _defectTabs,
-        selectedCategory: selectedCategory,
-      );
-      _defectTabs
-        ..clear()
-        ..addAll(updated.tabs);
-      _activeCategory = updated.activeCategory;
-    });
+    final updated = _controller.addDefectCategory(
+      tabs: _defectTabs,
+      selectedCategory: selectedCategory,
+    );
+    await _applyUpdatedSite(
+      _site.copyWith(
+        visibleDefectCategoryNames:
+            updated.tabs.map((tab) => tab.name).toList(),
+      ),
+      onStateUpdated: () {
+        _defectTabs
+          ..clear()
+          ..addAll(updated.tabs);
+        _activeCategory = updated.activeCategory;
+      },
+    );
   }
   Future<T?> _showDetailDialog<T>(Future<T?> Function() dialogBuilder) async {
     if (_isDetailDialogOpen) {
