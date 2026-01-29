@@ -682,9 +682,6 @@ class _DrawingScreenState extends State<DrawingScreen>
         tabs.add(matches.first);
       }
     }
-    if (tabs.isEmpty) {
-      tabs.addAll(DefectCategory.values);
-    }
     _defectTabs
       ..clear()
       ..addAll(tabs);
