@@ -17,8 +17,12 @@ class Site {
     this.deletedAt,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
+    List<String>? visibleDefectCategoryNames,
   })  : defects = defects ?? [],
-        equipmentMarkers = equipmentMarkers ?? [];
+        equipmentMarkers = equipmentMarkers ?? [],
+        visibleDefectCategoryNames =
+            visibleDefectCategoryNames ??
+            DefectCategory.values.map((category) => category.name).toList();
 
   final String id;
   final String name;
@@ -33,6 +37,7 @@ class Site {
   final DateTime? deletedAt;
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
+  final List<String> visibleDefectCategoryNames;
 
   static const _deletedAtSentinel = Object();
 
@@ -50,6 +55,7 @@ class Site {
     Object? deletedAt = _deletedAtSentinel,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
+    List<String>? visibleDefectCategoryNames,
   }) {
     return Site(
       id: id ?? this.id,
@@ -69,6 +75,9 @@ class Site {
       defects: defects ?? List<Defect>.from(this.defects),
       equipmentMarkers:
           equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),
+      visibleDefectCategoryNames:
+          visibleDefectCategoryNames ??
+          List<String>.from(this.visibleDefectCategoryNames),
     );
   }
 
@@ -87,6 +96,7 @@ class Site {
     'defects': defects.map((defect) => defect.toJson()).toList(),
     'equipmentMarkers':
         equipmentMarkers.map((marker) => marker.toJson()).toList(),
+    'visibleDefectCategoryNames': visibleDefectCategoryNames,
   };
 
   factory Site.fromJson(Map<String, dynamic> json) {
@@ -104,6 +114,10 @@ class Site {
     } else if (deletedAtValue is int) {
       deletedAt = DateTime.fromMillisecondsSinceEpoch(deletedAtValue);
     }
+    final visibleDefectCategoryNames =
+        (json['visibleDefectCategoryNames'] as List<dynamic>?)
+            ?.whereType<String>()
+            .toList();
     return Site(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -126,6 +140,9 @@ class Site {
       equipmentMarkers: (json['equipmentMarkers'] as List<dynamic>? ?? [])
           .map((item) => EquipmentMarker.fromJson(item as Map<String, dynamic>))
           .toList(),
+      visibleDefectCategoryNames:
+          visibleDefectCategoryNames ??
+          DefectCategory.values.map((category) => category.name).toList(),
     );
   }
 }

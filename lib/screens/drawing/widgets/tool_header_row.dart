@@ -102,6 +102,20 @@ class ToolHeaderRow extends StatelessWidget {
   }
 }
 
+String _shortTopDefectLabel(DefectCategory category) {
+  switch (category) {
+    case DefectCategory.concreteSpalling:
+      return '콘크리트';
+    case DefectCategory.steelDefect:
+      return '철골';
+    case DefectCategory.other:
+      return '기타';
+    case DefectCategory.generalCrack:
+    case DefectCategory.waterLeakage:
+      return category.label;
+  }
+}
+
 class _DefectCategoryTabs extends StatelessWidget {
   const _DefectCategoryTabs({
     required this.defectTabs,
@@ -128,7 +142,7 @@ class _DefectCategoryTabs extends StatelessWidget {
             child: GestureDetector(
               onLongPress: () => onLongPress(category),
               child: ChoiceChip(
-                label: Text(category.label),
+                label: Text(_shortTopDefectLabel(category)),
                 selected: isSelected,
                 onSelected: (_) => onSelected(category),
               ),
