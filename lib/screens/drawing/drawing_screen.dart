@@ -69,7 +69,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   void initState() {
     super.initState();
     _site = widget.site;
-    _sidePanelController = TabController(length: 3, vsync: this);
+    _sidePanelController = TabController(length: 4, vsync: this);
     _loadPdfController();
   }
   @override

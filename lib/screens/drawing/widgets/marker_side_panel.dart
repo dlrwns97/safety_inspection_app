@@ -86,6 +86,7 @@ class MarkerSidePanel extends StatelessWidget {
                 Tab(text: '결함'),
                 Tab(text: '장비'),
                 Tab(text: '상세'),
+                Tab(text: '보기'),
               ],
             ),
             const Divider(height: 1),
@@ -96,6 +97,7 @@ class MarkerSidePanel extends StatelessWidget {
                   _buildDefectTab(context),
                   _buildEquipmentTab(context),
                   _buildDetailTab(context),
+                  _buildViewTab(context),
                 ],
               ),
             ),
@@ -193,10 +195,25 @@ class MarkerSidePanel extends StatelessWidget {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       children: [
         if (defect != null) _buildDefectDetail(defect),
         if (equipment != null) _buildEquipmentDetail(equipment),
+      ],
+    );
+  }
+
+  Widget _buildViewTab(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        Text('보기', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          '다음 단계에서 표시/숨김 체크 기능을 추가합니다.',
+          style: theme.textTheme.bodyMedium,
+        ),
       ],
     );
   }
@@ -218,7 +235,7 @@ class MarkerSidePanel extends StatelessWidget {
       if (details.lengthMm > 0) _DetailRowData('길이', '${details.lengthMm} mm'),
     ];
     return _DetailSection(
-      title: '결함 C$number',
+      title: 'C$number',
       subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
       rows: rows,
     );
@@ -326,15 +343,21 @@ class _DetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final headerTitleStyle = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final headerSubtitleStyle = theme.textTheme.bodySmall;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 2),
-          Text(subtitle, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 6),
+          Text(title, style: headerTitleStyle),
+          const SizedBox(height: 4),
+          Text(subtitle, style: headerSubtitleStyle),
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
           if (rows.isEmpty)
             Text(
               '표시할 상세 정보가 없습니다.',
@@ -363,14 +386,20 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 64,
-            child: Text(row.label, style: Theme.of(context).textTheme.bodySmall),
+            width: 76,
+            child: Text(
+              row.label,
+              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               row.value,
