@@ -32,14 +32,22 @@ class DefectMarkerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const markerSize = 30.0;
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(
+          color: Colors.white,
+          fontSize:
+              (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1,
+        );
     return Tooltip(
       message: category.label,
       child: Container(
-        width: 36,
-        height: 36,
+        width: markerSize,
+        height: markerSize,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -55,9 +63,9 @@ class DefectMarkerWidget extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: labelStyle,
           ),
         ),
       ),
@@ -81,14 +89,22 @@ class EquipmentMarkerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const markerSize = 30.0;
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(
+          color: Colors.white,
+          fontSize:
+              (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1,
+        );
     return Tooltip(
       message: category.label,
       child: Container(
-        width: 36,
-        height: 36,
+        width: markerSize,
+        height: markerSize,
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(8),
@@ -104,9 +120,9 @@ class EquipmentMarkerWidget extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: Colors.white),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: labelStyle,
           ),
         ),
       ),
