@@ -109,6 +109,7 @@ Future<Site?> showNewSiteDialog(BuildContext context) {
                       inspectionType: selectedInspectionType!,
                       inspectionDate: DateTime.now(),
                       visibleDefectCategoryNames: const [],
+                      visibleEquipmentCategoryNames: const [],
                     ),
                   );
                 },
