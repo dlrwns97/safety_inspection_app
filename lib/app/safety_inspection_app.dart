@@ -20,6 +20,7 @@ class SafetyInspectionApp extends StatelessWidget {
       name: StringsKo.newSite,
       createdAt: DateTime.now(),
       drawingType: DrawingType.blank,
+      visibleDefectCategoryNames: const [],
     );
 
     return MaterialApp(
