@@ -26,7 +26,9 @@ class Site {
             DefectCategory.values.map((category) => category.name).toList(),
         visibleEquipmentCategoryNames =
             visibleEquipmentCategoryNames ??
-            EquipmentCategory.values.map((category) => category.name).toList();
+            kEquipmentCategoryOrder
+                .map((category) => category.name)
+                .toList();
 
   final String id;
   final String name;
@@ -161,7 +163,7 @@ class Site {
           DefectCategory.values.map((category) => category.name).toList(),
       visibleEquipmentCategoryNames:
           visibleEquipmentCategoryNames ??
-          EquipmentCategory.values.map((category) => category.name).toList(),
+          kEquipmentCategoryOrder.map((category) => category.name).toList(),
     );
   }
 }
