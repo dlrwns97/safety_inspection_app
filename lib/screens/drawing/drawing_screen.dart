@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
@@ -47,6 +49,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
+  int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
   PdfController? _pdfController;
@@ -780,6 +783,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     onDocumentLoaded: _handlePdfDocumentLoaded,
     onDocumentError: _handlePdfDocumentError,
     pageSizes: _pdfPageSizes,
+    pdfViewVersion: _pdfViewVersion,
     onUpdatePageSize: _handleUpdatePageSize,
     buildPageOverlay:
         ({required pageSize, required pageNumber, required imageProvider}) =>
@@ -880,6 +884,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       }
       _pdfLoadError = null;
     });
+    unawaited(_prefetchPdfPageSizes(document));
     debugPrint('PDF loaded with ${document.pagesCount} pages.');
   }
   void _handlePdfDocumentError(Object error) {
@@ -890,6 +895,31 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   void _handleUpdatePageSize(int pageNumber, Size pageSize) =>
       _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
+  Future<void> _prefetchPdfPageSizes(PdfDocument document) async {
+    const double baseWidth = 1000;
+    final Map<int, Size> sizes = {};
+    for (var pageNumber = 1; pageNumber <= document.pagesCount; pageNumber++) {
+      final page = await document.getPage(pageNumber);
+      final pageWidth = page.width.toDouble();
+      final pageHeight = page.height.toDouble();
+      if (pageWidth > 0 && pageHeight > 0) {
+        sizes[pageNumber] = Size(
+          baseWidth,
+          baseWidth * (pageHeight / pageWidth),
+        );
+      }
+      await page.close();
+    }
+    if (!mounted || sizes.isEmpty) {
+      return;
+    }
+    _setPdfState(() {
+      _pdfPageSizes
+        ..clear()
+        ..addAll(sizes);
+      _pdfViewVersion += 1;
+    });
+  }
   void _handlePrevPage() {
     final nextPage = _currentPage - 1;
     setState(() => _currentPage = nextPage);
