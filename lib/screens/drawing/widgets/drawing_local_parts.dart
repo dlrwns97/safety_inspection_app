@@ -23,6 +23,7 @@ class DefectMarkerWidget extends StatelessWidget {
     required this.color,
     required this.isSelected,
     this.scale = 1.0,
+    this.labelScale = 1.0,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class DefectMarkerWidget extends StatelessWidget {
   final Color color;
   final bool isSelected;
   final double scale;
+  final double labelScale;
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +42,12 @@ class DefectMarkerWidget extends StatelessWidget {
         ? Colors.black
         : Colors.transparent;
     final baseFontSize =
-        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1;
-    final textScale = scale.clamp(0.85, 1.15);
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12);
     final labelStyle = Theme.of(
       context,
     ).textTheme.labelMedium?.copyWith(
           color: Colors.white,
-          fontSize: (baseFontSize * textScale).clamp(10.0, 16.0),
+          fontSize: (baseFontSize - 1) * labelScale,
         );
     return Tooltip(
       message: category.label,
@@ -85,6 +86,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
     required this.color,
     required this.isSelected,
     this.scale = 1.0,
+    this.labelScale = 1.0,
     super.key,
   });
 
@@ -93,6 +95,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
   final Color color;
   final bool isSelected;
   final double scale;
+  final double labelScale;
 
   @override
   Widget build(BuildContext context) {
@@ -102,13 +105,12 @@ class EquipmentMarkerWidget extends StatelessWidget {
         ? Colors.black
         : Colors.transparent;
     final baseFontSize =
-        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1;
-    final textScale = scale.clamp(0.85, 1.15);
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12);
     final labelStyle = Theme.of(
       context,
     ).textTheme.labelMedium?.copyWith(
           color: Colors.white,
-          fontSize: (baseFontSize * textScale).clamp(10.0, 16.0),
+          fontSize: (baseFontSize - 1) * labelScale,
         );
     return Tooltip(
       message: category.label,

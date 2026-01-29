@@ -73,6 +73,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _tapCanceled = false;
   bool _isDetailDialogOpen = false;
   double _markerScale = 1.0;
+  double _labelScale = 1.0;
   bool _isMarkerScaleLocked = false;
   @override
   void initState() {
@@ -596,6 +597,7 @@ class _DrawingScreenState extends State<DrawingScreen>
         color: defectCategoryConfig(defect.category).color,
         isSelected: selected,
         scale: _markerScale,
+        labelScale: _labelScale,
       ),
     ),
     ..._buildMarkersForPage(
@@ -617,6 +619,7 @@ class _DrawingScreenState extends State<DrawingScreen>
         color: equipmentColor(marker.category),
         isSelected: selected,
         scale: _markerScale,
+        labelScale: _labelScale,
       ),
     ),
   ];
@@ -1007,9 +1010,19 @@ class _DrawingScreenState extends State<DrawingScreen>
                     },
                   ),
                   markerScale: _markerScale,
-                  onMarkerScaleChanged: (value) => setState(
-                    () => _markerScale = value.clamp(0.2, 2.0),
-                  ),
+                  labelScale: _labelScale,
+                  onMarkerScaleChanged: (value) {
+                    if (_isMarkerScaleLocked) {
+                      return;
+                    }
+                    setState(() => _markerScale = value.clamp(0.2, 2.0));
+                  },
+                  onLabelScaleChanged: (value) {
+                    if (_isMarkerScaleLocked) {
+                      return;
+                    }
+                    setState(() => _labelScale = value.clamp(0.2, 2.0));
+                  },
                   isMarkerScaleLocked: _isMarkerScaleLocked,
                   onToggleMarkerScaleLock: () => setState(
                     () => _isMarkerScaleLocked = !_isMarkerScaleLocked,

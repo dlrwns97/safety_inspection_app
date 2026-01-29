@@ -4,13 +4,17 @@ class MarkerHeaderControls extends StatelessWidget {
   const MarkerHeaderControls({
     super.key,
     required this.markerScale,
+    required this.labelScale,
     required this.onMarkerScaleChanged,
+    required this.onLabelScaleChanged,
     required this.isLocked,
     required this.onToggleLock,
   });
 
   final double markerScale;
+  final double labelScale;
   final ValueChanged<double> onMarkerScaleChanged;
+  final ValueChanged<double> onLabelScaleChanged;
   final bool isLocked;
   final VoidCallback onToggleLock;
 
@@ -36,50 +40,83 @@ class MarkerHeaderControls extends StatelessWidget {
     200,
   ];
 
-  int _selectedPercent() {
-    final rawPercent = (markerScale * 100).round().clamp(20, 200);
+  int _selectedPercent(double scale) {
+    final rawPercent = (scale * 100).round().clamp(20, 200);
     return ((rawPercent / 10).round() * 10).clamp(20, 200);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dropdown = DropdownButtonHideUnderline(
-      child: DropdownButton<int>(
-        value: _selectedPercent(),
-        isDense: true,
-        icon: const Icon(Icons.expand_more),
-        itemHeight: 36,
-        style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
-        items: _scalePercents
-            .map(
-              (percent) => DropdownMenuItem<int>(
-                value: percent,
-                height: 36,
-                child: Text('$percent%'),
-              ),
-            )
-            .toList(),
-        onChanged: isLocked
-            ? null
-            : (value) {
-                if (value == null) {
-                  return;
-                }
-                onMarkerScaleChanged((value / 100.0).clamp(0.2, 2.0));
-              },
+  double _percentToScale(int percent) => (percent / 100.0).clamp(0.2, 2.0);
+
+  Future<void> _showScaleMenu({
+    required BuildContext context,
+    required ValueChanged<int> onSelected,
+  }) async {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return;
+    }
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final rect = RelativeRect.fromRect(
+      Rect.fromPoints(
+        box.localToGlobal(Offset.zero, ancestor: overlay),
+        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
       ),
+      Offset.zero & overlay.size,
     );
-    final dropdownBox = Container(
+    final selection = await showMenu<int>(
+      context: context,
+      position: rect,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.45,
+      ),
+      items: _scalePercents
+          .map(
+            (percent) => PopupMenuItem<int>(
+              value: percent,
+              height: 36,
+              child: Text('$percent%'),
+            ),
+          )
+          .toList(),
+    );
+    if (selection != null) {
+      onSelected(selection);
+    }
+  }
+
+  Widget _buildScaleBox({
+    required BuildContext context,
+    required int percent,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: dropdown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$percent%'),
+          const SizedBox(width: 4),
+          const Icon(Icons.expand_more, size: 18),
+        ],
+      ),
     );
+    final tooltipWrapper = Tooltip(message: tooltip, child: content);
+    if (isLocked) {
+      return Opacity(opacity: 0.5, child: tooltipWrapper);
+    }
+    return GestureDetector(onTap: onTap, child: tooltipWrapper);
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       height: 48,
       child: Padding(
@@ -99,13 +136,31 @@ class MarkerHeaderControls extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
             const SizedBox(width: 8),
-            if (isLocked)
-              Tooltip(
-                message: '잠금',
-                child: Opacity(opacity: 0.5, child: dropdownBox),
-              )
-            else
-              dropdownBox,
+            Builder(
+              builder: (context) => _buildScaleBox(
+                context: context,
+                percent: _selectedPercent(markerScale),
+                tooltip: '마커 크기 선택',
+                onTap: () => _showScaleMenu(
+                  context: context,
+                  onSelected: (value) =>
+                      onMarkerScaleChanged(_percentToScale(value)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Builder(
+              builder: (context) => _buildScaleBox(
+                context: context,
+                percent: _selectedPercent(labelScale),
+                tooltip: '라벨 크기 선택',
+                onTap: () => _showScaleMenu(
+                  context: context,
+                  onSelected: (value) =>
+                      onLabelScaleChanged(_percentToScale(value)),
+                ),
+              ),
+            ),
           ],
         ),
       ),
