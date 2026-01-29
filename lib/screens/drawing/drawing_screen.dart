@@ -1005,6 +1005,10 @@ class _DrawingScreenState extends State<DrawingScreen>
                       }
                     },
                   ),
+                  markerScale: _markerScale,
+                  onMarkerScaleChanged: (value) => setState(
+                    () => _markerScale = value.clamp(0.8, 1.4),
+                  ),
                 ),
               ),
             ],

@@ -4,6 +4,7 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/marker_filter_chips.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_controls_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_detail_section.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_info_banner.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
@@ -28,6 +29,8 @@ class MarkerSidePanel extends StatelessWidget {
     required this.visibleEquipmentCategories,
     required this.onDefectVisibilityChanged,
     required this.onEquipmentVisibilityChanged,
+    required this.markerScale,
+    required this.onMarkerScaleChanged,
   });
 
   final TabController tabController;
@@ -48,6 +51,8 @@ class MarkerSidePanel extends StatelessWidget {
       onDefectVisibilityChanged;
   final void Function(EquipmentCategory category, bool visible)
       onEquipmentVisibilityChanged;
+  final double markerScale;
+  final ValueChanged<double> onMarkerScaleChanged;
 
   int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
 
@@ -102,6 +107,11 @@ class MarkerSidePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            MarkerControlsBar(
+              markerScale: markerScale,
+              onMarkerScaleChanged: onMarkerScaleChanged,
+            ),
+            const Divider(height: 1),
             TabBar(
               controller: tabController,
               labelColor: theme.colorScheme.primary,
