@@ -55,6 +55,21 @@ class MarkerSidePanel extends StatelessWidget {
     DefectCategory.other,
   ];
 
+  String defectChipLabel(DefectCategory category) {
+    switch (category) {
+      case DefectCategory.generalCrack:
+        return '균열';
+      case DefectCategory.waterLeakage:
+        return '누수';
+      case DefectCategory.concreteSpalling:
+        return '콘크리트';
+      case DefectCategory.steelDefect:
+        return '철골';
+      case DefectCategory.other:
+        return '기타';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -65,6 +80,8 @@ class MarkerSidePanel extends StatelessWidget {
           labelLarge: theme.textTheme.labelLarge?.copyWith(fontSize: 11),
           labelMedium: theme.textTheme.labelMedium?.copyWith(fontSize: 11),
         );
+    final tabLabelStyle =
+        compactTextTheme.labelMedium?.copyWith(fontSize: 12);
     final compactTheme = theme.copyWith(
       textTheme: compactTextTheme,
       listTileTheme: theme.listTileTheme.copyWith(
@@ -85,8 +102,9 @@ class MarkerSidePanel extends StatelessWidget {
               controller: tabController,
               labelColor: theme.colorScheme.primary,
               indicatorColor: theme.colorScheme.primary,
-              labelStyle: compactTextTheme.labelMedium,
-              unselectedLabelStyle: compactTextTheme.labelMedium,
+              indicatorWeight: 2.5,
+              labelStyle: tabLabelStyle,
+              unselectedLabelStyle: tabLabelStyle,
               isScrollable: true,
               labelPadding: const EdgeInsets.symmetric(
                 horizontal: 8,
@@ -133,7 +151,7 @@ class MarkerSidePanel extends StatelessWidget {
         MarkerFilterChips<DefectCategory>(
           options: defectCategories,
           selected: selectedDefectCategory,
-          labelBuilder: (item) => item.label,
+          labelBuilder: defectChipLabel,
           onSelected: onDefectCategorySelected,
         ),
         if (!isVisible)
@@ -147,14 +165,7 @@ class MarkerSidePanel extends StatelessWidget {
             items: filteredDefects,
             emptyLabel: '현재 페이지에 결함 마커가 없습니다.',
             onTap: onSelectDefect,
-            titleBuilder: (defect) {
-              final number = defectNumberForPage(
-                defect: defect,
-                pageIndex: defect.pageIndex,
-                allDefects: defects,
-              );
-              return 'C$number';
-            },
+            titleBuilder: defectDisplayLabel,
             subtitleBuilder: (defect) =>
                 defect.details.structuralMember.isNotEmpty
                     ? defect.details.structuralMember
@@ -317,11 +328,7 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildDefectDetail(Defect defect) {
-    final number = defectNumberForPage(
-      defect: defect,
-      pageIndex: defect.pageIndex,
-      allDefects: defects,
-    );
+    final label = defectDisplayLabel(defect);
     final details = defect.details;
     final rows = <_DetailRowData>[
       if (details.structuralMember.isNotEmpty)
@@ -333,7 +340,7 @@ class MarkerSidePanel extends StatelessWidget {
       if (details.lengthMm > 0) _DetailRowData('길이', '${details.lengthMm} mm'),
     ];
     return _DetailSection(
-      title: 'C$number',
+      title: label,
       subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
       rows: rows,
     );

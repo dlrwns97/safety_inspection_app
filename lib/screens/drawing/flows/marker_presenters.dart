@@ -3,6 +3,30 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
 
+const Map<DefectCategory, String> defectCategoryLabelPrefixes = {
+  DefectCategory.generalCrack: 'C',
+  DefectCategory.waterLeakage: '',
+  DefectCategory.concreteSpalling: '',
+  DefectCategory.steelDefect: '',
+  DefectCategory.other: '',
+};
+
+String defectPrefixForCategory(DefectCategory category) {
+  return defectCategoryLabelPrefixes[category] ?? '';
+}
+
+String defectDisplayLabel(Defect defect) {
+  final match = RegExp(r'(\d+)$').firstMatch(defect.label);
+  if (match == null) {
+    return defect.label;
+  }
+  final digits = match.group(1);
+  if (digits == null || digits.isEmpty) {
+    return defect.label;
+  }
+  return '${defectPrefixForCategory(defect.category)}$digits';
+}
+
 String? settlementDirection(EquipmentMarker marker) {
   final direction = marker.tiltDirection;
   if (direction != null && direction.isNotEmpty) {
