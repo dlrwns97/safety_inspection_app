@@ -4,6 +4,10 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/marker_filter_chips.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_detail_section.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_info_banner.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_view_tab.dart';
 
 class MarkerSidePanel extends StatelessWidget {
   const MarkerSidePanel({
@@ -155,13 +159,13 @@ class MarkerSidePanel extends StatelessWidget {
           onSelected: onDefectCategorySelected,
         ),
         if (!isVisible)
-          _buildVisibilityInfoBanner(
-            context,
-            "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+          MarkerInfoBanner(
+            message:
+                "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
           ),
         const Divider(height: 1),
         Expanded(
-          child: _MarkerList(
+          child: MarkerList(
             items: filteredDefects,
             emptyLabel: '현재 페이지에 결함 마커가 없습니다.',
             onTap: onSelectDefect,
@@ -197,13 +201,13 @@ class MarkerSidePanel extends StatelessWidget {
           onSelected: onEquipmentCategorySelected,
         ),
         if (!isVisible)
-          _buildVisibilityInfoBanner(
-            context,
-            "보기 탭에서 '$selectedLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+          MarkerInfoBanner(
+            message:
+                "보기 탭에서 '$selectedLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
           ),
         const Divider(height: 1),
         Expanded(
-          child: _MarkerList(
+          child: MarkerList(
             items: filteredEquipment,
             emptyLabel: '현재 페이지에 장비 마커가 없습니다.',
             onTap: onSelectEquipment,
@@ -242,104 +246,30 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildViewTab(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      children: [
-        _buildViewSectionTitle(context, '결함'),
-        const SizedBox(height: 4),
-        for (final category in DefectCategory.values)
-          CheckboxListTile(
-            value: visibleDefectCategories.contains(category),
-            onChanged: (value) =>
-                onDefectVisibilityChanged(category, value ?? false),
-            title: Text(
-              category.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-            controlAffinity: ListTileControlAffinity.trailing,
-          ),
-        const SizedBox(height: 8),
-        _buildViewSectionTitle(context, '장비'),
-        const SizedBox(height: 4),
-        for (final category in EquipmentCategory.values)
-          CheckboxListTile(
-            value: visibleEquipmentCategories.contains(category),
-            onChanged: (value) =>
-                onEquipmentVisibilityChanged(category, value ?? false),
-            title: Text(
-              equipmentChipLabel(category),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-            controlAffinity: ListTileControlAffinity.trailing,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildViewSectionTitle(BuildContext context, String title) {
-    final theme = Theme.of(context);
-    return Text(
-      title,
-      style: theme.textTheme.titleSmall,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildVisibilityInfoBanner(BuildContext context, String message) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.info_outline,
-              size: 14,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                message,
-                style: theme.textTheme.bodySmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return MarkerViewTab(
+      visibleDefectCategories: visibleDefectCategories,
+      visibleEquipmentCategories: visibleEquipmentCategories,
+      onDefectVisibilityChanged: onDefectVisibilityChanged,
+      onEquipmentVisibilityChanged: onEquipmentVisibilityChanged,
+      equipmentLabelBuilder: equipmentChipLabel,
     );
   }
 
   Widget _buildDefectDetail(Defect defect) {
     final label = defectDisplayLabel(defect);
     final details = defect.details;
-    final rows = <_DetailRowData>[
+    final rows = <MarkerDetailRowData>[
       if (details.structuralMember.isNotEmpty)
-        _DetailRowData('부재', details.structuralMember),
+        MarkerDetailRowData('부재', details.structuralMember),
       if (details.crackType.isNotEmpty)
-        _DetailRowData('형태', details.crackType),
-      if (details.cause.isNotEmpty) _DetailRowData('원인', details.cause),
-      if (details.widthMm > 0) _DetailRowData('폭', '${details.widthMm} mm'),
-      if (details.lengthMm > 0) _DetailRowData('길이', '${details.lengthMm} mm'),
+        MarkerDetailRowData('형태', details.crackType),
+      if (details.cause.isNotEmpty) MarkerDetailRowData('원인', details.cause),
+      if (details.widthMm > 0)
+        MarkerDetailRowData('폭', '${details.widthMm} mm'),
+      if (details.lengthMm > 0)
+        MarkerDetailRowData('길이', '${details.lengthMm} mm'),
     ];
-    return _DetailSection(
+    return MarkerDetailSection(
       title: label,
       subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
       rows: rows,
@@ -349,172 +279,39 @@ class MarkerSidePanel extends StatelessWidget {
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final label = equipmentDisplayLabel(marker, equipmentMarkers);
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
-    final rows = <_DetailRowData>[
+    final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
-        _DetailRowData('부재', marker.memberType!),
+        MarkerDetailRowData('부재', marker.memberType!),
       if (marker.numberText?.isNotEmpty == true)
-        _DetailRowData('번호', marker.numberText!),
+        MarkerDetailRowData('번호', marker.numberText!),
       if (marker.sizeValues != null && marker.sizeValues!.isNotEmpty)
-        _DetailRowData('규격', marker.sizeValues!.join(' / ')),
+        MarkerDetailRowData('규격', marker.sizeValues!.join(' / ')),
       if (marker.maxValueText?.isNotEmpty == true)
-        _DetailRowData('최대값', marker.maxValueText!),
+        MarkerDetailRowData('최대값', marker.maxValueText!),
       if (marker.minValueText?.isNotEmpty == true)
-        _DetailRowData('최소값', marker.minValueText!),
+        MarkerDetailRowData('최소값', marker.minValueText!),
       if (marker.avgValueText?.isNotEmpty == true)
-        _DetailRowData('평균값', marker.avgValueText!),
+        MarkerDetailRowData('평균값', marker.avgValueText!),
       if (marker.coverThicknessText?.isNotEmpty == true)
-        _DetailRowData('피복두께', marker.coverThicknessText!),
+        MarkerDetailRowData('피복두께', marker.coverThicknessText!),
       if (marker.depthText?.isNotEmpty == true)
-        _DetailRowData('깊이', marker.depthText!),
+        MarkerDetailRowData('깊이', marker.depthText!),
       if (marker.tiltDirection?.isNotEmpty == true)
-        _DetailRowData('기울기', marker.tiltDirection!),
+        MarkerDetailRowData('기울기', marker.tiltDirection!),
       if (marker.displacementText?.isNotEmpty == true)
-        _DetailRowData('변위', marker.displacementText!),
+        MarkerDetailRowData('변위', marker.displacementText!),
       if (marker.deflectionEndAText?.isNotEmpty == true)
-        _DetailRowData('처짐 A', marker.deflectionEndAText!),
+        MarkerDetailRowData('처짐 A', marker.deflectionEndAText!),
       if (marker.deflectionMidBText?.isNotEmpty == true)
-        _DetailRowData('처짐 B', marker.deflectionMidBText!),
+        MarkerDetailRowData('처짐 B', marker.deflectionMidBText!),
       if (marker.deflectionEndCText?.isNotEmpty == true)
-        _DetailRowData('처짐 C', marker.deflectionEndCText!),
+        MarkerDetailRowData('처짐 C', marker.deflectionEndCText!),
     ];
-    return _DetailSection(
+    return MarkerDetailSection(
       title: label,
       subtitle:
           '${equipmentCategoryDisplayNameKo(marker.category)} · 페이지 $displayPage',
       rows: rows,
-    );
-  }
-}
-
-class _MarkerList<T> extends StatelessWidget {
-  const _MarkerList({
-    required this.items,
-    required this.emptyLabel,
-    required this.onTap,
-    required this.titleBuilder,
-    required this.subtitleBuilder,
-  });
-
-  final List<T> items;
-  final String emptyLabel;
-  final ValueChanged<T> onTap;
-  final String Function(T item) titleBuilder;
-  final String? Function(T item) subtitleBuilder;
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return Center(
-        child: Text(emptyLabel),
-      );
-    }
-    return ListView.separated(
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final subtitle = subtitleBuilder(item);
-        return ListTile(
-          title: Text(
-            titleBuilder(item),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: subtitle != null
-              ? Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                )
-              : null,
-          onTap: () => onTap(item),
-        );
-      },
-    );
-  }
-}
-
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({
-    required this.title,
-    required this.subtitle,
-    required this.rows,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<_DetailRowData> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final headerTitleStyle = theme.textTheme.titleLarge?.copyWith(
-      fontWeight: FontWeight.w600,
-    );
-    final headerSubtitleStyle = theme.textTheme.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: headerTitleStyle),
-          const SizedBox(height: 4),
-          Text(subtitle, style: headerSubtitleStyle),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          if (rows.isEmpty)
-            Text(
-              '표시할 상세 정보가 없습니다.',
-              style: theme.textTheme.bodyMedium,
-            )
-          else
-            ...rows.map((row) => _DetailRow(row: row)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRowData {
-  const _DetailRowData(this.label, this.value);
-
-  final String label;
-  final String value;
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.row});
-
-  final _DetailRowData row;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 76,
-            child: Text(
-              row.label,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              row.value,
-              style: Theme.of(context).textTheme.bodyMedium,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
