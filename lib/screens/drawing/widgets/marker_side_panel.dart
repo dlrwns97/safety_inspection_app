@@ -48,19 +48,18 @@ class MarkerSidePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final compactTextTheme = theme.textTheme.copyWith(
-      titleMedium: theme.textTheme.titleMedium?.copyWith(fontSize: 16),
-      bodyLarge: theme.textTheme.bodyLarge?.copyWith(fontSize: 14),
-      bodyMedium: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
-      bodySmall: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-      labelLarge: theme.textTheme.labelLarge?.copyWith(fontSize: 12),
-      labelMedium: theme.textTheme.labelMedium?.copyWith(fontSize: 12),
-    );
+    final compactTextTheme = theme.textTheme
+        .apply(fontSizeFactor: 0.9)
+        .copyWith(
+          titleMedium: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+          labelLarge: theme.textTheme.labelLarge?.copyWith(fontSize: 11),
+          labelMedium: theme.textTheme.labelMedium?.copyWith(fontSize: 11),
+        );
     final compactTheme = theme.copyWith(
       textTheme: compactTextTheme,
       listTileTheme: theme.listTileTheme.copyWith(
         dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         visualDensity: VisualDensity.compact,
       ),
     );
@@ -78,9 +77,10 @@ class MarkerSidePanel extends StatelessWidget {
               indicatorColor: theme.colorScheme.primary,
               labelStyle: compactTextTheme.labelMedium,
               unselectedLabelStyle: compactTextTheme.labelMedium,
+              isScrollable: true,
               labelPadding: const EdgeInsets.symmetric(
                 horizontal: 8,
-                vertical: 6,
+                vertical: 4,
               ),
               tabs: const [
                 Tab(text: '결함'),
@@ -193,7 +193,7 @@ class MarkerSidePanel extends StatelessWidget {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       children: [
         if (defect != null) _buildDefectDetail(defect),
         if (equipment != null) _buildEquipmentDetail(equipment),
@@ -293,8 +293,18 @@ class _MarkerList<T> extends StatelessWidget {
         final item = items[index];
         final subtitle = subtitleBuilder(item);
         return ListTile(
-          title: Text(titleBuilder(item)),
-          subtitle: subtitle != null ? Text(subtitle) : null,
+          title: Text(
+            titleBuilder(item),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: subtitle != null
+              ? Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : null,
           onTap: () => onTap(item),
         );
       },
@@ -317,14 +327,14 @@ class _DetailSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(subtitle, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           if (rows.isEmpty)
             Text(
               '표시할 상세 정보가 없습니다.',
@@ -353,7 +363,7 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -362,7 +372,12 @@ class _DetailRow extends StatelessWidget {
             child: Text(row.label, style: Theme.of(context).textTheme.bodySmall),
           ),
           Expanded(
-            child: Text(row.value, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              row.value,
+              style: Theme.of(context).textTheme.bodyMedium,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

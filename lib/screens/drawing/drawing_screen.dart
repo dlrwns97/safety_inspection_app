@@ -894,9 +894,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   @override
   Widget build(BuildContext context) {
-    const double sidePanelWidthRatio = 0.26;
-    const double sidePanelMinWidth = 300;
-    const double sidePanelMaxWidth = 380;
+    const double sidePanelWidthRatio = 0.20;
+    const double sidePanelMinWidth = 260;
+    const double sidePanelMaxWidth = 320;
     return Scaffold(
       appBar: _buildAppBar(),
       body: LayoutBuilder(
