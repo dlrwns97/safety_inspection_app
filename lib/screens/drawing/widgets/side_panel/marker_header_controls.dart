@@ -15,7 +15,6 @@ class MarkerHeaderControls extends StatelessWidget {
   final VoidCallback onToggleLock;
 
   static const List<int> _scalePercents = [
-    10,
     20,
     30,
     40,
@@ -38,8 +37,8 @@ class MarkerHeaderControls extends StatelessWidget {
   ];
 
   int _selectedPercent() {
-    final rawPercent = (markerScale * 100).round().clamp(10, 200);
-    return ((rawPercent / 10).round() * 10).clamp(10, 200);
+    final rawPercent = (markerScale * 100).round().clamp(20, 200);
+    return ((rawPercent / 10).round() * 10).clamp(20, 200);
   }
 
   @override
@@ -50,10 +49,13 @@ class MarkerHeaderControls extends StatelessWidget {
         value: _selectedPercent(),
         isDense: true,
         icon: const Icon(Icons.expand_more),
+        itemHeight: 36,
+        style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
         items: _scalePercents
             .map(
               (percent) => DropdownMenuItem<int>(
                 value: percent,
+                height: 36,
                 child: Text('$percent%'),
               ),
             )
@@ -64,7 +66,7 @@ class MarkerHeaderControls extends StatelessWidget {
                 if (value == null) {
                   return;
                 }
-                onMarkerScaleChanged(value / 100.0);
+                onMarkerScaleChanged((value / 100.0).clamp(0.2, 2.0));
               },
       ),
     );
