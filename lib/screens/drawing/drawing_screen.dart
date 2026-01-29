@@ -876,15 +876,25 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   void _handlePdfPageChanged(int page) =>
       _setPdfState(() => _currentPage = page);
-  void _handlePdfDocumentLoaded(PdfDocument document) {
+  void _handlePdfDocumentLoaded(PdfDocument document) async {
+    final pageCount = document.pagesCount;
+    final sizes = await _prefetchPdfPageSizes(document);
+    if (!mounted) {
+      return;
+    }
     _setPdfState(() {
-      _pageCount = document.pagesCount;
+      _pageCount = pageCount;
       if (_currentPage > _pageCount) {
         _currentPage = 1;
       }
       _pdfLoadError = null;
+      if (sizes.isNotEmpty) {
+        _pdfPageSizes
+          ..clear()
+          ..addAll(sizes);
+        _pdfViewVersion += 1;
+      }
     });
-    unawaited(_prefetchPdfPageSizes(document));
     debugPrint('PDF loaded with ${document.pagesCount} pages.');
   }
   void _handlePdfDocumentError(Object error) {
@@ -895,30 +905,25 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   void _handleUpdatePageSize(int pageNumber, Size pageSize) =>
       _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
-  Future<void> _prefetchPdfPageSizes(PdfDocument document) async {
+  Future<Map<int, Size>> _prefetchPdfPageSizes(PdfDocument document) async {
     const double baseWidth = 1000;
     final Map<int, Size> sizes = {};
     for (var pageNumber = 1; pageNumber <= document.pagesCount; pageNumber++) {
       final page = await document.getPage(pageNumber);
-      final pageWidth = page.width.toDouble();
-      final pageHeight = page.height.toDouble();
-      if (pageWidth > 0 && pageHeight > 0) {
-        sizes[pageNumber] = Size(
-          baseWidth,
-          baseWidth * (pageHeight / pageWidth),
-        );
+      try {
+        final pageWidth = page.width.toDouble();
+        final pageHeight = page.height.toDouble();
+        if (pageWidth > 0 && pageHeight > 0) {
+          sizes[pageNumber] = Size(
+            baseWidth,
+            baseWidth * (pageHeight / pageWidth),
+          );
+        }
+      } finally {
+        await page.close();
       }
-      await page.close();
     }
-    if (!mounted || sizes.isEmpty) {
-      return;
-    }
-    _setPdfState(() {
-      _pdfPageSizes
-        ..clear()
-        ..addAll(sizes);
-      _pdfViewVersion += 1;
-    });
+    return sizes;
   }
   void _handlePrevPage() {
     final nextPage = _currentPage - 1;
