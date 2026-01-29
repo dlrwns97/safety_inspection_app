@@ -122,7 +122,8 @@ class MarkerSidePanel extends StatelessWidget {
         .where(
           (defect) =>
               defect.pageIndex == currentPage &&
-              defect.category == selectedDefectCategory,
+              defect.category == selectedDefectCategory &&
+              visibleDefectCategories.contains(defect.category),
         )
         .toList();
     return Column(
@@ -162,7 +163,8 @@ class MarkerSidePanel extends StatelessWidget {
         .where(
           (marker) =>
               marker.pageIndex == currentPage &&
-              marker.category == selectedEquipmentCategory,
+              marker.category == selectedEquipmentCategory &&
+              visibleEquipmentCategories.contains(marker.category),
         )
         .toList();
     return Column(
