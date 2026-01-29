@@ -26,7 +26,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/marker_side_panel.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 class DrawingScreen extends StatefulWidget {
