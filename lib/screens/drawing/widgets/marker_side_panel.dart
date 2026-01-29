@@ -20,6 +20,10 @@ class MarkerSidePanel extends StatelessWidget {
     required this.onSelectEquipment,
     required this.onDefectCategorySelected,
     required this.onEquipmentCategorySelected,
+    required this.visibleDefectCategories,
+    required this.visibleEquipmentCategories,
+    required this.onDefectVisibilityChanged,
+    required this.onEquipmentVisibilityChanged,
   });
 
   final TabController tabController;
@@ -34,6 +38,12 @@ class MarkerSidePanel extends StatelessWidget {
   final ValueChanged<EquipmentMarker> onSelectEquipment;
   final ValueChanged<DefectCategory> onDefectCategorySelected;
   final ValueChanged<EquipmentCategory> onEquipmentCategorySelected;
+  final Set<DefectCategory> visibleDefectCategories;
+  final Set<EquipmentCategory> visibleEquipmentCategories;
+  final void Function(DefectCategory category, bool visible)
+      onDefectVisibilityChanged;
+  final void Function(EquipmentCategory category, bool visible)
+      onEquipmentVisibilityChanged;
 
   int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
 
@@ -204,17 +214,53 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildViewTab(BuildContext context) {
-    final theme = Theme.of(context);
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       children: [
-        Text('보기', style: theme.textTheme.titleMedium),
+        _buildViewSectionTitle(context, '결함'),
+        const SizedBox(height: 4),
+        for (final category in DefectCategory.values)
+          CheckboxListTile(
+            value: visibleDefectCategories.contains(category),
+            onChanged: (value) =>
+                onDefectVisibilityChanged(category, value ?? false),
+            title: Text(
+              category.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            controlAffinity: ListTileControlAffinity.trailing,
+          ),
         const SizedBox(height: 8),
-        Text(
-          '다음 단계에서 표시/숨김 체크 기능을 추가합니다.',
-          style: theme.textTheme.bodyMedium,
-        ),
+        _buildViewSectionTitle(context, '장비'),
+        const SizedBox(height: 4),
+        for (final category in EquipmentCategory.values)
+          CheckboxListTile(
+            value: visibleEquipmentCategories.contains(category),
+            onChanged: (value) =>
+                onEquipmentVisibilityChanged(category, value ?? false),
+            title: Text(
+              equipmentChipLabel(category),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            controlAffinity: ListTileControlAffinity.trailing,
+          ),
       ],
+    );
+  }
+
+  Widget _buildViewSectionTitle(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Text(
+      title,
+      style: theme.textTheme.titleSmall,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 

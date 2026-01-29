@@ -56,6 +56,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   EquipmentCategory? _activeEquipmentCategory;
   DefectCategory? _sidePanelDefectCategory;
   EquipmentCategory? _sidePanelEquipmentCategory;
+  final Set<DefectCategory> _visibleDefectCategories =
+      DefectCategory.values.toSet();
+  final Set<EquipmentCategory> _visibleEquipmentCategories =
+      EquipmentCategory.values.toSet();
   final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
   int _pageCount = 1;
@@ -938,6 +942,26 @@ class _DrawingScreenState extends State<DrawingScreen>
                   ),
                   onEquipmentCategorySelected: (category) => setState(
                     () => _sidePanelEquipmentCategory = category,
+                  ),
+                  visibleDefectCategories: _visibleDefectCategories,
+                  visibleEquipmentCategories: _visibleEquipmentCategories,
+                  onDefectVisibilityChanged: (category, visible) => setState(
+                    () {
+                      if (visible) {
+                        _visibleDefectCategories.add(category);
+                      } else {
+                        _visibleDefectCategories.remove(category);
+                      }
+                    },
+                  ),
+                  onEquipmentVisibilityChanged: (category, visible) => setState(
+                    () {
+                      if (visible) {
+                        _visibleEquipmentCategories.add(category);
+                      } else {
+                        _visibleEquipmentCategories.remove(category);
+                      }
+                    },
                   ),
                 ),
               ),
