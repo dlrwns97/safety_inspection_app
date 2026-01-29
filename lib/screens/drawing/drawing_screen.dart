@@ -573,7 +573,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     required int pageIndex,
   }) => [
     ..._buildMarkersForPage(
-      items: _site.defects,
+      items: _site.defects.where(
+        (defect) => _visibleDefectCategories.contains(defect.category),
+      ),
       pageIndex: pageIndex,
       pageSize: size,
       isSelected:
@@ -591,7 +593,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       ),
     ),
     ..._buildMarkersForPage(
-      items: _site.equipmentMarkers,
+      items: _site.equipmentMarkers.where(
+        (marker) => _visibleEquipmentCategories.contains(marker.category),
+      ),
       pageIndex: pageIndex,
       pageSize: size,
       isSelected:
