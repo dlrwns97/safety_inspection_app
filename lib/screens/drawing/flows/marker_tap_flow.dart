@@ -394,7 +394,6 @@ Future<Site?> addEquipmentMarker({
     normalizedX: normalizedX,
     normalizedY: normalizedY,
   );
-
   return createEquipmentUpdatedSite(
     context: context,
     site: site,
