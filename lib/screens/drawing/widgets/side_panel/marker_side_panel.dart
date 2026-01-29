@@ -30,7 +30,9 @@ class MarkerSidePanel extends StatelessWidget {
     required this.onDefectVisibilityChanged,
     required this.onEquipmentVisibilityChanged,
     required this.markerScale,
+    required this.labelScale,
     required this.onMarkerScaleChanged,
+    required this.onLabelScaleChanged,
     required this.isMarkerScaleLocked,
     required this.onToggleMarkerScaleLock,
   });
@@ -54,7 +56,9 @@ class MarkerSidePanel extends StatelessWidget {
   final void Function(EquipmentCategory category, bool visible)
       onEquipmentVisibilityChanged;
   final double markerScale;
+  final double labelScale;
   final ValueChanged<double> onMarkerScaleChanged;
+  final ValueChanged<double> onLabelScaleChanged;
   final bool isMarkerScaleLocked;
   final VoidCallback onToggleMarkerScaleLock;
 
@@ -113,7 +117,9 @@ class MarkerSidePanel extends StatelessWidget {
           children: [
             MarkerHeaderControls(
               markerScale: markerScale,
+              labelScale: labelScale,
               onMarkerScaleChanged: onMarkerScaleChanged,
+              onLabelScaleChanged: onLabelScaleChanged,
               isLocked: isMarkerScaleLocked,
               onToggleLock: onToggleMarkerScaleLock,
             ),
