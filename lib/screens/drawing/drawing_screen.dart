@@ -894,6 +894,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   @override
   Widget build(BuildContext context) {
+    const double sidePanelWidthRatio = 0.26;
+    const double sidePanelMinWidth = 300;
+    const double sidePanelMaxWidth = 380;
     return Scaffold(
       appBar: _buildAppBar(),
       body: LayoutBuilder(
@@ -903,6 +906,9 @@ class _DrawingScreenState extends State<DrawingScreen>
           if (!showSidePanel) {
             return drawingStack;
           }
+          final panelWidth = (constraints.maxWidth * sidePanelWidthRatio)
+              .clamp(sidePanelMinWidth, sidePanelMaxWidth)
+              .toDouble();
           final defectFilter =
               _sidePanelDefectCategory ??
               _activeCategory ??
@@ -914,30 +920,24 @@ class _DrawingScreenState extends State<DrawingScreen>
           return Row(
             children: [
               Expanded(child: drawingStack),
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: 320,
-                  maxWidth: 360,
-                ),
-                child: SizedBox(
-                  width: 340,
-                  child: MarkerSidePanel(
-                    tabController: _sidePanelController,
-                    currentPage: _currentPage,
-                    defects: _site.defects,
-                    equipmentMarkers: _site.equipmentMarkers,
-                    selectedDefect: _selectedDefect,
-                    selectedEquipment: _selectedEquipment,
-                    selectedDefectCategory: defectFilter,
-                    selectedEquipmentCategory: equipmentFilter,
-                    onSelectDefect: _selectDefectFromPanel,
-                    onSelectEquipment: _selectEquipmentFromPanel,
-                    onDefectCategorySelected: (category) => setState(
-                      () => _sidePanelDefectCategory = category,
-                    ),
-                    onEquipmentCategorySelected: (category) => setState(
-                      () => _sidePanelEquipmentCategory = category,
-                    ),
+              SizedBox(
+                width: panelWidth,
+                child: MarkerSidePanel(
+                  tabController: _sidePanelController,
+                  currentPage: _currentPage,
+                  defects: _site.defects,
+                  equipmentMarkers: _site.equipmentMarkers,
+                  selectedDefect: _selectedDefect,
+                  selectedEquipment: _selectedEquipment,
+                  selectedDefectCategory: defectFilter,
+                  selectedEquipmentCategory: equipmentFilter,
+                  onSelectDefect: _selectDefectFromPanel,
+                  onSelectEquipment: _selectEquipmentFromPanel,
+                  onDefectCategorySelected: (category) => setState(
+                    () => _sidePanelDefectCategory = category,
+                  ),
+                  onEquipmentCategorySelected: (category) => setState(
+                    () => _sidePanelEquipmentCategory = category,
                   ),
                 ),
               ),

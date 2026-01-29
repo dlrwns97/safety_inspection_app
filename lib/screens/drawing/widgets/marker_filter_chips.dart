@@ -19,7 +19,7 @@ class MarkerFilterChips<T> extends StatelessWidget {
     final theme = Theme.of(context);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: options
             .map(
@@ -29,6 +29,7 @@ class MarkerFilterChips<T> extends StatelessWidget {
                   selected: item == selected,
                   label: Text(labelBuilder(item)),
                   labelStyle: theme.textTheme.labelLarge,
+                  visualDensity: VisualDensity.compact,
                   onSelected: (_) => onSelected(item),
                 ),
               ),

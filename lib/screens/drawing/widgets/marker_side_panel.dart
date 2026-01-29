@@ -48,34 +48,59 @@ class MarkerSidePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TabBar(
-            controller: tabController,
-            labelColor: theme.colorScheme.primary,
-            indicatorColor: theme.colorScheme.primary,
-            tabs: const [
-              Tab(text: '결함'),
-              Tab(text: '장비'),
-              Tab(text: '상세'),
-            ],
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: TabBarView(
+    final compactTextTheme = theme.textTheme.copyWith(
+      titleMedium: theme.textTheme.titleMedium?.copyWith(fontSize: 16),
+      bodyLarge: theme.textTheme.bodyLarge?.copyWith(fontSize: 14),
+      bodyMedium: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+      bodySmall: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+      labelLarge: theme.textTheme.labelLarge?.copyWith(fontSize: 12),
+      labelMedium: theme.textTheme.labelMedium?.copyWith(fontSize: 12),
+    );
+    final compactTheme = theme.copyWith(
+      textTheme: compactTextTheme,
+      listTileTheme: theme.listTileTheme.copyWith(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+    return Theme(
+      data: compactTheme,
+      child: Material(
+        color: theme.colorScheme.surface,
+        elevation: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TabBar(
               controller: tabController,
-              children: [
-                _buildDefectTab(context),
-                _buildEquipmentTab(context),
-                _buildDetailTab(context),
+              labelColor: theme.colorScheme.primary,
+              indicatorColor: theme.colorScheme.primary,
+              labelStyle: compactTextTheme.labelMedium,
+              unselectedLabelStyle: compactTextTheme.labelMedium,
+              labelPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 6,
+              ),
+              tabs: const [
+                Tab(text: '결함'),
+                Tab(text: '장비'),
+                Tab(text: '상세'),
               ],
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: TabBarView(
+                controller: tabController,
+                children: [
+                  _buildDefectTab(context),
+                  _buildEquipmentTab(context),
+                  _buildDetailTab(context),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -168,7 +193,7 @@ class MarkerSidePanel extends StatelessWidget {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       children: [
         if (defect != null) _buildDefectDetail(defect),
         if (equipment != null) _buildEquipmentDetail(equipment),
@@ -292,14 +317,14 @@ class _DetailSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(subtitle, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (rows.isEmpty)
             Text(
               '표시할 상세 정보가 없습니다.',
@@ -328,12 +353,12 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 72,
+            width: 64,
             child: Text(row.label, style: Theme.of(context).textTheme.bodySmall),
           ),
           Expanded(
