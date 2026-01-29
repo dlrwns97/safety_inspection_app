@@ -4,8 +4,8 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/marker_filter_chips.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_controls_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_detail_section.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_header_controls.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_info_banner.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_view_tab.dart';
@@ -111,7 +111,7 @@ class MarkerSidePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MarkerControlsBar(
+            MarkerHeaderControls(
               markerScale: markerScale,
               onMarkerScaleChanged: onMarkerScaleChanged,
               isLocked: isMarkerScaleLocked,
