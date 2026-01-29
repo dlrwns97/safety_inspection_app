@@ -6,11 +6,13 @@ class NumberedTabs<T> extends StatelessWidget {
     required this.items,
     required this.selected,
     required this.onSelected,
+    this.labels,
   });
 
   final List<T> items;
   final T? selected;
   final ValueChanged<T> onSelected;
+  final List<String>? labels;
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +23,13 @@ class NumberedTabs<T> extends StatelessWidget {
         children: List.generate(items.length, (index) {
           final item = items[index];
           final isSelected = item == selected;
+          final label = labels != null && index < labels!.length
+              ? labels![index]
+              : '${index + 1}';
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: Text('${index + 1}'),
+              label: Text(label),
               selected: isSelected,
               onSelected: (_) => onSelected(item),
             ),

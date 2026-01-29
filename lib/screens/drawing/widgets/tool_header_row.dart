@@ -79,6 +79,7 @@ class ToolHeaderRow extends StatelessWidget {
                     items: EquipmentCategory.values,
                     selected: activeEquipmentCategory,
                     onSelected: onEquipmentSelected,
+                    labels: _equipmentTabLabels,
                   ),
           ),
         ],
@@ -101,6 +102,17 @@ class ToolHeaderRow extends StatelessWidget {
     }
   }
 }
+
+const List<String> _equipmentTabLabels = [
+  '치수',
+  '철근',
+  '슈미트',
+  '코어',
+  '탄산화',
+  '기울기',
+  '처짐',
+  '부동침하',
+];
 
 String _shortTopDefectLabel(DefectCategory category) {
   switch (category) {
