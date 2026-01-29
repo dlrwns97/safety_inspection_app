@@ -35,6 +35,8 @@ class MarkerSidePanel extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectCategorySelected;
   final ValueChanged<EquipmentCategory> onEquipmentCategorySelected;
 
+  int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
+
   static const List<DefectCategory> defectCategories = [
     DefectCategory.generalCrack,
     DefectCategory.waterLeakage,
@@ -199,6 +201,7 @@ class MarkerSidePanel extends StatelessWidget {
 
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final label = equipmentDisplayLabel(marker, equipmentMarkers);
+    final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
     final rows = <_DetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         _DetailRowData('부재', marker.memberType!),
@@ -230,7 +233,7 @@ class MarkerSidePanel extends StatelessWidget {
     return _DetailSection(
       title: label,
       subtitle:
-          '${equipmentCategoryDisplayNameKo(marker.category)} · 페이지 ${marker.pageIndex + 1}',
+          '${equipmentCategoryDisplayNameKo(marker.category)} · 페이지 $displayPage',
       rows: rows,
     );
   }
