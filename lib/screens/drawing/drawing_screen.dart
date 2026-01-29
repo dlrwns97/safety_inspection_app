@@ -586,7 +586,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       ny: (defect) => defect.normalizedY,
       buildMarker:
           (defect, selected) => DefectMarkerWidget(
-        label: defect.label,
+        label: defectDisplayLabel(defect),
         category: defect.category,
         color: defectCategoryConfig(defect.category).color,
         isSelected: selected,
