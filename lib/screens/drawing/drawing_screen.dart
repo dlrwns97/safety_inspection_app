@@ -72,6 +72,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   Offset? _pointerDownPosition;
   bool _tapCanceled = false;
   bool _isDetailDialogOpen = false;
+  double _markerScale = 1.0;
   @override
   void initState() {
     super.initState();
@@ -593,6 +594,7 @@ class _DrawingScreenState extends State<DrawingScreen>
         category: defect.category,
         color: defectCategoryConfig(defect.category).color,
         isSelected: selected,
+        scale: _markerScale,
       ),
     ),
     ..._buildMarkersForPage(
@@ -613,6 +615,7 @@ class _DrawingScreenState extends State<DrawingScreen>
         category: marker.category,
         color: equipmentColor(marker.category),
         isSelected: selected,
+        scale: _markerScale,
       ),
     ),
   ];

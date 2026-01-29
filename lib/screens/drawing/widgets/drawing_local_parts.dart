@@ -22,6 +22,7 @@ class DefectMarkerWidget extends StatelessWidget {
     required this.category,
     required this.color,
     required this.isSelected,
+    this.scale = 1.0,
     super.key,
   });
 
@@ -29,25 +30,29 @@ class DefectMarkerWidget extends StatelessWidget {
   final DefectCategory category;
   final Color color;
   final bool isSelected;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     const markerSize = 30.0;
+    final scaledSize = (markerSize * scale).clamp(20.0, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
+    final baseFontSize =
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1;
+    final textScale = scale.clamp(0.85, 1.15);
     final labelStyle = Theme.of(
       context,
     ).textTheme.labelMedium?.copyWith(
           color: Colors.white,
-          fontSize:
-              (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1,
+          fontSize: (baseFontSize * textScale).clamp(10.0, 16.0),
         );
     return Tooltip(
       message: category.label,
       child: Container(
-        width: markerSize,
-        height: markerSize,
+        width: scaledSize,
+        height: scaledSize,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -79,6 +84,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
     required this.category,
     required this.color,
     required this.isSelected,
+    this.scale = 1.0,
     super.key,
   });
 
@@ -86,25 +92,29 @@ class EquipmentMarkerWidget extends StatelessWidget {
   final EquipmentCategory category;
   final Color color;
   final bool isSelected;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     const markerSize = 30.0;
+    final scaledSize = (markerSize * scale).clamp(20.0, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
+    final baseFontSize =
+        (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1;
+    final textScale = scale.clamp(0.85, 1.15);
     final labelStyle = Theme.of(
       context,
     ).textTheme.labelMedium?.copyWith(
           color: Colors.white,
-          fontSize:
-              (Theme.of(context).textTheme.labelMedium?.fontSize ?? 12) - 1,
+          fontSize: (baseFontSize * textScale).clamp(10.0, 16.0),
         );
     return Tooltip(
       message: category.label,
       child: Container(
-        width: markerSize,
-        height: markerSize,
+        width: scaledSize,
+        height: scaledSize,
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(8),
