@@ -43,7 +43,7 @@ class MarkerViewTab extends StatelessWidget {
         const SizedBox(height: 8),
         _MarkerViewSectionTitle(title: '장비'),
         const SizedBox(height: 4),
-        for (final category in EquipmentCategory.values)
+        for (final category in kEquipmentCategoryOrder)
           CheckboxListTile(
             value: visibleEquipmentCategories.contains(category),
             onChanged: (value) =>

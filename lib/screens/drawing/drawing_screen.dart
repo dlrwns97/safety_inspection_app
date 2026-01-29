@@ -693,14 +693,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       ..addAll(tabs);
   }
   void _initializeEquipmentTabs() {
-    final categories = <EquipmentCategory>[];
-    for (final name in _site.visibleEquipmentCategoryNames) {
-      final matches =
-          EquipmentCategory.values.where((category) => category.name == name);
-      if (matches.isNotEmpty) {
-        categories.add(matches.first);
-      }
-    }
+    final visibleNames = _site.visibleEquipmentCategoryNames.toSet();
+    final categories = kEquipmentCategoryOrder
+        .where((category) => visibleNames.contains(category.name))
+        .toList();
     _visibleEquipmentCategories
       ..clear()
       ..addAll(categories);
@@ -715,13 +711,24 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (current == null) {
       return null;
     }
-    return visibleCategories.contains(current)
-        ? current
-        : visibleCategories.first;
+    if (visibleCategories.contains(current)) {
+      return current;
+    }
+    final orderedVisible = _orderedVisibleEquipmentCategories(visibleCategories);
+    return orderedVisible.isNotEmpty ? orderedVisible.first : current;
+  }
+
+  List<EquipmentCategory> _orderedVisibleEquipmentCategories(
+    Set<EquipmentCategory> visibleCategories,
+  ) {
+    return kEquipmentCategoryOrder
+        .where((category) => visibleCategories.contains(category))
+        .toList();
   }
   Future<void> _updateVisibleEquipmentCategories(
     Set<EquipmentCategory> visibleCategories,
   ) async {
+    final orderedVisible = _orderedVisibleEquipmentCategories(visibleCategories);
     final nextActive = _nextActiveEquipmentCategory(
       _activeEquipmentCategory,
       visibleCategories,
@@ -729,7 +736,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     await _applyUpdatedSite(
       _site.copyWith(
         visibleEquipmentCategoryNames:
-            visibleCategories.map((category) => category.name).toList(),
+            orderedVisible.map((category) => category.name).toList(),
       ),
       onStateUpdated: () {
         _visibleEquipmentCategories
@@ -827,7 +834,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
 
   Future<void> _showEquipmentCategoryPicker() async {
-    if (EquipmentCategory.values.isEmpty) {
+    if (kEquipmentCategoryOrder.isEmpty) {
       return;
     }
     final selectedCategory = await showEquipmentCategoryPickerSheet(
@@ -840,10 +847,12 @@ class _DrawingScreenState extends State<DrawingScreen>
     final updatedCategories = Set<EquipmentCategory>.from(
       _visibleEquipmentCategories,
     )..add(selectedCategory);
+    final orderedVisible =
+        _orderedVisibleEquipmentCategories(updatedCategories);
     await _applyUpdatedSite(
       _site.copyWith(
         visibleEquipmentCategoryNames:
-            updatedCategories.map((category) => category.name).toList(),
+            orderedVisible.map((category) => category.name).toList(),
       ),
       onStateUpdated: () {
         _visibleEquipmentCategories
@@ -884,7 +893,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     defectTabs: _defectTabs,
     activeCategory: _activeCategory,
     activeEquipmentCategory: _activeEquipmentCategory,
-    equipmentTabs: EquipmentCategory.values
+    equipmentTabs: kEquipmentCategoryOrder
         .where((category) => _visibleEquipmentCategories.contains(category))
         .toList(),
     onToggleMode: _toggleMode,
@@ -1104,7 +1113,7 @@ class _DrawingScreenState extends State<DrawingScreen>
           final equipmentFilter =
               _sidePanelEquipmentCategory ??
               _activeEquipmentCategory ??
-              EquipmentCategory.values.first;
+              kEquipmentCategoryOrder.first;
           return Row(
             children: [
               Expanded(child: drawingStack),

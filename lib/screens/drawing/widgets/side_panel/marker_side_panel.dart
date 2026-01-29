@@ -217,7 +217,7 @@ class MarkerSidePanel extends StatelessWidget {
     return Column(
       children: [
         MarkerFilterChips<EquipmentCategory>(
-          options: EquipmentCategory.values,
+          options: kEquipmentCategoryOrder,
           selected: selectedEquipmentCategory,
           labelBuilder: equipmentChipLabel,
           onSelected: onEquipmentCategorySelected,

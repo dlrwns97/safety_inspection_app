@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
 Future<EquipmentCategory?> showEquipmentCategoryPickerSheet({
   required BuildContext context,
@@ -11,19 +10,24 @@ Future<EquipmentCategory?> showEquipmentCategoryPickerSheet({
     context: context,
     showDragHandle: true,
     builder: (context) {
+      final availableCategories = kEquipmentCategoryOrder
+          .where((category) => !selectedCategories.contains(category))
+          .toList();
       return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final category in EquipmentCategory.values)
-              _EquipmentCategoryPickerTile(
-                category: category,
-                isSelected: selectedCategories.contains(category),
-                onTap: selectedCategories.contains(category)
-                    ? null
-                    : () => Navigator.of(context).pop(category),
-              ),
-          ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+          ),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              for (final category in availableCategories)
+                _EquipmentCategoryPickerTile(
+                  category: category,
+                  onTap: () => Navigator.of(context).pop(category),
+                ),
+            ],
+          ),
         ),
       );
     },
@@ -33,26 +37,20 @@ Future<EquipmentCategory?> showEquipmentCategoryPickerSheet({
 class _EquipmentCategoryPickerTile extends StatelessWidget {
   const _EquipmentCategoryPickerTile({
     required this.category,
-    required this.isSelected,
     required this.onTap,
   });
 
   final EquipmentCategory category;
-  final bool isSelected;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ListTile(
-      title: Text(equipmentCategoryDisplayNameKo(category)),
+      title: Text(category.label),
       enabled: onTap != null,
-      trailing: isSelected
-          ? Icon(
-              Icons.check,
-              color: theme.colorScheme.primary,
-            )
-          : null,
+      trailing:
+          onTap == null ? null : Icon(Icons.add, color: theme.iconTheme.color),
       onTap: onTap,
     );
   }
