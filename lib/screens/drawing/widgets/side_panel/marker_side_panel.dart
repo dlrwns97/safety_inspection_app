@@ -31,6 +31,8 @@ class MarkerSidePanel extends StatelessWidget {
     required this.onEquipmentVisibilityChanged,
     required this.markerScale,
     required this.onMarkerScaleChanged,
+    required this.isMarkerScaleLocked,
+    required this.onToggleMarkerScaleLock,
   });
 
   final TabController tabController;
@@ -53,6 +55,8 @@ class MarkerSidePanel extends StatelessWidget {
       onEquipmentVisibilityChanged;
   final double markerScale;
   final ValueChanged<double> onMarkerScaleChanged;
+  final bool isMarkerScaleLocked;
+  final VoidCallback onToggleMarkerScaleLock;
 
   int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
 
@@ -110,6 +114,8 @@ class MarkerSidePanel extends StatelessWidget {
             MarkerControlsBar(
               markerScale: markerScale,
               onMarkerScaleChanged: onMarkerScaleChanged,
+              isLocked: isMarkerScaleLocked,
+              onToggleLock: onToggleMarkerScaleLock,
             ),
             const Divider(height: 1),
             TabBar(
