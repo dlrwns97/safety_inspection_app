@@ -118,6 +118,8 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildDefectTab(BuildContext context) {
+    final isVisible =
+        visibleDefectCategories.contains(selectedDefectCategory);
     final filteredDefects = defects
         .where(
           (defect) =>
@@ -134,6 +136,11 @@ class MarkerSidePanel extends StatelessWidget {
           labelBuilder: (item) => item.label,
           onSelected: onDefectCategorySelected,
         ),
+        if (!isVisible)
+          _buildVisibilityInfoBanner(
+            context,
+            "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+          ),
         const Divider(height: 1),
         Expanded(
           child: _MarkerList(
@@ -159,6 +166,9 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildEquipmentTab(BuildContext context) {
+    final isVisible =
+        visibleEquipmentCategories.contains(selectedEquipmentCategory);
+    final selectedLabel = equipmentChipLabel(selectedEquipmentCategory);
     final filteredEquipment = equipmentMarkers
         .where(
           (marker) =>
@@ -175,6 +185,11 @@ class MarkerSidePanel extends StatelessWidget {
           labelBuilder: equipmentChipLabel,
           onSelected: onEquipmentCategorySelected,
         ),
+        if (!isVisible)
+          _buildVisibilityInfoBanner(
+            context,
+            "보기 탭에서 '$selectedLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+          ),
         const Divider(height: 1),
         Expanded(
           child: _MarkerList(
@@ -263,6 +278,41 @@ class MarkerSidePanel extends StatelessWidget {
       style: theme.textTheme.titleSmall,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildVisibilityInfoBanner(BuildContext context, String message) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 14,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
