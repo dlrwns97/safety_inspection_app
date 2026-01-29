@@ -62,8 +62,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   EquipmentCategory? _sidePanelEquipmentCategory;
   final Set<DefectCategory> _visibleDefectCategories =
       DefectCategory.values.toSet();
-  final Set<EquipmentCategory> _visibleEquipmentCategories =
-      EquipmentCategory.values.toSet();
+  final Set<EquipmentCategory> _visibleEquipmentCategories = {};
   final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
   int _pageCount = 1;
@@ -81,6 +80,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     super.initState();
     _site = widget.site;
     _initializeDefectTabs();
+    _initializeEquipmentTabs();
     _sidePanelController = TabController(length: 4, vsync: this);
     _loadPdfController();
   }
@@ -687,6 +687,67 @@ class _DrawingScreenState extends State<DrawingScreen>
       ..clear()
       ..addAll(tabs);
   }
+  void _initializeEquipmentTabs() {
+    final categories = <EquipmentCategory>[];
+    for (final name in _site.visibleEquipmentCategoryNames) {
+      final matches =
+          EquipmentCategory.values.where((category) => category.name == name);
+      if (matches.isNotEmpty) {
+        categories.add(matches.first);
+      }
+    }
+    _visibleEquipmentCategories
+      ..clear()
+      ..addAll(categories);
+  }
+  EquipmentCategory? _nextActiveEquipmentCategory(
+    EquipmentCategory? current,
+    Set<EquipmentCategory> visibleCategories,
+  ) {
+    if (visibleCategories.isEmpty) {
+      return current;
+    }
+    if (current == null) {
+      return null;
+    }
+    return visibleCategories.contains(current)
+        ? current
+        : visibleCategories.first;
+  }
+  Future<void> _updateVisibleEquipmentCategories(
+    Set<EquipmentCategory> visibleCategories,
+  ) async {
+    final nextActive = _nextActiveEquipmentCategory(
+      _activeEquipmentCategory,
+      visibleCategories,
+    );
+    await _applyUpdatedSite(
+      _site.copyWith(
+        visibleEquipmentCategoryNames:
+            visibleCategories.map((category) => category.name).toList(),
+      ),
+      onStateUpdated: () {
+        _visibleEquipmentCategories
+          ..clear()
+          ..addAll(visibleCategories);
+        _activeEquipmentCategory = nextActive;
+      },
+    );
+  }
+  void _handleEquipmentVisibilityChanged(
+    EquipmentCategory category,
+    bool visible,
+  ) {
+    final updatedCategories = Set<EquipmentCategory>.from(
+      _visibleEquipmentCategories,
+    );
+    if (visible) {
+      updatedCategories.add(category);
+    } else {
+      updatedCategories.remove(category);
+    }
+    _updateVisibleEquipmentCategories(updatedCategories);
+  }
   Future<void> _showDeleteDefectTabDialog(DefectCategory category) async {
     final shouldDelete = await showDeleteDefectTabDialog(
       context: context,
@@ -714,9 +775,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     );
   }
   Future<void> _showDeleteEquipmentTabDialog(EquipmentCategory category) async {
-    if (_visibleEquipmentCategories.length <= 1) {
-      return;
-    }
     final shouldDelete = await showDeleteEquipmentTabDialog(
       context: context,
       category: category,
@@ -724,14 +782,10 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (shouldDelete != true || !mounted) {
       return;
     }
-    setState(() {
-      _visibleEquipmentCategories.remove(category);
-      if (_activeEquipmentCategory == category) {
-        _activeEquipmentCategory = EquipmentCategory.values.firstWhere(
-          (value) => _visibleEquipmentCategories.contains(value),
-        );
-      }
-    });
+    final updatedCategories = Set<EquipmentCategory>.from(
+      _visibleEquipmentCategories,
+    )..remove(category);
+    await _updateVisibleEquipmentCategories(updatedCategories);
   }
   void _showSelectDefectCategoryHint() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1051,15 +1105,8 @@ class _DrawingScreenState extends State<DrawingScreen>
                       }
                     },
                   ),
-                  onEquipmentVisibilityChanged: (category, visible) => setState(
-                    () {
-                      if (visible) {
-                        _visibleEquipmentCategories.add(category);
-                      } else {
-                        _visibleEquipmentCategories.remove(category);
-                      }
-                    },
-                  ),
+                  onEquipmentVisibilityChanged:
+                      _handleEquipmentVisibilityChanged,
                   markerScale: _markerScale,
                   labelScale: _labelScale,
                   onMarkerScaleChanged: (value) {

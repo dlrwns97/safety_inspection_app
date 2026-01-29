@@ -18,11 +18,15 @@ class Site {
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
     List<String>? visibleDefectCategoryNames,
+    List<String>? visibleEquipmentCategoryNames,
   })  : defects = defects ?? [],
         equipmentMarkers = equipmentMarkers ?? [],
         visibleDefectCategoryNames =
             visibleDefectCategoryNames ??
-            DefectCategory.values.map((category) => category.name).toList();
+            DefectCategory.values.map((category) => category.name).toList(),
+        visibleEquipmentCategoryNames =
+            visibleEquipmentCategoryNames ??
+            EquipmentCategory.values.map((category) => category.name).toList();
 
   final String id;
   final String name;
@@ -38,6 +42,7 @@ class Site {
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
   final List<String> visibleDefectCategoryNames;
+  final List<String> visibleEquipmentCategoryNames;
 
   static const _deletedAtSentinel = Object();
 
@@ -56,6 +61,7 @@ class Site {
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
     List<String>? visibleDefectCategoryNames,
+    List<String>? visibleEquipmentCategoryNames,
   }) {
     return Site(
       id: id ?? this.id,
@@ -78,6 +84,9 @@ class Site {
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           List<String>.from(this.visibleDefectCategoryNames),
+      visibleEquipmentCategoryNames:
+          visibleEquipmentCategoryNames ??
+          List<String>.from(this.visibleEquipmentCategoryNames),
     );
   }
 
@@ -97,6 +106,7 @@ class Site {
     'equipmentMarkers':
         equipmentMarkers.map((marker) => marker.toJson()).toList(),
     'visibleDefectCategoryNames': visibleDefectCategoryNames,
+    'visibleEquipmentCategoryNames': visibleEquipmentCategoryNames,
   };
 
   factory Site.fromJson(Map<String, dynamic> json) {
@@ -118,6 +128,12 @@ class Site {
         (json['visibleDefectCategoryNames'] as List<dynamic>?)
             ?.whereType<String>()
             .toList();
+    final visibleEquipmentCategoryNames =
+        json.containsKey('visibleEquipmentCategoryNames')
+            ? (json['visibleEquipmentCategoryNames'] as List<dynamic>?)
+                ?.whereType<String>()
+                .toList()
+            : null;
     return Site(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -143,6 +159,9 @@ class Site {
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           DefectCategory.values.map((category) => category.name).toList(),
+      visibleEquipmentCategoryNames:
+          visibleEquipmentCategoryNames ??
+          EquipmentCategory.values.map((category) => category.name).toList(),
     );
   }
 }

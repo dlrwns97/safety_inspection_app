@@ -36,8 +36,9 @@ class ToolHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showAddButton = mode == DrawMode.defect || mode == DrawMode.equipment;
-    final showTabs =
-        mode == DrawMode.defect ? defectTabs.isNotEmpty : showAddButton;
+    final showTabs = mode == DrawMode.defect
+        ? defectTabs.isNotEmpty
+        : equipmentTabs.isNotEmpty;
 
     return Row(
       children: [
