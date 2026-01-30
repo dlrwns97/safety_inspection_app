@@ -440,7 +440,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
-      isWithinCanvas: true,
+      isWithinCanvas: true, // PDF taps should always be treated as within canvas.
       hasHitResult: hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
