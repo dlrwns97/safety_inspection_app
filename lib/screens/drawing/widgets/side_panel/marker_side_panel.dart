@@ -273,7 +273,7 @@ class MarkerSidePanel extends StatelessWidget {
       visibleEquipmentCategories: visibleEquipmentCategories,
       onDefectVisibilityChanged: onDefectVisibilityChanged,
       onEquipmentVisibilityChanged: onEquipmentVisibilityChanged,
-      equipmentLabelBuilder: equipmentChipLabel,
+      equipmentLabelBuilder: equipmentCategoryDisplayNameKo,
     );
   }
 
