@@ -491,7 +491,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size pageSize,
     int pageIndex,
     BuildContext tapContext,
-    {required Rect imageRect}
+    {required Rect destRect}
   ) async {
     final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
     final tapInfo = _resolveTapPosition(
@@ -500,13 +500,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     final localPosition = tapInfo?.localPosition ?? details.localPosition;
     final overlaySize = tapInfo?.size ?? pageSize;
-    final resolvedImageRect =
-        imageRect.isEmpty ? Offset.zero & overlaySize : imageRect;
-    if (!resolvedImageRect.contains(localPosition)) {
+    final resolvedDestRect =
+        destRect.isEmpty ? Offset.zero & overlaySize : destRect;
+    if (!resolvedDestRect.contains(localPosition)) {
       return;
     }
-    final imageLocal = localPosition - resolvedImageRect.topLeft;
-    final imageSize = resolvedImageRect.size;
+    final imageLocal = localPosition - resolvedDestRect.topLeft;
+    final imageSize = resolvedDestRect.size;
     final hitResult = _hitTestMarker(
       point: imageLocal,
       size: imageSize,
