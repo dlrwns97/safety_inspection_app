@@ -53,6 +53,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
+  final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, Size> _pdfPageSizes = {};
   int _pdfViewVersion = 0;
   late Site _site;

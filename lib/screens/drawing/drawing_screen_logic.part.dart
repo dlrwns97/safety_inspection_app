@@ -96,7 +96,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Future<void> _handleCanvasTap(TapUpDetails details) async {
-    final scenePoint = _transformationController.toScene(details.localPosition);
+    final tapInfo = _resolveTapPosition(
+      _canvasTapRegionKey.currentContext,
+      details.globalPosition,
+    );
+    final localPosition = tapInfo?.localPosition ?? details.localPosition;
+    final scenePoint = _transformationController.toScene(localPosition);
     final hitResult = _hitTestMarker(
       point: scenePoint,
       size: DrawingCanvasSize,
@@ -188,16 +193,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   bool _isTapWithinCanvas(Offset globalPosition) {
-    final context = _canvasKey.currentContext;
-    final renderObject = context?.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.hasSize) {
-      return false;
-    }
-    final localPosition = renderObject.globalToLocal(globalPosition);
-    return localPosition.dx >= 0 &&
-        localPosition.dy >= 0 &&
-        localPosition.dx <= renderObject.size.width &&
-        localPosition.dy <= renderObject.size.height;
+    return _resolveTapPosition(
+          _canvasTapRegionKey.currentContext,
+          globalPosition,
+        ) !=
+        null;
   }
 
   Future<DefectDetails?> _showDefectDetailsDialog() async {
@@ -354,11 +354,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     TapUpDetails details,
     Size pageSize,
     int pageIndex,
+    BuildContext tapContext,
   ) async {
-    final localPosition = details.localPosition;
+    final tapInfo =
+        _resolveTapPosition(tapContext, details.globalPosition) ??
+        (localPosition: details.localPosition, size: pageSize);
+    final localPosition = tapInfo.localPosition;
+    final overlaySize = tapInfo.size;
     final hitResult = _hitTestMarker(
       point: localPosition,
-      size: pageSize,
+      size: overlaySize,
       pageIndex: pageIndex,
     );
     final decision = _controller.handlePdfTapDecision(
@@ -369,8 +374,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (localPosition.dx / pageSize.width).clamp(0.0, 1.0);
-    final normalizedY = (localPosition.dy / pageSize.height).clamp(0.0, 1.0);
+    final normalizedX = (localPosition.dx / overlaySize.width).clamp(0.0, 1.0);
+    final normalizedY = (localPosition.dy / overlaySize.height).clamp(
+      0.0,
+      1.0,
+    );
     final updatedSite = await _handleTapFlow(
       hitResult: hitResult,
       decision: decision,
@@ -482,6 +490,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handlePointerCancel() {
     _pointerDownPosition = null;
     _tapCanceled = false;
+  }
+
+  ({Offset localPosition, Size size})? _resolveTapPosition(
+    BuildContext? tapContext,
+    Offset globalPosition,
+  ) {
+    if (tapContext == null) {
+      return null;
+    }
+    final renderObject = tapContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return null;
+    }
+    final localPosition = renderObject.globalToLocal(globalPosition);
+    final clampedPosition = Offset(
+      localPosition.dx.clamp(0.0, renderObject.size.width),
+      localPosition.dy.clamp(0.0, renderObject.size.height),
+    );
+    return (localPosition: clampedPosition, size: renderObject.size);
   }
 
   bool _isSameDefect(Defect first, Defect second) {
