@@ -93,24 +93,47 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
-  PdfDrawingView _buildPdfViewer() => PdfDrawingView(
-    pdfController: _pdfController,
-    pdfLoadError: _pdfLoadError,
-    sitePdfName: _site.pdfName,
-    onPageChanged: _handlePdfPageChanged,
-    onDocumentLoaded: _handlePdfDocumentLoaded,
-    onDocumentError: _handlePdfDocumentError,
-    pageSizes: _pdfPageSizes,
-    pdfViewVersion: _pdfViewVersion,
-    onUpdatePageSize: _handleUpdatePageSize,
-    buildPageOverlay:
-        ({required pageSize, required pageNumber, required imageProvider}) =>
-            _buildPdfPageOverlay(
-              pageSize: pageSize,
-              pageNumber: pageNumber,
-              imageProvider: imageProvider,
-            ),
-  );
+  PdfDrawingView _buildPdfViewer() {
+    _ensurePdfFallbackPageSize(context);
+    return PdfDrawingView(
+      pdfController: _pdfController,
+      pdfLoadError: _pdfLoadError,
+      sitePdfName: _site.pdfName,
+      onPageChanged: _handlePdfPageChanged,
+      onDocumentLoaded: _handlePdfDocumentLoaded,
+      onDocumentError: _handlePdfDocumentError,
+      pageSizes: _pdfPageSizes,
+      pdfViewVersion: _pdfViewVersion,
+      onUpdatePageSize: _handleUpdatePageSize,
+      buildPageOverlay:
+          ({required pageSize, required pageNumber, required imageProvider}) =>
+              _buildPdfPageOverlay(
+                pageSize: pageSize,
+                pageNumber: pageNumber,
+                imageProvider: imageProvider,
+              ),
+    );
+  }
+
+  void _ensurePdfFallbackPageSize(BuildContext context) {
+    if (_pdfPageSizes.isNotEmpty ||
+        _pdfPageSizes.containsKey(_currentPage)) {
+      return;
+    }
+    final mq = MediaQuery.of(context).size;
+    final fallbackSize = Size(
+      math.max(_kMinValidPdfPageSide, mq.width * 0.9),
+      math.max(_kMinValidPdfPageSide, mq.height * 0.9),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _pdfPageSizes.isNotEmpty ||
+          _pdfPageSizes.containsKey(_currentPage)) {
+        return;
+      }
+      _safeSetState(() => _pdfPageSizes[_currentPage] = fallbackSize);
+    });
+  }
 
   Widget _buildPdfPageOverlay({
     required Size pageSize,

@@ -3,8 +3,14 @@ part of 'drawing_screen.dart';
 const String _kMarkerScaleKey = 'drawing_marker_scale_percent';
 const String _kLabelScaleKey = 'drawing_label_scale_percent';
 const String _kScaleLockKey = 'drawing_scale_locked';
+const double _kMinValidPdfPageSide = 200.0;
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  String _pdfPageSizeCacheKeyForSite(Site site) {
+    final path = site.pdfPath ?? '';
+    return 'drawing_pdf_page_sizes_cache_v1:${path.hashCode}';
+  }
+
   int _scaleToPercent(double scale) =>
       (scale * 100).round().clamp(20, 200);
 
@@ -94,6 +100,65 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       ..addAll(categories);
   }
 
+  Future<void> _loadPdfPageSizeCache() async {
+    final path = _site.pdfPath;
+    if (path == null || path.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_pdfPageSizeCacheKeyForSite(_site));
+    if (raw == null || raw.isEmpty) {
+      return;
+    }
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      return;
+    }
+    final restored = <int, Size>{};
+    for (final entry in decoded.entries) {
+      final page = int.tryParse(entry.key);
+      final value = entry.value;
+      if (page == null || value is! Map) {
+        continue;
+      }
+      final width = (value['w'] as num?)?.toDouble();
+      final height = (value['h'] as num?)?.toDouble();
+      if (width == null || height == null) {
+        continue;
+      }
+      if (width < _kMinValidPdfPageSide ||
+          height < _kMinValidPdfPageSide) {
+        continue;
+      }
+      restored[page] = Size(width, height);
+    }
+    if (!mounted || restored.isEmpty) {
+      return;
+    }
+    _safeSetState(() {
+      _pdfPageSizes
+        ..clear()
+        ..addAll(restored);
+      _pdfViewVersion += 1;
+    });
+  }
+
+  Future<void> _persistPdfPageSizeCache() async {
+    final path = _site.pdfPath;
+    if (path == null || path.isEmpty) {
+      return;
+    }
+    final map = <String, Map<String, double>>{};
+    _pdfPageSizes.forEach((page, size) {
+      map['$page'] = {'w': size.width, 'h': size.height};
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _pdfPageSizeCacheKeyForSite(_site),
+      jsonEncode(map),
+    );
+  }
+
   Future<void> _loadPdfController() async {
     final path = _site.pdfPath;
     if (path == null || path.isEmpty) {
@@ -112,9 +177,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _pdfController = result.controller;
       _pdfLoadError = result.error;
       if (result.error == null) {
-        _pdfPageSizes
-          ..clear()
-          ..addAll(result.clearedPageSizes);
+        if (result.clearedPageSizes.isNotEmpty) {
+          _pdfPageSizes
+            ..clear()
+            ..addAll(result.clearedPageSizes);
+        }
         _pageCount = result.pageCount;
         _currentPage = result.currentPage;
       }
@@ -802,8 +869,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleUpdatePageSize(int pageNumber, Size pageSize) =>
-      _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
+  void _handleUpdatePageSize(int pageNumber, Size pageSize) {
+    if (pageSize.width < _kMinValidPdfPageSide ||
+        pageSize.height < _kMinValidPdfPageSide) {
+      return;
+    }
+    _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
+    _persistPdfPageSizeCache();
+  }
 
   void _handlePrevPage() {
     final nextPage = _currentPage - 1;
