@@ -70,7 +70,7 @@ class StringsKo {
   static const defectCategoryConcreteSpalling = '콘크리트 결함';
   static const defectCategorySteelDefect = '철골 결함';
   static const defectCategoryOther = '기타 결함';
-  static const equipmentCategory1 = '장비1';
+  static const equipmentCategory1 = '부재단면치수';
   static const equipmentCategory2 = '철근배근간격';
   static const equipmentCategory3 = '슈미트해머';
   static const equipmentCategory4 = '코어채취';

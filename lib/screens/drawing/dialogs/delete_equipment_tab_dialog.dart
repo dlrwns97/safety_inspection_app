@@ -7,7 +7,7 @@ Future<bool?> showDeleteEquipmentTabDialog({
   required BuildContext context,
   required EquipmentCategory category,
 }) {
-  final label = equipmentChipLabel(category);
+  final label = equipmentCategoryDisplayNameKo(category);
   return showDialog<bool>(
     context: context,
     builder: (context) {
