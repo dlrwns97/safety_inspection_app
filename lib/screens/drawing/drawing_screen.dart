@@ -37,6 +37,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dar
 
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -48,8 +49,9 @@ class DrawingScreen extends StatefulWidget {
   @override
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
+
 class _DrawingScreenState extends State<DrawingScreen>
-    with SingleTickerProviderStateMixin, _DrawingScreenLogic, _DrawingScreenUi {
+    with SingleTickerProviderStateMixin {
   static const String _markerScaleKey = 'drawing_marker_scale_percent';
   static const String _labelScaleKey = 'drawing_label_scale_percent';
   static const String _scaleLockKey = 'drawing_scale_locked';
