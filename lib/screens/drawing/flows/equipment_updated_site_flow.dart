@@ -13,14 +13,10 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_b_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_c_flow.dart';
-import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
-String _equipmentDialogTitle(EquipmentCategory category, String label) {
-  final config = DrawingEquipmentFlowConfigs[category];
-  if (config == null) {
-    return label;
-  }
-  return '${config.dialogTitlePrefix} $label';
+String _equipmentDialogTitle(EquipmentCategory category) {
+  return equipmentCategoryDisplayNameKo(category);
 }
 
 Future<Site?> createEquipmentUpdatedSite({
@@ -76,7 +72,6 @@ Future<Site?> createEquipmentUpdatedSite({
 }) async {
   final dialogTitle = _equipmentDialogTitle(
     activeEquipmentCategory ?? pendingMarker.category,
-    pendingMarker.label,
   );
   final handlers = <EquipmentCategory, Future<Site?> Function()>{
     EquipmentCategory.equipment1: () => createEquipment1IfConfirmed(

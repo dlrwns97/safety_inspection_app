@@ -99,9 +99,24 @@ class _DrawingScreenState extends State<DrawingScreen>
     _initializeDefectTabs();
     _initializeEquipmentTabs();
     _sidePanelController = TabController(length: 4, vsync: this);
+    _resetScalePreferences(notify: false);
     _loadPdfPageSizeCache();
     _loadPdfController();
     _loadScalePreferences();
+  }
+  @override
+  void didUpdateWidget(covariant DrawingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.site == oldWidget.site) {
+      return;
+    }
+    _site = widget.site;
+    _initializeDefectTabs();
+    _initializeEquipmentTabs();
+    _resetScalePreferences();
+    _loadScalePreferences();
+    _loadPdfPageSizeCache();
+    _loadPdfController();
   }
   @override
   void dispose() {
