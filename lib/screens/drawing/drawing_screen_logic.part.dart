@@ -1,5 +1,9 @@
 part of 'drawing_screen.dart';
 
+const String _kMarkerScaleKey = 'drawing_marker_scale_percent';
+const String _kLabelScaleKey = 'drawing_label_scale_percent';
+const String _kScaleLockKey = 'drawing_scale_locked';
+
 extension _DrawingScreenLogic on _DrawingScreenState {
   int _scaleToPercent(double scale) =>
       (scale * 100).round().clamp(20, 200);
@@ -9,9 +13,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   Future<void> _loadScalePreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    final markerPercent = prefs.getInt(_markerScaleKey);
-    final labelPercent = prefs.getInt(_labelScaleKey);
-    final lockValue = prefs.getBool(_scaleLockKey);
+    final markerPercent = prefs.getInt(_kMarkerScaleKey);
+    final labelPercent = prefs.getInt(_kLabelScaleKey);
+    final lockValue = prefs.getBool(_kScaleLockKey);
     if (markerPercent == null &&
         labelPercent == null &&
         lockValue == null) {
@@ -35,9 +39,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   Future<void> _persistScalePreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_markerScaleKey, _scaleToPercent(_markerScale));
-    await prefs.setInt(_labelScaleKey, _scaleToPercent(_labelScale));
-    await prefs.setBool(_scaleLockKey, _isScaleLocked);
+    await prefs.setInt(_kMarkerScaleKey, _scaleToPercent(_markerScale));
+    await prefs.setInt(_kLabelScaleKey, _scaleToPercent(_labelScale));
+    await prefs.setBool(_kScaleLockKey, _isScaleLocked);
   }
 
   void _handleMarkerScaleChanged(double value) {
