@@ -11,6 +11,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ),
       pageIndex: pageIndex,
       pageSize: size,
+      markerScale: _markerScale,
       isSelected:
           (defect) =>
               _selectedDefect != null &&
@@ -33,6 +34,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ),
       pageIndex: pageIndex,
       pageSize: size,
+      markerScale: _markerScale,
       isSelected:
           (marker) =>
               _selectedEquipment != null &&
@@ -161,7 +163,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 pageSize,
                 overlaySize,
               );
-              final imageRect = Alignment.center.inscribe(
+              final destRect = Alignment.center.inscribe(
                 fittedSizes.destination,
                 Offset.zero & overlaySize,
               );
@@ -173,7 +175,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   overlaySize,
                   pageNumber,
                   tapContext,
-                  imageRect: imageRect,
+                  destRect: destRect,
                 ),
                 child: SizedBox(
                   width: overlaySize.width,
@@ -181,9 +183,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   child: Stack(
                     children: [
                       Positioned.fromRect(
-                        rect: imageRect,
+                        rect: destRect,
                         child: _buildMarkerLayer(
-                          size: imageRect.size,
+                          size: destRect.size,
                           pageIndex: pageNumber,
                           child: SizedBox.expand(
                             child: Image(

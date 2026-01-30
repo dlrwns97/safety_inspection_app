@@ -175,15 +175,20 @@ class _DrawingScreenState extends State<DrawingScreen>
     required double Function(T) nx,
     required double Function(T) ny,
     required Widget Function(T, bool) buildMarker,
+    required double markerScale,
   }) {
+    const double baseMarkerSize = 30.0;
+    final scaledSize = (baseMarkerSize * markerScale)
+        .clamp(baseMarkerSize * 0.2, 44.0);
+    final centerOffset = scaledSize / 2;
     final filteredItems = items
         .where((item) => (item as dynamic).pageIndex == pageIndex)
         .toList();
     return filteredItems
         .map(
           (item) => Positioned(
-            left: nx(item) * pageSize.width - 18,
-            top: ny(item) * pageSize.height - 18,
+            left: nx(item) * pageSize.width - centerOffset,
+            top: ny(item) * pageSize.height - centerOffset,
             child: buildMarker(item, isSelected(item)),
           ),
         )
