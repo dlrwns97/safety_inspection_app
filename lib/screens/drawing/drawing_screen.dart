@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -49,6 +50,10 @@ class DrawingScreen extends StatefulWidget {
 }
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
+  static const String _markerScaleKey = 'drawing_marker_scale_percent';
+  static const String _labelScaleKey = 'drawing_label_scale_percent';
+  static const String _scaleLockKey = 'drawing_scale_locked';
+
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
@@ -80,7 +85,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isDetailDialogOpen = false;
   double _markerScale = 1.0;
   double _labelScale = 1.0;
-  bool _isMarkerScaleLocked = false;
+  bool _isScaleLocked = false;
 
   GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
@@ -93,6 +98,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _initializeEquipmentTabs();
     _sidePanelController = TabController(length: 4, vsync: this);
     _loadPdfController();
+    _loadScalePreferences();
   }
   @override
   void dispose() {
@@ -321,22 +327,10 @@ class _DrawingScreenState extends State<DrawingScreen>
                       _handleEquipmentVisibilityChanged,
                   markerScale: _markerScale,
                   labelScale: _labelScale,
-                  onMarkerScaleChanged: (value) {
-                    if (_isMarkerScaleLocked) {
-                      return;
-                    }
-                    setState(() => _markerScale = value.clamp(0.2, 2.0));
-                  },
-                  onLabelScaleChanged: (value) {
-                    if (_isMarkerScaleLocked) {
-                      return;
-                    }
-                    setState(() => _labelScale = value.clamp(0.2, 2.0));
-                  },
-                  isMarkerScaleLocked: _isMarkerScaleLocked,
-                  onToggleMarkerScaleLock: () => setState(
-                    () => _isMarkerScaleLocked = !_isMarkerScaleLocked,
-                  ),
+                  onMarkerScaleChanged: _handleMarkerScaleChanged,
+                  onLabelScaleChanged: _handleLabelScaleChanged,
+                  isMarkerScaleLocked: _isScaleLocked,
+                  onToggleMarkerScaleLock: _toggleScaleLock,
                 ),
               ),
             ],

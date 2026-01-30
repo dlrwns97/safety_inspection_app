@@ -1,6 +1,66 @@
 part of 'drawing_screen.dart';
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  int _scaleToPercent(double scale) =>
+      (scale * 100).round().clamp(20, 200);
+
+  double _percentToScale(int percent) =>
+      (percent / 100.0).clamp(0.2, 2.0);
+
+  Future<void> _loadScalePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final markerPercent = prefs.getInt(_markerScaleKey);
+    final labelPercent = prefs.getInt(_labelScaleKey);
+    final lockValue = prefs.getBool(_scaleLockKey);
+    if (markerPercent == null &&
+        labelPercent == null &&
+        lockValue == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      if (markerPercent != null) {
+        _markerScale = _percentToScale(markerPercent);
+      }
+      if (labelPercent != null) {
+        _labelScale = _percentToScale(labelPercent);
+      }
+      if (lockValue != null) {
+        _isScaleLocked = lockValue;
+      }
+    });
+  }
+
+  Future<void> _persistScalePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_markerScaleKey, _scaleToPercent(_markerScale));
+    await prefs.setInt(_labelScaleKey, _scaleToPercent(_labelScale));
+    await prefs.setBool(_scaleLockKey, _isScaleLocked);
+  }
+
+  void _handleMarkerScaleChanged(double value) {
+    if (_isScaleLocked) {
+      return;
+    }
+    setState(() => _markerScale = value.clamp(0.2, 2.0));
+    _persistScalePreferences();
+  }
+
+  void _handleLabelScaleChanged(double value) {
+    if (_isScaleLocked) {
+      return;
+    }
+    setState(() => _labelScale = value.clamp(0.2, 2.0));
+    _persistScalePreferences();
+  }
+
+  void _toggleScaleLock() {
+    setState(() => _isScaleLocked = !_isScaleLocked);
+    _persistScalePreferences();
+  }
+
   void _initializeDefectTabs() {
     final tabs = <DefectCategory>[];
     for (final name in _site.visibleDefectCategoryNames) {
