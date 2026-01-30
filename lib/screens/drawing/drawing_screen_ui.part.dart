@@ -1,6 +1,6 @@
 part of 'drawing_screen.dart';
 
-mixin _DrawingScreenUi on _DrawingScreenState {
+extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildMarkerWidgetsForPage({
     required Size size,
     required int pageIndex,
