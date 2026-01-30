@@ -54,6 +54,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       TransformationController();
   final GlobalKey _canvasKey = GlobalKey();
   final GlobalKey _canvasTapRegionKey = GlobalKey();
+  final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, Size> _pdfPageSizes = {};
   int _pdfViewVersion = 0;
   late Site _site;
@@ -80,6 +81,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _markerScale = 1.0;
   double _labelScale = 1.0;
   bool _isMarkerScaleLocked = false;
+
+  GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
+    return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
+  }
   @override
   void initState() {
     super.initState();

@@ -117,8 +117,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) {
+    final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     return Builder(
       builder: (tapContext) => _wrapWithPointerHandlers(
+        tapRegionKey: tapKey,
         behavior: HitTestBehavior.opaque,
         onTapUp: (details) =>
             _handlePdfTap(details, pageSize, pageNumber, tapContext),
