@@ -300,6 +300,9 @@ class MarkerSidePanel extends StatelessWidget {
 
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
+    final label = equipmentDisplayLabel(marker, equipmentMarkers).trim();
+    final categoryName = equipmentCategoryDisplayNameKo(marker.category).trim();
+    final title = label.isEmpty ? categoryName : '$label $categoryName';
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
@@ -329,7 +332,7 @@ class MarkerSidePanel extends StatelessWidget {
         MarkerDetailRowData('처짐 C', marker.deflectionEndCText!),
     ];
     return MarkerDetailSection(
-      title: equipmentCategoryDisplayNameKo(marker.category),
+      title: title,
       subtitle: '페이지 $displayPage',
       rows: rows,
     );
