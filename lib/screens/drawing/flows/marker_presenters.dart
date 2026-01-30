@@ -2,6 +2,7 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/constants/strings_ko.dart';
 
 const Map<DefectCategory, String> defectCategoryLabelPrefixes = {
   DefectCategory.generalCrack: 'C',
@@ -170,7 +171,24 @@ String equipmentChipLabel(EquipmentCategory category) {
 }
 
 String equipmentCategoryDisplayNameKo(EquipmentCategory category) {
-  return category.label;
+  switch (category) {
+    case EquipmentCategory.equipment1:
+      return StringsKo.equipmentCategory1;
+    case EquipmentCategory.equipment2:
+      return StringsKo.equipmentCategory2;
+    case EquipmentCategory.equipment3:
+      return StringsKo.equipmentCategory3;
+    case EquipmentCategory.equipment4:
+      return StringsKo.equipmentCategory4;
+    case EquipmentCategory.equipment5:
+      return StringsKo.equipmentCategory5;
+    case EquipmentCategory.equipment6:
+      return StringsKo.equipmentCategory6;
+    case EquipmentCategory.equipment7:
+      return StringsKo.equipmentCategory7;
+    case EquipmentCategory.equipment8:
+      return StringsKo.equipmentCategory8;
+  }
 }
 
 List<String> defectPopupLines({

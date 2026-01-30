@@ -426,18 +426,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     BuildContext tapContext,
   ) async {
     final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
-    final tapInfo =
-        _resolveTapPosition(tapRegionContext, details.globalPosition) ??
-        _resolveTapPosition(tapContext, details.globalPosition) ??
-        (localPosition: details.localPosition, size: pageSize);
-    final isWithinPdf =
-        _resolveTapPosition(tapRegionContext, details.globalPosition) != null;
-    if (!isWithinPdf) {
-      _clearSelectionAndPopup();
-      return;
-    }
-    final localPosition = tapInfo.localPosition;
-    final overlaySize = tapInfo.size;
+    final tapInfo = _resolveTapPosition(
+      tapRegionContext ?? tapContext,
+      details.globalPosition,
+    );
+    final localPosition = tapInfo?.localPosition ?? details.localPosition;
+    final overlaySize = tapInfo?.size ?? pageSize;
     final hitResult = _hitTestMarker(
       point: localPosition,
       size: overlaySize,
@@ -446,7 +440,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
-      isWithinCanvas: isWithinPdf,
+      isWithinCanvas: true,
       hasHitResult: hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
