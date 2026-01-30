@@ -49,7 +49,7 @@ class DrawingScreen extends StatefulWidget {
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
 class _DrawingScreenState extends State<DrawingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, _DrawingScreenLogic, _DrawingScreenUi {
   static const String _markerScaleKey = 'drawing_marker_scale_percent';
   static const String _labelScaleKey = 'drawing_label_scale_percent';
   static const String _scaleLockKey = 'drawing_scale_locked';
@@ -106,6 +106,11 @@ class _DrawingScreenState extends State<DrawingScreen>
     _transformationController.dispose();
     _sidePanelController.dispose();
     super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
   }
   MarkerHitResult? _hitTestMarker({
     required Offset point,

@@ -1,6 +1,6 @@
 part of 'drawing_screen.dart';
 
-extension _DrawingScreenLogic on _DrawingScreenState {
+mixin _DrawingScreenLogic on _DrawingScreenState {
   int _scaleToPercent(double scale) =>
       (scale * 100).round().clamp(20, 200);
 
@@ -20,7 +20,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    setState(() {
+    _safeSetState(() {
       if (markerPercent != null) {
         _markerScale = _percentToScale(markerPercent);
       }
@@ -44,7 +44,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isScaleLocked) {
       return;
     }
-    setState(() => _markerScale = value.clamp(0.2, 2.0));
+    _safeSetState(() => _markerScale = value.clamp(0.2, 2.0));
     _persistScalePreferences();
   }
 
@@ -52,12 +52,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isScaleLocked) {
       return;
     }
-    setState(() => _labelScale = value.clamp(0.2, 2.0));
+    _safeSetState(() => _labelScale = value.clamp(0.2, 2.0));
     _persistScalePreferences();
   }
 
   void _toggleScaleLock() {
-    setState(() => _isScaleLocked = !_isScaleLocked);
+    _safeSetState(() => _isScaleLocked = !_isScaleLocked);
     _persistScalePreferences();
   }
 
@@ -99,7 +99,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!mounted || result == null) {
       return;
     }
-    setState(() {
+    _safeSetState(() {
       _pdfController = result.controller;
       _pdfLoadError = result.error;
       if (result.error == null) {
@@ -118,7 +118,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (result.updatedSite == null) {
-      setState(() {
+      _safeSetState(() {
         _pdfLoadError = result.error ?? StringsKo.pdfDrawingLoadFailed;
       });
       return;
@@ -149,7 +149,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _selectedMarkerScenePosition = null;
     }
     if (inSetState) {
-      setState(clearSelection);
+      _safeSetState(clearSelection);
     } else {
       clearSelection();
     }
@@ -205,7 +205,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Site updatedSite, {
     VoidCallback? onStateUpdated,
   }) async {
-    setState(() {
+    _safeSetState(() {
       _site = updatedSite;
       onStateUpdated?.call();
     });
@@ -216,11 +216,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    setState(callback);
+    _safeSetState(callback);
   }
 
   void _selectMarker(MarkerHitResult result) {
-    setState(() {
+    _safeSetState(() {
       _selectedDefect = result.defect;
       _selectedEquipment = result.equipment;
       _selectedMarkerScenePosition = result.position;
@@ -235,7 +235,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _selectDefectFromPanel(Defect defect) {
-    setState(() {
+    _safeSetState(() {
       _selectedDefect = defect;
       _selectedEquipment = null;
       _selectedMarkerScenePosition = null;
@@ -244,7 +244,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _selectEquipmentFromPanel(EquipmentMarker marker) {
-    setState(() {
+    _safeSetState(() {
       _selectedDefect = null;
       _selectedEquipment = marker;
       _selectedMarkerScenePosition = null;
@@ -594,13 +594,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _toggleMode(DrawMode nextMode) {
-    setState(() {
+    _safeSetState(() {
       _mode = _controller.toggleMode(_mode, nextMode);
     });
   }
 
   void _returnToToolSelection() {
-    setState(() {
+    _safeSetState(() {
       _mode = _controller.returnToToolSelection();
     });
   }
@@ -803,13 +803,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handlePrevPage() {
     final nextPage = _currentPage - 1;
-    setState(() => _currentPage = nextPage);
+    _safeSetState(() => _currentPage = nextPage);
     _pdfController?.jumpToPage(nextPage);
   }
 
   void _handleNextPage() {
     final nextPage = _currentPage + 1;
-    setState(() => _currentPage = nextPage);
+    _safeSetState(() => _currentPage = nextPage);
     _pdfController?.jumpToPage(nextPage);
   }
 }
