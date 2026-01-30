@@ -119,20 +119,42 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     return Builder(
-      builder: (tapContext) => _wrapWithPointerHandlers(
-        tapRegionKey: tapKey,
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (details) =>
-            _handlePdfTap(details, pageSize, pageNumber, tapContext),
-        child: _buildMarkerLayer(
-          size: pageSize,
-          pageIndex: pageNumber,
-          child: Image(
-            image: imageProvider,
-            fit: BoxFit.contain,
+      builder:
+          (tapContext) => LayoutBuilder(
+            builder: (context, constraints) {
+              var overlaySize = Size(
+                constraints.maxWidth,
+                constraints.maxHeight,
+              );
+              if (!constraints.hasBoundedWidth ||
+                  !constraints.hasBoundedHeight) {
+                overlaySize = pageSize;
+              }
+              if (overlaySize.width <= 0 || overlaySize.height <= 0) {
+                overlaySize = pageSize;
+              }
+              return _wrapWithPointerHandlers(
+                tapRegionKey: tapKey,
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) => _handlePdfTap(
+                  details,
+                  overlaySize,
+                  pageNumber,
+                  tapContext,
+                ),
+                child: _buildMarkerLayer(
+                  size: overlaySize,
+                  pageIndex: pageNumber,
+                  child: SizedBox.expand(
+                    child: Image(
+                      image: imageProvider,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-      ),
     );
   }
 
