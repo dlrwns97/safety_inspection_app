@@ -6,6 +6,43 @@ const String _kScaleLockKey = 'drawing_scale_locked';
 const double _kMinValidPdfPageSide = 200.0;
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  String _drawingIdentityKey(Site site) {
+    final path = site.pdfPath;
+    final name = site.pdfName;
+    String identitySource;
+    if (path != null && path.isNotEmpty) {
+      identitySource = path;
+    } else if (name != null && name.isNotEmpty) {
+      identitySource = name;
+    } else {
+      identitySource = site.id;
+    }
+    return '${site.drawingType.name}:$identitySource';
+  }
+
+  String _markerKeyFor(Site site) =>
+      '$_kMarkerScaleKey:${_drawingIdentityKey(site)}';
+
+  String _labelKeyFor(Site site) =>
+      '$_kLabelScaleKey:${_drawingIdentityKey(site)}';
+
+  String _lockKeyFor(Site site) =>
+      '$_kScaleLockKey:${_drawingIdentityKey(site)}';
+
+  void _resetScalePreferences({bool notify = true}) {
+    final reset = () {
+      _markerScale = 1.0;
+      _labelScale = 1.0;
+      _isScaleLocked = false;
+      _didLoadScalePrefs = false;
+    };
+    if (notify) {
+      _safeSetState(reset);
+    } else {
+      reset();
+    }
+  }
+
   String _pdfPageSizeCacheKeyForSite(Site site) {
     final path = site.pdfPath ?? '';
     return 'drawing_pdf_page_sizes_cache_v1:${path.hashCode}';
@@ -22,9 +59,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    final markerPercent = prefs.getInt(_kMarkerScaleKey);
-    final labelPercent = prefs.getInt(_kLabelScaleKey);
-    final lockValue = prefs.getBool(_kScaleLockKey);
+    final markerPercent = prefs.getInt(_markerKeyFor(_site));
+    final labelPercent = prefs.getInt(_labelKeyFor(_site));
+    final lockValue = prefs.getBool(_lockKeyFor(_site));
     if (markerPercent == null &&
         labelPercent == null &&
         lockValue == null) {
@@ -50,9 +87,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   Future<void> _persistScalePreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kMarkerScaleKey, _scaleToPercent(_markerScale));
-    await prefs.setInt(_kLabelScaleKey, _scaleToPercent(_labelScale));
-    await prefs.setBool(_kScaleLockKey, _isScaleLocked);
+    await prefs.setInt(_markerKeyFor(_site), _scaleToPercent(_markerScale));
+    await prefs.setInt(_labelKeyFor(_site), _scaleToPercent(_labelScale));
+    await prefs.setBool(_lockKeyFor(_site), _isScaleLocked);
   }
 
   void _handleMarkerScaleChanged(double value) {
@@ -281,10 +318,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Site updatedSite, {
     VoidCallback? onStateUpdated,
   }) async {
+    final didChangeDrawing =
+        _drawingIdentityKey(_site) != _drawingIdentityKey(updatedSite);
     _safeSetState(() {
       _site = updatedSite;
       onStateUpdated?.call();
     });
+    if (didChangeDrawing) {
+      _resetScalePreferences();
+      await _loadScalePreferences();
+    }
     await widget.onSiteUpdated(_site);
   }
 
