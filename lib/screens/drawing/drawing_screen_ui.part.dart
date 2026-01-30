@@ -87,6 +87,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildCanvasDrawingLayer() {
     final theme = Theme.of(context);
     return _wrapWithPointerHandlers(
+      tapRegionKey: _canvasTapRegionKey,
       onTapUp: _handleCanvasTap,
       child: _buildCanvasViewer(theme),
     );
@@ -116,15 +117,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) {
-    return _wrapWithPointerHandlers(
-      behavior: HitTestBehavior.translucent,
-      onTapUp: (details) => _handlePdfTap(details, pageSize, pageNumber),
-      child: _buildMarkerLayer(
-        size: pageSize,
-        pageIndex: pageNumber,
-        child: Image(
-          image: imageProvider,
-          fit: BoxFit.contain,
+    return Builder(
+      builder: (tapContext) => _wrapWithPointerHandlers(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) =>
+            _handlePdfTap(details, pageSize, pageNumber, tapContext),
+        child: _buildMarkerLayer(
+          size: pageSize,
+          pageIndex: pageNumber,
+          child: Image(
+            image: imageProvider,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );
@@ -160,9 +164,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _wrapWithPointerHandlers({
     required Widget child,
     required GestureTapUpCallback onTapUp,
-    HitTestBehavior behavior = HitTestBehavior.deferToChild,
+    HitTestBehavior behavior = HitTestBehavior.opaque,
+    Key? tapRegionKey,
   }) {
     return Listener(
+      behavior: behavior,
       onPointerDown: (e) => _handlePointerDown(e.localPosition),
       onPointerMove: (e) => _handlePointerMove(e.localPosition),
       onPointerUp: (_) => _handlePointerUp(),
@@ -170,7 +176,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       child: GestureDetector(
         behavior: behavior,
         onTapUp: onTapUp,
-        child: child,
+        child: SizedBox.expand(key: tapRegionKey, child: child),
       ),
     );
   }
