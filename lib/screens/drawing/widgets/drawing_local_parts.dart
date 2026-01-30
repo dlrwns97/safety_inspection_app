@@ -37,7 +37,7 @@ class DefectMarkerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const markerSize = 30.0;
-    final scaledSize = (markerSize * scale).clamp(20.0, 44.0);
+    final scaledSize = (markerSize * scale).clamp(markerSize * 0.2, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
@@ -100,7 +100,7 @@ class EquipmentMarkerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const markerSize = 30.0;
-    final scaledSize = (markerSize * scale).clamp(20.0, 44.0);
+    final scaledSize = (markerSize * scale).clamp(markerSize * 0.2, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
