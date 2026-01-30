@@ -156,6 +156,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
               if (overlaySize.width <= 0 || overlaySize.height <= 0) {
                 overlaySize = pageSize;
               }
+              final fittedSizes = applyBoxFit(
+                BoxFit.contain,
+                pageSize,
+                overlaySize,
+              );
+              final imageRect = Alignment.center.inscribe(
+                fittedSizes.destination,
+                Offset.zero & overlaySize,
+              );
               return _wrapWithPointerHandlers(
                 tapRegionKey: tapKey,
                 behavior: HitTestBehavior.opaque,
@@ -164,15 +173,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   overlaySize,
                   pageNumber,
                   tapContext,
+                  imageRect: imageRect,
                 ),
-                child: _buildMarkerLayer(
-                  size: overlaySize,
-                  pageIndex: pageNumber,
-                  child: SizedBox.expand(
-                    child: Image(
-                      image: imageProvider,
-                      fit: BoxFit.contain,
-                    ),
+                child: SizedBox(
+                  width: overlaySize.width,
+                  height: overlaySize.height,
+                  child: Stack(
+                    children: [
+                      Positioned.fromRect(
+                        rect: imageRect,
+                        child: _buildMarkerLayer(
+                          size: imageRect.size,
+                          pageIndex: pageNumber,
+                          child: SizedBox.expand(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.fill,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -223,7 +244,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       child: GestureDetector(
         behavior: behavior,
         onTapUp: onTapUp,
-        child: SizedBox.expand(key: tapRegionKey, child: child),
+        child: KeyedSubtree(key: tapRegionKey, child: child),
       ),
     );
   }

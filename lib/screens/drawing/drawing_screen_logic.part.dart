@@ -491,6 +491,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size pageSize,
     int pageIndex,
     BuildContext tapContext,
+    {required Rect imageRect}
   ) async {
     final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
     final tapInfo = _resolveTapPosition(
@@ -499,9 +500,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     final localPosition = tapInfo?.localPosition ?? details.localPosition;
     final overlaySize = tapInfo?.size ?? pageSize;
+    final resolvedImageRect =
+        imageRect.isEmpty ? Offset.zero & overlaySize : imageRect;
+    if (!resolvedImageRect.contains(localPosition)) {
+      return;
+    }
+    final imageLocal = localPosition - resolvedImageRect.topLeft;
+    final imageSize = resolvedImageRect.size;
     final hitResult = _hitTestMarker(
-      point: localPosition,
-      size: overlaySize,
+      point: imageLocal,
+      size: imageSize,
       pageIndex: pageIndex,
     );
     final decision = _controller.handlePdfTapDecision(
@@ -513,11 +521,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (localPosition.dx / overlaySize.width).clamp(0.0, 1.0);
-    final normalizedY = (localPosition.dy / overlaySize.height).clamp(
-      0.0,
-      1.0,
-    );
+    final normalizedX = (imageLocal.dx / imageSize.width).clamp(0.0, 1.0);
+    final normalizedY = (imageLocal.dy / imageSize.height).clamp(0.0, 1.0);
     final updatedSite = await _handleTapFlow(
       hitResult: hitResult,
       decision: decision,
