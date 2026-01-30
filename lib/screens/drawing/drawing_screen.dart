@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
@@ -116,7 +117,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     required Size size,
     required int pageIndex,
   }) {
-    const hitRadius = 24.0;
+    const baseHitRadius = 24.0;
+    const minHitRadius = 16.0;
+    final hitRadius = math.max(minHitRadius, baseHitRadius * _markerScale);
     final hitRadiusSquared = hitRadius * hitRadius;
     double closestDistance = hitRadiusSquared;
     Defect? defectHit;

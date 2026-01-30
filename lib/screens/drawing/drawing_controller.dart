@@ -81,6 +81,7 @@ class DrawingController {
   TapDecision handlePdfTapDecision({
     required bool isDetailDialogOpen,
     required bool tapCanceled,
+    required bool isWithinCanvas,
     required bool hasHitResult,
     required DrawMode mode,
     required bool hasActiveDefectCategory,
@@ -91,6 +92,9 @@ class DrawingController {
     }
     if (tapCanceled) {
       return const TapDecision(resetTapCanceled: true);
+    }
+    if (!isWithinCanvas) {
+      return const TapDecision(shouldClearSelection: true);
     }
     return _handleTapDecision(
       hasHitResult: hasHitResult,
