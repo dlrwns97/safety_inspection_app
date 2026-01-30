@@ -446,6 +446,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
+      isWithinCanvas: isWithinPdf,
       hasHitResult: hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
