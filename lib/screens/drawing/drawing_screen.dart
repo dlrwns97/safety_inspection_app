@@ -38,6 +38,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
 
+part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
