@@ -1,6 +1,6 @@
 part of 'drawing_screen.dart';
 
-extension _DrawingScreenLogic on _DrawingScreenState {
+mixin _DrawingScreenLogic on _DrawingScreenState {
   int _scaleToPercent(double scale) =>
       (scale * 100).round().clamp(20, 200);
 

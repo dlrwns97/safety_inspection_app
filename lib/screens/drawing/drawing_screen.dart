@@ -51,7 +51,7 @@ class DrawingScreen extends StatefulWidget {
 }
 
 class _DrawingScreenState extends State<DrawingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, _DrawingScreenLogic, _DrawingScreenUi {
   static const String _markerScaleKey = 'drawing_marker_scale_percent';
   static const String _labelScaleKey = 'drawing_label_scale_percent';
   static const String _scaleLockKey = 'drawing_scale_locked';
