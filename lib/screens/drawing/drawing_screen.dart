@@ -52,10 +52,6 @@ class DrawingScreen extends StatefulWidget {
 
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
-  static const String _markerScaleKey = 'drawing_marker_scale_percent';
-  static const String _labelScaleKey = 'drawing_label_scale_percent';
-  static const String _scaleLockKey = 'drawing_scale_locked';
-
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
@@ -88,6 +84,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _markerScale = 1.0;
   double _labelScale = 1.0;
   bool _isScaleLocked = false;
+  bool _didLoadScalePrefs = false;
 
   GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());

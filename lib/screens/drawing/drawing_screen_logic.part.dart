@@ -12,6 +12,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       (percent / 100.0).clamp(0.2, 2.0);
 
   Future<void> _loadScalePreferences() async {
+    if (_didLoadScalePrefs) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final markerPercent = prefs.getInt(_kMarkerScaleKey);
     final labelPercent = prefs.getInt(_kLabelScaleKey);
@@ -19,6 +22,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (markerPercent == null &&
         labelPercent == null &&
         lockValue == null) {
+      _didLoadScalePrefs = true;
       return;
     }
     if (!mounted) {
@@ -34,6 +38,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (lockValue != null) {
         _isScaleLocked = lockValue;
       }
+      _didLoadScalePrefs = true;
     });
   }
 
