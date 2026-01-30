@@ -28,6 +28,10 @@ String defectDisplayLabel(Defect defect) {
   return '${defectPrefixForCategory(defect.category)}$digits';
 }
 
+String defectPanelTitle(Defect defect) {
+  return defectDisplayLabel(defect);
+}
+
 String? settlementDirection(EquipmentMarker marker) {
   final direction = marker.tiltDirection;
   if (direction != null && direction.isNotEmpty) {
@@ -164,6 +168,13 @@ String equipmentDisplayLabel(
     return marker.label;
   }
   return '$prefix$sequence';
+}
+
+String equipmentPanelTitle(EquipmentMarker marker, List<EquipmentMarker> all) {
+  final label = equipmentDisplayLabel(marker, all).trim();
+  final categoryName = equipmentCategoryDisplayNameKo(marker.category).trim();
+  if (label.isEmpty) return categoryName;
+  return '$label $categoryName';
 }
 
 String equipmentChipLabel(EquipmentCategory category) {

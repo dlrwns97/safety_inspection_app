@@ -278,7 +278,6 @@ class MarkerSidePanel extends StatelessWidget {
   }
 
   Widget _buildDefectDetail(Defect defect) {
-    final label = defectDisplayLabel(defect);
     final details = defect.details;
     final rows = <MarkerDetailRowData>[
       if (details.structuralMember.isNotEmpty)
@@ -292,7 +291,7 @@ class MarkerSidePanel extends StatelessWidget {
         MarkerDetailRowData('길이', '${details.lengthMm} mm'),
     ];
     return MarkerDetailSection(
-      title: label,
+      title: defectPanelTitle(defect),
       subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
       rows: rows,
     );
@@ -300,9 +299,6 @@ class MarkerSidePanel extends StatelessWidget {
 
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
-    final label = equipmentDisplayLabel(marker, equipmentMarkers).trim();
-    final categoryName = equipmentCategoryDisplayNameKo(marker.category).trim();
-    final title = label.isEmpty ? categoryName : '$label $categoryName';
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
@@ -332,7 +328,7 @@ class MarkerSidePanel extends StatelessWidget {
         MarkerDetailRowData('처짐 C', marker.deflectionEndCText!),
     ];
     return MarkerDetailSection(
-      title: title,
+      title: equipmentPanelTitle(marker, equipmentMarkers),
       subtitle: '페이지 $displayPage',
       rows: rows,
     );
