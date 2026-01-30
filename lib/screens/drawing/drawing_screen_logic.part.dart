@@ -356,9 +356,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     int pageIndex,
     BuildContext tapContext,
   ) async {
+    final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
     final tapInfo =
+        _resolveTapPosition(tapRegionContext, details.globalPosition) ??
         _resolveTapPosition(tapContext, details.globalPosition) ??
         (localPosition: details.localPosition, size: pageSize);
+    final isWithinPdf =
+        _resolveTapPosition(tapRegionContext, details.globalPosition) != null;
+    if (!isWithinPdf) {
+      _clearSelectionAndPopup();
+      return;
+    }
     final localPosition = tapInfo.localPosition;
     final overlaySize = tapInfo.size;
     final hitResult = _hitTestMarker(
