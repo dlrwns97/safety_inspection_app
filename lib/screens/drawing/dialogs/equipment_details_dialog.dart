@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
@@ -113,77 +114,97 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedMember,
-              labelText: '부재',
-              items: widget.memberOptions
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMember = value;
-                  _sizeLabels = value == null
-                      ? []
-                      : widget.sizeLabelsByMember[value] ?? [];
-                  _resetSizeControllers(_sizeLabels);
-                });
-              },
-              requiredMessage: '부재를 선택하세요.',
-            ),
-            if (_selectedMember != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                '사이즈',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(_sizeLabels.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: buildDialogTextField(
-                    controller: _sizeControllers[index],
-                    labelText: _sizeLabels[index],
-                    keyboardType: TextInputType.text,
-                  ),
-                );
-              }),
-            ],
-            const SizedBox(height: 16),
-            buildDialogActionButtons(
-              context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      Navigator.of(context).pop(
-                        EquipmentDetails(
-                          memberType: _selectedMember!,
-                          sizeValues: _sizeControllers
-                              .map((controller) => controller.text)
-                              .toList(),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                buildDialogDropdownField(
+                  value: _selectedMember,
+                  labelText: '부재',
+                  items: widget.memberOptions
+                      .map(
+                        (option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
                         ),
-                      );
-                    }
-                  : null,
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedMember = value;
+                      _sizeLabels = value == null
+                          ? []
+                          : widget.sizeLabelsByMember[value] ?? [];
+                      _resetSizeControllers(_sizeLabels);
+                    });
+                  },
+                  requiredMessage: '부재를 선택하세요.',
+                ),
+                if (_selectedMember != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    '사이즈',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  ...List.generate(_sizeLabels.length, (index) {
+                    final isLastField = index == _sizeLabels.length - 1;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: buildDialogTextField(
+                        controller: _sizeControllers[index],
+                        labelText: _sizeLabels[index],
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: false,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d*$'),
+                          ),
+                        ],
+                        textInputAction: isLastField
+                            ? TextInputAction.done
+                            : TextInputAction.next,
+                      ),
+                    );
+                  }),
+                ],
+                const SizedBox(height: 16),
+                buildDialogActionButtons(
+                  context,
+                  onSave: isSaveEnabled
+                      ? () {
+                          if (!(_formKey.currentState?.validate() ?? false)) {
+                            return;
+                          }
+                          Navigator.of(context).pop(
+                            EquipmentDetails(
+                              memberType: _selectedMember!,
+                              sizeValues: _sizeControllers
+                                  .map((controller) => controller.text)
+                                  .toList(),
+                            ),
+                          );
+                        }
+                      : null,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
