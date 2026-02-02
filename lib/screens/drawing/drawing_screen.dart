@@ -183,6 +183,47 @@ class _DrawingScreenState extends State<DrawingScreen>
       position: positionHit,
     );
   }
+
+  List<MarkerHitResult> _hitTestMarkers({
+    required Offset point,
+    required Size size,
+    required int pageIndex,
+  }) {
+    const baseHitRadius = 24.0;
+    const minHitRadius = 16.0;
+    final hitRadius = math.max(minHitRadius, baseHitRadius * _markerScale);
+    final hitRadiusSquared = hitRadius * hitRadius;
+    final results = <MarkerHitResult>[];
+    for (final defect in _site.defects.where(
+      (defect) => defect.pageIndex == pageIndex,
+    )) {
+      final position = Offset(
+        defect.normalizedX * size.width,
+        defect.normalizedY * size.height,
+      );
+      final distance = (point - position).distanceSquared;
+      if (distance <= hitRadiusSquared) {
+        results.add(
+          MarkerHitResult(defect: defect, equipment: null, position: position),
+        );
+      }
+    }
+    for (final marker in _site.equipmentMarkers.where(
+      (marker) => marker.pageIndex == pageIndex,
+    )) {
+      final position = Offset(
+        marker.normalizedX * size.width,
+        marker.normalizedY * size.height,
+      );
+      final distance = (point - position).distanceSquared;
+      if (distance <= hitRadiusSquared) {
+        results.add(
+          MarkerHitResult(defect: null, equipment: marker, position: position),
+        );
+      }
+    }
+    return results;
+  }
   List<Widget> _buildMarkersForPage<T>({
     required Iterable<T> items,
     required int pageIndex,

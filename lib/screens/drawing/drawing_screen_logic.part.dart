@@ -3,6 +3,16 @@ part of 'drawing_screen.dart';
 const double _kMinValidPdfPageSide = 200.0;
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  bool get _isPlaceMode {
+    if (_mode == DrawMode.defect) {
+      return _activeCategory != null;
+    }
+    if (_mode == DrawMode.equipment) {
+      return _activeEquipmentCategory != null;
+    }
+    return false;
+  }
+
   String _pdfPageSizeCacheKeyForSite(Site site) {
     final path = site.pdfPath ?? '';
     return 'drawing_pdf_page_sizes_cache_v1:${path.hashCode}';
@@ -175,11 +185,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       size: DrawingCanvasSize,
       pageIndex: _currentPage,
     );
+    final isPlaceMode = _isPlaceMode;
     final decision = _controller.handleCanvasTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
       isWithinCanvas: _isTapWithinCanvas(details.globalPosition),
-      hasHitResult: hitResult != null,
+      hasHitResult: !isPlaceMode && hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
@@ -450,11 +461,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       size: imageSize,
       pageIndex: pageIndex,
     );
+    final isPlaceMode = _isPlaceMode;
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
       isWithinCanvas: true, // PDF taps should always be treated as within canvas.
-      hasHitResult: hitResult != null,
+      hasHitResult: !isPlaceMode && hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
@@ -469,6 +481,132 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       normalizedY: normalizedY,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
+  }
+
+  Future<void> _handleCanvasLongPress(LongPressStartDetails details) async {
+    _tapCanceled = true;
+    final tapInfo = _resolveTapPosition(
+      _canvasTapRegionKey.currentContext,
+      details.globalPosition,
+    );
+    final localPosition = tapInfo?.localPosition ?? details.localPosition;
+    final scenePoint = _transformationController.toScene(localPosition);
+    final hits = _hitTestMarkers(
+      point: scenePoint,
+      size: DrawingCanvasSize,
+      pageIndex: _currentPage,
+    );
+    await _handleOverlapSelection(hits);
+  }
+
+  Future<void> _handlePdfLongPress(
+    LongPressStartDetails details,
+    Size pageSize,
+    int pageIndex,
+    BuildContext tapContext,
+    {required Rect destRect}
+  ) async {
+    _tapCanceled = true;
+    final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
+    final tapInfo = _resolveTapPosition(
+      tapRegionContext ?? tapContext,
+      details.globalPosition,
+    );
+    final localPosition = tapInfo?.localPosition ?? details.localPosition;
+    final overlaySize = tapInfo?.size ?? pageSize;
+    final resolvedDestRect =
+        destRect.isEmpty ? Offset.zero & overlaySize : destRect;
+    if (!resolvedDestRect.contains(localPosition)) {
+      return;
+    }
+    final imageLocal = localPosition - resolvedDestRect.topLeft;
+    final imageSize = resolvedDestRect.size;
+    final hits = _hitTestMarkers(
+      point: imageLocal,
+      size: imageSize,
+      pageIndex: pageIndex,
+    );
+    await _handleOverlapSelection(hits);
+  }
+
+  int? _createdIndexFromId(String id) {
+    return int.tryParse(id);
+  }
+
+  Future<void> _handleOverlapSelection(List<MarkerHitResult> hits) async {
+    if (hits.isEmpty || _isDetailDialogOpen) {
+      return;
+    }
+    if (hits.length == 1) {
+      _selectMarker(hits.first);
+      return;
+    }
+    final ordered = _orderOverlapHits(hits);
+    await _showOverlapSelectorSheet(ordered);
+  }
+
+  List<MarkerHitResult> _orderOverlapHits(List<MarkerHitResult> hits) {
+    final items = hits
+        .asMap()
+        .entries
+        .map(
+          (entry) => (
+            index: entry.key,
+            createdIndex: entry.value.defect != null
+                ? _createdIndexFromId(entry.value.defect!.id)
+                : _createdIndexFromId(entry.value.equipment!.id),
+            hit: entry.value,
+          ),
+        )
+        .toList();
+    final hasCreatedIndex = items.every((item) => item.createdIndex != null);
+    if (hasCreatedIndex) {
+      items.sort(
+        (a, b) => a.createdIndex!.compareTo(b.createdIndex!),
+      );
+    } else {
+      items.sort((a, b) => a.index.compareTo(b.index));
+    }
+    return items.map((item) => item.hit).toList();
+  }
+
+  String _overlapMarkerTitle(MarkerHitResult hit) {
+    final defect = hit.defect;
+    if (defect != null) {
+      return defectPanelTitle(defect);
+    }
+    return equipmentPanelTitle(hit.equipment!, _site.equipmentMarkers);
+  }
+
+  Future<void> _showOverlapSelectorSheet(
+    List<MarkerHitResult> orderedHits,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: orderedHits.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final hit = orderedHits[index];
+              return ListTile(
+                title: Text(
+                  _overlapMarkerTitle(hit),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _selectMarker(hit);
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   Future<Site?> _handleTapFlow({

@@ -91,6 +91,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     return _wrapWithPointerHandlers(
       tapRegionKey: _canvasTapRegionKey,
       onTapUp: _handleCanvasTap,
+      onLongPressStart: _handleCanvasLongPress,
       child: _buildCanvasViewer(theme),
     );
   }
@@ -177,6 +178,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   tapContext,
                   destRect: destRect,
                 ),
+                onLongPressStart: (details) => _handlePdfLongPress(
+                  details,
+                  overlaySize,
+                  pageNumber,
+                  tapContext,
+                  destRect: destRect,
+                ),
                 child: SizedBox(
                   width: overlaySize.width,
                   height: overlaySize.height,
@@ -234,6 +242,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _wrapWithPointerHandlers({
     required Widget child,
     required GestureTapUpCallback onTapUp,
+    GestureLongPressStartCallback? onLongPressStart,
     HitTestBehavior behavior = HitTestBehavior.opaque,
     Key? tapRegionKey,
   }) {
@@ -246,6 +255,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       child: GestureDetector(
         behavior: behavior,
         onTapUp: onTapUp,
+        onLongPressStart: onLongPressStart,
         child: KeyedSubtree(key: tapRegionKey, child: child),
       ),
     );
