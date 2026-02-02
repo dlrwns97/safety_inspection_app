@@ -4,6 +4,10 @@ import 'package:flutter/services.dart';
 import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
+const Set<String> _equipment1WHMembers = {'기둥', '보', '철골 각형강관'};
+const Set<String> _equipment1DiameterMembers = {'원형기둥', '브레이싱'};
+const Set<String> _equipment1ThkMembers = {'벽체', '슬래브'};
+
 class EquipmentDetails {
   const EquipmentDetails({
     required this.memberType,
@@ -134,6 +138,53 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
     _sizeControllers = _buildSizeControllers(labels, null);
   }
 
+  String? _completionKeyForMember({
+    required String? memberType,
+    required int index,
+    required String label,
+  }) {
+    if (memberType != null) {
+      if (_equipment1WHMembers.contains(memberType)) {
+        return index == 0
+            ? 'W'
+            : index == 1
+            ? 'H'
+            : null;
+      }
+      if (_equipment1DiameterMembers.contains(memberType) ||
+          _equipment1ThkMembers.contains(memberType)) {
+        return 'D';
+      }
+    }
+    switch (label) {
+      case 'W':
+        return 'W';
+      case 'H':
+        return 'H';
+      case 'D':
+        return 'D';
+      default:
+        return null;
+    }
+  }
+
+  Set<String> _completionKeysForMember() {
+    return _sizeLabels.asMap().entries.fold<Set<String>>(
+      <String>{},
+      (keys, entry) {
+        final key = _completionKeyForMember(
+          memberType: _selectedMember,
+          index: entry.key,
+          label: entry.value,
+        );
+        if (key != null) {
+          keys.add(key);
+        }
+        return keys;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final maxWidth = dialogMaxWidth(
@@ -210,7 +261,13 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
                       textInputAction: isLastField
                           ? TextInputAction.done
                           : TextInputAction.next,
-                      suffixIcon: _buildCompletionToggle(label),
+                      suffixIcon: _buildCompletionToggle(
+                        _completionKeyForMember(
+                          memberType: _selectedMember,
+                          index: index,
+                          label: label,
+                        ),
+                      ),
                     ),
                   );
                 }),
@@ -244,6 +301,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
               buildDialogActionButtons(
                 context,
                 onSave: () {
+                  final completionKeys = _completionKeysForMember();
                   Navigator.of(context).pop(
                     EquipmentDetails(
                       memberType: _selectedMember,
@@ -251,13 +309,13 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
                           .map((controller) => controller.text)
                           .toList(),
                       remark: _selectedRemark,
-                      wComplete: _sizeLabels.contains('W')
+                      wComplete: completionKeys.contains('W')
                           ? _wComplete
                           : null,
-                      hComplete: _sizeLabels.contains('H')
+                      hComplete: completionKeys.contains('H')
                           ? _hComplete
                           : null,
-                      dComplete: _sizeLabels.contains('D')
+                      dComplete: completionKeys.contains('D')
                           ? _dComplete
                           : null,
                     ),
@@ -271,8 +329,8 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
     );
   }
 
-  Widget? _buildCompletionToggle(String label) {
-    switch (label) {
+  Widget? _buildCompletionToggle(String? completionKey) {
+    switch (completionKey) {
       case 'W':
         return _buildCompletionCheckbox(
           value: _wComplete,
