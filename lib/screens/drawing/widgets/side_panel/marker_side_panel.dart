@@ -321,10 +321,14 @@ class MarkerSidePanel extends StatelessWidget {
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
-      if (numberValue != null) MarkerDetailRowData('번호', numberValue),
+      if (isEquipment2 && remarkValue != null)
+        MarkerDetailRowData('비고', remarkValue),
+      if (isEquipment2 && numberValue != null)
+        MarkerDetailRowData('번호', numberValue),
       if (sizeText != null && sizeText.isNotEmpty)
         MarkerDetailRowData('규격', sizeText),
-      if (remarkValue != null) MarkerDetailRowData('비고', remarkValue),
+      if (!isEquipment2 && remarkValue != null)
+        MarkerDetailRowData('비고', remarkValue),
       if (!isEquipment1 &&
           marker.sizeValues != null &&
           marker.sizeValues!.isNotEmpty)

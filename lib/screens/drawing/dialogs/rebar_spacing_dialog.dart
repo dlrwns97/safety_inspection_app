@@ -141,7 +141,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                       labelText: '비고',
                       border: OutlineInputBorder(),
                     ),
-                    items: const ['중앙', '단부']
+                    items: const ['중앙', '단부', 'X열', 'Y열']
                         .map(
                           (option) => DropdownMenuItem(
                             value: option,
@@ -164,7 +164,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                       labelText: '비고',
                       border: OutlineInputBorder(),
                     ),
-                    items: const ['하부', '측면']
+                    items: const ['하부', '측면', '중앙', '단부']
                         .map(
                           (option) => DropdownMenuItem(
                             value: option,
@@ -208,11 +208,19 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: buildDialogTextField(
+                  child: TextFormField(
                     controller: _numberController,
-                    labelText: '번호',
+                    decoration: const InputDecoration(
+                      labelText: '번호',
+                      border: OutlineInputBorder(),
+                      counterText: '',
+                    ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    maxLength: 6,
                   ),
                 ),
               ],
