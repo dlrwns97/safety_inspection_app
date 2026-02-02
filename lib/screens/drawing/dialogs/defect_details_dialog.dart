@@ -105,7 +105,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _structuralMember,
+                  initialValue: _structuralMember,
                   decoration: InputDecoration(
                     labelText: StringsKo.structuralMemberLabel,
                   ),
@@ -127,7 +127,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _crackType,
+                  initialValue: _crackType,
                   decoration: InputDecoration(
                     labelText: StringsKo.crackTypeLabel,
                   ),
@@ -212,7 +212,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _cause,
+                  initialValue: _cause,
                   decoration: InputDecoration(
                     labelText: StringsKo.causeLabel,
                   ),
