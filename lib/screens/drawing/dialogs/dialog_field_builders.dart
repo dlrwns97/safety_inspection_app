@@ -33,12 +33,14 @@ TextFormField buildDialogTextField({
   required TextInputType keyboardType,
   List<TextInputFormatter>? inputFormatters,
   TextInputAction? textInputAction,
+  Widget? suffixIcon,
 }) {
   return TextFormField(
     controller: controller,
     decoration: InputDecoration(
       labelText: labelText,
       border: const OutlineInputBorder(),
+      suffixIcon: suffixIcon,
     ),
     keyboardType: keyboardType,
     inputFormatters: inputFormatters,

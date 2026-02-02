@@ -30,6 +30,10 @@ Future<Site?> createEquipmentUpdatedSite({
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) showEquipmentDetailsDialog,
   required Future<RebarSpacingDetails?> Function(
     BuildContext, {
@@ -85,6 +89,10 @@ Future<Site?> createEquipmentUpdatedSite({
       title: dialogTitle,
       initialMemberType: pendingMarker.memberType,
       initialSizeValues: pendingMarker.sizeValues,
+      initialRemark: pendingMarker.remark,
+      initialWComplete: pendingMarker.wComplete,
+      initialHComplete: pendingMarker.hComplete,
+      initialDComplete: pendingMarker.dComplete,
       showEquipmentDetailsDialog: showEquipmentDetailsDialog,
     ),
     EquipmentCategory.equipment2: () => createEquipment2IfConfirmed(
