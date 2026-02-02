@@ -16,16 +16,28 @@ Future<Site?> createEquipment1IfConfirmed({
   required String title,
   required String? initialMemberType,
   required List<String>? initialSizeValues,
+  String? initialRemark,
+  bool? initialWComplete,
+  bool? initialHComplete,
+  bool? initialDComplete,
   required Future<EquipmentDetails?> Function({
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) showEquipmentDetailsDialog,
 }) async {
   final details = await showEquipmentDetailsDialog(
     title: title,
     initialMemberType: initialMemberType,
     initialSizeValues: initialSizeValues,
+    initialRemark: initialRemark,
+    initialWComplete: initialWComplete,
+    initialHComplete: initialHComplete,
+    initialDComplete: initialDComplete,
   );
   if (details == null) {
     return null;
@@ -34,6 +46,10 @@ Future<Site?> createEquipment1IfConfirmed({
     equipmentTypeId: prefix,
     memberType: details.memberType,
     sizeValues: details.sizeValues,
+    remark: details.remark,
+    wComplete: details.wComplete,
+    hComplete: details.hComplete,
+    dComplete: details.dComplete,
   );
   return site.copyWith(
     equipmentMarkers: [...site.equipmentMarkers, marker],

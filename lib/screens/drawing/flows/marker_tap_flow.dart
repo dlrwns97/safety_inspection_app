@@ -69,6 +69,10 @@ Future<Site?> handleTapCore({
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) showEquipmentDetailsDialog,
   required Future<RebarSpacingDetails?> Function(
     BuildContext, {
@@ -164,6 +168,10 @@ Future<Site?> createMarkerFromTap({
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) showEquipmentDetailsDialog,
   required Future<RebarSpacingDetails?> Function(
     BuildContext, {
@@ -327,6 +335,10 @@ Future<Site?> addEquipmentMarker({
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) showEquipmentDetailsDialog,
   required Future<RebarSpacingDetails?> Function(
     BuildContext, {

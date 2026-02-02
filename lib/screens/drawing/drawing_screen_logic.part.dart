@@ -302,6 +302,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required String title,
     String? initialMemberType,
     List<String>? initialSizeValues,
+    String? initialRemark,
+    bool? initialWComplete,
+    bool? initialHComplete,
+    bool? initialDComplete,
   }) async {
     return _showDetailDialog(
       () => showEquipmentDetailsDialog(
@@ -311,6 +315,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         sizeLabelsByMember: DrawingEquipmentMemberSizeLabels,
         initialMemberType: initialMemberType,
         initialSizeValues: initialSizeValues,
+        initialRemark: initialRemark,
+        initialWComplete: initialWComplete,
+        initialHComplete: initialHComplete,
+        initialDComplete: initialDComplete,
       ),
     );
   }

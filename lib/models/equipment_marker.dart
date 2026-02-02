@@ -22,6 +22,10 @@ class EquipmentMarker {
     this.deflectionEndAText,
     this.deflectionMidBText,
     this.deflectionEndCText,
+    this.remark,
+    this.wComplete,
+    this.hComplete,
+    this.dComplete,
   });
 
   final String id;
@@ -44,6 +48,10 @@ class EquipmentMarker {
   final String? deflectionEndAText;
   final String? deflectionMidBText;
   final String? deflectionEndCText;
+  final String? remark;
+  final bool? wComplete;
+  final bool? hComplete;
+  final bool? dComplete;
 
   EquipmentMarker copyWith({
     String? id,
@@ -66,6 +74,10 @@ class EquipmentMarker {
     String? deflectionEndAText,
     String? deflectionMidBText,
     String? deflectionEndCText,
+    String? remark,
+    bool? wComplete,
+    bool? hComplete,
+    bool? dComplete,
   }) {
     return EquipmentMarker(
       id: id ?? this.id,
@@ -88,6 +100,10 @@ class EquipmentMarker {
       deflectionEndAText: deflectionEndAText ?? this.deflectionEndAText,
       deflectionMidBText: deflectionMidBText ?? this.deflectionMidBText,
       deflectionEndCText: deflectionEndCText ?? this.deflectionEndCText,
+      remark: remark ?? this.remark,
+      wComplete: wComplete ?? this.wComplete,
+      hComplete: hComplete ?? this.hComplete,
+      dComplete: dComplete ?? this.dComplete,
     );
   }
 
@@ -112,6 +128,10 @@ class EquipmentMarker {
     'deflectionEndAText': deflectionEndAText,
     'deflectionMidBText': deflectionMidBText,
     'deflectionEndCText': deflectionEndCText,
+    'remark': remark,
+    'wComplete': wComplete,
+    'hComplete': hComplete,
+    'dComplete': dComplete,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -140,5 +160,9 @@ class EquipmentMarker {
         deflectionEndAText: json['deflectionEndAText'] as String?,
         deflectionMidBText: json['deflectionMidBText'] as String?,
         deflectionEndCText: json['deflectionEndCText'] as String?,
+        remark: json['remark'] as String?,
+        wComplete: json['wComplete'] as bool? ?? true,
+        hComplete: json['hComplete'] as bool? ?? true,
+        dComplete: json['dComplete'] as bool? ?? true,
       );
 }
