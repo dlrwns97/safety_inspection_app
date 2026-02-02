@@ -285,8 +285,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         null;
   }
 
-  Future<DefectDetails?> _showDefectDetailsDialog() async {
-    final defectCategory = _activeCategory ?? DefectCategory.generalCrack;
+  Future<DefectDetails?> _showDefectDetailsDialog({
+    DefectCategory? category,
+    DefectDetails? initialDetails,
+  }) async {
+    final defectCategory =
+        category ?? _activeCategory ?? DefectCategory.generalCrack;
     final defectConfig = defectCategoryConfig(defectCategory);
     return _showDetailDialog(
       () => showDefectDetailsDialog(
@@ -294,6 +298,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         title: defectConfig.dialogTitle,
         typeOptions: defectConfig.typeOptions,
         causeOptions: defectConfig.causeOptions,
+        initialDetails: initialDetails,
       ),
     );
   }

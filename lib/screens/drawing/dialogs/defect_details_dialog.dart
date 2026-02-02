@@ -11,6 +11,7 @@ Future<DefectDetails?> showDefectDetailsDialog({
   required String title,
   required List<String> typeOptions,
   required List<String> causeOptions,
+  DefectDetails? initialDetails,
 }) {
   return showDialog<DefectDetails>(
     context: context,
@@ -18,6 +19,7 @@ Future<DefectDetails?> showDefectDetailsDialog({
       title: title,
       typeOptions: typeOptions,
       causeOptions: causeOptions,
+      initialDetails: initialDetails,
     ),
   );
 }
@@ -27,11 +29,13 @@ class _DefectDetailsDialog extends StatefulWidget {
     required this.title,
     required this.typeOptions,
     required this.causeOptions,
+    this.initialDetails,
   });
 
   final String title;
   final List<String> typeOptions;
   final List<String> causeOptions;
+  final DefectDetails? initialDetails;
 
   @override
   State<_DefectDetailsDialog> createState() => _DefectDetailsDialogState();
@@ -47,6 +51,38 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   String? _structuralMember;
   String? _crackType;
   String? _cause;
+
+  @override
+  void initState() {
+    super.initState();
+    final details = widget.initialDetails;
+    if (details == null) {
+      return;
+    }
+    _structuralMember = details.structuralMember;
+    _widthController.text =
+        details.widthMm > 0 ? details.widthMm.toString() : '';
+    _lengthController.text =
+        details.lengthMm > 0 ? details.lengthMm.toString() : '';
+    final crackType = details.crackType;
+    if (crackType.isNotEmpty) {
+      if (widget.typeOptions.contains(crackType)) {
+        _crackType = crackType;
+      } else {
+        _crackType = StringsKo.otherOptionLabel;
+        _otherTypeController.text = crackType;
+      }
+    }
+    final cause = details.cause;
+    if (cause.isNotEmpty) {
+      if (widget.causeOptions.contains(cause)) {
+        _cause = cause;
+      } else {
+        _cause = StringsKo.otherOptionLabel;
+        _otherCauseController.text = cause;
+      }
+    }
+  }
 
   @override
   void dispose() {
