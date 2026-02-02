@@ -87,6 +87,7 @@ Future<Site?> handleTapCore({
     BuildContext, {
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) showSchmidtHammerDialog,
@@ -189,6 +190,7 @@ Future<Site?> createMarkerFromTap({
     BuildContext, {
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) showSchmidtHammerDialog,
@@ -359,6 +361,7 @@ Future<Site?> addEquipmentMarker({
     BuildContext, {
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) showSchmidtHammerDialog,

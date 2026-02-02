@@ -98,6 +98,7 @@ Future<Site?> createEquipment3IfConfirmed({
     BuildContext context, {
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) showSchmidtHammerDialog,
@@ -106,8 +107,11 @@ Future<Site?> createEquipment3IfConfirmed({
     context,
     title: title,
     initialMemberType: pendingMarker.memberType,
-    initialMaxValueText: pendingMarker.maxValueText,
-    initialMinValueText: pendingMarker.minValueText,
+    initialAngleDeg: pendingMarker.schmidtAngleDeg,
+    initialMaxValueText:
+        pendingMarker.schmidtMaxValue ?? pendingMarker.maxValueText,
+    initialMinValueText:
+        pendingMarker.schmidtMinValue ?? pendingMarker.minValueText,
   );
   if (details == null) {
     return null;
@@ -118,6 +122,9 @@ Future<Site?> createEquipment3IfConfirmed({
     normalizedY: normalizedY,
     equipmentTypeId: prefix,
     memberType: details.memberType,
+    schmidtAngleDeg: details.angleDeg,
+    schmidtMaxValue: details.maxValueText,
+    schmidtMinValue: details.minValueText,
     maxValueText: details.maxValueText,
     minValueText: details.minValueText,
   );

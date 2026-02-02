@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
@@ -6,11 +7,13 @@ import '../widgets/narrow_dialog_frame.dart';
 class SchmidtHammerDetails {
   const SchmidtHammerDetails({
     required this.memberType,
+    required this.angleDeg,
     required this.maxValueText,
     required this.minValueText,
   });
 
   final String memberType;
+  final int angleDeg;
   final String maxValueText;
   final String minValueText;
 }
@@ -20,6 +23,7 @@ Future<SchmidtHammerDetails?> showSchmidtHammerDialog({
   required String title,
   required List<String> memberOptions,
   String? initialMemberType,
+  int? initialAngleDeg,
   String? initialMaxValueText,
   String? initialMinValueText,
 }) {
@@ -29,6 +33,7 @@ Future<SchmidtHammerDetails?> showSchmidtHammerDialog({
       title: title,
       memberOptions: memberOptions,
       initialMemberType: initialMemberType,
+      initialAngleDeg: initialAngleDeg,
       initialMaxValueText: initialMaxValueText,
       initialMinValueText: initialMinValueText,
     ),
@@ -40,6 +45,7 @@ class _SchmidtHammerDialog extends StatefulWidget {
     required this.title,
     required this.memberOptions,
     this.initialMemberType,
+    this.initialAngleDeg,
     this.initialMaxValueText,
     this.initialMinValueText,
   });
@@ -47,6 +53,7 @@ class _SchmidtHammerDialog extends StatefulWidget {
   final String title;
   final List<String> memberOptions;
   final String? initialMemberType;
+  final int? initialAngleDeg;
   final String? initialMaxValueText;
   final String? initialMinValueText;
 
@@ -59,45 +66,22 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
   final _maxValueController = TextEditingController();
   final _minValueController = TextEditingController();
   String? _selectedMember;
-  String? _rangeError;
+  int _selectedAngleDeg = 0;
 
   @override
   void initState() {
     super.initState();
     _selectedMember = widget.initialMemberType;
+    _selectedAngleDeg = widget.initialAngleDeg ?? 0;
     _maxValueController.text = widget.initialMaxValueText ?? '';
     _minValueController.text = widget.initialMinValueText ?? '';
-    _maxValueController.addListener(_handleRangeTextChange);
-    _minValueController.addListener(_handleRangeTextChange);
   }
 
   @override
   void dispose() {
-    _maxValueController.removeListener(_handleRangeTextChange);
-    _minValueController.removeListener(_handleRangeTextChange);
     _maxValueController.dispose();
     _minValueController.dispose();
     super.dispose();
-  }
-
-  void _handleRangeTextChange() {
-    if (_rangeError != null && mounted) {
-      setState(() {
-        _rangeError = null;
-      });
-    }
-  }
-
-  bool _hasInvalidRange(String minText, String maxText) {
-    if (minText.isEmpty || maxText.isEmpty) {
-      return false;
-    }
-    final minValue = double.tryParse(minText);
-    final maxValue = double.tryParse(maxText);
-    if (minValue == null || maxValue == null) {
-      return false;
-    }
-    return minValue > maxValue;
   }
 
   @override
@@ -122,71 +106,103 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedMember,
-              labelText: '부재',
-              items: widget.memberOptions
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
+            Row(
+              children: [
+                Expanded(
+                  child: buildDialogDropdownField(
+                    value: _selectedMember,
+                    labelText: '부재',
+                    items: widget.memberOptions
+                        .map(
+                          (option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(option),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedMember = value;
+                      });
+                    },
+                    requiredMessage: '부재를 선택하세요.',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedAngleDeg,
+                    decoration: const InputDecoration(
+                      labelText: '각도',
+                      border: OutlineInputBorder(),
                     ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMember = value;
-                });
-              },
-              requiredMessage: '부재를 선택하세요.',
+                    items: const [0, 45, 90]
+                        .map(
+                          (angle) => DropdownMenuItem(
+                            value: angle,
+                            child: Text('$angle'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAngleDeg = value ?? 0;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            buildDialogTextField(
-              controller: _maxValueController,
-              labelText: '최댓값',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            buildDialogTextField(
-              controller: _minValueController,
-              labelText: '최솟값',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            if (_rangeError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _rangeError!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontSize: 12,
+            Row(
+              children: [
+                Expanded(
+                  child: buildDialogTextField(
+                    controller: _minValueController,
+                    labelText: '최솟값',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: false,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d*$'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: buildDialogTextField(
+                    controller: _maxValueController,
+                    labelText: '최댓값',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: false,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d*$'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             buildDialogActionButtons(
               context,
               onSave: isSaveEnabled
                   ? () {
-                      final minText = _minValueController.text.trim();
-                      final maxText = _maxValueController.text.trim();
-                      if (_hasInvalidRange(minText, maxText)) {
-                        setState(() {
-                          _rangeError = '최솟값이 최댓값보다 클 수 없습니다.';
-                        });
-                        return;
-                      }
                       if (!(_formKey.currentState?.validate() ?? false)) {
                         return;
                       }
                       Navigator.of(context).pop(
                         SchmidtHammerDetails(
                           memberType: _selectedMember!,
-                          maxValueText: maxText,
-                          minValueText: minText,
+                          angleDeg: _selectedAngleDeg,
+                          maxValueText: _maxValueController.text.trim(),
+                          minValueText: _minValueController.text.trim(),
                         ),
                       );
                     }

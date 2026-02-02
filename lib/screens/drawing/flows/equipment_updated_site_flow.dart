@@ -48,6 +48,7 @@ Future<Site?> createEquipmentUpdatedSite({
     BuildContext, {
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) showSchmidtHammerDialog,

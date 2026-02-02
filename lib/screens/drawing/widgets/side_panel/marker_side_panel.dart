@@ -305,6 +305,7 @@ class MarkerSidePanel extends StatelessWidget {
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
     final isEquipment1 = marker.category == EquipmentCategory.equipment1;
     final isEquipment2 = marker.category == EquipmentCategory.equipment2;
+    final isEquipment3 = marker.category == EquipmentCategory.equipment3;
     final sizeText = isEquipment1 ? _equipment1SizeText(marker) : null;
     final remarkValue =
         isEquipment1
@@ -318,9 +319,19 @@ class MarkerSidePanel extends StatelessWidget {
             : marker.numberText?.isNotEmpty == true
             ? marker.numberText
             : null;
+    final schmidtAngle = marker.schmidtAngleDeg ?? 0;
+    final schmidtMinRaw = marker.schmidtMinValue ?? marker.minValueText;
+    final schmidtMaxRaw = marker.schmidtMaxValue ?? marker.maxValueText;
+    final schmidtMin =
+        schmidtMinRaw?.trim().isNotEmpty == true ? schmidtMinRaw!.trim() : '-';
+    final schmidtMax =
+        schmidtMaxRaw?.trim().isNotEmpty == true ? schmidtMaxRaw!.trim() : '-';
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
+      if (isEquipment3) MarkerDetailRowData('각도', '$schmidtAngle°'),
+      if (isEquipment3)
+        MarkerDetailRowData('최솟/최댓', '$schmidtMin/$schmidtMax'),
       if (isEquipment2 && remarkValue != null)
         MarkerDetailRowData('비고', remarkValue),
       if (isEquipment2 && numberValue != null)
@@ -333,9 +344,9 @@ class MarkerSidePanel extends StatelessWidget {
           marker.sizeValues != null &&
           marker.sizeValues!.isNotEmpty)
         MarkerDetailRowData('규격', marker.sizeValues!.join(' / ')),
-      if (marker.maxValueText?.isNotEmpty == true)
+      if (!isEquipment3 && marker.maxValueText?.isNotEmpty == true)
         MarkerDetailRowData('최대값', marker.maxValueText!),
-      if (marker.minValueText?.isNotEmpty == true)
+      if (!isEquipment3 && marker.minValueText?.isNotEmpty == true)
         MarkerDetailRowData('최소값', marker.minValueText!),
       if (marker.avgValueText?.isNotEmpty == true)
         MarkerDetailRowData('평균값', marker.avgValueText!),
