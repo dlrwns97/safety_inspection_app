@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 DropdownButtonFormField<String> buildDialogDropdownField({
   required String? value,
@@ -30,6 +31,8 @@ TextFormField buildDialogTextField({
   required TextEditingController controller,
   required String labelText,
   required TextInputType keyboardType,
+  List<TextInputFormatter>? inputFormatters,
+  TextInputAction? textInputAction,
 }) {
   return TextFormField(
     controller: controller,
@@ -38,6 +41,8 @@ TextFormField buildDialogTextField({
       border: const OutlineInputBorder(),
     ),
     keyboardType: keyboardType,
+    inputFormatters: inputFormatters,
+    textInputAction: textInputAction,
   );
 }
 
