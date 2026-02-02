@@ -39,7 +39,10 @@ Future<Site?> createEquipmentUpdatedSite({
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {

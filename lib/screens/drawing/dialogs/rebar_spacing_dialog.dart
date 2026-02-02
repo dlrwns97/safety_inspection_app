@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
@@ -6,11 +7,17 @@ import '../widgets/narrow_dialog_frame.dart';
 class RebarSpacingDetails {
   const RebarSpacingDetails({
     required this.memberType,
-    required this.numberText,
+    this.remarkLeft,
+    this.remarkRight,
+    this.numberPrefix,
+    this.numberValue,
   });
 
   final String memberType;
-  final String numberText;
+  final String? remarkLeft;
+  final String? remarkRight;
+  final String? numberPrefix;
+  final String? numberValue;
 }
 
 Future<RebarSpacingDetails?> showRebarSpacingDialog({
@@ -18,7 +25,10 @@ Future<RebarSpacingDetails?> showRebarSpacingDialog({
   required String title,
   required List<String> memberOptions,
   String? initialMemberType,
-  String? initialNumberText,
+  String? initialRemarkLeft,
+  String? initialRemarkRight,
+  String? initialNumberPrefix,
+  String? initialNumberValue,
 }) {
   return showDialog<RebarSpacingDetails>(
     context: context,
@@ -26,7 +36,10 @@ Future<RebarSpacingDetails?> showRebarSpacingDialog({
       title: title,
       memberOptions: memberOptions,
       initialMemberType: initialMemberType,
-      initialNumberText: initialNumberText,
+      initialRemarkLeft: initialRemarkLeft,
+      initialRemarkRight: initialRemarkRight,
+      initialNumberPrefix: initialNumberPrefix,
+      initialNumberValue: initialNumberValue,
     ),
   );
 }
@@ -36,13 +49,19 @@ class _RebarSpacingDialog extends StatefulWidget {
     required this.title,
     required this.memberOptions,
     this.initialMemberType,
-    this.initialNumberText,
+    this.initialRemarkLeft,
+    this.initialRemarkRight,
+    this.initialNumberPrefix,
+    this.initialNumberValue,
   });
 
   final String title;
   final List<String> memberOptions;
   final String? initialMemberType;
-  final String? initialNumberText;
+  final String? initialRemarkLeft;
+  final String? initialRemarkRight;
+  final String? initialNumberPrefix;
+  final String? initialNumberValue;
 
   @override
   State<_RebarSpacingDialog> createState() => _RebarSpacingDialogState();
@@ -52,12 +71,18 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
   final _formKey = GlobalKey<FormState>();
   final _numberController = TextEditingController();
   String? _selectedMember;
+  String? _selectedRemarkLeft;
+  String? _selectedRemarkRight;
+  String? _selectedNumberPrefix;
 
   @override
   void initState() {
     super.initState();
     _selectedMember = widget.initialMemberType;
-    _numberController.text = widget.initialNumberText ?? '';
+    _selectedRemarkLeft = widget.initialRemarkLeft;
+    _selectedRemarkRight = widget.initialRemarkRight;
+    _selectedNumberPrefix = widget.initialNumberPrefix;
+    _numberController.text = widget.initialNumberValue ?? '';
   }
 
   @override
@@ -107,10 +132,90 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
               requiredMessage: '부재를 선택하세요.',
             ),
             const SizedBox(height: 16),
-            buildDialogTextField(
-              controller: _numberController,
-              labelText: '번호',
-              keyboardType: TextInputType.number,
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedRemarkLeft,
+                    decoration: const InputDecoration(
+                      labelText: '비고',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const ['중앙', '단부']
+                        .map(
+                          (option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(option),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRemarkLeft = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedRemarkRight,
+                    decoration: const InputDecoration(
+                      labelText: '비고',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const ['하부', '측면']
+                        .map(
+                          (option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(option),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRemarkRight = value;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedNumberPrefix,
+                    decoration: const InputDecoration(
+                      labelText: '번호',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const ['FS', 'FQ']
+                        .map(
+                          (option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(option),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedNumberPrefix = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: buildDialogTextField(
+                    controller: _numberController,
+                    labelText: '번호',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             buildDialogActionButtons(
@@ -123,7 +228,13 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                       Navigator.of(context).pop(
                         RebarSpacingDetails(
                           memberType: _selectedMember!,
-                          numberText: _numberController.text.trim(),
+                          remarkLeft: _selectedRemarkLeft,
+                          remarkRight: _selectedRemarkRight,
+                          numberPrefix: _selectedNumberPrefix,
+                          numberValue:
+                              _numberController.text.trim().isEmpty
+                                  ? null
+                                  : _numberController.text.trim(),
                         ),
                       );
                     }

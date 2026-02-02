@@ -19,29 +19,70 @@ Future<Site?> createEquipment2IfConfirmed({
     BuildContext context, {
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) showRebarSpacingDialog,
 }) async {
+  final fallbackNumberValue =
+      pendingMarker.numberValue ??
+      (pendingMarker.numberText?.trim().isNotEmpty == true
+          ? pendingMarker.numberText
+          : null);
   final details = await showRebarSpacingDialog(
     context,
     title: title,
     initialMemberType: pendingMarker.memberType,
-    initialNumberText: pendingMarker.numberText,
+    initialRemarkLeft: pendingMarker.remarkLeft,
+    initialRemarkRight: pendingMarker.remarkRight,
+    initialNumberPrefix: pendingMarker.numberPrefix,
+    initialNumberValue: fallbackNumberValue,
   );
   if (details == null) {
     return null;
   }
+  final numberValue =
+      details.numberValue?.isNotEmpty == true
+          ? details.numberValue!.trim()
+          : null;
+  final numberPrefix =
+      details.numberPrefix?.isNotEmpty == true
+          ? details.numberPrefix!.trim()
+          : null;
+  final numberText = _formatEquipment2Number(
+    prefix: numberPrefix,
+    value: numberValue,
+  );
   final marker = pendingMarker.copyWith(
     pageIndex: pageIndex,
     normalizedX: normalizedX,
     normalizedY: normalizedY,
     equipmentTypeId: prefix,
     memberType: details.memberType,
-    numberText: details.numberText,
+    numberText: numberText,
+    remarkLeft: details.remarkLeft,
+    remarkRight: details.remarkRight,
+    numberPrefix: numberPrefix,
+    numberValue: numberValue,
   );
   return site.copyWith(
     equipmentMarkers: [...site.equipmentMarkers, marker],
   );
+}
+
+String? _formatEquipment2Number({String? prefix, String? value}) {
+  final trimmedPrefix = prefix?.trim();
+  final trimmedValue = value?.trim();
+  final hasPrefix = trimmedPrefix?.isNotEmpty == true;
+  final hasValue = trimmedValue?.isNotEmpty == true;
+  if (!hasPrefix && !hasValue) {
+    return null;
+  }
+  if (hasPrefix && hasValue) {
+    return '$trimmedPrefix$trimmedValue';
+  }
+  return hasPrefix ? trimmedPrefix : trimmedValue;
 }
 
 Future<Site?> createEquipment3IfConfirmed({

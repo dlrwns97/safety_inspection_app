@@ -78,7 +78,10 @@ Future<Site?> handleTapCore({
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {
@@ -177,7 +180,10 @@ Future<Site?> createMarkerFromTap({
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {
@@ -344,7 +350,10 @@ Future<Site?> addEquipmentMarker({
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {

@@ -326,7 +326,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   Future<RebarSpacingDetails?> _showRebarSpacingDialog({
     required String title,
     String? initialMemberType,
-    String? initialNumberText,
+    String? initialRemarkLeft,
+    String? initialRemarkRight,
+    String? initialNumberPrefix,
+    String? initialNumberValue,
   }) async {
     return _showDetailDialog(
       () => showRebarSpacingDialog(
@@ -334,7 +337,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         title: title,
         memberOptions: DrawingRebarSpacingMemberOptions,
         initialMemberType: initialMemberType,
-        initialNumberText: initialNumberText,
+        initialRemarkLeft: initialRemarkLeft,
+        initialRemarkRight: initialRemarkRight,
+        initialNumberPrefix: initialNumberPrefix,
+        initialNumberValue: initialNumberValue,
       ),
     );
   }
@@ -644,12 +650,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
-          (context, {required title, initialMemberType, initialNumberText}) =>
-              _showRebarSpacingDialog(
-                title: title,
-                initialMemberType: initialMemberType,
-                initialNumberText: initialNumberText,
-              ),
+          (
+            context, {
+            required title,
+            initialMemberType,
+            initialRemarkLeft,
+            initialRemarkRight,
+            initialNumberPrefix,
+            initialNumberValue,
+          }) => _showRebarSpacingDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialRemarkLeft: initialRemarkLeft,
+            initialRemarkRight: initialRemarkRight,
+            initialNumberPrefix: initialNumberPrefix,
+            initialNumberValue: initialNumberValue,
+          ),
       showSchmidtHammerDialog:
           (
             context, {
