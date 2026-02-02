@@ -72,6 +72,10 @@ class MarkerSidePanel extends StatelessWidget {
     DefectCategory.other,
   ];
 
+  static const Set<String> _equipment1WHMembers = {'기둥', '보', '철골 각형강관'};
+  static const Set<String> _equipment1DiameterMembers = {'원형기둥', '브레이싱'};
+  static const Set<String> _equipment1ThkMembers = {'벽체', '슬래브'};
+
   String defectChipLabel(DefectCategory category) {
     switch (category) {
       case DefectCategory.generalCrack:
@@ -299,12 +303,22 @@ class MarkerSidePanel extends StatelessWidget {
 
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
+    final isEquipment1 = marker.category == EquipmentCategory.equipment1;
+    final sizeText = isEquipment1 ? _equipment1SizeText(marker) : null;
+    final remarkValue = isEquipment1
+        ? (marker.remark?.isNotEmpty == true ? marker.remark! : '-')
+        : null;
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
       if (marker.numberText?.isNotEmpty == true)
         MarkerDetailRowData('번호', marker.numberText!),
-      if (marker.sizeValues != null && marker.sizeValues!.isNotEmpty)
+      if (sizeText != null && sizeText.isNotEmpty)
+        MarkerDetailRowData('규격', sizeText),
+      if (remarkValue != null) MarkerDetailRowData('비고', remarkValue),
+      if (!isEquipment1 &&
+          marker.sizeValues != null &&
+          marker.sizeValues!.isNotEmpty)
         MarkerDetailRowData('규격', marker.sizeValues!.join(' / ')),
       if (marker.maxValueText?.isNotEmpty == true)
         MarkerDetailRowData('최대값', marker.maxValueText!),
@@ -332,5 +346,30 @@ class MarkerSidePanel extends StatelessWidget {
       subtitle: '페이지 $displayPage',
       rows: rows,
     );
+  }
+
+  String? _equipment1SizeText(EquipmentMarker marker) {
+    final values = marker.sizeValues;
+    if (values == null || values.isEmpty) {
+      return null;
+    }
+    final memberType = marker.memberType;
+    if (_equipment1WHMembers.contains(memberType)) {
+      final wValue = values.isNotEmpty ? values[0] : '';
+      final hValue = values.length > 1 ? values[1] : '';
+      final wLabel = (marker.wComplete ?? true) ? 'A' : 'a';
+      final hLabel = (marker.hComplete ?? true) ? 'B' : 'b';
+      return '$wLabel : $wValue / $hLabel : $hValue';
+    }
+    if (_equipment1DiameterMembers.contains(memberType)) {
+      final dValue = values.isNotEmpty ? values[0] : '';
+      return '⌀ : $dValue';
+    }
+    if (_equipment1ThkMembers.contains(memberType)) {
+      final dValue = values.isNotEmpty ? values[0] : '';
+      final label = (marker.dComplete ?? true) ? 'Thk' : 'thk';
+      return '$label : $dValue';
+    }
+    return values.join(' / ');
   }
 }
