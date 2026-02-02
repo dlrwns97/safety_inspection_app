@@ -35,6 +35,9 @@ class MarkerSidePanel extends StatelessWidget {
     required this.onLabelScaleChanged,
     required this.isMarkerScaleLocked,
     required this.onToggleMarkerScaleLock,
+    required this.onEditPressed,
+    required this.onMovePressed,
+    required this.onDeletePressed,
   });
 
   final TabController tabController;
@@ -61,6 +64,9 @@ class MarkerSidePanel extends StatelessWidget {
   final ValueChanged<double> onLabelScaleChanged;
   final bool isMarkerScaleLocked;
   final VoidCallback onToggleMarkerScaleLock;
+  final VoidCallback onEditPressed;
+  final VoidCallback onMovePressed;
+  final VoidCallback onDeletePressed;
 
   int toDisplayPageFromZeroBased(int pageIndex) => pageIndex + 1;
 
@@ -254,19 +260,52 @@ class MarkerSidePanel extends StatelessWidget {
     final theme = Theme.of(context);
     final defect = selectedDefect;
     final equipment = selectedEquipment;
-    if (defect == null && equipment == null) {
-      return Center(
-        child: Text(
-          '선택된 마커 없음',
-          style: theme.textTheme.bodyLarge,
-        ),
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.all(12),
+    final hasSelection = defect != null || equipment != null;
+    return Column(
       children: [
-        if (defect != null) _buildDefectDetail(defect),
-        if (equipment != null) _buildEquipmentDetail(equipment),
+        Expanded(
+          child:
+              hasSelection
+                  ? ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      if (defect != null) _buildDefectDetail(defect),
+                      if (equipment != null) _buildEquipmentDetail(equipment),
+                    ],
+                  )
+                  : Center(
+                    child: Text(
+                      '선택된 마커 없음',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ),
+        ),
+        const Divider(height: 1),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: hasSelection ? onEditPressed : null,
+                  child: const Text('수정'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: hasSelection ? onMovePressed : null,
+                  child: const Text('이동'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: hasSelection ? onDeletePressed : null,
+                  child: const Text('삭제'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

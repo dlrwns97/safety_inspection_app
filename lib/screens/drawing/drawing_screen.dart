@@ -90,6 +90,12 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isScaleLocked = false;
   bool _didLoadScalePrefs = false;
 
+  void _handleEditPressed() {}
+
+  void _handleMovePressed() {}
+
+  void _handleDeletePressed() {}
+
   GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
   }
@@ -403,6 +409,9 @@ class _DrawingScreenState extends State<DrawingScreen>
                   onLabelScaleChanged: _handleLabelScaleChanged,
                   isMarkerScaleLocked: _isScaleLocked,
                   onToggleMarkerScaleLock: _toggleScaleLock,
+                  onEditPressed: _handleEditPressed,
+                  onMovePressed: _handleMovePressed,
+                  onDeletePressed: _handleDeletePressed,
                 ),
               ),
             ],
