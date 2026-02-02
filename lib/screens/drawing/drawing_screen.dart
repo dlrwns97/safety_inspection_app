@@ -261,7 +261,63 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   void _handleMovePressed() {}
 
-  void _handleDeletePressed() {}
+  void _handleDeletePressed() {
+    _confirmDeleteSelectedMarker();
+  }
+
+  Future<void> _confirmDeleteSelectedMarker() async {
+    final selectedDefect = _selectedDefect;
+    final selectedEquipment = _selectedEquipment;
+    if (selectedDefect == null && selectedEquipment == null) {
+      return;
+    }
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: const Text('정말로 삭제 하시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('아니오'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('예'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+    if (selectedDefect != null) {
+      final updatedDefects =
+          _site.defects
+              .where((defect) => defect.id != selectedDefect.id)
+              .toList();
+      await _applyUpdatedSite(
+        _site.copyWith(defects: updatedDefects),
+        onStateUpdated: () {
+          _clearSelectionAndPopup(inSetState: false);
+        },
+      );
+      return;
+    }
+    if (selectedEquipment != null) {
+      final updatedMarkers =
+          _site.equipmentMarkers
+              .where((marker) => marker.id != selectedEquipment.id)
+              .toList();
+      await _applyUpdatedSite(
+        _site.copyWith(equipmentMarkers: updatedMarkers),
+        onStateUpdated: () {
+          _clearSelectionAndPopup(inSetState: false);
+        },
+      );
+    }
+  }
 
   GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
