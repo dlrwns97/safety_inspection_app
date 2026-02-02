@@ -304,15 +304,24 @@ class MarkerSidePanel extends StatelessWidget {
   Widget _buildEquipmentDetail(EquipmentMarker marker) {
     final displayPage = toDisplayPageFromZeroBased(marker.pageIndex - 1);
     final isEquipment1 = marker.category == EquipmentCategory.equipment1;
+    final isEquipment2 = marker.category == EquipmentCategory.equipment2;
     final sizeText = isEquipment1 ? _equipment1SizeText(marker) : null;
-    final remarkValue = isEquipment1
-        ? (marker.remark?.isNotEmpty == true ? marker.remark! : '-')
-        : null;
+    final remarkValue =
+        isEquipment1
+            ? (marker.remark?.isNotEmpty == true ? marker.remark! : '-')
+            : isEquipment2
+            ? _equipment2RemarkText(marker)
+            : null;
+    final numberValue =
+        isEquipment2
+            ? _equipment2NumberText(marker)
+            : marker.numberText?.isNotEmpty == true
+            ? marker.numberText
+            : null;
     final rows = <MarkerDetailRowData>[
       if (marker.memberType?.isNotEmpty == true)
         MarkerDetailRowData('부재', marker.memberType!),
-      if (marker.numberText?.isNotEmpty == true)
-        MarkerDetailRowData('번호', marker.numberText!),
+      if (numberValue != null) MarkerDetailRowData('번호', numberValue),
       if (sizeText != null && sizeText.isNotEmpty)
         MarkerDetailRowData('규격', sizeText),
       if (remarkValue != null) MarkerDetailRowData('비고', remarkValue),
@@ -371,5 +380,50 @@ class MarkerSidePanel extends StatelessWidget {
       return '$label : $dValue';
     }
     return values.join(' / ');
+  }
+
+  String _equipment2NumberText(EquipmentMarker marker) {
+    final formatted = _formatEquipment2Number(
+      prefix: marker.numberPrefix,
+      value: marker.numberValue,
+    );
+    if (formatted != null && formatted.isNotEmpty) {
+      return formatted;
+    }
+    if (marker.numberText?.isNotEmpty == true) {
+      return marker.numberText!;
+    }
+    return '-';
+  }
+
+  String _equipment2RemarkText(EquipmentMarker marker) {
+    final left = marker.remarkLeft?.trim() ?? '';
+    final right = marker.remarkRight?.trim() ?? '';
+    final hasLeft = left.isNotEmpty;
+    final hasRight = right.isNotEmpty;
+    if (hasLeft && hasRight) {
+      return '$left/$right';
+    }
+    if (hasLeft) {
+      return left;
+    }
+    if (hasRight) {
+      return right;
+    }
+    return '-';
+  }
+
+  String? _formatEquipment2Number({String? prefix, String? value}) {
+    final trimmedPrefix = prefix?.trim();
+    final trimmedValue = value?.trim();
+    final hasPrefix = trimmedPrefix?.isNotEmpty == true;
+    final hasValue = trimmedValue?.isNotEmpty == true;
+    if (!hasPrefix && !hasValue) {
+      return null;
+    }
+    if (hasPrefix && hasValue) {
+      return '$trimmedPrefix$trimmedValue';
+    }
+    return hasPrefix ? trimmedPrefix : trimmedValue;
   }
 }

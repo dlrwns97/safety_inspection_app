@@ -11,6 +11,10 @@ class EquipmentMarker {
     this.equipmentTypeId,
     this.memberType,
     this.numberText,
+    this.remarkLeft,
+    this.remarkRight,
+    this.numberPrefix,
+    this.numberValue,
     this.sizeValues,
     this.maxValueText,
     this.minValueText,
@@ -37,6 +41,10 @@ class EquipmentMarker {
   final String? equipmentTypeId;
   final String? memberType;
   final String? numberText;
+  final String? remarkLeft;
+  final String? remarkRight;
+  final String? numberPrefix;
+  final String? numberValue;
   final List<String>? sizeValues;
   final String? maxValueText;
   final String? minValueText;
@@ -63,6 +71,10 @@ class EquipmentMarker {
     String? equipmentTypeId,
     String? memberType,
     String? numberText,
+    String? remarkLeft,
+    String? remarkRight,
+    String? numberPrefix,
+    String? numberValue,
     List<String>? sizeValues,
     String? maxValueText,
     String? minValueText,
@@ -89,6 +101,10 @@ class EquipmentMarker {
       equipmentTypeId: equipmentTypeId ?? this.equipmentTypeId,
       memberType: memberType ?? this.memberType,
       numberText: numberText ?? this.numberText,
+      remarkLeft: remarkLeft ?? this.remarkLeft,
+      remarkRight: remarkRight ?? this.remarkRight,
+      numberPrefix: numberPrefix ?? this.numberPrefix,
+      numberValue: numberValue ?? this.numberValue,
       sizeValues: sizeValues ?? this.sizeValues,
       maxValueText: maxValueText ?? this.maxValueText,
       minValueText: minValueText ?? this.minValueText,
@@ -117,6 +133,10 @@ class EquipmentMarker {
     'equipmentTypeId': equipmentTypeId,
     'memberType': memberType,
     'numberText': numberText,
+    'remarkLeft': remarkLeft,
+    'remarkRight': remarkRight,
+    'numberPrefix': numberPrefix,
+    'numberValue': numberValue,
     'sizeValues': sizeValues,
     'maxValueText': maxValueText,
     'minValueText': minValueText,
@@ -147,6 +167,10 @@ class EquipmentMarker {
         equipmentTypeId: json['equipmentTypeId'] as String?,
         memberType: json['memberType'] as String?,
         numberText: json['numberText'] as String?,
+        remarkLeft: json['remarkLeft'] as String?,
+        remarkRight: json['remarkRight'] as String?,
+        numberPrefix: json['numberPrefix'] as String?,
+        numberValue: json['numberValue'] as String?,
         sizeValues: (json['sizeValues'] as List<dynamic>?)
             ?.map((value) => value.toString())
             .toList(),
