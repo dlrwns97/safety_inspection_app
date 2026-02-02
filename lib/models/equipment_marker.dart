@@ -18,6 +18,9 @@ class EquipmentMarker {
     this.sizeValues,
     this.maxValueText,
     this.minValueText,
+    this.schmidtAngleDeg,
+    this.schmidtMinValue,
+    this.schmidtMaxValue,
     this.avgValueText,
     this.coverThicknessText,
     this.depthText,
@@ -48,6 +51,9 @@ class EquipmentMarker {
   final List<String>? sizeValues;
   final String? maxValueText;
   final String? minValueText;
+  final int? schmidtAngleDeg;
+  final String? schmidtMinValue;
+  final String? schmidtMaxValue;
   final String? avgValueText;
   final String? coverThicknessText;
   final String? depthText;
@@ -78,6 +84,9 @@ class EquipmentMarker {
     List<String>? sizeValues,
     String? maxValueText,
     String? minValueText,
+    int? schmidtAngleDeg,
+    String? schmidtMinValue,
+    String? schmidtMaxValue,
     String? avgValueText,
     String? coverThicknessText,
     String? depthText,
@@ -108,6 +117,9 @@ class EquipmentMarker {
       sizeValues: sizeValues ?? this.sizeValues,
       maxValueText: maxValueText ?? this.maxValueText,
       minValueText: minValueText ?? this.minValueText,
+      schmidtAngleDeg: schmidtAngleDeg ?? this.schmidtAngleDeg,
+      schmidtMinValue: schmidtMinValue ?? this.schmidtMinValue,
+      schmidtMaxValue: schmidtMaxValue ?? this.schmidtMaxValue,
       avgValueText: avgValueText ?? this.avgValueText,
       coverThicknessText: coverThicknessText ?? this.coverThicknessText,
       depthText: depthText ?? this.depthText,
@@ -140,6 +152,9 @@ class EquipmentMarker {
     'sizeValues': sizeValues,
     'maxValueText': maxValueText,
     'minValueText': minValueText,
+    'schmidtAngleDeg': schmidtAngleDeg,
+    'schmidtMinValue': schmidtMinValue,
+    'schmidtMaxValue': schmidtMaxValue,
     'avgValueText': avgValueText,
     'coverThicknessText': coverThicknessText,
     'depthText': depthText,
@@ -176,6 +191,9 @@ class EquipmentMarker {
             .toList(),
         maxValueText: json['maxValueText'] as String?,
         minValueText: json['minValueText'] as String?,
+        schmidtAngleDeg: (json['schmidtAngleDeg'] as num?)?.toInt(),
+        schmidtMinValue: json['schmidtMinValue'] as String?,
+        schmidtMaxValue: json['schmidtMaxValue'] as String?,
         avgValueText: json['avgValueText'] as String?,
         coverThicknessText: json['coverThicknessText'] as String?,
         depthText: json['depthText'] as String?,

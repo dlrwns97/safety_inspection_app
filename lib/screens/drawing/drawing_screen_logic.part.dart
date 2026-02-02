@@ -348,6 +348,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   Future<SchmidtHammerDetails?> _showSchmidtHammerDialog({
     required String title,
     String? initialMemberType,
+    int? initialAngleDeg,
     String? initialMaxValueText,
     String? initialMinValueText,
   }) async {
@@ -357,6 +358,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         title: title,
         memberOptions: DrawingSchmidtHammerMemberOptions,
         initialMemberType: initialMemberType,
+        initialAngleDeg: initialAngleDeg,
         initialMaxValueText: initialMaxValueText,
         initialMinValueText: initialMinValueText,
       ),
@@ -671,11 +673,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             context, {
             required title,
             initialMemberType,
+            initialAngleDeg,
             initialMaxValueText,
             initialMinValueText,
           }) => _showSchmidtHammerDialog(
             title: title,
             initialMemberType: initialMemberType,
+            initialAngleDeg: initialAngleDeg,
             initialMaxValueText: initialMaxValueText,
             initialMinValueText: initialMinValueText,
           ),
