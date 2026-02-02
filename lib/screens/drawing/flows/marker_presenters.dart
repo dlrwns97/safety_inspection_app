@@ -104,6 +104,19 @@ String equipmentPrefixFor(EquipmentCategory category) {
   }
 }
 
+String _normalizeSymbolCase(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty) return raw;
+
+  final isSymbol = RegExp(r'^[A-Za-z]+[0-9]*$').hasMatch(s);
+  if (!isSymbol) return raw;
+
+  final runes = s.runes.toList();
+  final first = String.fromCharCode(runes.first).toUpperCase();
+  final rest = String.fromCharCodes(runes.skip(1)).toLowerCase();
+  return '$first$rest';
+}
+
 int _equipmentIndexInList(
   EquipmentMarker marker,
   List<EquipmentMarker> markers,
@@ -157,7 +170,8 @@ String equipmentDisplayLabel(
     if (sequence <= 0) {
       return marker.label;
     }
-    return '$direction$sequence';
+    final normalizedDirection = _normalizeSymbolCase(direction);
+    return '$normalizedDirection$sequence';
   }
   final prefix = equipmentPrefixFor(marker.category);
   if (prefix.isEmpty) {
@@ -167,7 +181,8 @@ String equipmentDisplayLabel(
   if (sequence <= 0) {
     return marker.label;
   }
-  return '$prefix$sequence';
+  final normalizedPrefix = _normalizeSymbolCase(prefix);
+  return '$normalizedPrefix$sequence';
 }
 
 String equipmentPanelTitle(EquipmentMarker marker, List<EquipmentMarker> all) {
