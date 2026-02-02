@@ -50,29 +50,32 @@ class DefectMarkerWidget extends StatelessWidget {
           color: Colors.white,
           fontSize: (baseFontSize - 1) * labelScale,
         );
-    return Tooltip(
-      message: category.label,
-      child: Container(
-        width: scaledSize,
-        height: scaledSize,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
+    return IgnorePointer(
+      ignoring: true,
+      child: Tooltip(
+        message: category.label,
+        child: Container(
+          width: scaledSize,
+          height: scaledSize,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: labelStyle,
             ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: labelStyle,
           ),
         ),
       ),
@@ -113,29 +116,32 @@ class EquipmentMarkerWidget extends StatelessWidget {
           color: Colors.white,
           fontSize: (baseFontSize - 1) * labelScale,
         );
-    return Tooltip(
-      message: equipmentCategoryDisplayNameKo(category),
-      child: Container(
-        width: scaledSize,
-        height: scaledSize,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 2),
+    return IgnorePointer(
+      ignoring: true,
+      child: Tooltip(
+        message: equipmentCategoryDisplayNameKo(category),
+        child: Container(
+          width: scaledSize,
+          height: scaledSize,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor, width: isSelected ? 4 : 0),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: labelStyle,
             ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: labelStyle,
           ),
         ),
       ),
