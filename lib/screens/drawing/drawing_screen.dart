@@ -28,6 +28,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dia
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
@@ -90,7 +91,173 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isScaleLocked = false;
   bool _didLoadScalePrefs = false;
 
-  void _handleEditPressed() {}
+  void _handleEditPressed() async {
+    final selectedDefect = _selectedDefect;
+    final selectedEquipment = _selectedEquipment;
+    if (selectedDefect == null && selectedEquipment == null) {
+      return;
+    }
+    if (selectedDefect != null) {
+      final detailsResult = await _showDefectDetailsDialog(
+        category: selectedDefect.category,
+        initialDetails: selectedDefect.details,
+      );
+      if (detailsResult == null) {
+        return;
+      }
+      final updatedDefect = Defect(
+        id: selectedDefect.id,
+        label: selectedDefect.label,
+        pageIndex: selectedDefect.pageIndex,
+        category: selectedDefect.category,
+        normalizedX: selectedDefect.normalizedX,
+        normalizedY: selectedDefect.normalizedY,
+        details: detailsResult,
+      );
+      final updatedDefects =
+          _site.defects
+              .map(
+                (defect) =>
+                    defect.id == updatedDefect.id ? updatedDefect : defect,
+              )
+              .toList();
+      final updatedSite = _site.copyWith(defects: updatedDefects);
+      await _applyUpdatedSite(
+        updatedSite,
+        onStateUpdated: () {
+          _selectedDefect = updatedDefect;
+          _selectedEquipment = null;
+        },
+      );
+      return;
+    }
+    if (selectedEquipment != null) {
+      final updatedMarker = await _editEquipmentMarker(selectedEquipment);
+      if (updatedMarker == null) {
+        return;
+      }
+      final updatedMarkers =
+          _site.equipmentMarkers
+              .map(
+                (marker) =>
+                    marker.id == updatedMarker.id ? updatedMarker : marker,
+              )
+              .toList();
+      final updatedSite = _site.copyWith(equipmentMarkers: updatedMarkers);
+      await _applyUpdatedSite(
+        updatedSite,
+        onStateUpdated: () {
+          _selectedDefect = null;
+          _selectedEquipment = updatedMarker;
+        },
+      );
+    }
+  }
+
+  Future<EquipmentMarker?> _editEquipmentMarker(
+    EquipmentMarker marker,
+  ) async {
+    if (marker.category == EquipmentCategory.equipment8) {
+      final nextIndexByDirection = {
+        'Lx': nextSettlementIndex(_site, 'Lx'),
+        'Ly': nextSettlementIndex(_site, 'Ly'),
+      };
+      final details = await _showSettlementDialog(
+        baseTitle: '부동침하',
+        nextIndexByDirection: nextIndexByDirection,
+        initialDirection: settlementDirection(marker),
+        initialDisplacementText: marker.displacementText,
+      );
+      if (details == null) {
+        return null;
+      }
+      return marker.copyWith(
+        equipmentTypeId: details.direction,
+        tiltDirection: details.direction,
+        displacementText: details.displacementText,
+      );
+    }
+    final siteWithoutMarker = _site.copyWith(
+      equipmentMarkers:
+          _site.equipmentMarkers
+              .where((item) => item.id != marker.id)
+              .toList(),
+    );
+    final updatedSite = await createEquipmentUpdatedSite(
+      context: context,
+      site: siteWithoutMarker,
+      activeEquipmentCategory: marker.category,
+      pendingMarker: marker,
+      prefix: equipmentLabelPrefix(marker.category),
+      deflectionMemberOptions: DrawingDeflectionMemberOptions,
+      showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
+      showRebarSpacingDialog:
+          (
+            context, {
+            required title,
+            initialMemberType,
+            initialRemarkLeft,
+            initialRemarkRight,
+            initialNumberPrefix,
+            initialNumberValue,
+          }) => _showRebarSpacingDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialRemarkLeft: initialRemarkLeft,
+            initialRemarkRight: initialRemarkRight,
+            initialNumberPrefix: initialNumberPrefix,
+            initialNumberValue: initialNumberValue,
+          ),
+      showSchmidtHammerDialog:
+          (
+            context, {
+            required title,
+            initialMemberType,
+            initialAngleDeg,
+            initialMaxValueText,
+            initialMinValueText,
+          }) => _showSchmidtHammerDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialAngleDeg: initialAngleDeg,
+            initialMaxValueText: initialMaxValueText,
+            initialMinValueText: initialMinValueText,
+          ),
+      showCoreSamplingDialog:
+          (context, {required title, initialMemberType, initialAvgValueText}) =>
+              _showCoreSamplingDialog(
+                title: title,
+                initialMemberType: initialMemberType,
+                initialAvgValueText: initialAvgValueText,
+              ),
+      showCarbonationDialog: _showCarbonationDialog,
+      showStructuralTiltDialog: _showStructuralTiltDialog,
+      showDeflectionDialog:
+          ({
+            required title,
+            required memberOptions,
+            initialMemberType,
+            initialEndAText,
+            initialMidBText,
+            initialEndCText,
+          }) => _showDeflectionDialog(
+            title: title,
+            initialMemberType: initialMemberType,
+            initialEndAText: initialEndAText,
+            initialMidBText: initialMidBText,
+            initialEndCText: initialEndCText,
+          ),
+    );
+    if (updatedSite == null) {
+      return null;
+    }
+    for (final item in updatedSite.equipmentMarkers) {
+      if (item.id == marker.id) {
+        return item;
+      }
+    }
+    return null;
+  }
 
   void _handleMovePressed() {}
 
