@@ -27,6 +27,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dial
 import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
@@ -82,8 +83,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
   int _pageCount = 1;
-  Defect? _selectedDefect;
-  EquipmentMarker? _selectedEquipment;
+  String? _selectedDefectId;
+  String? _selectedEquipmentId;
   Offset? _selectedMarkerScenePosition;
   Offset? _pointerDownPosition;
   bool _tapCanceled = false;
@@ -94,12 +95,32 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didLoadScalePrefs = false;
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
-  Defect? _moveTargetDefect;
-  EquipmentMarker? _moveTargetEquipment;
+  String? _moveTargetDefectId;
+  String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;
   double? _moveOriginNormalizedY;
   double? _movePreviewNormalizedX;
   double? _movePreviewNormalizedY;
+
+  Defect? get _selectedDefect =>
+      _selectedDefectId == null
+          ? null
+          : _findDefectById(_site, _selectedDefectId!);
+
+  EquipmentMarker? get _selectedEquipment =>
+      _selectedEquipmentId == null
+          ? null
+          : _findEquipmentById(_site, _selectedEquipmentId!);
+
+  Defect? get _moveTargetDefect =>
+      _moveTargetDefectId == null
+          ? null
+          : _findDefectById(_site, _moveTargetDefectId!);
+
+  EquipmentMarker? get _moveTargetEquipment =>
+      _moveTargetEquipmentId == null
+          ? null
+          : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
   PhotoViewController _photoControllerForPage(int pageNumber) {
     return _pdfPhotoControllers.putIfAbsent(
@@ -160,8 +181,8 @@ class _DrawingScreenState extends State<DrawingScreen>
       await _applyUpdatedSite(
         updatedSite,
         onStateUpdated: () {
-          _selectedDefect = updatedDefect;
-          _selectedEquipment = null;
+          _selectedDefectId = updatedDefect.id;
+          _selectedEquipmentId = null;
         },
       );
       return;
@@ -182,8 +203,8 @@ class _DrawingScreenState extends State<DrawingScreen>
       await _applyUpdatedSite(
         updatedSite,
         onStateUpdated: () {
-          _selectedDefect = null;
-          _selectedEquipment = updatedMarker;
+          _selectedDefectId = null;
+          _selectedEquipmentId = updatedMarker.id;
         },
       );
     }
@@ -388,7 +409,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     final didChangeDrawing =
         _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
-    _resyncSelections(widget.site);
     _initializeDefectTabs();
     _initializeEquipmentTabs();
     if (didChangeDrawing) {
@@ -397,6 +417,24 @@ class _DrawingScreenState extends State<DrawingScreen>
       _loadPdfPageSizeCache();
       _loadPdfController();
     }
+  }
+
+  Defect? _findDefectById(Site updatedSite, String defectId) {
+    for (final defect in updatedSite.defects) {
+      if (defect.id == defectId) {
+        return defect;
+      }
+    }
+    return null;
+  }
+
+  EquipmentMarker? _findEquipmentById(Site updatedSite, String markerId) {
+    for (final marker in updatedSite.equipmentMarkers) {
+      if (marker.id == markerId) {
+        return marker;
+      }
+    }
+    return null;
   }
   @override
   void dispose() {

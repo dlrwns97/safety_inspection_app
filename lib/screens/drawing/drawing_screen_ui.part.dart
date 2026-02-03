@@ -14,8 +14,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       markerScale: _markerScale,
       isSelected:
           (defect) =>
-              _selectedDefect != null &&
-              _isSameDefect(defect, _selectedDefect!),
+              _selectedDefectId != null &&
+              defect.id == _selectedDefectId,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
       buildMarker:
@@ -37,8 +37,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       markerScale: _markerScale,
       isSelected:
           (marker) =>
-              _selectedEquipment != null &&
-              _isSameEquipment(marker, _selectedEquipment!),
+              _selectedEquipmentId != null &&
+              marker.id == _selectedEquipmentId,
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
       buildMarker:

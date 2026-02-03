@@ -162,8 +162,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _selectedMarkerScenePosition == null)
       return;
     void clearSelection() {
-      _selectedDefect = null;
-      _selectedEquipment = null;
+      _selectedDefectId = null;
+      _selectedEquipmentId = null;
       _selectedMarkerScenePosition = null;
     }
     if (inSetState) {
@@ -201,20 +201,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (scenePoint.dx / DrawingCanvasSize.width).clamp(
-      0.0,
-      1.0,
-    );
-    final normalizedY = (scenePoint.dy / DrawingCanvasSize.height).clamp(
-      0.0,
-      1.0,
-    );
+    final normalized = toNormalized(scenePoint, DrawingCanvasSize);
     final updatedSite = await _handleTapFlow(
       hitResult: hitResult,
       decision: decision,
       pageIndex: _currentPage,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
+      normalizedX: normalized.dx,
+      normalizedY: normalized.dy,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
@@ -235,7 +228,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _site = updatedSite;
       onStateUpdated?.call();
-      _resyncSelections(updatedSite);
     });
     if (didChangeDrawing) {
       _resetPdfViewControllers();
@@ -252,47 +244,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(callback);
   }
 
-  void _resyncSelections(Site updatedSite) {
-    final selectedDefectId = _selectedDefect?.id;
-    if (selectedDefectId != null && selectedDefectId.isNotEmpty) {
-      _selectedDefect = _findDefectById(updatedSite, selectedDefectId);
-    }
-    final selectedEquipmentId = _selectedEquipment?.id;
-    if (selectedEquipmentId != null && selectedEquipmentId.isNotEmpty) {
-      _selectedEquipment = _findEquipmentById(updatedSite, selectedEquipmentId);
-    }
-    final moveDefectId = _moveTargetDefect?.id;
-    if (moveDefectId != null && moveDefectId.isNotEmpty) {
-      _moveTargetDefect = _findDefectById(updatedSite, moveDefectId);
-    }
-    final moveEquipmentId = _moveTargetEquipment?.id;
-    if (moveEquipmentId != null && moveEquipmentId.isNotEmpty) {
-      _moveTargetEquipment = _findEquipmentById(updatedSite, moveEquipmentId);
-    }
-  }
-
-  Defect? _findDefectById(Site updatedSite, String defectId) {
-    for (final defect in updatedSite.defects) {
-      if (defect.id == defectId) {
-        return defect;
-      }
-    }
-    return null;
-  }
-
-  EquipmentMarker? _findEquipmentById(Site updatedSite, String markerId) {
-    for (final marker in updatedSite.equipmentMarkers) {
-      if (marker.id == markerId) {
-        return marker;
-      }
-    }
-    return null;
-  }
-
   void _selectMarker(MarkerHitResult result) {
     _safeSetState(() {
-      _selectedDefect = result.defect;
-      _selectedEquipment = result.equipment;
+      _selectedDefectId = result.defect?.id;
+      _selectedEquipmentId = result.equipment?.id;
       _selectedMarkerScenePosition = result.position;
     });
     _handleMoveModeSelectionChange(result.defect, result.equipment);
@@ -307,8 +262,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _selectDefectFromPanel(Defect defect) {
     _safeSetState(() {
-      _selectedDefect = defect;
-      _selectedEquipment = null;
+      _selectedDefectId = defect.id;
+      _selectedEquipmentId = null;
       _selectedMarkerScenePosition = null;
     });
     _handleMoveModeSelectionChange(defect, null);
@@ -317,8 +272,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _selectEquipmentFromPanel(EquipmentMarker marker) {
     _safeSetState(() {
-      _selectedDefect = null;
-      _selectedEquipment = marker;
+      _selectedDefectId = null;
+      _selectedEquipmentId = marker.id;
       _selectedMarkerScenePosition = null;
     });
     _handleMoveModeSelectionChange(null, marker);
@@ -543,14 +498,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       hasActiveDefectCategory: _activeCategory != null,
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
-    final normalizedX = (imageLocal.dx / imageSize.width).clamp(0.0, 1.0);
-    final normalizedY = (imageLocal.dy / imageSize.height).clamp(0.0, 1.0);
+    final normalized = toNormalized(imageLocal, imageSize);
     final updatedSite = await _handleTapFlow(
       hitResult: hitResult,
       decision: decision,
       pageIndex: pageIndex,
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
+      normalizedX: normalized.dx,
+      normalizedY: normalized.dy,
     );
     await _applyUpdatedSiteIfMounted(updatedSite);
   }
@@ -821,20 +775,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return (localPosition: clampedPosition, size: renderObject.size);
   }
 
-  bool _isSameDefect(Defect first, Defect second) {
-    if (first.id.isNotEmpty && second.id.isNotEmpty) {
-      return first.id == second.id;
-    }
-    return identical(first, second);
-  }
-
-  bool _isSameEquipment(EquipmentMarker first, EquipmentMarker second) {
-    if (first.id.isNotEmpty && second.id.isNotEmpty) {
-      return first.id == second.id;
-    }
-    return identical(first, second);
-  }
-
   void _toggleMode(DrawMode nextMode) {
     _safeSetState(() {
       _mode = _controller.toggleMode(_mode, nextMode);
@@ -849,8 +789,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       _isMoveMode = true;
-      _moveTargetDefect = selectedDefect;
-      _moveTargetEquipment = selectedEquipment;
+      _moveTargetDefectId = selectedDefect?.id;
+      _moveTargetEquipmentId = selectedEquipment?.id;
       if (selectedDefect != null) {
         _moveOriginNormalizedX = selectedDefect.normalizedX;
         _moveOriginNormalizedY = selectedDefect.normalizedY;
@@ -872,8 +812,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       _isMoveMode = false;
-      _moveTargetDefect = null;
-      _moveTargetEquipment = null;
+      _moveTargetDefectId = null;
+      _moveTargetEquipmentId = null;
       _moveOriginNormalizedX = null;
       _moveOriginNormalizedY = null;
       _movePreviewNormalizedX = null;
@@ -914,19 +854,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isMoveMode) {
       return false;
     }
-    final targetDefect = _moveTargetDefect;
-    if (item is Defect && targetDefect != null) {
-      return _isSameDefect(item, targetDefect);
+    final targetDefectId = _moveTargetDefectId;
+    if (item is Defect && targetDefectId != null) {
+      return item.id == targetDefectId;
     }
-    final targetEquipment = _moveTargetEquipment;
-    if (item is EquipmentMarker && targetEquipment != null) {
-      return _isSameEquipment(item, targetEquipment);
+    final targetEquipmentId = _moveTargetEquipmentId;
+    if (item is EquipmentMarker && targetEquipmentId != null) {
+      return item.id == targetEquipmentId;
     }
     return false;
   }
 
   bool get _hasMoveTarget =>
-      _moveTargetDefect != null || _moveTargetEquipment != null;
+      _moveTargetDefectId != null || _moveTargetEquipmentId != null;
 
   int? get _moveTargetPageIndex {
     final targetDefect = _moveTargetDefect;
@@ -944,13 +884,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Defect? defect,
     EquipmentMarker? equipment,
   ) {
-    final targetDefect = _moveTargetDefect;
-    if (targetDefect != null) {
-      return defect != null && _isSameDefect(defect, targetDefect);
+    final targetDefectId = _moveTargetDefectId;
+    if (targetDefectId != null) {
+      return defect != null && defect.id == targetDefectId;
     }
-    final targetEquipment = _moveTargetEquipment;
-    if (targetEquipment != null) {
-      return equipment != null && _isSameEquipment(equipment, targetEquipment);
+    final targetEquipmentId = _moveTargetEquipmentId;
+    if (targetEquipmentId != null) {
+      return equipment != null && equipment.id == targetEquipmentId;
     }
     return false;
   }
@@ -1086,10 +1026,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     double nextY;
     if (transformToScene) {
       final scenePoint = _transformationController.toScene(localPosition);
-      nextX =
-          (scenePoint.dx / DrawingCanvasSize.width).clamp(0.0, 1.0);
-      nextY =
-          (scenePoint.dy / DrawingCanvasSize.height).clamp(0.0, 1.0);
+      final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+      nextX = normalized.dx;
+      nextY = normalized.dy;
     } else {
       final resolvedOverlaySize = overlaySize ?? tapInfo.size;
       final resolvedDestRect =
@@ -1101,10 +1040,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       final imageLocal = localPosition - resolvedDestRect.topLeft;
       final imageSize = resolvedDestRect.size;
-      nextX =
-          (imageLocal.dx / imageSize.width).clamp(0.0, 1.0);
-      nextY =
-          (imageLocal.dy / imageSize.height).clamp(0.0, 1.0);
+      final normalized = toNormalized(imageLocal, imageSize);
+      nextX = normalized.dx;
+      nextY = normalized.dy;
     }
     _safeSetState(() {
       _movePreviewNormalizedX = nextX.toDouble();
@@ -1166,8 +1104,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       await _applyUpdatedSite(
         updatedSite,
         onStateUpdated: () {
-          _selectedDefect = updatedDefect;
-          _selectedEquipment = null;
+          _selectedDefectId = updatedDefect.id;
+          _selectedEquipmentId = null;
           _selectedMarkerScenePosition = pageSize == null
               ? null
               : Offset(
@@ -1197,8 +1135,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       await _applyUpdatedSite(
         updatedSite,
         onStateUpdated: () {
-          _selectedDefect = null;
-          _selectedEquipment = updatedMarker;
+          _selectedDefectId = null;
+          _selectedEquipmentId = updatedMarker.id;
           _selectedMarkerScenePosition = pageSize == null
               ? null
               : Offset(

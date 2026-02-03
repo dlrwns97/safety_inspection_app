@@ -5,6 +5,8 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
+const double kMarkerBaseSize = 30.0;
+
 class MarkerHitResult {
   const MarkerHitResult({
     required this.defect,
@@ -37,8 +39,8 @@ class DefectMarkerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const markerSize = 30.0;
-    final scaledSize = (markerSize * scale).clamp(markerSize * 0.2, 44.0);
+    final scaledSize =
+        (kMarkerBaseSize * scale).clamp(kMarkerBaseSize * 0.2, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
@@ -103,8 +105,8 @@ class EquipmentMarkerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const markerSize = 30.0;
-    final scaledSize = (markerSize * scale).clamp(markerSize * 0.2, 44.0);
+    final scaledSize =
+        (kMarkerBaseSize * scale).clamp(kMarkerBaseSize * 0.2, 44.0);
     final borderColor = isSelected
         ? Colors.black
         : Colors.transparent;
