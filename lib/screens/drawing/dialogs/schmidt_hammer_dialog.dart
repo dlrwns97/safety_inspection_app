@@ -131,7 +131,7 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: _selectedAngleDeg,
+                    initialValue: _selectedAngleDeg,
                     decoration: const InputDecoration(
                       labelText: '각도',
                       border: OutlineInputBorder(),

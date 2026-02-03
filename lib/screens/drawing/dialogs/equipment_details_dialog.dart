@@ -210,7 +210,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedMember,
+                initialValue: _selectedMember,
                 decoration: const InputDecoration(
                   labelText: '부재',
                   border: OutlineInputBorder(),
@@ -273,7 +273,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
                 }),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedRemark,
+                  initialValue: _selectedRemark,
                   decoration: const InputDecoration(
                     labelText: '비고',
                     border: OutlineInputBorder(),

@@ -270,7 +270,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: row.remarkLeft,
+                      initialValue: row.remarkLeft,
                       decoration: const InputDecoration(
                         labelText: '비고',
                         border: OutlineInputBorder(),
@@ -292,7 +292,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: row.remarkRight,
+                      initialValue: row.remarkRight,
                       decoration: const InputDecoration(
                         labelText: '비고',
                         border: OutlineInputBorder(),
@@ -318,7 +318,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: row.numberPrefix,
+                      initialValue: row.numberPrefix,
                       decoration: const InputDecoration(
                         labelText: '번호',
                         border: OutlineInputBorder(),
