@@ -349,6 +349,8 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                           widthMm: double.parse(widthValue),
                           lengthMm: double.parse(lengthValue),
                           cause: resolvedCause,
+                          photoPaths:
+                              widget.initialDetails?.photoPaths ?? const [],
                         ),
                       );
                     }
