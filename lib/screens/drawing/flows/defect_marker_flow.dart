@@ -13,10 +13,14 @@ Future<Site?> createDefectIfConfirmed({
   required double normalizedX,
   required double normalizedY,
   required DefectCategory activeCategory,
-  required Future<DefectDetails?> Function(BuildContext context)
-      showDefectDetailsDialog,
+  required Future<DefectDetails?> Function(
+    BuildContext context,
+    String defectId,
+  )
+  showDefectDetailsDialog,
 }) async {
-  final detailsResult = await showDefectDetailsDialog(context);
+  final defectId = DateTime.now().microsecondsSinceEpoch.toString();
+  final detailsResult = await showDefectDetailsDialog(context, defectId);
   if (detailsResult == null) {
     return null;
   }
@@ -31,7 +35,7 @@ Future<Site?> createDefectIfConfirmed({
   final label = '$labelPrefix${countOnPage + 1}';
 
   final defect = Defect(
-    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    id: defectId,
     label: label,
     pageIndex: pageIndex,
     category: activeCategory,

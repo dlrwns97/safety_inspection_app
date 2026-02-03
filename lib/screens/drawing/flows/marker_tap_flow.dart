@@ -63,8 +63,11 @@ Future<Site?> handleTapCore({
   required void Function(MarkerHitResult result) onSelectHit,
   required VoidCallback onClearSelection,
   required VoidCallback onShowDefectCategoryHint,
-  required Future<DefectDetails?> Function(BuildContext context)
-      showDefectDetailsDialog,
+  required Future<DefectDetails?> Function(
+    BuildContext context,
+    String defectId,
+  )
+  showDefectDetailsDialog,
   required Future<EquipmentDetails?> Function({
     required String title,
     String? initialMemberType,
@@ -166,8 +169,11 @@ Future<Site?> createMarkerFromTap({
   required int pageIndex,
   required double normalizedX,
   required double normalizedY,
-  required Future<DefectDetails?> Function(BuildContext context)
-      showDefectDetailsDialog,
+  required Future<DefectDetails?> Function(
+    BuildContext context,
+    String defectId,
+  )
+  showDefectDetailsDialog,
   required Future<EquipmentDetails?> Function({
     required String title,
     String? initialMemberType,
@@ -264,8 +270,11 @@ Future<Site?> addDefectMarker({
   required double normalizedX,
   required double normalizedY,
   required DefectCategory activeCategory,
-  required Future<DefectDetails?> Function(BuildContext context)
-      showDefectDetailsDialog,
+  required Future<DefectDetails?> Function(
+    BuildContext context,
+    String defectId,
+  )
+  showDefectDetailsDialog,
 }) async {
   return createDefectIfConfirmed(
     context: context,

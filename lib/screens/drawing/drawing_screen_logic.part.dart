@@ -289,18 +289,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Future<DefectDetails?> _showDefectDetailsDialog({
+    String? defectId,
     DefectCategory? category,
     DefectDetails? initialDetails,
   }) async {
     final defectCategory =
         category ?? _activeCategory ?? DefectCategory.generalCrack;
     final defectConfig = defectCategoryConfig(defectCategory);
+    final resolvedDefectId =
+        defectId ??
+        _selectedDefect?.id ??
+        DateTime.now().microsecondsSinceEpoch.toString();
     return _showDetailDialog(
       () => showDefectDetailsDialog(
         context: context,
         title: defectConfig.dialogTitle,
         typeOptions: defectConfig.typeOptions,
         causeOptions: defectConfig.causeOptions,
+        siteId: _site.id,
+        defectId: resolvedDefectId,
         initialDetails: initialDetails,
       ),
     );
@@ -665,7 +672,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       onSelectHit: _selectMarker,
       onClearSelection: _clearSelectionAndPopup,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
-      showDefectDetailsDialog: (_) => _showDefectDetailsDialog(),
+      showDefectDetailsDialog:
+          (_, defectId) => _showDefectDetailsDialog(defectId: defectId),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
           (

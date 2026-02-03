@@ -1,9 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
+import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 Future<DefectDetails?> showDefectDetailsDialog({
@@ -11,6 +14,8 @@ Future<DefectDetails?> showDefectDetailsDialog({
   required String title,
   required List<String> typeOptions,
   required List<String> causeOptions,
+  required String siteId,
+  required String defectId,
   DefectDetails? initialDetails,
 }) {
   return showDialog<DefectDetails>(
@@ -19,6 +24,8 @@ Future<DefectDetails?> showDefectDetailsDialog({
       title: title,
       typeOptions: typeOptions,
       causeOptions: causeOptions,
+      siteId: siteId,
+      defectId: defectId,
       initialDetails: initialDetails,
     ),
   );
@@ -29,12 +36,16 @@ class _DefectDetailsDialog extends StatefulWidget {
     required this.title,
     required this.typeOptions,
     required this.causeOptions,
+    required this.siteId,
+    required this.defectId,
     this.initialDetails,
   });
 
   final String title;
   final List<String> typeOptions;
   final List<String> causeOptions;
+  final String siteId;
+  final String defectId;
   final DefectDetails? initialDetails;
 
   @override
@@ -47,10 +58,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   final _lengthController = TextEditingController();
   final _otherTypeController = TextEditingController();
   final _otherCauseController = TextEditingController();
+  final _photoStore = DefectPhotoStore();
+  final _imagePicker = ImagePicker();
 
   String? _structuralMember;
   String? _crackType;
   String? _cause;
+  List<String> _photoPaths = [];
+  bool _isSavingPhotos = false;
 
   @override
   void initState() {
@@ -59,6 +74,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (details == null) {
       return;
     }
+    _photoPaths = List<String>.from(details.photoPaths);
     _structuralMember = details.structuralMember;
     _widthController.text =
         details.widthMm > 0 ? details.widthMm.toString() : '';
@@ -95,6 +111,89 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   bool get _isOtherType => _crackType == StringsKo.otherOptionLabel;
   bool get _isOtherCause => _cause == StringsKo.otherOptionLabel;
+
+  Future<void> _handlePhotoAction() async {
+    if (_isSavingPhotos) {
+      return;
+    }
+    final selection = await showModalBottomSheet<_DefectPhotoSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('촬영하기'),
+              onTap: () =>
+                  Navigator.of(context).pop(_DefectPhotoSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('이미지 가져오기'),
+              onTap: () =>
+                  Navigator.of(context).pop(_DefectPhotoSource.import),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selection == null) {
+      return;
+    }
+    if (selection == _DefectPhotoSource.camera) {
+      await _pickFromCamera();
+    } else {
+      await _pickFromFiles();
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (picked == null) {
+      return;
+    }
+    await _savePhotoPaths([picked.path]);
+  }
+
+  Future<void> _pickFromFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+    );
+    final sourcePaths = result?.paths.whereType<String>().toList() ?? [];
+    if (sourcePaths.isEmpty) {
+      return;
+    }
+    await _savePhotoPaths(sourcePaths);
+  }
+
+  Future<void> _savePhotoPaths(List<String> sourcePaths) async {
+    if (sourcePaths.isEmpty) {
+      return;
+    }
+    setState(() {
+      _isSavingPhotos = true;
+    });
+    final savedPaths = await _photoStore.savePickedImages(
+      siteId: widget.siteId,
+      defectId: widget.defectId,
+      sourcePaths: sourcePaths,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingPhotos = false;
+      _photoPaths.addAll(savedPaths);
+    });
+  }
 
   bool _isValid() {
     final width = double.tryParse(_widthController.text);
@@ -330,8 +429,13 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
             child: Text(StringsKo.cancel),
           ),
           const Spacer(),
+          IconButton(
+            onPressed: _isSavingPhotos ? null : _handlePhotoAction,
+            icon: const Icon(Icons.photo_camera),
+          ),
+          const Spacer(),
           FilledButton(
-            onPressed: _isValid()
+            onPressed: _isValid() && !_isSavingPhotos
                 ? () {
                     if (_formKey.currentState?.validate() ?? false) {
                       final resolvedType = _isOtherType
@@ -349,14 +453,26 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                           widthMm: double.parse(widthValue),
                           lengthMm: double.parse(lengthValue),
                           cause: resolvedCause,
-                          photoPaths:
-                              widget.initialDetails?.photoPaths ?? const [],
+                          photoPaths: _photoPaths,
                         ),
                       );
                     }
                   }
                 : null,
-            child: Text(StringsKo.confirm),
+            child: _isSavingPhotos
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(StringsKo.confirm),
+                    ],
+                  )
+                : Text(StringsKo.confirm),
           ),
         ],
       ),
@@ -364,3 +480,5 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     ];
   }
 }
+
+enum _DefectPhotoSource { camera, import }
