@@ -92,6 +92,29 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
       maxWidth: 520.0,
     );
     final isSaveEnabled = _selectedMember != null;
+    final memberItems = widget.memberOptions
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+    final angleItems = const [0, 45, 90]
+        .map(
+          (angle) => DropdownMenuItem(
+            value: angle,
+            child: Text('$angle'),
+          ),
+        )
+        .toList();
+    const decimalInputType = TextInputType.numberWithOptions(
+      decimal: true,
+      signed: false,
+    );
+    final decimalFormatter = FilteringTextInputFormatter.allow(
+      RegExp(r'^\d*\.?\d*$'),
+    );
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
@@ -101,116 +124,126 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
+            _buildHeader(context),
+            const SizedBox(height: 16),
+            _buildSelectionRow(
+              memberItems: memberItems,
+              angleItems: angleItems,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: buildDialogDropdownField(
-                    value: _selectedMember,
-                    labelText: '부재',
-                    items: widget.memberOptions
-                        .map(
-                          (option) => DropdownMenuItem(
-                            value: option,
-                            child: Text(option),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedMember = value;
-                      });
-                    },
-                    requiredMessage: '부재를 선택하세요.',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _selectedAngleDeg,
-                    decoration: const InputDecoration(
-                      labelText: '각도',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [0, 45, 90]
-                        .map(
-                          (angle) => DropdownMenuItem(
-                            value: angle,
-                            child: Text('$angle'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedAngleDeg = value ?? 0;
-                      });
-                    },
-                  ),
-                ),
-              ],
+            _buildValueRow(
+              decimalInputType: decimalInputType,
+              decimalFormatter: decimalFormatter,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: buildDialogTextField(
-                    controller: _minValueController,
-                    labelText: '최솟값',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d*$'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: buildDialogTextField(
-                    controller: _maxValueController,
-                    labelText: '최댓값',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d*$'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            buildDialogActionButtons(
+            _buildActions(
               context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      Navigator.of(context).pop(
-                        SchmidtHammerDetails(
-                          memberType: _selectedMember!,
-                          angleDeg: _selectedAngleDeg,
-                          maxValueText: _maxValueController.text.trim(),
-                          minValueText: _minValueController.text.trim(),
-                        ),
-                      );
-                    }
-                  : null,
+              isSaveEnabled: isSaveEnabled,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Text(
+      widget.title,
+      style: Theme.of(context).textTheme.titleMedium,
+    );
+  }
+
+  Widget _buildSelectionRow({
+    required List<DropdownMenuItem<String>> memberItems,
+    required List<DropdownMenuItem<int>> angleItems,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: buildDialogDropdownField(
+            value: _selectedMember,
+            labelText: '부재',
+            items: memberItems,
+            onChanged: (value) {
+              setState(() {
+                _selectedMember = value;
+              });
+            },
+            requiredMessage: '부재를 선택하세요.',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            initialValue: _selectedAngleDeg,
+            decoration: const InputDecoration(
+              labelText: '각도',
+              border: OutlineInputBorder(),
+            ),
+            items: angleItems,
+            onChanged: (value) {
+              setState(() {
+                _selectedAngleDeg = value ?? 0;
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildValueRow({
+    required TextInputType decimalInputType,
+    required TextInputFormatter decimalFormatter,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: buildDialogTextField(
+            controller: _minValueController,
+            labelText: '최솟값',
+            keyboardType: decimalInputType,
+            inputFormatters: [
+              decimalFormatter,
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: buildDialogTextField(
+            controller: _maxValueController,
+            labelText: '최댓값',
+            keyboardType: decimalInputType,
+            inputFormatters: [
+              decimalFormatter,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActions(
+    BuildContext context, {
+    required bool isSaveEnabled,
+  }) {
+    return buildDialogActionButtons(
+      context,
+      onSave: isSaveEnabled
+          ? () {
+              if (!(_formKey.currentState?.validate() ?? false)) {
+                return;
+              }
+              Navigator.of(context).pop(
+                SchmidtHammerDetails(
+                  memberType: _selectedMember!,
+                  angleDeg: _selectedAngleDeg,
+                  maxValueText: _maxValueController.text.trim(),
+                  minValueText: _minValueController.text.trim(),
+                ),
+              );
+            }
+          : null,
     );
   }
 }
