@@ -193,6 +193,10 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
       maxWidth: 520.0,
     );
 
+    return _buildDialogScaffold(context, maxWidth);
+  }
+
+  Widget _buildDialogScaffold(BuildContext context, double maxWidth) {
     return NarrowDialogFrame(
       maxWidth: maxWidth,
       child: SingleChildScrollView(
@@ -204,128 +208,176 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                widget.title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedMember,
-                decoration: const InputDecoration(
-                  labelText: '부재',
-                  border: OutlineInputBorder(),
-                ),
-                items: widget.memberOptions
-                    .map(
-                      (option) => DropdownMenuItem(
-                        value: option,
-                        child: Text(option),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedMember = value;
-                    _sizeLabels = value == null
-                        ? []
-                        : widget.sizeLabelsByMember[value] ?? [];
-                    _resetSizeControllers(_sizeLabels);
-                  });
-                },
-              ),
-              if (_selectedMember != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  '사이즈',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 8),
-                ...List.generate(_sizeLabels.length, (index) {
-                  final label = _sizeLabels[index];
-                  final isLastField = index == _sizeLabels.length - 1;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: buildDialogTextField(
-                      controller: _sizeControllers[index],
-                      labelText: label,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: false,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*$'),
-                        ),
-                      ],
-                      textInputAction: isLastField
-                          ? TextInputAction.done
-                          : TextInputAction.next,
-                      suffixIcon: _buildCompletionToggle(
-                        _completionKeyForMember(
-                          memberType: _selectedMember,
-                          index: index,
-                          label: label,
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedRemark,
-                  decoration: const InputDecoration(
-                    labelText: '비고',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    '마감 포함',
-                    '슬래브 제외',
-                    '마감 포함+벽체 간섭',
-                    '슬래브+단열재 제외',
-                    '슬래브 제외+단열재 포함',
-                  ].map((option) {
-                    return DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedRemark = value;
-                    });
-                  },
-                ),
-              ],
-              const SizedBox(height: 16),
-              buildDialogActionButtons(
-                context,
-                onSave: () {
-                  final completionKeys = _completionKeysForMember();
-                  Navigator.of(context).pop(
-                    EquipmentDetails(
-                      memberType: _selectedMember,
-                      sizeValues: _sizeControllers
-                          .map((controller) => controller.text)
-                          .toList(),
-                      remark: _selectedRemark,
-                      wComplete: completionKeys.contains('W')
-                          ? _wComplete
-                          : null,
-                      hComplete: completionKeys.contains('H')
-                          ? _hComplete
-                          : null,
-                      dComplete: completionKeys.contains('D')
-                          ? _dComplete
-                          : null,
-                    ),
-                  );
-                },
-              ),
+              _buildHeader(context),
+              _buildMemberTypeSection(context),
+              _buildSizeSection(context),
+              _buildRemarksSection(context),
+              _buildActionButtons(context),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          widget.title,
+          style: titleStyle,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildMemberTypeSection(BuildContext context) {
+    final memberItems = widget.memberOptions
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedMember,
+      decoration: const InputDecoration(
+        labelText: '부재',
+        border: OutlineInputBorder(),
+      ),
+      items: memberItems,
+      onChanged: (value) {
+        setState(() {
+          _selectedMember = value;
+          _sizeLabels =
+              value == null ? [] : widget.sizeLabelsByMember[value] ?? [];
+          _resetSizeControllers(_sizeLabels);
+        });
+      },
+    );
+  }
+
+  Widget _buildSizeSection(BuildContext context) {
+    if (_selectedMember == null) {
+      return const SizedBox.shrink();
+    }
+
+    final labelStyle = Theme.of(context).textTheme.labelLarge;
+    const keyboardType = TextInputType.numberWithOptions(
+      decimal: true,
+      signed: false,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          '사이즈',
+          style: labelStyle,
+        ),
+        const SizedBox(height: 8),
+        ...List.generate(_sizeLabels.length, (index) {
+          final label = _sizeLabels[index];
+          final isLastField = index == _sizeLabels.length - 1;
+          final completionKey = _completionKeyForMember(
+            memberType: _selectedMember,
+            index: index,
+            label: label,
+          );
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: buildDialogTextField(
+              controller: _sizeControllers[index],
+              labelText: label,
+              keyboardType: keyboardType,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'^\d*\.?\d*$'),
+                ),
+              ],
+              textInputAction:
+                  isLastField ? TextInputAction.done : TextInputAction.next,
+              suffixIcon: _buildCompletionToggle(completionKey),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildRemarksSection(BuildContext context) {
+    if (_selectedMember == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedRemark,
+          decoration: const InputDecoration(
+            labelText: '비고',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            '마감 포함',
+            '슬래브 제외',
+            '마감 포함+벽체 간섭',
+            '슬래브+단열재 제외',
+            '슬래브 제외+단열재 포함',
+          ].map((option) {
+            return DropdownMenuItem(
+              value: option,
+              child: Text(option),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedRemark = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        buildDialogActionButtons(
+          context,
+          onSave: () {
+            final completionKeys = _completionKeysForMember();
+            final sizeValues = _sizeControllers
+                .map((controller) => controller.text)
+                .toList();
+            Navigator.of(context).pop(
+              EquipmentDetails(
+                memberType: _selectedMember,
+                sizeValues: sizeValues,
+                remark: _selectedRemark,
+                wComplete: completionKeys.contains('W') ? _wComplete : null,
+                hComplete: completionKeys.contains('H') ? _hComplete : null,
+                dComplete: completionKeys.contains('D') ? _dComplete : null,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
