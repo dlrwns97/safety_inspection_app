@@ -8,7 +8,6 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/deflection_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/equipment_details_dialog.dart';
-import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_pack_a_flow.dart';
