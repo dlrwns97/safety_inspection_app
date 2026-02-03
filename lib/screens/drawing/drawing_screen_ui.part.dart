@@ -92,6 +92,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       tapRegionKey: _canvasTapRegionKey,
       onTapUp: _handleCanvasTap,
       onLongPressStart: _handleCanvasLongPress,
+      onMovePanUpdate: _handleMoveCanvasPanUpdate,
       child: _buildCanvasViewer(theme),
     );
   }
@@ -187,6 +188,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   tapContext,
                   destRect: destRect,
                 ),
+                onMovePanUpdate:
+                    (details) => _handleMovePdfPanUpdate(
+                      details,
+                      overlaySize,
+                      pageNumber,
+                      tapContext,
+                      destRect: destRect,
+                    ),
                 child: SizedBox(
                   width: overlaySize.width,
                   height: overlaySize.height,
@@ -219,6 +228,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       transformationController: _transformationController,
       minScale: DrawingCanvasMinScale,
       maxScale: DrawingCanvasMaxScale,
+      panEnabled: !_isMoveMode,
       constrained: false,
       child: SizedBox(
         key: _canvasKey,
@@ -277,6 +287,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required Widget child,
     required GestureTapUpCallback onTapUp,
     GestureLongPressStartCallback? onLongPressStart,
+    GestureDragUpdateCallback? onMovePanUpdate,
     HitTestBehavior behavior = HitTestBehavior.opaque,
     Key? tapRegionKey,
   }) {
@@ -284,6 +295,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _isMoveMode ? null : onTapUp;
     final GestureLongPressStartCallback? longPressHandler =
         _isMoveMode ? null : onLongPressStart;
+    final bool canMove = _isMoveMode && _hasMoveTarget;
+    final GestureDragUpdateCallback? movePanUpdate =
+        canMove ? onMovePanUpdate : null;
     return Listener(
       behavior: behavior,
       onPointerDown: (e) => _handlePointerDown(e.localPosition),
@@ -294,6 +308,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
         behavior: behavior,
         onTapUp: tapHandler,
         onLongPressStart: longPressHandler,
+        onPanStart: canMove ? (_) => _handleMovePanStartGlobal() : null,
+        onPanUpdate: movePanUpdate,
+        onPanEnd: canMove ? (_) => _handleMovePanEnd() : null,
+        onPanCancel: canMove ? _handleMovePanCancel : null,
         child: KeyedSubtree(key: tapRegionKey, child: child),
       ),
     );

@@ -887,6 +887,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return false;
   }
 
+  bool get _hasMoveTarget =>
+      _moveTargetDefect != null || _moveTargetEquipment != null;
+
+  int? get _moveTargetPageIndex {
+    final targetDefect = _moveTargetDefect;
+    if (targetDefect != null) {
+      return targetDefect.pageIndex;
+    }
+    final targetEquipment = _moveTargetEquipment;
+    if (targetEquipment != null) {
+      return targetEquipment.pageIndex;
+    }
+    return null;
+  }
+
   bool _selectionMatchesMoveTarget(
     Defect? defect,
     EquipmentMarker? equipment,
@@ -959,6 +974,104 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isMoveMode) {
       return;
     }
+  }
+
+  void _handleMovePanStartGlobal() {
+    if (!_isMoveMode || !_hasMoveTarget) {
+      return;
+    }
+    if (_moveOriginNormalizedX != null && _moveOriginNormalizedY != null) {
+      return;
+    }
+    final targetDefect = _moveTargetDefect;
+    final targetEquipment = _moveTargetEquipment;
+    if (targetDefect != null) {
+      _moveOriginNormalizedX = targetDefect.normalizedX;
+      _moveOriginNormalizedY = targetDefect.normalizedY;
+    } else if (targetEquipment != null) {
+      _moveOriginNormalizedX = targetEquipment.normalizedX;
+      _moveOriginNormalizedY = targetEquipment.normalizedY;
+    }
+    _safeSetState(() {
+      _movePreviewNormalizedX = _moveOriginNormalizedX;
+      _movePreviewNormalizedY = _moveOriginNormalizedY;
+    });
+  }
+
+  void _handleMoveCanvasPanUpdate(DragUpdateDetails details) {
+    _updateMovePreviewFromGlobalPosition(
+      globalPosition: details.globalPosition,
+      pageIndex: _currentPage,
+      tapContext: _canvasTapRegionKey.currentContext,
+      transformToScene: true,
+    );
+  }
+
+  void _handleMovePdfPanUpdate(
+    DragUpdateDetails details,
+    Size overlaySize,
+    int pageIndex,
+    BuildContext tapContext, {
+    required Rect destRect,
+  }) {
+    final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
+    _updateMovePreviewFromGlobalPosition(
+      globalPosition: details.globalPosition,
+      pageIndex: pageIndex,
+      tapContext: tapRegionContext ?? tapContext,
+      overlaySize: overlaySize,
+      destRect: destRect,
+    );
+  }
+
+  void _updateMovePreviewFromGlobalPosition({
+    required Offset globalPosition,
+    required int pageIndex,
+    required BuildContext? tapContext,
+    bool transformToScene = false,
+    Size? overlaySize,
+    Rect? destRect,
+  }) {
+    if (!_isMoveMode || !_hasMoveTarget) {
+      return;
+    }
+    final targetPageIndex = _moveTargetPageIndex;
+    if (targetPageIndex == null || targetPageIndex != pageIndex) {
+      return;
+    }
+    final tapInfo = _resolveTapPosition(tapContext, globalPosition);
+    if (tapInfo == null) {
+      return;
+    }
+    final localPosition = tapInfo.localPosition;
+    double nextX;
+    double nextY;
+    if (transformToScene) {
+      final scenePoint = _transformationController.toScene(localPosition);
+      nextX =
+          (scenePoint.dx / DrawingCanvasSize.width).clamp(0.0, 1.0);
+      nextY =
+          (scenePoint.dy / DrawingCanvasSize.height).clamp(0.0, 1.0);
+    } else {
+      final resolvedOverlaySize = overlaySize ?? tapInfo.size;
+      final resolvedDestRect =
+          destRect == null || destRect.isEmpty
+              ? Offset.zero & resolvedOverlaySize
+              : destRect;
+      if (!resolvedDestRect.contains(localPosition)) {
+        return;
+      }
+      final imageLocal = localPosition - resolvedDestRect.topLeft;
+      final imageSize = resolvedDestRect.size;
+      nextX =
+          (imageLocal.dx / imageSize.width).clamp(0.0, 1.0);
+      nextY =
+          (imageLocal.dy / imageSize.height).clamp(0.0, 1.0);
+    }
+    _safeSetState(() {
+      _movePreviewNormalizedX = nextX.toDouble();
+      _movePreviewNormalizedY = nextY.toDouble();
+    });
   }
 
   void _handleMovePanCancel() {
