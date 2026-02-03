@@ -83,6 +83,23 @@ class _SettlementDialogState extends State<_SettlementDialog> {
       maxWidth: 280.0,
     );
     final isSaveEnabled = _selectedDirection != null;
+    final title = _dialogTitle();
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final keyboardType = const TextInputType.numberWithOptions(decimal: true);
+    final onSave = isSaveEnabled
+        ? () {
+            if (!(_formKey.currentState?.validate() ?? false)) {
+              return;
+            }
+            final displacement = _displacementController.text.trim();
+            Navigator.of(context).pop(
+              SettlementDetails(
+                direction: _selectedDirection!,
+                displacementText: displacement.isEmpty ? null : displacement,
+              ),
+            );
+          }
+        : null;
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
@@ -92,61 +109,61 @@ class _SettlementDialogState extends State<_SettlementDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _dialogTitle(),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            _buildHeader(title, titleStyle),
             const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedDirection,
-              labelText: '방향',
-              items: const [
-                DropdownMenuItem(
-                  value: 'Lx',
-                  child: Text('Lx'),
-                ),
-                DropdownMenuItem(
-                  value: 'Ly',
-                  child: Text('Ly'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedDirection = value;
-                });
-              },
-              requiredMessage: '방향을 선택하세요.',
-            ),
+            _buildDirectionField(),
             const SizedBox(height: 12),
-            buildDialogTextField(
-              controller: _displacementController,
-              labelText: '변위량',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
+            _buildDisplacementField(keyboardType),
             const SizedBox(height: 16),
-            buildDialogActionButtons(
-              context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      final displacement = _displacementController.text.trim();
-                      Navigator.of(context).pop(
-                        SettlementDetails(
-                          direction: _selectedDirection!,
-                          displacementText:
-                              displacement.isEmpty ? null : displacement,
-                        ),
-                      );
-                    }
-                  : null,
-            ),
+            _buildActions(context, onSave),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(String title, TextStyle? titleStyle) {
+    return Text(
+      title,
+      style: titleStyle,
+    );
+  }
+
+  Widget _buildDirectionField() {
+    return buildDialogDropdownField(
+      value: _selectedDirection,
+      labelText: '방향',
+      items: const [
+        DropdownMenuItem(
+          value: 'Lx',
+          child: Text('Lx'),
+        ),
+        DropdownMenuItem(
+          value: 'Ly',
+          child: Text('Ly'),
+        ),
+      ],
+      onChanged: (value) {
+        setState(() {
+          _selectedDirection = value;
+        });
+      },
+      requiredMessage: '방향을 선택하세요.',
+    );
+  }
+
+  Widget _buildDisplacementField(TextInputType keyboardType) {
+    return buildDialogTextField(
+      controller: _displacementController,
+      labelText: '변위량',
+      keyboardType: keyboardType,
+    );
+  }
+
+  Widget _buildActions(BuildContext context, VoidCallback? onSave) {
+    return buildDialogActionButtons(
+      context,
+      onSave: onSave,
     );
   }
 }
