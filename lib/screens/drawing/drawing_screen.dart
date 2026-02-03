@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
@@ -469,7 +468,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     return results;
   }
-  List<Widget> _buildMarkersForPage<T>({
+  List<Widget> _buildMarkersForPage<T extends Object>({
     required Iterable<T> items,
     required int pageIndex,
     required Size pageSize,
