@@ -237,6 +237,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       onStateUpdated?.call();
     });
     if (didChangeDrawing) {
+      _resetPdfViewControllers();
       _resetScalePreferences();
       await _loadScalePreferences();
     }

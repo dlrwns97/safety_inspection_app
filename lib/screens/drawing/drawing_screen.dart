@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
@@ -59,6 +60,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final DrawingController _controller = DrawingController();
   final TransformationController _transformationController =
       TransformationController();
+  final Map<int, PhotoViewController> _pdfPhotoControllers = {};
+  final Map<int, PhotoViewScaleStateController> _pdfScaleStateControllers = {};
   final GlobalKey _canvasKey = GlobalKey();
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
@@ -96,6 +99,31 @@ class _DrawingScreenState extends State<DrawingScreen>
   double? _moveOriginNormalizedY;
   double? _movePreviewNormalizedX;
   double? _movePreviewNormalizedY;
+
+  PhotoViewController _photoControllerForPage(int pageNumber) {
+    return _pdfPhotoControllers.putIfAbsent(
+      pageNumber,
+      () => PhotoViewController(),
+    );
+  }
+
+  PhotoViewScaleStateController _scaleStateControllerForPage(int pageNumber) {
+    return _pdfScaleStateControllers.putIfAbsent(
+      pageNumber,
+      () => PhotoViewScaleStateController(),
+    );
+  }
+
+  void _resetPdfViewControllers() {
+    for (final controller in _pdfPhotoControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _pdfScaleStateControllers.values) {
+      controller.dispose();
+    }
+    _pdfPhotoControllers.clear();
+    _pdfScaleStateControllers.clear();
+  }
 
   void _handleEditPressed() async {
     final selectedDefect = _selectedDefect;
@@ -366,6 +394,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void dispose() {
     _pdfController?.dispose();
+    _resetPdfViewControllers();
     _transformationController.dispose();
     _sidePanelController.dispose();
     super.dispose();
