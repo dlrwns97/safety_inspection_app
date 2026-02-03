@@ -235,6 +235,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _site = updatedSite;
       onStateUpdated?.call();
+      _resyncSelections(updatedSite);
     });
     if (didChangeDrawing) {
       _resetPdfViewControllers();
@@ -249,6 +250,43 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(callback);
+  }
+
+  void _resyncSelections(Site updatedSite) {
+    final selectedDefectId = _selectedDefect?.id;
+    if (selectedDefectId != null && selectedDefectId.isNotEmpty) {
+      _selectedDefect = _findDefectById(updatedSite, selectedDefectId);
+    }
+    final selectedEquipmentId = _selectedEquipment?.id;
+    if (selectedEquipmentId != null && selectedEquipmentId.isNotEmpty) {
+      _selectedEquipment = _findEquipmentById(updatedSite, selectedEquipmentId);
+    }
+    final moveDefectId = _moveTargetDefect?.id;
+    if (moveDefectId != null && moveDefectId.isNotEmpty) {
+      _moveTargetDefect = _findDefectById(updatedSite, moveDefectId);
+    }
+    final moveEquipmentId = _moveTargetEquipment?.id;
+    if (moveEquipmentId != null && moveEquipmentId.isNotEmpty) {
+      _moveTargetEquipment = _findEquipmentById(updatedSite, moveEquipmentId);
+    }
+  }
+
+  Defect? _findDefectById(Site updatedSite, String defectId) {
+    for (final defect in updatedSite.defects) {
+      if (defect.id == defectId) {
+        return defect;
+      }
+    }
+    return null;
+  }
+
+  EquipmentMarker? _findEquipmentById(Site updatedSite, String markerId) {
+    for (final marker in updatedSite.equipmentMarkers) {
+      if (marker.id == markerId) {
+        return marker;
+      }
+    }
+    return null;
   }
 
   void _selectMarker(MarkerHitResult result) {
