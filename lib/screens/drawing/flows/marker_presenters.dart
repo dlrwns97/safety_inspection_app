@@ -1,6 +1,7 @@
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 
@@ -161,6 +162,18 @@ String equipmentDisplayLabel(
   EquipmentMarker marker,
   List<EquipmentMarker> all,
 ) {
+  if (marker.category == EquipmentCategory.equipment2) {
+    final group = RebarSpacingGroupDetails.fromJsonString(marker.details);
+    if (group != null) {
+      return group.rangeLabel();
+    }
+    final trimmedLabel = marker.label.trim();
+    final isRangeLabel = RegExp(r'^[A-Za-z]+\d+(?:~\d+)?$')
+        .hasMatch(trimmedLabel);
+    if (isRangeLabel) {
+      return trimmedLabel;
+    }
+  }
   if (marker.category == EquipmentCategory.equipment8) {
     final direction = settlementDirection(marker);
     if (direction == null || direction.isEmpty) {
