@@ -345,6 +345,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     String? initialRemarkRight,
     String? initialNumberPrefix,
     String? initialNumberValue,
+    bool allowMultiple = true,
+    int? baseLabelIndex,
+    String? labelPrefix,
   }) async {
     return _showDetailDialog(
       () => showRebarSpacingDialog(
@@ -356,6 +359,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         initialRemarkRight: initialRemarkRight,
         initialNumberPrefix: initialNumberPrefix,
         initialNumberValue: initialNumberValue,
+        allowMultiple: allowMultiple,
+        baseLabelIndex: baseLabelIndex,
+        labelPrefix: labelPrefix,
       ),
     );
   }
@@ -684,6 +690,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             initialRemarkRight,
             initialNumberPrefix,
             initialNumberValue,
+            allowMultiple,
+            baseLabelIndex,
+            labelPrefix,
           }) => _showRebarSpacingDialog(
             title: title,
             initialMemberType: initialMemberType,
@@ -691,6 +700,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             initialRemarkRight: initialRemarkRight,
             initialNumberPrefix: initialNumberPrefix,
             initialNumberValue: initialNumberValue,
+            allowMultiple: allowMultiple ?? true,
+            baseLabelIndex: baseLabelIndex,
+            labelPrefix: labelPrefix,
           ),
       showSchmidtHammerDialog:
           (
