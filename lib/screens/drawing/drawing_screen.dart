@@ -90,6 +90,13 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _labelScale = 1.0;
   bool _isScaleLocked = false;
   bool _didLoadScalePrefs = false;
+  bool _isMoveMode = false;
+  Defect? _moveTargetDefect;
+  EquipmentMarker? _moveTargetEquipment;
+  double? _moveOriginNormalizedX;
+  double? _moveOriginNormalizedY;
+  double? _movePreviewNormalizedX;
+  double? _movePreviewNormalizedY;
 
   void _handleEditPressed() async {
     final selectedDefect = _selectedDefect;
@@ -259,7 +266,16 @@ class _DrawingScreenState extends State<DrawingScreen>
     return null;
   }
 
-  void _handleMovePressed() {}
+  void _handleMovePressed() {
+    if (_isMoveMode) {
+      _exitMoveMode();
+      return;
+    }
+    if (_selectedDefect == null && _selectedEquipment == null) {
+      return;
+    }
+    _enterMoveMode();
+  }
 
   void _handleDeletePressed() {
     _confirmDeleteSelectedMarker();
@@ -472,11 +488,35 @@ class _DrawingScreenState extends State<DrawingScreen>
         .toList();
     return filteredItems
         .map(
-          (item) => Positioned(
-            left: nx(item) * pageSize.width - centerOffset,
-            top: ny(item) * pageSize.height - centerOffset,
-            child: buildMarker(item, isSelected(item)),
-          ),
+          (item) {
+            final isTarget = _isMoveTargetItem(item);
+            final isDraggable = isTarget && isSelected(item);
+            final resolvedX =
+                isTarget && _movePreviewNormalizedX != null
+                    ? _movePreviewNormalizedX!
+                    : nx(item);
+            final resolvedY =
+                isTarget && _movePreviewNormalizedY != null
+                    ? _movePreviewNormalizedY!
+                    : ny(item);
+            Widget markerChild = buildMarker(item, isSelected(item));
+            if (isDraggable) {
+              markerChild = GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanStart: (_) => _handleMovePanStart(item),
+                onPanUpdate:
+                    (details) => _handleMovePanUpdate(details, pageSize),
+                onPanEnd: (_) => _handleMovePanEnd(item, pageSize),
+                onPanCancel: _handleMovePanCancel,
+                child: markerChild,
+              );
+            }
+            return Positioned(
+              left: resolvedX * pageSize.width - centerOffset,
+              top: resolvedY * pageSize.height - centerOffset,
+              child: markerChild,
+            );
+          },
         )
         .toList();
   }
