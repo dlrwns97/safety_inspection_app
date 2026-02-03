@@ -83,57 +83,77 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            _buildHeader(context),
             const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedMember,
-              labelText: '부재',
-              items: widget.memberOptions
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMember = value;
-                });
-              },
-              requiredMessage: '부재를 선택하세요.',
-            ),
+            _buildMemberSection(),
             const SizedBox(height: 16),
-            buildDialogTextField(
-              controller: _avgValueController,
-              labelText: '평균값',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
+            _buildFieldsSection(),
             const SizedBox(height: 16),
-            buildDialogActionButtons(
-              context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      Navigator.of(context).pop(
-                        CoreSamplingDetails(
-                          memberType: _selectedMember!,
-                          avgValueText: _avgValueController.text.trim(),
-                        ),
-                      );
-                    }
-                  : null,
-            ),
+            _buildActions(context, isSaveEnabled),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Text(
+      widget.title,
+      style: Theme.of(context).textTheme.titleMedium,
+    );
+  }
+
+  Widget _buildMemberSection() {
+    final memberItems = widget.memberOptions
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+
+    return buildDialogDropdownField(
+      value: _selectedMember,
+      labelText: '부재',
+      items: memberItems,
+      onChanged: (value) {
+        setState(() {
+          _selectedMember = value;
+        });
+      },
+      requiredMessage: '부재를 선택하세요.',
+    );
+  }
+
+  Widget _buildFieldsSection() {
+    final keyboardType = const TextInputType.numberWithOptions(
+      decimal: true,
+    );
+
+    return buildDialogTextField(
+      controller: _avgValueController,
+      labelText: '평균값',
+      keyboardType: keyboardType,
+    );
+  }
+
+  Widget _buildActions(BuildContext context, bool isSaveEnabled) {
+    return buildDialogActionButtons(
+      context,
+      onSave: isSaveEnabled
+          ? () {
+              if (!(_formKey.currentState?.validate() ?? false)) {
+                return;
+              }
+              Navigator.of(context).pop(
+                CoreSamplingDetails(
+                  memberType: _selectedMember!,
+                  avgValueText: _avgValueController.text.trim(),
+                ),
+              );
+            }
+          : null,
     );
   }
 }
