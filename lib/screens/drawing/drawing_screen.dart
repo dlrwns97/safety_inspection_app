@@ -92,6 +92,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _labelScale = 1.0;
   bool _isScaleLocked = false;
   bool _didLoadScalePrefs = false;
+  bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
   Defect? _moveTargetDefect;
   EquipmentMarker? _moveTargetEquipment;
@@ -650,6 +651,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     const double sidePanelWidthRatio = 0.20;
     const double sidePanelMinWidth = 260;
     const double sidePanelMaxWidth = 320;
+    const double sidePanelHandleWidth = 16;
     return Scaffold(
       appBar: _buildAppBar(),
       bottomNavigationBar:
@@ -675,47 +677,73 @@ class _DrawingScreenState extends State<DrawingScreen>
           return Row(
             children: [
               Expanded(child: drawingStack),
-              SizedBox(
-                width: panelWidth,
-                child: MarkerSidePanel(
-                  tabController: _sidePanelController,
-                  currentPage: _currentPage,
-                  defects: _site.defects,
-                  equipmentMarkers: _site.equipmentMarkers,
-                  selectedDefect: _selectedDefect,
-                  selectedEquipment: _selectedEquipment,
-                  selectedDefectCategory: defectFilter,
-                  selectedEquipmentCategory: equipmentFilter,
-                  onSelectDefect: _selectDefectFromPanel,
-                  onSelectEquipment: _selectEquipmentFromPanel,
-                  onDefectCategorySelected: (category) => setState(
-                    () => _sidePanelDefectCategory = category,
-                  ),
-                  onEquipmentCategorySelected: (category) => setState(
-                    () => _sidePanelEquipmentCategory = category,
-                  ),
-                  visibleDefectCategories: _visibleDefectCategories,
-                  visibleEquipmentCategories: _visibleEquipmentCategories,
-                  onDefectVisibilityChanged: (category, visible) => setState(
-                    () {
-                      if (visible) {
-                        _visibleDefectCategories.add(category);
-                      } else {
-                        _visibleDefectCategories.remove(category);
-                      }
-                    },
-                  ),
-                  onEquipmentVisibilityChanged:
-                      _handleEquipmentVisibilityChanged,
-                  markerScale: _markerScale,
-                  labelScale: _labelScale,
-                  onMarkerScaleChanged: _handleMarkerScaleChanged,
-                  onLabelScaleChanged: _handleLabelScaleChanged,
-                  isMarkerScaleLocked: _isScaleLocked,
-                  onToggleMarkerScaleLock: _toggleScaleLock,
-                  onEditPressed: _handleEditPressed,
-                  onMovePressed: _handleMovePressed,
-                  onDeletePressed: _handleDeletePressed,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                width:
+                    _isRightPanelCollapsed
+                        ? sidePanelHandleWidth
+                        : panelWidth,
+                child: Stack(
+                  children: [
+                    if (!_isRightPanelCollapsed)
+                      Positioned.fill(
+                        child: MarkerSidePanel(
+                          tabController: _sidePanelController,
+                          currentPage: _currentPage,
+                          defects: _site.defects,
+                          equipmentMarkers: _site.equipmentMarkers,
+                          selectedDefect: _selectedDefect,
+                          selectedEquipment: _selectedEquipment,
+                          selectedDefectCategory: defectFilter,
+                          selectedEquipmentCategory: equipmentFilter,
+                          onSelectDefect: _selectDefectFromPanel,
+                          onSelectEquipment: _selectEquipmentFromPanel,
+                          onDefectCategorySelected: (category) => setState(
+                            () => _sidePanelDefectCategory = category,
+                          ),
+                          onEquipmentCategorySelected: (category) => setState(
+                            () => _sidePanelEquipmentCategory = category,
+                          ),
+                          visibleDefectCategories: _visibleDefectCategories,
+                          visibleEquipmentCategories: _visibleEquipmentCategories,
+                          onDefectVisibilityChanged:
+                              (category, visible) => setState(
+                                () {
+                                  if (visible) {
+                                    _visibleDefectCategories.add(category);
+                                  } else {
+                                    _visibleDefectCategories.remove(category);
+                                  }
+                                },
+                              ),
+                          onEquipmentVisibilityChanged:
+                              _handleEquipmentVisibilityChanged,
+                          markerScale: _markerScale,
+                          labelScale: _labelScale,
+                          onMarkerScaleChanged: _handleMarkerScaleChanged,
+                          onLabelScaleChanged: _handleLabelScaleChanged,
+                          isMarkerScaleLocked: _isScaleLocked,
+                          onToggleMarkerScaleLock: _toggleScaleLock,
+                          onEditPressed: _handleEditPressed,
+                          onMovePressed: _handleMovePressed,
+                          onDeletePressed: _handleDeletePressed,
+                        ),
+                      ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: sidePanelHandleWidth,
+                        child: _buildRightPanelHandle(
+                          isCollapsed: _isRightPanelCollapsed,
+                          onToggle: () => setState(
+                            () => _isRightPanelCollapsed =
+                                !_isRightPanelCollapsed,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
