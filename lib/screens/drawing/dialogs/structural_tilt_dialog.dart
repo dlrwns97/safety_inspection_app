@@ -70,6 +70,8 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
       maxWidth: 320.0,
     );
     final isSaveEnabled = _selectedDirection != null;
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final onSave = isSaveEnabled ? _handleSave : null;
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
@@ -79,61 +81,77 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            ..._buildHeader(titleStyle),
+            ..._buildFields(),
             const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedDirection,
-              labelText: '방향',
-              items: const [
-                DropdownMenuItem(
-                  value: '+',
-                  child: Text('+'),
-                ),
-                DropdownMenuItem(
-                  value: '-',
-                  child: Text('-'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedDirection = value;
-                });
-              },
-              requiredMessage: '방향을 선택하세요.',
-            ),
-            const SizedBox(height: 12),
-            buildDialogTextField(
-              controller: _displacementController,
-              labelText: '변위량',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            buildDialogActionButtons(
-              context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      final displacement =
-                          _displacementController.text.trim();
-                      Navigator.of(context).pop(
-                        StructuralTiltDetails(
-                          direction: _selectedDirection!,
-                          displacementText:
-                              displacement.isEmpty ? null : displacement,
-                        ),
-                      );
-                    }
-                  : null,
-            ),
+            _buildActions(context, onSave: onSave),
           ],
         ),
+      ),
+    );
+  }
+
+  List<Widget> _buildHeader(TextStyle? titleStyle) {
+    return [
+      Text(
+        widget.title,
+        style: titleStyle,
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  List<Widget> _buildFields() {
+    final keyboardType = const TextInputType.numberWithOptions(
+      decimal: true,
+    );
+
+    return [
+      buildDialogDropdownField(
+        value: _selectedDirection,
+        labelText: '방향',
+        items: const [
+          DropdownMenuItem(
+            value: '+',
+            child: Text('+'),
+          ),
+          DropdownMenuItem(
+            value: '-',
+            child: Text('-'),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedDirection = value;
+          });
+        },
+        requiredMessage: '방향을 선택하세요.',
+      ),
+      const SizedBox(height: 12),
+      buildDialogTextField(
+        controller: _displacementController,
+        labelText: '변위량',
+        keyboardType: keyboardType,
+      ),
+    ];
+  }
+
+  Widget _buildActions(BuildContext context, {required VoidCallback? onSave}) {
+    return buildDialogActionButtons(
+      context,
+      onSave: onSave,
+    );
+  }
+
+  void _handleSave() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    final displacement = _displacementController.text.trim();
+    Navigator.of(context).pop(
+      StructuralTiltDetails(
+        direction: _selectedDirection!,
+        displacementText: displacement.isEmpty ? null : displacement,
       ),
     );
   }
