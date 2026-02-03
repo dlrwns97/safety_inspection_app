@@ -383,13 +383,17 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (widget.site == oldWidget.site) {
       return;
     }
+    final didChangeDrawing =
+        _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
     _initializeDefectTabs();
     _initializeEquipmentTabs();
-    _resetScalePreferences();
-    _loadScalePreferences();
-    _loadPdfPageSizeCache();
-    _loadPdfController();
+    if (didChangeDrawing) {
+      _resetScalePreferences();
+      _loadScalePreferences();
+      _loadPdfPageSizeCache();
+      _loadPdfController();
+    }
   }
   @override
   void dispose() {
