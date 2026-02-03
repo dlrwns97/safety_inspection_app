@@ -479,6 +479,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     required double markerScale,
   }) {
     const double baseMarkerSize = 30.0;
+    const double dragHitBoxSize = 56.0;
     final scaledSize = (baseMarkerSize * markerScale)
         .clamp(baseMarkerSize * 0.2, 44.0);
     final centerOffset = scaledSize / 2;
@@ -490,6 +491,8 @@ class _DrawingScreenState extends State<DrawingScreen>
           (item) {
             final isTarget = _isMoveTargetItem(item);
             final isDraggable = isTarget && isSelected(item);
+            final effectiveCenterOffset =
+                isDraggable ? dragHitBoxSize / 2 : centerOffset;
             final resolvedX =
                 isTarget && _movePreviewNormalizedX != null
                     ? _movePreviewNormalizedX!
@@ -501,18 +504,21 @@ class _DrawingScreenState extends State<DrawingScreen>
             Widget markerChild = buildMarker(item, isSelected(item));
             if (isDraggable) {
               markerChild = GestureDetector(
-                behavior: HitTestBehavior.translucent,
+                behavior: HitTestBehavior.opaque,
                 onPanStart: (_) => _handleMovePanStart(item),
                 onPanUpdate:
                     (details) => _handleMovePanUpdate(details, pageSize),
                 onPanEnd: (_) => _handleMovePanEnd(item, pageSize),
                 onPanCancel: _handleMovePanCancel,
-                child: markerChild,
+                child: SizedBox.square(
+                  dimension: dragHitBoxSize,
+                  child: Center(child: markerChild),
+                ),
               );
             }
             return Positioned(
-              left: resolvedX * pageSize.width - centerOffset,
-              top: resolvedY * pageSize.height - centerOffset,
+              left: resolvedX * pageSize.width - effectiveCenterOffset,
+              top: resolvedY * pageSize.height - effectiveCenterOffset,
               child: markerChild,
             );
           },
