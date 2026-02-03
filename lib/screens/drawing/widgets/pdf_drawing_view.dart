@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:photo_view/photo_view.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';

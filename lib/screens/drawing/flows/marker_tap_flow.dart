@@ -362,6 +362,9 @@ Future<Site?> addEquipmentMarker({
     String? initialRemarkRight,
     String? initialNumberPrefix,
     String? initialNumberValue,
+    bool allowMultiple,
+    int? baseLabelIndex,
+    String? labelPrefix,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {

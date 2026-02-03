@@ -345,7 +345,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     String? initialRemarkRight,
     String? initialNumberPrefix,
     String? initialNumberValue,
-    bool allowMultiple = true,
+    bool allowMultiple = false,
     int? baseLabelIndex,
     String? labelPrefix,
   }) async {
@@ -690,7 +690,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             initialRemarkRight,
             initialNumberPrefix,
             initialNumberValue,
-            allowMultiple,
+            allowMultiple = false,
             baseLabelIndex,
             labelPrefix,
           }) => _showRebarSpacingDialog(
@@ -700,7 +700,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             initialRemarkRight: initialRemarkRight,
             initialNumberPrefix: initialNumberPrefix,
             initialNumberValue: initialNumberValue,
-            allowMultiple: allowMultiple ?? true,
+            allowMultiple: allowMultiple,
             baseLabelIndex: baseLabelIndex,
             labelPrefix: labelPrefix,
           ),
