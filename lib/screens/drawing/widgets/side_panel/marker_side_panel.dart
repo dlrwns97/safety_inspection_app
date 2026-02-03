@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
@@ -270,7 +272,7 @@ class MarkerSidePanel extends StatelessWidget {
                   ? ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      if (defect != null) _buildDefectDetail(defect),
+                      if (defect != null) _buildDefectDetail(context, defect),
                       if (equipment != null) _buildEquipmentDetail(equipment),
                     ],
                   )
@@ -321,7 +323,7 @@ class MarkerSidePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildDefectDetail(Defect defect) {
+  Widget _buildDefectDetail(BuildContext context, Defect defect) {
     final details = defect.details;
     final rows = <MarkerDetailRowData>[
       if (details.structuralMember.isNotEmpty)
@@ -334,10 +336,76 @@ class MarkerSidePanel extends StatelessWidget {
       if (details.lengthMm > 0)
         MarkerDetailRowData('길이', '${details.lengthMm} mm'),
     ];
-    return MarkerDetailSection(
-      title: defectPanelTitle(defect),
-      subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
-      rows: rows,
+    final photoPreview = _buildDefectPhotoPreview(
+      context,
+      details.photoPaths,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MarkerDetailSection(
+          title: defectPanelTitle(defect),
+          subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
+          rows: rows,
+        ),
+        if (photoPreview != null) photoPreview,
+      ],
+    );
+  }
+
+  Widget? _buildDefectPhotoPreview(
+    BuildContext context,
+    List<String> photoPaths,
+  ) {
+    if (photoPaths.isEmpty) {
+      return null;
+    }
+    final theme = Theme.of(context);
+    final file = File(photoPaths.first);
+    final hasFile = file.existsSync();
+    final extraCount = photoPaths.length - 1;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.dividerColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child:
+                hasFile
+                    ? Image.file(
+                      file,
+                      fit: BoxFit.cover,
+                      cacheWidth: 800,
+                    )
+                    : Center(
+                      child: Text(
+                        '사진을 불러올 수 없습니다',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+          ),
+          if (extraCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '외 $extraCount장',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
