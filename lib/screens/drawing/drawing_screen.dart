@@ -4,7 +4,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:photo_view/photo_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect.dart';
@@ -235,7 +234,7 @@ class _DrawingScreenState extends State<DrawingScreen>
             initialRemarkRight,
             initialNumberPrefix,
             initialNumberValue,
-            allowMultiple,
+            allowMultiple = false,
             baseLabelIndex,
             labelPrefix,
           }) => _showRebarSpacingDialog(
@@ -245,7 +244,7 @@ class _DrawingScreenState extends State<DrawingScreen>
             initialRemarkRight: initialRemarkRight,
             initialNumberPrefix: initialNumberPrefix,
             initialNumberValue: initialNumberValue,
-            allowMultiple: allowMultiple ?? true,
+            allowMultiple: allowMultiple,
             baseLabelIndex: baseLabelIndex,
             labelPrefix: labelPrefix,
           ),

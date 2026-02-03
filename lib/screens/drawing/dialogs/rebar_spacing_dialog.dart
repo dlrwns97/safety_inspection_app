@@ -37,7 +37,7 @@ Future<RebarSpacingDetails?> showRebarSpacingDialog({
   String? initialRemarkRight,
   String? initialNumberPrefix,
   String? initialNumberValue,
-  bool allowMultiple = true,
+  bool allowMultiple = false,
   int? baseLabelIndex,
   String? labelPrefix,
 }) {
@@ -67,7 +67,7 @@ class _RebarSpacingDialog extends StatefulWidget {
     this.initialRemarkRight,
     this.initialNumberPrefix,
     this.initialNumberValue,
-    this.allowMultiple = true,
+    this.allowMultiple = false,
     this.baseLabelIndex,
     this.labelPrefix,
   });
@@ -118,7 +118,8 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
 
   bool get _canAddRow => widget.allowMultiple && _rows.length < _maxRows;
 
-  bool get _showRowLabels => widget.baseLabelIndex != null;
+  bool get _showRowLabels =>
+      widget.baseLabelIndex != null && widget.labelPrefix != null;
 
   String _rowLabel(int index) {
     final baseIndex = widget.baseLabelIndex ?? 0;
