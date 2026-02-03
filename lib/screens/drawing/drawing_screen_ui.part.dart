@@ -97,6 +97,35 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
+  Widget _buildRightPanelHandle({
+    required bool isCollapsed,
+    required VoidCallback onToggle,
+  }) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Center(
+            child: Icon(
+              isCollapsed ? Icons.chevron_left : Icons.chevron_right,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     return PdfDrawingView(
