@@ -388,6 +388,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     final didChangeDrawing =
         _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
+    _resyncSelections(widget.site);
     _initializeDefectTabs();
     _initializeEquipmentTabs();
     if (didChangeDrawing) {
