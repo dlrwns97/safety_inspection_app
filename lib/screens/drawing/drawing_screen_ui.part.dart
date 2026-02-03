@@ -246,6 +246,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
     HitTestBehavior behavior = HitTestBehavior.opaque,
     Key? tapRegionKey,
   }) {
+    final GestureTapUpCallback? tapHandler =
+        _isMoveMode ? null : onTapUp;
+    final GestureLongPressStartCallback? longPressHandler =
+        _isMoveMode ? null : onLongPressStart;
     return Listener(
       behavior: behavior,
       onPointerDown: (e) => _handlePointerDown(e.localPosition),
@@ -254,8 +258,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       onPointerCancel: (_) => _handlePointerCancel(),
       child: GestureDetector(
         behavior: behavior,
-        onTapUp: onTapUp,
-        onLongPressStart: onLongPressStart,
+        onTapUp: tapHandler,
+        onLongPressStart: longPressHandler,
         child: KeyedSubtree(key: tapRegionKey, child: child),
       ),
     );
