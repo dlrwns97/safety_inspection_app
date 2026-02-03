@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
@@ -74,14 +75,11 @@ Future<Site?> handleTapCore({
     bool? initialHComplete,
     bool? initialDComplete,
   }) showEquipmentDetailsDialog,
-  required Future<RebarSpacingDetails?> Function(
+  required Future<RebarSpacingGroupDetails?> Function(
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple,
     int? baseLabelIndex,
     String? labelPrefix,
@@ -180,14 +178,11 @@ Future<Site?> createMarkerFromTap({
     bool? initialHComplete,
     bool? initialDComplete,
   }) showEquipmentDetailsDialog,
-  required Future<RebarSpacingDetails?> Function(
+  required Future<RebarSpacingGroupDetails?> Function(
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple,
     int? baseLabelIndex,
     String? labelPrefix,
@@ -354,14 +349,11 @@ Future<Site?> addEquipmentMarker({
     bool? initialHComplete,
     bool? initialDComplete,
   }) showEquipmentDetailsDialog,
-  required Future<RebarSpacingDetails?> Function(
+  required Future<RebarSpacingGroupDetails?> Function(
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple,
     int? baseLabelIndex,
     String? labelPrefix,

@@ -174,6 +174,10 @@ String equipmentDisplayLabel(
     return '$normalizedDirection$sequence';
   }
   final prefix = equipmentPrefixFor(marker.category);
+  if (marker.category == EquipmentCategory.equipment2 &&
+      marker.label.trim().isNotEmpty) {
+    return marker.label;
+  }
   if (prefix.isEmpty) {
     return marker.label;
   }

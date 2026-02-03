@@ -338,13 +338,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
-  Future<RebarSpacingDetails?> _showRebarSpacingDialog({
+  Future<RebarSpacingGroupDetails?> _showRebarSpacingDialog({
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple = false,
     int? baseLabelIndex,
     String? labelPrefix,
@@ -355,10 +352,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         title: title,
         memberOptions: DrawingRebarSpacingMemberOptions,
         initialMemberType: initialMemberType,
-        initialRemarkLeft: initialRemarkLeft,
-        initialRemarkRight: initialRemarkRight,
-        initialNumberPrefix: initialNumberPrefix,
-        initialNumberValue: initialNumberValue,
+        initialMeasurements: initialMeasurements,
         allowMultiple: allowMultiple,
         baseLabelIndex: baseLabelIndex,
         labelPrefix: labelPrefix,
@@ -686,20 +680,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             context, {
             required title,
             initialMemberType,
-            initialRemarkLeft,
-            initialRemarkRight,
-            initialNumberPrefix,
-            initialNumberValue,
+            initialMeasurements,
             allowMultiple = false,
             baseLabelIndex,
             labelPrefix,
           }) => _showRebarSpacingDialog(
             title: title,
             initialMemberType: initialMemberType,
-            initialRemarkLeft: initialRemarkLeft,
-            initialRemarkRight: initialRemarkRight,
-            initialNumberPrefix: initialNumberPrefix,
-            initialNumberValue: initialNumberValue,
+            initialMeasurements: initialMeasurements,
             allowMultiple: allowMultiple,
             baseLabelIndex: baseLabelIndex,
             labelPrefix: labelPrefix,
