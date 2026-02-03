@@ -223,6 +223,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       activeEquipmentCategory: marker.category,
       pendingMarker: marker,
       prefix: equipmentLabelPrefix(marker.category),
+      allowRebarSpacingMulti: false,
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
@@ -234,6 +235,9 @@ class _DrawingScreenState extends State<DrawingScreen>
             initialRemarkRight,
             initialNumberPrefix,
             initialNumberValue,
+            allowMultiple,
+            baseLabelIndex,
+            labelPrefix,
           }) => _showRebarSpacingDialog(
             title: title,
             initialMemberType: initialMemberType,
@@ -241,6 +245,9 @@ class _DrawingScreenState extends State<DrawingScreen>
             initialRemarkRight: initialRemarkRight,
             initialNumberPrefix: initialNumberPrefix,
             initialNumberValue: initialNumberValue,
+            allowMultiple: allowMultiple ?? true,
+            baseLabelIndex: baseLabelIndex,
+            labelPrefix: labelPrefix,
           ),
       showSchmidtHammerDialog:
           (

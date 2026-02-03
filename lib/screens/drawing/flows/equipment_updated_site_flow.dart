@@ -25,6 +25,7 @@ Future<Site?> createEquipmentUpdatedSite({
   required EquipmentCategory? activeEquipmentCategory,
   required EquipmentMarker pendingMarker,
   required String prefix,
+  bool allowRebarSpacingMulti = true,
   required List<String> deflectionMemberOptions,
   required Future<EquipmentDetails?> Function({
     required String title,
@@ -43,6 +44,9 @@ Future<Site?> createEquipmentUpdatedSite({
     String? initialRemarkRight,
     String? initialNumberPrefix,
     String? initialNumberValue,
+    bool allowMultiple,
+    int? baseLabelIndex,
+    String? labelPrefix,
   }) showRebarSpacingDialog,
   required Future<SchmidtHammerDetails?> Function(
     BuildContext, {
@@ -108,6 +112,7 @@ Future<Site?> createEquipmentUpdatedSite({
       pendingMarker: pendingMarker,
       prefix: prefix,
       title: dialogTitle,
+      allowMultiple: allowRebarSpacingMulti,
       showRebarSpacingDialog: showRebarSpacingDialog,
     ),
     EquipmentCategory.equipment3: () => createEquipment3IfConfirmed(
