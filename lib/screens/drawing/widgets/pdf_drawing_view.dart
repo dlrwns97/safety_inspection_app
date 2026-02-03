@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:photo_view/photo_view.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
@@ -16,6 +17,8 @@ class PdfDrawingView extends StatelessWidget {
     required this.pageSizes,
     required this.pdfViewVersion,
     required this.onUpdatePageSize,
+    required this.photoControllerForPage,
+    required this.scaleStateControllerForPage,
     required this.buildPageOverlay,
   });
 
@@ -28,6 +31,9 @@ class PdfDrawingView extends StatelessWidget {
   final Map<int, Size> pageSizes;
   final int pdfViewVersion;
   final void Function(int pageNumber, Size pageSize) onUpdatePageSize;
+  final PhotoViewController Function(int pageNumber) photoControllerForPage;
+  final PhotoViewScaleStateController Function(int pageNumber)
+      scaleStateControllerForPage;
   final Widget Function({
     required Size pageSize,
     required int pageNumber,
@@ -82,6 +88,9 @@ class PdfDrawingView extends StatelessWidget {
               final fallbackSize =
                   pageSizes[pageNumber] ?? DrawingCanvasSize;
               return PhotoViewGalleryPageOptions.customChild(
+                controller: photoControllerForPage(pageNumber),
+                scaleStateController:
+                    scaleStateControllerForPage(pageNumber),
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {

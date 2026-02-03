@@ -108,6 +108,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       pageSizes: _pdfPageSizes,
       pdfViewVersion: _pdfViewVersion,
       onUpdatePageSize: _handleUpdatePageSize,
+      photoControllerForPage: _photoControllerForPage,
+      scaleStateControllerForPage: _scaleStateControllerForPage,
       buildPageOverlay:
           ({required pageSize, required pageNumber, required imageProvider}) =>
               _buildPdfPageOverlay(
