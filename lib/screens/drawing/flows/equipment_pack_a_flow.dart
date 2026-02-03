@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/rebar_spacing_dialog.dart';
@@ -17,14 +18,11 @@ Future<Site?> createEquipment2IfConfirmed({
   required String prefix,
   required String title,
   required bool allowMultiple,
-  required Future<RebarSpacingDetails?> Function(
+  required Future<RebarSpacingGroupDetails?> Function(
     BuildContext context, {
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple,
     int? baseLabelIndex,
     String? labelPrefix,
@@ -38,69 +36,87 @@ Future<Site?> createEquipment2IfConfirmed({
             prefix: prefix,
           )
           : null;
-  final fallbackNumberValue =
-      pendingMarker.numberValue ??
-      (pendingMarker.numberText?.trim().isNotEmpty == true
-          ? pendingMarker.numberText
-          : null);
+  final hasExistingData =
+      pendingMarker.details?.isNotEmpty == true ||
+      pendingMarker.memberType?.isNotEmpty == true ||
+      pendingMarker.remarkLeft?.isNotEmpty == true ||
+      pendingMarker.remarkRight?.isNotEmpty == true ||
+      pendingMarker.numberPrefix?.isNotEmpty == true ||
+      pendingMarker.numberValue?.isNotEmpty == true ||
+      pendingMarker.numberText?.isNotEmpty == true;
+  final existingGroup =
+      hasExistingData
+          ? rebarSpacingGroupFromMarker(
+            pendingMarker,
+            defaultPrefix: prefix,
+          )
+          : null;
+  final initialMeasurements =
+      existingGroup?.measurements ??
+      [
+        RebarSpacingMeasurement(
+          remarkLeft: pendingMarker.remarkLeft,
+          remarkRight: pendingMarker.remarkRight,
+          numberPrefix: pendingMarker.numberPrefix,
+          numberValue:
+              pendingMarker.numberValue ??
+              pendingMarker.numberText?.trim(),
+        ),
+      ];
+  final baseLabelIndex = existingGroup?.baseLabelIndex ?? nextLabelIndex;
   final details = await showRebarSpacingDialog(
     context,
     title: title,
-    initialMemberType: pendingMarker.memberType,
-    initialRemarkLeft: pendingMarker.remarkLeft,
-    initialRemarkRight: pendingMarker.remarkRight,
-    initialNumberPrefix: pendingMarker.numberPrefix,
-    initialNumberValue: fallbackNumberValue,
+    initialMemberType:
+        pendingMarker.memberType?.isNotEmpty == true
+            ? pendingMarker.memberType
+            : existingGroup?.memberType,
+    initialMeasurements: initialMeasurements,
     allowMultiple: allowMultiple,
-    baseLabelIndex: nextLabelIndex,
+    baseLabelIndex: baseLabelIndex,
     labelPrefix: prefix,
   );
   if (details == null) {
     return null;
   }
-  final rows = details.rows.isEmpty
-      ? [const RebarSpacingRowDetails()]
-      : details.rows;
-  final markers =
-      rows.asMap().entries.map((entry) {
-        final rowIndex = entry.key;
-        final row = entry.value;
-        final numberValue =
-            row.numberValue?.isNotEmpty == true ? row.numberValue!.trim() : null;
-        final numberPrefix =
-            row.numberPrefix?.isNotEmpty == true
-                ? row.numberPrefix!.trim()
-                : null;
-        final numberText = _formatEquipment2Number(
-          prefix: numberPrefix,
-          value: numberValue,
-        );
-        final labelIndex =
-            nextLabelIndex == null ? null : nextLabelIndex + rowIndex;
-        final id =
-            allowMultiple && rowIndex > 0
-                ? (DateTime.now().microsecondsSinceEpoch + rowIndex).toString()
-                : pendingMarker.id;
-        return pendingMarker.copyWith(
-          id: id,
-          label:
-              allowMultiple && labelIndex != null
-                  ? '$prefix$labelIndex'
-                  : pendingMarker.label,
-          pageIndex: pageIndex,
-          normalizedX: normalizedX,
-          normalizedY: normalizedY,
-          equipmentTypeId: prefix,
-          memberType: details.memberType,
-          numberText: numberText,
-          remarkLeft: row.remarkLeft,
-          remarkRight: row.remarkRight,
-          numberPrefix: numberPrefix,
-          numberValue: numberValue,
-        );
-      }).toList();
+  if (baseLabelIndex == null) {
+    return null;
+  }
+  final isRangeAvailable = _rebarSpacingRangeAvailable(
+    site: site,
+    baseLabelIndex: baseLabelIndex,
+    count: details.measurements.length,
+    prefix: prefix,
+  );
+  if (!isRangeAvailable) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('이미 사용 중인 번호가 포함되어 있습니다.')),
+    );
+    return null;
+  }
+  final firstMeasurement = details.measurements.first;
+  final numberValue = firstMeasurement.numberValue?.trim();
+  final numberPrefix = firstMeasurement.numberPrefix?.trim();
+  final numberText = _formatEquipment2Number(
+    prefix: numberPrefix,
+    value: numberValue,
+  );
+  final marker = pendingMarker.copyWith(
+    label: details.rangeLabel(),
+    pageIndex: pageIndex,
+    normalizedX: normalizedX,
+    normalizedY: normalizedY,
+    equipmentTypeId: prefix,
+    memberType: details.memberType,
+    numberText: numberText,
+    remarkLeft: firstMeasurement.remarkLeft,
+    remarkRight: firstMeasurement.remarkRight,
+    numberPrefix: numberPrefix,
+    numberValue: numberValue,
+    details: details.toJsonString(),
+  );
   return site.copyWith(
-    equipmentMarkers: [...site.equipmentMarkers, ...markers],
+    equipmentMarkers: [...site.equipmentMarkers, marker],
   );
 }
 
@@ -125,16 +141,24 @@ int _nextEquipmentLabelIndex({
 }) {
   final targetMarkers =
       site.equipmentMarkers.where((marker) => marker.category == category);
-  final regex = RegExp('^${RegExp.escape(prefix)}(\\d+)\$');
   var maxIndex = 0;
   var count = 0;
   for (final marker in targetMarkers) {
     count += 1;
-    final match = regex.firstMatch(marker.label.trim());
-    if (match == null) {
+    final group = rebarSpacingGroupFromMarker(
+      marker,
+      defaultPrefix: prefix,
+    );
+    if (group != null) {
+      final endIndex = group.baseLabelIndex + group.measurements.length - 1;
+      if (endIndex > maxIndex) {
+        maxIndex = endIndex;
+      }
       continue;
     }
-    final value = int.tryParse(match.group(1) ?? '');
+    final regex = RegExp('^${RegExp.escape(prefix)}(\\d+)\$');
+    final match = regex.firstMatch(marker.label.trim());
+    final value = match == null ? null : int.tryParse(match.group(1) ?? '');
     if (value != null && value > maxIndex) {
       maxIndex = value;
     }
@@ -143,6 +167,36 @@ int _nextEquipmentLabelIndex({
     return maxIndex + 1;
   }
   return count + 1;
+}
+
+bool _rebarSpacingRangeAvailable({
+  required Site site,
+  required int baseLabelIndex,
+  required int count,
+  required String prefix,
+}) {
+  final usedIndices = <int>{};
+  for (final marker in site.equipmentMarkers) {
+    if (marker.category != EquipmentCategory.equipment2) {
+      continue;
+    }
+    final group = rebarSpacingGroupFromMarker(
+      marker,
+      defaultPrefix: prefix,
+    );
+    if (group == null) {
+      continue;
+    }
+    for (var i = 0; i < group.measurements.length; i++) {
+      usedIndices.add(group.baseLabelIndex + i);
+    }
+  }
+  for (var i = 0; i < count; i++) {
+    if (usedIndices.contains(baseLabelIndex + i)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Future<Site?> createEquipment3IfConfirmed({

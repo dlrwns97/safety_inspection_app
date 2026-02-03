@@ -1,56 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
+
 import 'dialog_field_builders.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
-class RebarSpacingRowDetails {
-  const RebarSpacingRowDetails({
-    this.remarkLeft,
-    this.remarkRight,
-    this.numberPrefix,
-    this.numberValue,
-  });
-
-  final String? remarkLeft;
-  final String? remarkRight;
-  final String? numberPrefix;
-  final String? numberValue;
-}
-
-class RebarSpacingDetails {
-  const RebarSpacingDetails({
-    required this.memberType,
-    required this.rows,
-  });
-
-  final String memberType;
-  final List<RebarSpacingRowDetails> rows;
-}
-
-Future<RebarSpacingDetails?> showRebarSpacingDialog({
+Future<RebarSpacingGroupDetails?> showRebarSpacingDialog({
   required BuildContext context,
   required String title,
   required List<String> memberOptions,
   String? initialMemberType,
-  String? initialRemarkLeft,
-  String? initialRemarkRight,
-  String? initialNumberPrefix,
-  String? initialNumberValue,
+  List<RebarSpacingMeasurement>? initialMeasurements,
   bool allowMultiple = false,
   int? baseLabelIndex,
   String? labelPrefix,
 }) {
-  return showDialog<RebarSpacingDetails>(
+  return showDialog<RebarSpacingGroupDetails>(
     context: context,
     builder: (context) => _RebarSpacingDialog(
       title: title,
       memberOptions: memberOptions,
       initialMemberType: initialMemberType,
-      initialRemarkLeft: initialRemarkLeft,
-      initialRemarkRight: initialRemarkRight,
-      initialNumberPrefix: initialNumberPrefix,
-      initialNumberValue: initialNumberValue,
+      initialMeasurements: initialMeasurements,
       allowMultiple: allowMultiple,
       baseLabelIndex: baseLabelIndex,
       labelPrefix: labelPrefix,
@@ -63,10 +35,7 @@ class _RebarSpacingDialog extends StatefulWidget {
     required this.title,
     required this.memberOptions,
     this.initialMemberType,
-    this.initialRemarkLeft,
-    this.initialRemarkRight,
-    this.initialNumberPrefix,
-    this.initialNumberValue,
+    this.initialMeasurements,
     this.allowMultiple = false,
     this.baseLabelIndex,
     this.labelPrefix,
@@ -75,10 +44,7 @@ class _RebarSpacingDialog extends StatefulWidget {
   final String title;
   final List<String> memberOptions;
   final String? initialMemberType;
-  final String? initialRemarkLeft;
-  final String? initialRemarkRight;
-  final String? initialNumberPrefix;
-  final String? initialNumberValue;
+  final List<RebarSpacingMeasurement>? initialMeasurements;
   final bool allowMultiple;
   final int? baseLabelIndex;
   final String? labelPrefix;
@@ -98,14 +64,22 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
   void initState() {
     super.initState();
     _selectedMember = widget.initialMemberType;
-    _rows = [
-      _RebarSpacingRowVm(
-        remarkLeft: widget.initialRemarkLeft,
-        remarkRight: widget.initialRemarkRight,
-        numberPrefix: widget.initialNumberPrefix,
-        numberValue: widget.initialNumberValue,
-      ),
-    ];
+    final initialMeasurements = widget.initialMeasurements;
+    if (initialMeasurements != null && initialMeasurements.isNotEmpty) {
+      _rows =
+          initialMeasurements
+              .map(
+                (measurement) => _RebarSpacingRowVm(
+                  remarkLeft: measurement.remarkLeft,
+                  remarkRight: measurement.remarkRight,
+                  numberPrefix: measurement.numberPrefix,
+                  numberValue: measurement.numberValue,
+                ),
+              )
+              .toList();
+    } else {
+      _rows = [_RebarSpacingRowVm()];
+    }
   }
 
   @override
@@ -208,12 +182,14 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                             return;
                           }
                           Navigator.of(context).pop(
-                            RebarSpacingDetails(
+                            RebarSpacingGroupDetails(
+                              baseLabelIndex: widget.baseLabelIndex ?? 1,
+                              labelPrefix: widget.labelPrefix ?? 'F',
                               memberType: _selectedMember!,
-                              rows:
+                              measurements:
                                   _rows
                                       .map(
-                                        (row) => RebarSpacingRowDetails(
+                                        (row) => RebarSpacingMeasurement(
                                           remarkLeft: row.remarkLeft,
                                           remarkRight: row.remarkRight,
                                           numberPrefix: row.numberPrefix,

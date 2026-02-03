@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
@@ -36,14 +37,11 @@ Future<Site?> createEquipmentUpdatedSite({
     bool? initialHComplete,
     bool? initialDComplete,
   }) showEquipmentDetailsDialog,
-  required Future<RebarSpacingDetails?> Function(
+  required Future<RebarSpacingGroupDetails?> Function(
     BuildContext, {
     required String title,
     String? initialMemberType,
-    String? initialRemarkLeft,
-    String? initialRemarkRight,
-    String? initialNumberPrefix,
-    String? initialNumberValue,
+    List<RebarSpacingMeasurement>? initialMeasurements,
     bool allowMultiple,
     int? baseLabelIndex,
     String? labelPrefix,

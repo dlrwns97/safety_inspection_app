@@ -33,6 +33,7 @@ class EquipmentMarker {
     this.wComplete,
     this.hComplete,
     this.dComplete,
+    this.details,
   });
 
   final String id;
@@ -66,6 +67,7 @@ class EquipmentMarker {
   final bool? wComplete;
   final bool? hComplete;
   final bool? dComplete;
+  final String? details;
 
   EquipmentMarker copyWith({
     String? id,
@@ -99,6 +101,7 @@ class EquipmentMarker {
     bool? wComplete,
     bool? hComplete,
     bool? dComplete,
+    String? details,
   }) {
     return EquipmentMarker(
       id: id ?? this.id,
@@ -132,6 +135,7 @@ class EquipmentMarker {
       wComplete: wComplete ?? this.wComplete,
       hComplete: hComplete ?? this.hComplete,
       dComplete: dComplete ?? this.dComplete,
+      details: details ?? this.details,
     );
   }
 
@@ -167,6 +171,7 @@ class EquipmentMarker {
     'wComplete': wComplete,
     'hComplete': hComplete,
     'dComplete': dComplete,
+    'details': details,
   };
 
   factory EquipmentMarker.fromJson(Map<String, dynamic> json) =>
@@ -206,5 +211,6 @@ class EquipmentMarker {
         wComplete: json['wComplete'] as bool? ?? true,
         hComplete: json['hComplete'] as bool? ?? true,
         dComplete: json['dComplete'] as bool? ?? true,
+        details: json['details'] as String?,
       );
 }

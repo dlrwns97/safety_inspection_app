@@ -10,6 +10,7 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
@@ -222,7 +223,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       activeEquipmentCategory: marker.category,
       pendingMarker: marker,
       prefix: equipmentLabelPrefix(marker.category),
-      allowRebarSpacingMulti: false,
+      allowRebarSpacingMulti: true,
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
@@ -230,20 +231,14 @@ class _DrawingScreenState extends State<DrawingScreen>
             context, {
             required title,
             initialMemberType,
-            initialRemarkLeft,
-            initialRemarkRight,
-            initialNumberPrefix,
-            initialNumberValue,
+            initialMeasurements,
             allowMultiple = false,
             baseLabelIndex,
             labelPrefix,
           }) => _showRebarSpacingDialog(
             title: title,
             initialMemberType: initialMemberType,
-            initialRemarkLeft: initialRemarkLeft,
-            initialRemarkRight: initialRemarkRight,
-            initialNumberPrefix: initialNumberPrefix,
-            initialNumberValue: initialNumberValue,
+            initialMeasurements: initialMeasurements,
             allowMultiple: allowMultiple,
             baseLabelIndex: baseLabelIndex,
             labelPrefix: labelPrefix,

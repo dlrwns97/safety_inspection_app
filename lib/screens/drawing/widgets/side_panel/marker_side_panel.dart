@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/marker_filter_chips.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_detail_section.dart';
@@ -345,15 +346,22 @@ class MarkerSidePanel extends StatelessWidget {
     final isEquipment1 = marker.category == EquipmentCategory.equipment1;
     final isEquipment2 = marker.category == EquipmentCategory.equipment2;
     final isEquipment3 = marker.category == EquipmentCategory.equipment3;
+    final rebarGroup =
+        isEquipment2
+            ? rebarSpacingGroupFromMarker(
+              marker,
+              defaultPrefix: equipmentPrefixFor(marker.category),
+            )
+            : null;
     final sizeText = isEquipment1 ? _equipment1SizeText(marker) : null;
     final remarkValue =
         isEquipment1
             ? (marker.remark?.isNotEmpty == true ? marker.remark! : '-')
-            : isEquipment2
+            : isEquipment2 && rebarGroup == null
             ? _equipment2RemarkText(marker)
             : null;
     final numberValue =
-        isEquipment2
+        isEquipment2 && rebarGroup == null
             ? _equipment2NumberText(marker)
             : marker.numberText?.isNotEmpty == true
             ? marker.numberText
@@ -365,15 +373,21 @@ class MarkerSidePanel extends StatelessWidget {
         schmidtMinRaw?.trim().isNotEmpty == true ? schmidtMinRaw!.trim() : '-';
     final schmidtMax =
         schmidtMaxRaw?.trim().isNotEmpty == true ? schmidtMaxRaw!.trim() : '-';
+    final memberType =
+        marker.memberType?.isNotEmpty == true
+            ? marker.memberType
+            : rebarGroup?.memberType;
     final rows = <MarkerDetailRowData>[
-      if (marker.memberType?.isNotEmpty == true)
-        MarkerDetailRowData('부재', marker.memberType!),
+      if (memberType?.isNotEmpty == true)
+        MarkerDetailRowData('부재', memberType!),
       if (isEquipment3) MarkerDetailRowData('각도', '$schmidtAngle°'),
       if (isEquipment3)
         MarkerDetailRowData('최솟/최댓', '$schmidtMin/$schmidtMax'),
-      if (isEquipment2 && remarkValue != null)
+      if (rebarGroup != null)
+        ..._buildRebarSpacingRows(rebarGroup)
+      else if (isEquipment2 && remarkValue != null)
         MarkerDetailRowData('비고', remarkValue),
-      if (isEquipment2 && numberValue != null)
+      if (isEquipment2 && numberValue != null && rebarGroup == null)
         MarkerDetailRowData('번호', numberValue),
       if (sizeText != null && sizeText.isNotEmpty)
         MarkerDetailRowData('규격', sizeText),
@@ -463,6 +477,54 @@ class MarkerSidePanel extends StatelessWidget {
     }
     if (hasRight) {
       return right;
+    }
+    return '-';
+  }
+
+  List<MarkerDetailRowData> _buildRebarSpacingRows(
+    RebarSpacingGroupDetails group,
+  ) {
+    return group.measurements.asMap().entries.map((entry) {
+      final index = entry.key;
+      final measurement = entry.value;
+      final remarkText = _rebarSpacingRemarkText(measurement);
+      final numberText = _rebarSpacingNumberText(measurement);
+      final value =
+          remarkText == '-' && numberText == '-'
+              ? '-'
+              : remarkText == '-'
+              ? numberText
+              : numberText == '-'
+              ? remarkText
+              : '$remarkText $numberText';
+      return MarkerDetailRowData(group.labelForIndex(index), value);
+    }).toList();
+  }
+
+  String _rebarSpacingRemarkText(RebarSpacingMeasurement measurement) {
+    final left = measurement.remarkLeft?.trim() ?? '';
+    final right = measurement.remarkRight?.trim() ?? '';
+    final hasLeft = left.isNotEmpty;
+    final hasRight = right.isNotEmpty;
+    if (hasLeft && hasRight) {
+      return '$left/$right';
+    }
+    if (hasLeft) {
+      return left;
+    }
+    if (hasRight) {
+      return right;
+    }
+    return '-';
+  }
+
+  String _rebarSpacingNumberText(RebarSpacingMeasurement measurement) {
+    final formatted = _formatEquipment2Number(
+      prefix: measurement.numberPrefix,
+      value: measurement.numberValue,
+    );
+    if (formatted != null && formatted.isNotEmpty) {
+      return formatted;
     }
     return '-';
   }
