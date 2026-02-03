@@ -239,6 +239,38 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
+  Widget _buildMoveModeBottomBar() {
+    final theme = Theme.of(context);
+    final canCommit = _hasPendingMove;
+    return SafeArea(
+      top: false,
+      child: Material(
+        elevation: 8,
+        color: theme.colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _cancelMoveMode,
+                  child: const Text('취소'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: canCommit ? _commitMovePreview : null,
+                  child: const Text('변경'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _wrapWithPointerHandlers({
     required Widget child,
     required GestureTapUpCallback onTapUp,
