@@ -66,17 +66,16 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
     _selectedMember = widget.initialMemberType;
     final initialMeasurements = widget.initialMeasurements;
     if (initialMeasurements != null && initialMeasurements.isNotEmpty) {
-      _rows =
-          initialMeasurements
-              .map(
-                (measurement) => _RebarSpacingRowVm(
-                  remarkLeft: measurement.remarkLeft,
-                  remarkRight: measurement.remarkRight,
-                  numberPrefix: measurement.numberPrefix,
-                  numberValue: measurement.numberValue,
-                ),
-              )
-              .toList();
+      _rows = initialMeasurements
+          .map(
+            (measurement) => _RebarSpacingRowVm(
+              remarkLeft: measurement.remarkLeft,
+              remarkRight: measurement.remarkRight,
+              numberPrefix: measurement.numberPrefix,
+              numberValue: measurement.numberValue,
+            ),
+          )
+          .toList();
     } else {
       _rows = [_RebarSpacingRowVm()];
     }
@@ -112,11 +111,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.6,
-      maxWidth: 520.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.6, maxWidth: 520.0);
     final isSaveEnabled = _selectedMember != null;
 
     return NarrowDialogFrame(
@@ -143,10 +138,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.title,
-          style: titleStyle,
-        ),
+        Text(widget.title, style: titleStyle),
         const SizedBox(height: 16),
       ],
     );
@@ -154,12 +146,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
 
   Widget _buildMemberSection(BuildContext context) {
     final memberItems = widget.memberOptions
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
 
     return Column(
@@ -198,10 +185,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ...rowFields,
-        const SizedBox(height: 16),
-      ],
+      children: [...rowFields, const SizedBox(height: 16)],
     );
   }
 
@@ -233,17 +217,16 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
                       baseLabelIndex: widget.baseLabelIndex ?? 1,
                       labelPrefix: widget.labelPrefix ?? 'F',
                       memberType: _selectedMember!,
-                      measurements:
-                          _rows
-                              .map(
-                                (row) => RebarSpacingMeasurement(
-                                  remarkLeft: row.remarkLeft,
-                                  remarkRight: row.remarkRight,
-                                  numberPrefix: row.numberPrefix,
-                                  numberValue: row.numberValue,
-                                ),
-                              )
-                              .toList(),
+                      measurements: _rows
+                          .map(
+                            (row) => RebarSpacingMeasurement(
+                              remarkLeft: row.remarkLeft,
+                              remarkRight: row.remarkRight,
+                              numberPrefix: row.numberPrefix,
+                              numberValue: row.numberValue,
+                            ),
+                          )
+                          .toList(),
                     ),
                   );
                 }
@@ -292,28 +275,13 @@ class _RebarSpacingRowFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remarkLeftItems = const ['중앙', '단부', 'X열', 'Y열']
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
     final remarkRightItems = const ['하부', '측면', '중앙', '단부']
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
     final numberPrefixItems = const ['FS', 'FQ']
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
 
     return Row(
