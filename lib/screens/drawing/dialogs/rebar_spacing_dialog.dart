@@ -118,7 +118,6 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
       maxWidth: 520.0,
     );
     final isSaveEnabled = _selectedMember != null;
-    final canAddRow = _canAddRow;
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
@@ -128,86 +127,130 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedMember,
-              labelText: '부재',
-              items: widget.memberOptions
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMember = value;
-                });
-              },
-              requiredMessage: '부재를 선택하세요.',
-            ),
-            const SizedBox(height: 16),
-            for (var index = 0; index < _rows.length; index++) ...[
-              _RebarSpacingRowFields(
-                label: _showRowLabels ? _rowLabel(index) : null,
-                row: _rows[index],
-                onChanged: () => setState(() {}),
-              ),
-              if (index != _rows.length - 1) const SizedBox(height: 16),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (widget.allowMultiple)
-                  IconButton(
-                    onPressed: canAddRow ? _addRow : null,
-                    icon: const Icon(Icons.add_circle_outline),
-                    tooltip: '행 추가',
-                  ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: isSaveEnabled
-                      ? () {
-                          if (!(_formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
-                          Navigator.of(context).pop(
-                            RebarSpacingGroupDetails(
-                              baseLabelIndex: widget.baseLabelIndex ?? 1,
-                              labelPrefix: widget.labelPrefix ?? 'F',
-                              memberType: _selectedMember!,
-                              measurements:
-                                  _rows
-                                      .map(
-                                        (row) => RebarSpacingMeasurement(
-                                          remarkLeft: row.remarkLeft,
-                                          remarkRight: row.remarkRight,
-                                          numberPrefix: row.numberPrefix,
-                                          numberValue: row.numberValue,
-                                        ),
-                                      )
-                                      .toList(),
-                            ),
-                          );
-                        }
-                      : null,
-                  child: const Text('저장'),
-                ),
-              ],
-            ),
+            _buildHeader(context),
+            _buildMemberSection(context),
+            _buildSpacingSection(context),
+            _buildActions(context, isSaveEnabled: isSaveEnabled),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          widget.title,
+          style: titleStyle,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildMemberSection(BuildContext context) {
+    final memberItems = widget.memberOptions
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        buildDialogDropdownField(
+          value: _selectedMember,
+          labelText: '부재',
+          items: memberItems,
+          onChanged: (value) {
+            setState(() {
+              _selectedMember = value;
+            });
+          },
+          requiredMessage: '부재를 선택하세요.',
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildSpacingSection(BuildContext context) {
+    final rowFields = <Widget>[];
+    for (var index = 0; index < _rows.length; index++) {
+      rowFields.add(
+        _RebarSpacingRowFields(
+          label: _showRowLabels ? _rowLabel(index) : null,
+          row: _rows[index],
+          onChanged: () => setState(() {}),
+        ),
+      );
+      if (index != _rows.length - 1) {
+        rowFields.add(const SizedBox(height: 16));
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...rowFields,
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildActions(BuildContext context, {required bool isSaveEnabled}) {
+    final canAddRow = _canAddRow;
+
+    return Row(
+      children: [
+        if (widget.allowMultiple)
+          IconButton(
+            onPressed: canAddRow ? _addRow : null,
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: '행 추가',
+          ),
+        const Spacer(),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: isSaveEnabled
+              ? () {
+                  if (!(_formKey.currentState?.validate() ?? false)) {
+                    return;
+                  }
+                  Navigator.of(context).pop(
+                    RebarSpacingGroupDetails(
+                      baseLabelIndex: widget.baseLabelIndex ?? 1,
+                      labelPrefix: widget.labelPrefix ?? 'F',
+                      memberType: _selectedMember!,
+                      measurements:
+                          _rows
+                              .map(
+                                (row) => RebarSpacingMeasurement(
+                                  remarkLeft: row.remarkLeft,
+                                  remarkRight: row.remarkRight,
+                                  numberPrefix: row.numberPrefix,
+                                  numberValue: row.numberValue,
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  );
+                }
+              : null,
+          child: const Text('저장'),
+        ),
+      ],
     );
   }
 }
@@ -248,6 +291,31 @@ class _RebarSpacingRowFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final remarkLeftItems = const ['중앙', '단부', 'X열', 'Y열']
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+    final remarkRightItems = const ['하부', '측면', '중앙', '단부']
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+    final numberPrefixItems = const ['FS', 'FQ']
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,14 +343,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                         labelText: '비고',
                         border: OutlineInputBorder(),
                       ),
-                      items: const ['중앙', '단부', 'X열', 'Y열']
-                          .map(
-                            (option) => DropdownMenuItem(
-                              value: option,
-                              child: Text(option),
-                            ),
-                          )
-                          .toList(),
+                      items: remarkLeftItems,
                       onChanged: (value) {
                         row.remarkLeft = value;
                         onChanged();
@@ -297,14 +358,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                         labelText: '비고',
                         border: OutlineInputBorder(),
                       ),
-                      items: const ['하부', '측면', '중앙', '단부']
-                          .map(
-                            (option) => DropdownMenuItem(
-                              value: option,
-                              child: Text(option),
-                            ),
-                          )
-                          .toList(),
+                      items: remarkRightItems,
                       onChanged: (value) {
                         row.remarkRight = value;
                         onChanged();
@@ -323,14 +377,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                         labelText: '번호',
                         border: OutlineInputBorder(),
                       ),
-                      items: const ['FS', 'FQ']
-                          .map(
-                            (option) => DropdownMenuItem(
-                              value: option,
-                              child: Text(option),
-                            ),
-                          )
-                          .toList(),
+                      items: numberPrefixItems,
                       onChanged: (value) {
                         row.numberPrefix = value;
                         onChanged();
