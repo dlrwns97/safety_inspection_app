@@ -267,7 +267,7 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   void _handleMovePressed() {
     if (_isMoveMode) {
-      _exitMoveMode();
+      _cancelMoveMode();
       return;
     }
     if (_selectedDefect == null && _selectedEquipment == null) {
@@ -508,7 +508,7 @@ class _DrawingScreenState extends State<DrawingScreen>
                 onPanStart: (_) => _handleMovePanStart(item),
                 onPanUpdate:
                     (details) => _handleMovePanUpdate(details, pageSize),
-                onPanEnd: (_) => _handleMovePanEnd(item, pageSize),
+                onPanEnd: (_) => _handleMovePanEnd(),
                 onPanCancel: _handleMovePanCancel,
                 child: SizedBox.square(
                   dimension: dragHitBoxSize,
@@ -618,6 +618,8 @@ class _DrawingScreenState extends State<DrawingScreen>
     const double sidePanelMaxWidth = 320;
     return Scaffold(
       appBar: _buildAppBar(),
+      bottomNavigationBar:
+          _isMoveMode ? _buildMoveModeBottomBar() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final showSidePanel = constraints.maxWidth >= 900;

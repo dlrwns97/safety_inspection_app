@@ -172,7 +172,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       clearSelection();
     }
     if (_isMoveMode) {
-      _exitMoveMode();
+      _cancelMoveMode();
     }
   }
 
@@ -812,12 +812,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _isMoveMode = true;
       _moveTargetDefect = selectedDefect;
       _moveTargetEquipment = selectedEquipment;
-      _moveOriginNormalizedX = null;
-      _moveOriginNormalizedY = null;
-      _movePreviewNormalizedX = null;
-      _movePreviewNormalizedY = null;
+      if (selectedDefect != null) {
+        _moveOriginNormalizedX = selectedDefect.normalizedX;
+        _moveOriginNormalizedY = selectedDefect.normalizedY;
+      } else if (selectedEquipment != null) {
+        _moveOriginNormalizedX = selectedEquipment.normalizedX;
+        _moveOriginNormalizedY = selectedEquipment.normalizedY;
+      } else {
+        _moveOriginNormalizedX = null;
+        _moveOriginNormalizedY = null;
+      }
+      _movePreviewNormalizedX = _moveOriginNormalizedX;
+      _movePreviewNormalizedY = _moveOriginNormalizedY;
     });
-    _showMoveModeSnackBar();
   }
 
   void _exitMoveMode() {
@@ -833,7 +840,35 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _movePreviewNormalizedX = null;
       _movePreviewNormalizedY = null;
     });
-    _hideMoveModeSnackBar();
+  }
+
+  void _cancelMoveMode() {
+    if (!_isMoveMode) {
+      return;
+    }
+    final originX = _moveOriginNormalizedX;
+    final originY = _moveOriginNormalizedY;
+    _safeSetState(() {
+      if (originX != null && originY != null) {
+        _movePreviewNormalizedX = originX;
+        _movePreviewNormalizedY = originY;
+      }
+    });
+    _exitMoveMode();
+  }
+
+  bool get _hasPendingMove {
+    final originX = _moveOriginNormalizedX;
+    final originY = _moveOriginNormalizedY;
+    final previewX = _movePreviewNormalizedX;
+    final previewY = _movePreviewNormalizedY;
+    if (originX == null ||
+        originY == null ||
+        previewX == null ||
+        previewY == null) {
+      return false;
+    }
+    return originX != previewX || originY != previewY;
   }
 
   bool _isMoveTargetItem(Object item) {
@@ -874,31 +909,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!_selectionMatchesMoveTarget(defect, equipment)) {
-      _exitMoveMode();
+      _cancelMoveMode();
     }
-  }
-
-  void _showMoveModeSnackBar() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('이동 모드: 선택한 마커를 드래그해서 위치를 변경하세요.'),
-          duration: const Duration(days: 1),
-          action: SnackBarAction(
-            label: '취소',
-            onPressed: _exitMoveMode,
-          ),
-        ),
-      );
-  }
-
-  void _hideMoveModeSnackBar() {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
   void _handleMovePanStart(Object item) {
     if (!_isMoveMode) {
+      return;
+    }
+    if (_moveOriginNormalizedX != null && _moveOriginNormalizedY != null) {
       return;
     }
     if (item is Defect) {
@@ -935,82 +954,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  Future<void> _handleMovePanEnd(Object item, Size pageSize) async {
+  void _handleMovePanEnd() {
     if (!_isMoveMode) {
       return;
-    }
-    final previewX = _movePreviewNormalizedX;
-    final previewY = _movePreviewNormalizedY;
-    if (previewX == null || previewY == null) {
-      return;
-    }
-    if (item is Defect) {
-      final updatedDefect = Defect(
-        id: item.id,
-        label: item.label,
-        pageIndex: item.pageIndex,
-        category: item.category,
-        normalizedX: previewX,
-        normalizedY: previewY,
-        details: item.details,
-      );
-      final updatedDefects =
-          _site.defects
-              .map(
-                (defect) =>
-                    defect.id == updatedDefect.id ? updatedDefect : defect,
-              )
-              .toList();
-      final updatedSite = _site.copyWith(defects: updatedDefects);
-      await _applyUpdatedSite(
-        updatedSite,
-        onStateUpdated: () {
-          _selectedDefect = updatedDefect;
-          _selectedEquipment = null;
-          _selectedMarkerScenePosition = Offset(
-            updatedDefect.normalizedX * pageSize.width,
-            updatedDefect.normalizedY * pageSize.height,
-          );
-          _moveTargetDefect = updatedDefect;
-          _moveTargetEquipment = null;
-          _moveOriginNormalizedX = null;
-          _moveOriginNormalizedY = null;
-          _movePreviewNormalizedX = null;
-          _movePreviewNormalizedY = null;
-        },
-      );
-      return;
-    }
-    if (item is EquipmentMarker) {
-      final updatedMarker = item.copyWith(
-        normalizedX: previewX,
-        normalizedY: previewY,
-      );
-      final updatedMarkers =
-          _site.equipmentMarkers
-              .map(
-                (marker) =>
-                    marker.id == updatedMarker.id ? updatedMarker : marker,
-              )
-              .toList();
-      final updatedSite = _site.copyWith(equipmentMarkers: updatedMarkers);
-      await _applyUpdatedSite(
-        updatedSite,
-        onStateUpdated: () {
-          _selectedDefect = null;
-          _selectedEquipment = updatedMarker;
-          _selectedMarkerScenePosition = Offset(
-            updatedMarker.normalizedX * pageSize.width,
-            updatedMarker.normalizedY * pageSize.height,
-          );
-          _moveTargetDefect = null;
-          _moveTargetEquipment = updatedMarker;
-          _moveOriginNormalizedX = null;
-          _moveOriginNormalizedY = null;
-          _movePreviewNormalizedX = null;
-          _movePreviewNormalizedY = null;
-        },
-      );
     }
   }
 
@@ -1027,6 +973,90 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _movePreviewNormalizedX = originX;
       _movePreviewNormalizedY = originY;
     });
+  }
+
+  Size? _pageSizeForMoveTarget(int pageIndex) {
+    if (_site.drawingType == DrawingType.pdf) {
+      return _pdfPageSizes[pageIndex];
+    }
+    return DrawingCanvasSize;
+  }
+
+  Future<void> _commitMovePreview() async {
+    if (!_isMoveMode) {
+      return;
+    }
+    final previewX = _movePreviewNormalizedX;
+    final previewY = _movePreviewNormalizedY;
+    if (previewX == null || previewY == null) {
+      return;
+    }
+    final targetDefect = _moveTargetDefect;
+    if (targetDefect != null) {
+      final updatedDefect = Defect(
+        id: targetDefect.id,
+        label: targetDefect.label,
+        pageIndex: targetDefect.pageIndex,
+        category: targetDefect.category,
+        normalizedX: previewX,
+        normalizedY: previewY,
+        details: targetDefect.details,
+      );
+      final updatedDefects =
+          _site.defects
+              .map(
+                (defect) =>
+                    defect.id == updatedDefect.id ? updatedDefect : defect,
+              )
+              .toList();
+      final updatedSite = _site.copyWith(defects: updatedDefects);
+      final pageSize = _pageSizeForMoveTarget(updatedDefect.pageIndex);
+      await _applyUpdatedSite(
+        updatedSite,
+        onStateUpdated: () {
+          _selectedDefect = updatedDefect;
+          _selectedEquipment = null;
+          _selectedMarkerScenePosition = pageSize == null
+              ? null
+              : Offset(
+                updatedDefect.normalizedX * pageSize.width,
+                updatedDefect.normalizedY * pageSize.height,
+              );
+        },
+      );
+      _exitMoveMode();
+      return;
+    }
+    final targetEquipment = _moveTargetEquipment;
+    if (targetEquipment != null) {
+      final updatedMarker = targetEquipment.copyWith(
+        normalizedX: previewX,
+        normalizedY: previewY,
+      );
+      final updatedMarkers =
+          _site.equipmentMarkers
+              .map(
+                (marker) =>
+                    marker.id == updatedMarker.id ? updatedMarker : marker,
+              )
+              .toList();
+      final updatedSite = _site.copyWith(equipmentMarkers: updatedMarkers);
+      final pageSize = _pageSizeForMoveTarget(updatedMarker.pageIndex);
+      await _applyUpdatedSite(
+        updatedSite,
+        onStateUpdated: () {
+          _selectedDefect = null;
+          _selectedEquipment = updatedMarker;
+          _selectedMarkerScenePosition = pageSize == null
+              ? null
+              : Offset(
+                updatedMarker.normalizedX * pageSize.width,
+                updatedMarker.normalizedY * pageSize.height,
+              );
+        },
+      );
+      _exitMoveMode();
+    }
   }
 
   void _returnToToolSelection() {
