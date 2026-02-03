@@ -92,67 +92,97 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            buildDialogDropdownField(
-              value: _selectedMember,
-              labelText: '부재',
-              items: widget.memberOptions
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMember = value;
-                });
-              },
-              requiredMessage: '부재를 선택하세요.',
-            ),
-            const SizedBox(height: 16),
-            buildDialogTextField(
-              controller: _coverThicknessController,
-              labelText: '피복두께',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            buildDialogTextField(
-              controller: _depthController,
-              labelText: '깊이',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            buildDialogActionButtons(
-              context,
-              onSave: isSaveEnabled
-                  ? () {
-                      if (!(_formKey.currentState?.validate() ?? false)) {
-                        return;
-                      }
-                      Navigator.of(context).pop(
-                        CarbonationDetails(
-                          memberType: _selectedMember!,
-                          coverThicknessText:
-                              _coverThicknessController.text.trim(),
-                          depthText: _depthController.text.trim(),
-                        ),
-                      );
-                    }
-                  : null,
-            ),
+            _buildHeader(context),
+            _buildMemberSection(context),
+            _buildFieldsSection(context),
+            _buildActions(context, isSaveEnabled),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildMemberSection(BuildContext context) {
+    final memberItems = widget.memberOptions
+        .map(
+          (option) => DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          ),
+        )
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        buildDialogDropdownField(
+          value: _selectedMember,
+          labelText: '부재',
+          items: memberItems,
+          onChanged: (value) {
+            setState(() {
+              _selectedMember = value;
+            });
+          },
+          requiredMessage: '부재를 선택하세요.',
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildFieldsSection(BuildContext context) {
+    const keyboardType = TextInputType.numberWithOptions(decimal: true);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        buildDialogTextField(
+          controller: _coverThicknessController,
+          labelText: '피복두께',
+          keyboardType: keyboardType,
+        ),
+        const SizedBox(height: 12),
+        buildDialogTextField(
+          controller: _depthController,
+          labelText: '깊이',
+          keyboardType: keyboardType,
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildActions(BuildContext context, bool isSaveEnabled) {
+    return buildDialogActionButtons(
+      context,
+      onSave: isSaveEnabled
+          ? () {
+              if (!(_formKey.currentState?.validate() ?? false)) {
+                return;
+              }
+              Navigator.of(context).pop(
+                CarbonationDetails(
+                  memberType: _selectedMember!,
+                  coverThicknessText: _coverThicknessController.text.trim(),
+                  depthText: _depthController.text.trim(),
+                ),
+              );
+            }
+          : null,
     );
   }
 }
