@@ -381,7 +381,7 @@ class MarkerSidePanel extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _handlePhotoTap(context, file),
+                onTap: () => _handlePhotoTap(context, photoPaths),
                 child:
                     hasFile
                         ? Image.file(
@@ -415,20 +415,10 @@ class MarkerSidePanel extends StatelessWidget {
     );
   }
 
-  Future<void> _handlePhotoTap(BuildContext context, File file) async {
-    if (!file.existsSync()) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder: (context) {
-          return const AlertDialog(
-            content: Text('사진을 불러올 수 없습니다'),
-          );
-        },
-      );
-      return;
-    }
-
+  Future<void> _handlePhotoTap(
+    BuildContext context,
+    List<String> photoPaths,
+  ) async {
     final size = MediaQuery.sizeOf(context);
     await showDialog<void>(
       context: context,
@@ -436,40 +426,87 @@ class MarkerSidePanel extends StatelessWidget {
       barrierColor: Colors.black87,
       builder: (context) {
         final dialogRadius = BorderRadius.circular(16);
+        final controller = PageController(initialPage: 0);
+        var currentIndex = 0;
         return Dialog(
           insetPadding: const EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: dialogRadius,
-            child: SizedBox(
-              width: size.width * 0.9,
-              height: size.height * 0.85,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: InteractiveViewer(
-                      minScale: 1.0,
-                      maxScale: 8.0,
-                      boundaryMargin: const EdgeInsets.all(120),
-                      panEnabled: true,
-                      scaleEnabled: true,
-                      child: Image.file(
-                        file,
-                        fit: BoxFit.contain,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return ClipRRect(
+                borderRadius: dialogRadius,
+                child: SizedBox(
+                  width: size.width * 0.9,
+                  height: size.height * 0.85,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: PageView.builder(
+                          controller: controller,
+                          itemCount: photoPaths.length,
+                          onPageChanged:
+                              (index) => setState(() => currentIndex = index),
+                          itemBuilder: (context, index) {
+                            final file = File(photoPaths[index]);
+                            final hasFile = file.existsSync();
+                            return InteractiveViewer(
+                              minScale: 1.0,
+                              maxScale: 8.0,
+                              boundaryMargin: const EdgeInsets.all(120),
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              child:
+                                  hasFile
+                                      ? Image.file(
+                                        file,
+                                        fit: BoxFit.contain,
+                                      )
+                                      : Center(
+                                        child: Text(
+                                          '사진을 불러올 수 없습니다',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall?.copyWith(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          icon: const Icon(Icons.close),
+                          color: Theme.of(context).colorScheme.onSurface,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            '${currentIndex + 1} / ${photoPaths.length}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      color: Theme.of(context).colorScheme.onSurface,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         );
       },
