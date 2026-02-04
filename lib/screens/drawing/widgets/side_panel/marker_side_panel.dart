@@ -427,11 +427,27 @@ class MarkerSidePanel extends StatelessWidget {
       builder: (context) {
         final dialogRadius = BorderRadius.circular(16);
         final controller = PageController(initialPage: 0);
+        final transformationControllers = List.generate(
+          photoPaths.length,
+          (_) => TransformationController(),
+        );
         var currentIndex = 0;
+        var isZoomed = false;
         return Dialog(
-          insetPadding: const EdgeInsets.all(16),
+          insetPadding: const EdgeInsets.all(12),
+          backgroundColor: Colors.black,
           child: StatefulBuilder(
             builder: (context, setState) {
+              void updateZoomState(int index) {
+                final maxScale = transformationControllers[index]
+                    .value
+                    .getMaxScaleOnAxis();
+                final nextZoomed = maxScale > 1.01;
+                if (nextZoomed != isZoomed) {
+                  setState(() => isZoomed = nextZoomed);
+                }
+              }
+
               return ClipRRect(
                 borderRadius: dialogRadius,
                 child: SizedBox(
@@ -440,41 +456,63 @@ class MarkerSidePanel extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: PageView.builder(
-                          controller: controller,
-                          itemCount: photoPaths.length,
-                          onPageChanged:
-                              (index) => setState(() => currentIndex = index),
-                          itemBuilder: (context, index) {
-                            final file = File(photoPaths[index]);
-                            final hasFile = file.existsSync();
-                            return InteractiveViewer(
-                              minScale: 1.0,
-                              maxScale: 8.0,
-                              boundaryMargin: const EdgeInsets.all(120),
-                              panEnabled: true,
-                              scaleEnabled: true,
-                              child:
-                                  hasFile
-                                      ? Image.file(
-                                        file,
-                                        fit: BoxFit.contain,
-                                      )
-                                      : Center(
-                                        child: Text(
-                                          '사진을 불러올 수 없습니다',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall?.copyWith(
-                                            color:
-                                                Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface,
+                        child: ColoredBox(
+                          color: Colors.black,
+                          child: PageView.builder(
+                            controller: controller,
+                            itemCount: photoPaths.length,
+                            physics:
+                                isZoomed
+                                    ? const NeverScrollableScrollPhysics()
+                                    : const PageScrollPhysics(),
+                            onPageChanged: (index) {
+                              setState(() => currentIndex = index);
+                              updateZoomState(index);
+                            },
+                            itemBuilder: (context, index) {
+                              final file = File(photoPaths[index]);
+                              final hasFile = file.existsSync();
+                              return InteractiveViewer(
+                                clipBehavior: Clip.hardEdge,
+                                boundaryMargin: EdgeInsets.zero,
+                                minScale: 1.0,
+                                maxScale: 8.0,
+                                panEnabled: true,
+                                scaleEnabled: true,
+                                transformationController:
+                                    transformationControllers[index],
+                                onInteractionUpdate: (_) {
+                                  if (index == currentIndex) {
+                                    updateZoomState(index);
+                                  }
+                                },
+                                onInteractionEnd: (_) {
+                                  if (index == currentIndex) {
+                                    updateZoomState(index);
+                                  }
+                                },
+                                child:
+                                    hasFile
+                                        ? Image.file(
+                                          file,
+                                          fit: BoxFit.contain,
+                                        )
+                                        : Center(
+                                          child: Text(
+                                            '사진을 불러올 수 없습니다',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall?.copyWith(
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onSurface,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                       Positioned(
