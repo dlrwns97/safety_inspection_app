@@ -117,8 +117,24 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_isSavingPhotos) {
       return;
     }
-    final selection = await showModalBottomSheet<_DefectPhotoSource>(
-      context: context,
+    final selection = await _showPhotoSourceSheet(context);
+    if (selection == null) {
+      return;
+    }
+    if (selection == _DefectPhotoSource.camera) {
+      await _pickFromCamera();
+    } else if (selection == _DefectPhotoSource.gallery) {
+      await _pickFromGallery();
+    } else {
+      await _pickFromFilePicker();
+    }
+  }
+
+  Future<_DefectPhotoSource?> _showPhotoSourceSheet(
+    BuildContext sheetContext,
+  ) {
+    return showModalBottomSheet<_DefectPhotoSource>(
+      context: sheetContext,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Column(
@@ -145,16 +161,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         ),
       ),
     );
-    if (selection == null) {
-      return;
-    }
-    if (selection == _DefectPhotoSource.camera) {
-      await _pickFromCamera();
-    } else if (selection == _DefectPhotoSource.gallery) {
-      await _pickFromGallery();
-    } else {
-      await _pickFromFilePicker();
-    }
   }
 
   Future<void> _pickFromCamera() async {
@@ -266,6 +272,108 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       _isSavingPhotos = false;
       _photoPaths.addAll(savedPaths);
     });
+  }
+
+  Future<void> _replacePhotoAt({
+    required int index,
+    required BuildContext dialogContext,
+    required void Function(VoidCallback) setDialogState,
+  }) async {
+    if (_isSavingPhotos) {
+      return;
+    }
+    final selection = await _showPhotoSourceSheet(dialogContext);
+    if (selection == null) {
+      return;
+    }
+    final pickedPath = await _pickSinglePhotoPath(selection);
+    if (pickedPath == null) {
+      return;
+    }
+    setState(() {
+      _isSavingPhotos = true;
+    });
+    setDialogState(() {});
+    final savedPaths = await _photoStore.savePickedImages(
+      siteId: widget.siteId,
+      defectId: widget.defectId,
+      sourcePaths: [pickedPath],
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSavingPhotos = false;
+      if (index < _photoPaths.length) {
+        _photoPaths[index] = savedPaths.single;
+      }
+    });
+    setDialogState(() {});
+  }
+
+  Future<String?> _pickSinglePhotoPath(_DefectPhotoSource source) async {
+    if (source == _DefectPhotoSource.camera) {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      return picked?.path;
+    }
+    if (source == _DefectPhotoSource.gallery) {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      return picked?.path;
+    }
+    return _pickSinglePathFromFilePicker();
+  }
+
+  Future<String?> _pickSinglePathFromFilePicker() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      allowMultiple: false,
+    );
+    if (result == null) {
+      return null;
+    }
+    final pickedPath = result.files.single.path;
+    if (pickedPath == null) {
+      return null;
+    }
+    final allowedExtensions = {
+      'jpg',
+      'jpeg',
+      'png',
+      'heic',
+      'heif',
+      'webp',
+    };
+    final extension = pickedPath.toLowerCase().split('.').last;
+    if (!allowedExtensions.contains(extension)) {
+      if (!mounted) {
+        return null;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('지원하지 않는 파일 형식입니다'),
+              SizedBox(height: 4),
+              Text('사진 파일만 선택할 수 있어요.'),
+            ],
+          ),
+        ),
+      );
+      return null;
+    }
+    return pickedPath;
   }
 
   bool _isValid() {
@@ -560,10 +668,22 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 ),
               ),
               actions: [
+                TextButton(
+                  onPressed: _isSavingPhotos
+                      ? null
+                      : () => _replacePhotoAt(
+                            index: currentIndex,
+                            dialogContext: dialogContext,
+                            setDialogState: setDialogState,
+                          ),
+                  child: const Text('교체'),
+                ),
                 IconButton(
                   tooltip: '삭제',
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
+                  onPressed: _isSavingPhotos
+                      ? null
+                      : () async {
                     final confirmed = await showDialog<bool>(
                       context: dialogContext,
                       builder: (context) => AlertDialog(
@@ -606,8 +726,19 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                     }
                   },
                 ),
+                if (_isSavingPhotos)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  onPressed: _isSavingPhotos
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
                   child: const Text('닫기'),
                 ),
               ],
