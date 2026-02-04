@@ -185,7 +185,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (picked == null) {
       return;
     }
-    await _savePhotoPaths([picked.path], source: _DefectPhotoSource.camera);
+    await _savePhotoPaths(
+      [
+        _PickedPhotoInfo(
+          path: picked.path,
+          originalName: _resolveCameraName(picked),
+        ),
+      ],
+    );
   }
 
   Future<void> _pickFromGallery() async {
@@ -196,8 +203,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     );
     if (pickedImages.isNotEmpty) {
       await _savePhotoPaths(
-        pickedImages.map((image) => image.path).toList(),
-        source: _DefectPhotoSource.gallery,
+        pickedImages
+            .map(
+              (image) => _PickedPhotoInfo(
+                path: image.path,
+                originalName: image.name,
+              ),
+            )
+            .toList(),
       );
       return;
     }
@@ -211,8 +224,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       return;
     }
     await _savePhotoPaths(
-      [pickedSingle.path],
-      source: _DefectPhotoSource.gallery,
+      [
+        _PickedPhotoInfo(
+          path: pickedSingle.path,
+          originalName: pickedSingle.name,
+        ),
+      ],
     );
   }
 
@@ -232,14 +249,21 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (result == null) {
       return;
     }
-    final selectedPaths = result.paths.whereType<String>().toList();
-    final sourcePaths = selectedPaths.where((path) {
-      final lowerPath = path.toLowerCase();
-      final extension = lowerPath.split('.').last;
+    final selectedFiles =
+        result.files.where((file) => file.path != null).toList();
+    final pickedPhotos = selectedFiles.where((file) {
+      final extension = (file.extension ??
+              p.extension(file.name).replaceFirst('.', ''))
+          .toLowerCase();
       return allowedExtensions.contains(extension);
+    }).map((file) {
+      return _PickedPhotoInfo(
+        path: file.path!,
+        originalName: file.name,
+      );
     }).toList();
-    final ignoredCount = selectedPaths.length - sourcePaths.length;
-    if (sourcePaths.isEmpty) {
+    final ignoredCount = selectedFiles.length - pickedPhotos.length;
+    if (pickedPhotos.isEmpty) {
       if (!mounted) {
         return;
       }
@@ -268,23 +292,19 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         ),
       );
     }
-    await _savePhotoPaths(sourcePaths, source: _DefectPhotoSource.file);
+    await _savePhotoPaths(pickedPhotos);
   }
 
-  Future<void> _savePhotoPaths(
-    List<String> sourcePaths, {
-    required _DefectPhotoSource source,
-  }) async {
-    if (sourcePaths.isEmpty) {
+  Future<void> _savePhotoPaths(List<_PickedPhotoInfo> pickedPhotos) async {
+    if (pickedPhotos.isEmpty) {
       return;
     }
     setState(() {
       _isSavingPhotos = true;
     });
-    final originalNames = _buildOriginalNames(
-      sourcePaths: sourcePaths,
-      source: source,
-    );
+    final sourcePaths = pickedPhotos.map((photo) => photo.path).toList();
+    final originalNames =
+        pickedPhotos.map((photo) => photo.originalName).toList();
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
       defectId: widget.defectId,
@@ -320,14 +340,11 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       _isSavingPhotos = true;
     });
     setDialogState(() {});
-    final originalNames = _buildOriginalNames(
-      sourcePaths: [pickedPath],
-      source: selection,
-    );
+    final originalNames = [pickedPath.originalName];
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
       defectId: widget.defectId,
-      sourcePaths: [pickedPath],
+      sourcePaths: [pickedPath.path],
     );
     if (!mounted) {
       return;
@@ -344,7 +361,9 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     setDialogState(() {});
   }
 
-  Future<String?> _pickSinglePhotoPath(_DefectPhotoSource source) async {
+  Future<_PickedPhotoInfo?> _pickSinglePhotoPath(
+    _DefectPhotoSource source,
+  ) async {
     if (source == _DefectPhotoSource.camera) {
       final picked = await _imagePicker.pickImage(
         source: ImageSource.camera,
@@ -352,7 +371,13 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         maxHeight: 1920,
         imageQuality: 85,
       );
-      return picked?.path;
+      if (picked == null) {
+        return null;
+      }
+      return _PickedPhotoInfo(
+        path: picked.path,
+        originalName: _resolveCameraName(picked),
+      );
     }
     if (source == _DefectPhotoSource.gallery) {
       final picked = await _imagePicker.pickImage(
@@ -361,12 +386,18 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         maxHeight: 1920,
         imageQuality: 85,
       );
-      return picked?.path;
+      if (picked == null) {
+        return null;
+      }
+      return _PickedPhotoInfo(
+        path: picked.path,
+        originalName: picked.name,
+      );
     }
     return _pickSinglePathFromFilePicker();
   }
 
-  Future<String?> _pickSinglePathFromFilePicker() async {
+  Future<_PickedPhotoInfo?> _pickSinglePathFromFilePicker() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.any,
       allowMultiple: false,
@@ -374,7 +405,8 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (result == null) {
       return null;
     }
-    final pickedPath = result.files.single.path;
+    final pickedFile = result.files.single;
+    final pickedPath = pickedFile.path;
     if (pickedPath == null) {
       return null;
     }
@@ -386,7 +418,9 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       'heif',
       'webp',
     };
-    final extension = pickedPath.toLowerCase().split('.').last;
+    final extension = (pickedFile.extension ??
+            p.extension(pickedFile.name).replaceFirst('.', ''))
+        .toLowerCase();
     if (!allowedExtensions.contains(extension)) {
       if (!mounted) {
         return null;
@@ -406,24 +440,32 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       );
       return null;
     }
-    return pickedPath;
+    return _PickedPhotoInfo(
+      path: pickedPath,
+      originalName: pickedFile.name,
+    );
   }
 
-  List<String> _buildOriginalNames({
-    required List<String> sourcePaths,
-    required _DefectPhotoSource source,
-  }) {
-    switch (source) {
-      case _DefectPhotoSource.file:
-        return sourcePaths.map((path) => p.basename(path)).toList();
-      case _DefectPhotoSource.gallery:
-        return sourcePaths.map((path) {
-          final baseName = p.basename(path);
-          return baseName.isEmpty ? '' : baseName;
-        }).toList();
-      case _DefectPhotoSource.camera:
-        return List<String>.filled(sourcePaths.length, '');
+  String _resolveCameraName(XFile picked) {
+    final name = picked.name.trim();
+    if (name.isNotEmpty) {
+      return name;
     }
+    return _cameraFallbackName(picked.path);
+  }
+
+  String _cameraFallbackName(String sourcePath) {
+    final now = DateTime.now();
+    final year = now.year.toString().padLeft(4, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    final second = now.second.toString().padLeft(2, '0');
+    final extension = p.extension(sourcePath).isEmpty
+        ? '.jpg'
+        : p.extension(sourcePath);
+    return '$year$month$day_$hour$minute$second$extension';
   }
 
   void _storePhotoOriginalNames(
@@ -894,6 +936,16 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       const SizedBox(height: 8),
     ];
   }
+}
+
+class _PickedPhotoInfo {
+  const _PickedPhotoInfo({
+    required this.path,
+    required this.originalName,
+  });
+
+  final String path;
+  final String originalName;
 }
 
 enum _DefectPhotoSource { camera, gallery, file }
