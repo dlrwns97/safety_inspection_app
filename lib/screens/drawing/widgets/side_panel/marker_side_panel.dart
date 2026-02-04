@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/defect.dart';
+import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
@@ -339,6 +340,7 @@ class MarkerSidePanel extends StatelessWidget {
     final photoPreview = _buildDefectPhotoPreview(
       context,
       details.photoPaths,
+      details.photoOriginalNamesByPath,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,6 +358,7 @@ class MarkerSidePanel extends StatelessWidget {
   Widget? _buildDefectPhotoPreview(
     BuildContext context,
     List<String> photoPaths,
+    Map<String, String> photoOriginalNamesByPath,
   ) {
     if (photoPaths.isEmpty) {
       return null;
@@ -381,7 +384,12 @@ class MarkerSidePanel extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _handlePhotoTap(context, photoPaths),
+                onTap:
+                    () => _handlePhotoTap(
+                      context,
+                      photoPaths,
+                      photoOriginalNamesByPath,
+                    ),
                 child:
                     hasFile
                         ? Image.file(
@@ -418,6 +426,7 @@ class MarkerSidePanel extends StatelessWidget {
   Future<void> _handlePhotoTap(
     BuildContext context,
     List<String> photoPaths,
+    Map<String, String> photoOriginalNamesByPath,
   ) async {
     final size = MediaQuery.sizeOf(context);
     await showDialog<void>(
@@ -528,15 +537,35 @@ class MarkerSidePanel extends StatelessWidget {
                         alignment: Alignment.bottomCenter,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            '${currentIndex + 1} / ${photoPaths.length}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${currentIndex + 1} / ${photoPaths.length}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                photoDisplayName(
+                                  storedPath: photoPaths[currentIndex],
+                                  originalNamesByPath:
+                                      photoOriginalNamesByPath,
                                 ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

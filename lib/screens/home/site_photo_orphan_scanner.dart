@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:safety_inspection_app/models/site.dart';
 
@@ -64,11 +65,7 @@ String _normalizePath(String path) {
 
 String extractOrphanFileName(FileSystemEntity entity) {
   final normalized = _normalizePath(entity.path);
-  final lastSlash = normalized.lastIndexOf('/');
-  if (lastSlash == -1) {
-    return normalized;
-  }
-  return normalized.substring(lastSlash + 1);
+  return p.basenameWithoutExtension(normalized);
 }
 
 String? extractDefectIdFromPath({
