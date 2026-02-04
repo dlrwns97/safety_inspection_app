@@ -421,60 +421,54 @@ class MarkerSidePanel extends StatelessWidget {
         context: context,
         barrierDismissible: true,
         builder: (context) {
-          return AlertDialog(
-            content: const Text('사진을 불러올 수 없습니다'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('확인'),
-              ),
-            ],
+          return const AlertDialog(
+            content: Text('사진을 불러올 수 없습니다'),
           );
         },
       );
       return;
     }
 
-    final mediaQuery = MediaQuery.of(context);
+    final size = MediaQuery.sizeOf(context);
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black87,
       builder: (context) {
+        final dialogRadius = BorderRadius.circular(16);
         return Dialog(
-          insetPadding: const EdgeInsets.all(24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: mediaQuery.size.width * 0.9,
-              maxHeight: mediaQuery.size.height * 0.8,
-            ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+          insetPadding: const EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: dialogRadius,
+            child: SizedBox(
+              width: size.width * 0.9,
+              height: size.height * 0.85,
+              child: Stack(
+                children: [
+                  Positioned.fill(
                     child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 8.0,
+                      boundaryMargin: const EdgeInsets.all(120),
+                      panEnabled: true,
+                      scaleEnabled: true,
                       child: Image.file(
                         file,
                         fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton(
-                    icon: const Icon(Icons.close),
-                    color: Theme.of(context).colorScheme.onSurface,
-                    onPressed: () => Navigator.of(context).pop(),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      color: Theme.of(context).colorScheme.onSurface,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
