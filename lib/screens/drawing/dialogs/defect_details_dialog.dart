@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -66,6 +67,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   String? _crackType;
   String? _cause;
   List<String> _photoPaths = [];
+  Map<String, String> _photoOriginalNamesByPath = {};
   bool _isSavingPhotos = false;
 
   @override
@@ -76,6 +78,9 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       return;
     }
     _photoPaths = List<String>.from(details.photoPaths);
+    _photoOriginalNamesByPath = Map<String, String>.from(
+      details.photoOriginalNamesByPath,
+    );
     _structuralMember = details.structuralMember;
     _widthController.text =
         details.widthMm > 0 ? details.widthMm.toString() : '';
@@ -173,7 +178,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (picked == null) {
       return;
     }
-    await _savePhotoPaths([picked.path]);
+    await _savePhotoPaths([picked.path], source: _DefectPhotoSource.camera);
   }
 
   Future<void> _pickFromGallery() async {
@@ -183,7 +188,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       imageQuality: 85,
     );
     if (pickedImages.isNotEmpty) {
-      await _savePhotoPaths(pickedImages.map((image) => image.path).toList());
+      await _savePhotoPaths(
+        pickedImages.map((image) => image.path).toList(),
+        source: _DefectPhotoSource.gallery,
+      );
       return;
     }
     final pickedSingle = await _imagePicker.pickImage(
@@ -195,7 +203,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (pickedSingle == null) {
       return;
     }
-    await _savePhotoPaths([pickedSingle.path]);
+    await _savePhotoPaths(
+      [pickedSingle.path],
+      source: _DefectPhotoSource.gallery,
+    );
   }
 
   Future<void> _pickFromFilePicker() async {
@@ -250,16 +261,23 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         ),
       );
     }
-    await _savePhotoPaths(sourcePaths);
+    await _savePhotoPaths(sourcePaths, source: _DefectPhotoSource.file);
   }
 
-  Future<void> _savePhotoPaths(List<String> sourcePaths) async {
+  Future<void> _savePhotoPaths(
+    List<String> sourcePaths, {
+    required _DefectPhotoSource source,
+  }) async {
     if (sourcePaths.isEmpty) {
       return;
     }
     setState(() {
       _isSavingPhotos = true;
     });
+    final originalNames = _buildOriginalNames(
+      sourcePaths: sourcePaths,
+      source: source,
+    );
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
       defectId: widget.defectId,
@@ -271,6 +289,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     setState(() {
       _isSavingPhotos = false;
       _photoPaths.addAll(savedPaths);
+      _storePhotoOriginalNames(savedPaths, originalNames);
     });
   }
 
@@ -294,6 +313,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       _isSavingPhotos = true;
     });
     setDialogState(() {});
+    final originalNames = _buildOriginalNames(
+      sourcePaths: [pickedPath],
+      source: selection,
+    );
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
       defectId: widget.defectId,
@@ -305,7 +328,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     setState(() {
       _isSavingPhotos = false;
       if (index < _photoPaths.length) {
+        final oldPath = _photoPaths[index];
+        _photoOriginalNamesByPath.remove(oldPath);
         _photoPaths[index] = savedPaths.single;
+        _storePhotoOriginalNames(savedPaths, originalNames);
       }
     });
     setDialogState(() {});
@@ -374,6 +400,37 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       return null;
     }
     return pickedPath;
+  }
+
+  List<String> _buildOriginalNames({
+    required List<String> sourcePaths,
+    required _DefectPhotoSource source,
+  }) {
+    switch (source) {
+      case _DefectPhotoSource.file:
+        return sourcePaths.map((path) => p.basename(path)).toList();
+      case _DefectPhotoSource.gallery:
+        return sourcePaths.map((path) {
+          final baseName = p.basename(path);
+          return baseName.isEmpty ? '' : baseName;
+        }).toList();
+      case _DefectPhotoSource.camera:
+        return List<String>.filled(sourcePaths.length, '');
+    }
+  }
+
+  void _storePhotoOriginalNames(
+    List<String> savedPaths,
+    List<String> originalNames,
+  ) {
+    final count = min(savedPaths.length, originalNames.length);
+    for (var i = 0; i < count; i++) {
+      final savedPath = savedPaths[i];
+      final originalName = originalNames[i].isNotEmpty
+          ? originalNames[i]
+          : p.basename(savedPath);
+      _photoOriginalNamesByPath[savedPath] = originalName;
+    }
   }
 
   bool _isValid() {
@@ -708,7 +765,8 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                       return;
                     }
                     setState(() {
-                      _photoPaths.removeAt(currentIndex);
+                      final removedPath = _photoPaths.removeAt(currentIndex);
+                      _photoOriginalNamesByPath.remove(removedPath);
                     });
                     if (_photoPaths.isEmpty) {
                       Navigator.of(dialogContext).pop();
@@ -783,6 +841,9 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                           lengthMm: double.parse(lengthValue),
                           cause: resolvedCause,
                           photoPaths: _photoPaths,
+                          photoOriginalNamesByPath: Map<String, String>.from(
+                            _photoOriginalNamesByPath,
+                          ),
                         ),
                       );
                     }
