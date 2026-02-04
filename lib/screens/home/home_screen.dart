@@ -352,43 +352,45 @@ class _OrphanScanResultList extends StatelessWidget {
     final displayedFiles = result.orphanFiles.take(20).toList();
     return SizedBox(
       width: double.maxFinite,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('고아 파일 ${totalCount}개'),
-          const SizedBox(height: 12),
-          if (displayedFiles.isEmpty)
-            const Text('표시할 파일이 없습니다.')
-          else
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: displayedFiles.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final entity = displayedFiles[index];
-                  final fileName = extractOrphanFileName(entity);
-                  final defectId = extractDefectIdFromPath(
-                    entity: entity,
-                    siteId: siteId,
-                  );
-                  return ListTile(
-                    dense: true,
-                    title: Text(fileName),
-                    subtitle: defectId == null
-                        ? null
-                        : Text('defectId: $defectId'),
-                  );
-                },
-              ),
-            ),
-          if (totalCount > displayedFiles.length) ...[
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 360),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('미사용 파일 ${totalCount}개'),
+            const SizedBox(height: 4),
+            const Text('현재 현장 데이터에서 참조되지 않는 사진입니다.'),
             const SizedBox(height: 12),
-            Text('외 ${totalCount - displayedFiles.length}개'),
+            Flexible(
+              child: displayedFiles.isEmpty
+                  ? const Center(child: Text('표시할 파일이 없습니다.'))
+                  : ListView.separated(
+                      itemCount: displayedFiles.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final entity = displayedFiles[index];
+                        final fileName = extractOrphanFileName(entity);
+                        final defectId = extractDefectIdFromPath(
+                          entity: entity,
+                          siteId: siteId,
+                        );
+                        return ListTile(
+                          dense: true,
+                          title: Text(fileName),
+                          subtitle: defectId == null
+                              ? null
+                              : Text('defectId: $defectId'),
+                        );
+                      },
+                    ),
+            ),
+            if (totalCount > displayedFiles.length) ...[
+              const SizedBox(height: 12),
+              Text('외 ${totalCount - displayedFiles.length}개'),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
