@@ -118,6 +118,13 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   bool get _isOtherType => _crackType == StringsKo.otherOptionLabel;
   bool get _isOtherCause => _cause == StringsKo.otherOptionLabel;
 
+  String _photoDisplayName(String storedPath) {
+    return photoDisplayName(
+      storedPath: storedPath,
+      originalNamesByPath: _photoOriginalNamesByPath,
+    );
+  }
+
   Future<void> _handlePhotoAction() async {
     if (_isSavingPhotos) {
       return;
@@ -673,6 +680,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
           ),
         ],
       ),
+      if (_photoPaths.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            _photoDisplayName(_photoPaths.first),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
       const SizedBox(height: 12),
     ];
   }
@@ -717,9 +732,19 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '${currentIndex + 1} / ${_photoPaths.length}',
-                      textAlign: TextAlign.center,
+                    Column(
+                      children: [
+                        Text(
+                          '${currentIndex + 1} / ${_photoPaths.length}',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _photoDisplayName(_photoPaths[currentIndex]),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ),
                   ],
                 ),

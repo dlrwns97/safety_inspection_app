@@ -1,3 +1,5 @@
+import 'package:path/path.dart' as p;
+
 class DefectDetails {
   DefectDetails({
     required this.structuralMember,
@@ -54,4 +56,12 @@ class DefectDetails {
     }
     return names;
   }
+}
+
+String photoDisplayName({
+  required String storedPath,
+  required Map<String, String> originalNamesByPath,
+}) {
+  final raw = originalNamesByPath[storedPath] ?? p.basename(storedPath);
+  return p.basenameWithoutExtension(raw);
 }
