@@ -378,21 +378,27 @@ class MarkerSidePanel extends StatelessWidget {
               border: Border.all(color: theme.dividerColor),
             ),
             clipBehavior: Clip.antiAlias,
-            child:
-                hasFile
-                    ? Image.file(
-                      file,
-                      fit: BoxFit.cover,
-                      cacheWidth: 800,
-                    )
-                    : Center(
-                      child: Text(
-                        '사진을 불러올 수 없습니다',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _handlePhotoTap(context, file),
+                child:
+                    hasFile
+                        ? Image.file(
+                          file,
+                          fit: BoxFit.cover,
+                          cacheWidth: 800,
+                        )
+                        : Center(
+                          child: Text(
+                            '사진을 불러올 수 없습니다',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+              ),
+            ),
           ),
           if (extraCount > 0)
             Padding(
@@ -406,6 +412,73 @@ class MarkerSidePanel extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _handlePhotoTap(BuildContext context, File file) async {
+    if (!file.existsSync()) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) {
+          return AlertDialog(
+            content: const Text('사진을 불러올 수 없습니다'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    final mediaQuery = MediaQuery.of(context);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: mediaQuery.size.width * 0.9,
+              maxHeight: mediaQuery.size.height * 0.8,
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: InteractiveViewer(
+                      child: Image.file(
+                        file,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    color: Theme.of(context).colorScheme.onSurface,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
