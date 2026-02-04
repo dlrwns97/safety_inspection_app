@@ -131,9 +131,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('이미지 가져오기'),
+              title: const Text('갤러리에서 가져오기'),
               onTap: () =>
-                  Navigator.of(context).pop(_DefectPhotoSource.import),
+                  Navigator.of(context).pop(_DefectPhotoSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_open),
+              title: const Text('파일에서 가져오기'),
+              onTap: () => Navigator.of(context).pop(_DefectPhotoSource.file),
             ),
           ],
         ),
@@ -144,8 +149,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     }
     if (selection == _DefectPhotoSource.camera) {
       await _pickFromCamera();
+    } else if (selection == _DefectPhotoSource.gallery) {
+      await _pickFromGallery();
     } else {
-      await _pickFromFiles();
+      await _pickFromFilePicker();
     }
   }
 
@@ -162,7 +169,29 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     await _savePhotoPaths([picked.path]);
   }
 
-  Future<void> _pickFromFiles() async {
+  Future<void> _pickFromGallery() async {
+    final pickedImages = await _imagePicker.pickMultiImage(
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (pickedImages.isNotEmpty) {
+      await _savePhotoPaths(pickedImages.map((image) => image.path).toList());
+      return;
+    }
+    final pickedSingle = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (pickedSingle == null) {
+      return;
+    }
+    await _savePhotoPaths([pickedSingle.path]);
+  }
+
+  Future<void> _pickFromFilePicker() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: true,
@@ -481,4 +510,4 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   }
 }
 
-enum _DefectPhotoSource { camera, import }
+enum _DefectPhotoSource { camera, gallery, file }
