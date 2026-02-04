@@ -9,7 +9,8 @@ import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/marker_filter_chips.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_detail_section.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_header_controls.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_body.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_header.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_info_banner.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_view_tab.dart';
@@ -129,45 +130,22 @@ class MarkerSidePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MarkerHeaderControls(
+            MarkerSidePanelHeader(
+              tabController: tabController,
+              tabLabelStyle: tabLabelStyle,
               markerScale: markerScale,
               labelScale: labelScale,
               onMarkerScaleChanged: onMarkerScaleChanged,
               onLabelScaleChanged: onLabelScaleChanged,
-              isLocked: isMarkerScaleLocked,
-              onToggleLock: onToggleMarkerScaleLock,
+              isMarkerScaleLocked: isMarkerScaleLocked,
+              onToggleMarkerScaleLock: onToggleMarkerScaleLock,
             ),
-            const Divider(height: 1),
-            TabBar(
-              controller: tabController,
-              labelColor: theme.colorScheme.primary,
-              indicatorColor: theme.colorScheme.primary,
-              indicatorWeight: 2.5,
-              labelStyle: tabLabelStyle,
-              unselectedLabelStyle: tabLabelStyle,
-              isScrollable: true,
-              labelPadding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              tabs: const [
-                Tab(text: '결함'),
-                Tab(text: '장비'),
-                Tab(text: '상세'),
-                Tab(text: '보기'),
-              ],
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: TabBarView(
-                controller: tabController,
-                children: [
-                  _buildDefectTab(context),
-                  _buildEquipmentTab(context),
-                  _buildDetailTab(context),
-                  _buildViewTab(context),
-                ],
-              ),
+            MarkerSidePanelBody(
+              tabController: tabController,
+              defectTab: _buildDefectTab(context),
+              equipmentTab: _buildEquipmentTab(context),
+              detailTab: _buildDetailTab(context),
+              viewTab: _buildViewTab(context),
             ),
           ],
         ),
