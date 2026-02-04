@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -196,41 +197,11 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   }
 
   Future<void> _pickFromGallery() async {
-    final pickedImages = await _imagePicker.pickMultiImage(
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    if (pickedImages.isNotEmpty) {
-      await _savePhotoPaths(
-        pickedImages
-            .map(
-              (image) => _PickedPhotoInfo(
-                path: image.path,
-                originalName: image.name,
-              ),
-            )
-            .toList(),
-      );
+    final pickedPhotos = await _pickFromGalleryAssets(maxAssets: 50);
+    if (pickedPhotos.isEmpty) {
       return;
     }
-    final pickedSingle = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    if (pickedSingle == null) {
-      return;
-    }
-    await _savePhotoPaths(
-      [
-        _PickedPhotoInfo(
-          path: pickedSingle.path,
-          originalName: pickedSingle.name,
-        ),
-      ],
-    );
+    await _savePhotoPaths(pickedPhotos);
   }
 
   Future<void> _pickFromFilePicker() async {
@@ -380,21 +351,69 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       );
     }
     if (source == _DefectPhotoSource.gallery) {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
-      );
-      if (picked == null) {
+      final pickedPhotos = await _pickFromGalleryAssets(maxAssets: 1);
+      if (pickedPhotos.isEmpty) {
         return null;
       }
-      return _PickedPhotoInfo(
-        path: picked.path,
-        originalName: picked.name,
-      );
+      return pickedPhotos.first;
     }
     return _pickSinglePathFromFilePicker();
+  }
+
+  Future<List<_PickedPhotoInfo>> _pickFromGalleryAssets({
+    required int maxAssets,
+  }) async {
+    final permissionGranted = await _ensureGalleryPermission();
+    if (!permissionGranted) {
+      return [];
+    }
+    final assets = await AssetPicker.pickAssets(
+      context,
+      pickerConfig: AssetPickerConfig(
+        maxAssets: maxAssets,
+        requestType: RequestType.image,
+      ),
+    );
+    if (assets == null || assets.isEmpty) {
+      return [];
+    }
+    final pickedPhotos = <_PickedPhotoInfo>[];
+    for (final asset in assets) {
+      final file = await asset.file;
+      if (file == null) {
+        if (!mounted) {
+          continue;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('선택한 사진을 불러올 수 없습니다.')),
+        );
+        continue;
+      }
+      final title = asset.title?.trim();
+      pickedPhotos.add(
+        _PickedPhotoInfo(
+          path: file.path,
+          originalName:
+              title == null || title.isEmpty ? p.basename(file.path) : title,
+        ),
+      );
+    }
+    return pickedPhotos;
+  }
+
+  Future<bool> _ensureGalleryPermission() async {
+    final permissionState = await AssetPicker.permissionCheck();
+    final isGranted = permissionState == PermissionState.authorized ||
+        permissionState == PermissionState.limited;
+    if (!isGranted) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사진 접근 권한이 필요합니다')),
+      );
+    }
+    return isGranted;
   }
 
   Future<_PickedPhotoInfo?> _pickSinglePathFromFilePicker() async {
