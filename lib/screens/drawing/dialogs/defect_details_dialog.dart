@@ -375,15 +375,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         .toList();
   }
 
-  String _truncateErrorMessage(Object error) {
-    final message = error.toString().trim();
-    const maxLength = 120;
-    if (message.length <= maxLength) {
-      return message;
-    }
-    return '${message.substring(0, maxLength - 3)}...';
-  }
-
   Future<_PickedPhotoInfo?> _pickSinglePathFromFilePicker() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.any,
@@ -452,7 +443,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     final extension = p.extension(sourcePath).isEmpty
         ? '.jpg'
         : p.extension(sourcePath);
-    return '${year}${month}${day}_$hour$minute$second$extension';
+    return '$year$month${day}_$hour$minute$second$extension';
   }
 
   void _storePhotoOriginalNames(
@@ -795,6 +786,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                   onPressed: _isSavingPhotos
                       ? null
                       : () async {
+                    final dialogNavigator = Navigator.of(dialogContext);
                     final confirmed = await showDialog<bool>(
                       context: dialogContext,
                       builder: (context) => AlertDialog(
@@ -812,10 +804,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                         ],
                       ),
                     );
-                    if (confirmed != true) {
+                    if (!mounted) {
                       return;
                     }
-                    if (!mounted) {
+                    if (confirmed != true) {
                       return;
                     }
                     setState(() {
@@ -823,7 +815,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                       _photoOriginalNamesByPath.remove(removedPath);
                     });
                     if (_photoPaths.isEmpty) {
-                      Navigator.of(dialogContext).pop();
+                      dialogNavigator.pop();
                       return;
                     }
                     final nextIndex = min(
