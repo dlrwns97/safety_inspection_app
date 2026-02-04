@@ -8,8 +8,11 @@ import 'package:path/path.dart' as p;
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/photo_source_bottom_sheet.dart';
 import 'photo_manager_dialog.dart';
 import '../widgets/narrow_dialog_frame.dart';
+
+typedef _DefectPhotoSource = DefectPhotoSource;
 
 Future<DefectDetails?> showDefectDetailsDialog({
   required BuildContext context,
@@ -147,28 +150,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   Future<_DefectPhotoSource?> _showPhotoSourceSheet(
     BuildContext sheetContext,
   ) {
-    return showModalBottomSheet<_DefectPhotoSource>(
-      context: sheetContext,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('촬영하기'),
-              onTap: () =>
-                  Navigator.of(context).pop(_DefectPhotoSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder_open),
-              title: const Text('기기에서 가져오기'),
-              onTap: () => Navigator.of(context).pop(_DefectPhotoSource.file),
-            ),
-          ],
-        ),
-      ),
-    );
+    return showDefectPhotoSourceSheet(sheetContext);
   }
 
   Future<void> _pickFromCamera() async {
@@ -804,5 +786,3 @@ class _PickedPhotoInfo {
   final String path;
   final String originalName;
 }
-
-enum _DefectPhotoSource { camera, gallery, file }
