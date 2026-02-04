@@ -204,22 +204,44 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       'heif',
       'webp',
     };
-    final sourcePaths = result?.paths
-            .whereType<String>()
-            .where((path) {
-              final lowerPath = path.toLowerCase();
-              final extension = lowerPath.split('.').last;
-              return allowedExtensions.contains(extension);
-            })
-            .toList() ??
-        [];
-    if (sourcePaths.isEmpty) {
-      if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지 파일만 선택할 수 있습니다')),
-        );
-      }
+    if (result == null) {
       return;
+    }
+    final selectedPaths = result.paths.whereType<String>().toList();
+    final sourcePaths = selectedPaths.where((path) {
+      final lowerPath = path.toLowerCase();
+      final extension = lowerPath.split('.').last;
+      return allowedExtensions.contains(extension);
+    }).toList();
+    final ignoredCount = selectedPaths.length - sourcePaths.length;
+    if (sourcePaths.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('지원하지 않는 파일 형식입니다'),
+              SizedBox(height: 4),
+              Text('사진 파일(jpg, png, heic 등)만 선택할 수 있어요.'),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    if (ignoredCount > 0) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('일부 파일은 사진 형식이 아니라 제외되었습니다.'),
+        ),
+      );
     }
     await _savePhotoPaths(sourcePaths);
   }
