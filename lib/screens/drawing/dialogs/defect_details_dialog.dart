@@ -193,11 +193,32 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<void> _pickFromFilePicker() async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
+      type: FileType.any,
       allowMultiple: true,
     );
-    final sourcePaths = result?.paths.whereType<String>().toList() ?? [];
+    final allowedExtensions = {
+      'jpg',
+      'jpeg',
+      'png',
+      'heic',
+      'heif',
+      'webp',
+    };
+    final sourcePaths = result?.paths
+            .whereType<String>()
+            .where((path) {
+              final lowerPath = path.toLowerCase();
+              final extension = lowerPath.split('.').last;
+              return allowedExtensions.contains(extension);
+            })
+            .toList() ??
+        [];
     if (sourcePaths.isEmpty) {
+      if (result != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미지 파일만 선택할 수 있습니다')),
+        );
+      }
       return;
     }
     await _savePhotoPaths(sourcePaths);
