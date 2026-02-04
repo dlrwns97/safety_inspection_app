@@ -12,7 +12,6 @@ import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_body.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_header.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_info_banner.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_view_tab.dart';
 
 class MarkerSidePanel extends StatelessWidget {
@@ -122,6 +121,41 @@ class MarkerSidePanel extends StatelessWidget {
         visualDensity: VisualDensity.compact,
       ),
     );
+    final isDefectVisible =
+        visibleDefectCategories.contains(selectedDefectCategory);
+    final filteredDefects = defects
+        .where(
+          (defect) =>
+              defect.pageIndex == currentPage &&
+              defect.category == selectedDefectCategory &&
+              visibleDefectCategories.contains(defect.category),
+        )
+        .toList();
+    final isEquipmentVisible =
+        visibleEquipmentCategories.contains(selectedEquipmentCategory);
+    final selectedEquipmentLabel =
+        equipmentChipLabel(selectedEquipmentCategory);
+    final filteredEquipment = equipmentMarkers
+        .where(
+          (marker) =>
+              marker.pageIndex == currentPage &&
+              marker.category == selectedEquipmentCategory &&
+              visibleEquipmentCategories.contains(marker.category),
+        )
+        .toList();
+    final defectDetail =
+        selectedDefect != null
+            ? _buildDefectDetail(context, selectedDefect!)
+            : null;
+    final equipmentDetail =
+        selectedEquipment != null
+            ? _buildEquipmentDetail(selectedEquipment!)
+            : null;
+    final detailWidgets = <Widget>[
+      if (defectDetail != null) defectDetail,
+      if (equipmentDetail != null) equipmentDetail,
+    ];
+    final hasSelection = detailWidgets.isNotEmpty;
     return Theme(
       data: compactTheme,
       child: Material(
@@ -142,153 +176,61 @@ class MarkerSidePanel extends StatelessWidget {
             ),
             MarkerSidePanelBody(
               tabController: tabController,
-              defectTab: _buildDefectTab(context),
-              equipmentTab: _buildEquipmentTab(context),
-              detailTab: _buildDetailTab(context),
+              defectFilter: MarkerFilterChips<DefectCategory>(
+                options: defectCategories,
+                selected: selectedDefectCategory,
+                labelBuilder: defectChipLabel,
+                onSelected: onDefectCategorySelected,
+              ),
+              defectInfoBanner:
+                  !isDefectVisible
+                      ? MarkerInfoBanner(
+                        message:
+                            "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+                      )
+                      : null,
+              defectItems: filteredDefects,
+              defectEmptyLabel: '현재 페이지에 결함 마커가 없습니다.',
+              onSelectDefect: onSelectDefect,
+              defectTitleBuilder: defectDisplayLabel,
+              defectSubtitleBuilder:
+                  (defect) =>
+                      defect.details.structuralMember.isNotEmpty
+                          ? defect.details.structuralMember
+                          : null,
+              equipmentFilter: MarkerFilterChips<EquipmentCategory>(
+                options: kEquipmentCategoryOrder,
+                selected: selectedEquipmentCategory,
+                labelBuilder: equipmentChipLabel,
+                onSelected: onEquipmentCategorySelected,
+              ),
+              equipmentInfoBanner:
+                  !isEquipmentVisible
+                      ? MarkerInfoBanner(
+                        message:
+                            "보기 탭에서 '$selectedEquipmentLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+                      )
+                      : null,
+              equipmentItems: filteredEquipment,
+              equipmentEmptyLabel: '현재 페이지에 장비 마커가 없습니다.',
+              onSelectEquipment: onSelectEquipment,
+              equipmentTitleBuilder:
+                  (marker) => equipmentDisplayLabel(marker, equipmentMarkers),
+              equipmentSubtitleBuilder:
+                  (marker) =>
+                      marker.memberType?.isNotEmpty == true
+                          ? marker.memberType
+                          : null,
+              detailWidgets: detailWidgets,
+              hasSelection: hasSelection,
+              onEditPressed: onEditPressed,
+              onMovePressed: onMovePressed,
+              onDeletePressed: onDeletePressed,
               viewTab: _buildViewTab(context),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDefectTab(BuildContext context) {
-    final isVisible =
-        visibleDefectCategories.contains(selectedDefectCategory);
-    final filteredDefects = defects
-        .where(
-          (defect) =>
-              defect.pageIndex == currentPage &&
-              defect.category == selectedDefectCategory &&
-              visibleDefectCategories.contains(defect.category),
-        )
-        .toList();
-    return Column(
-      children: [
-        MarkerFilterChips<DefectCategory>(
-          options: defectCategories,
-          selected: selectedDefectCategory,
-          labelBuilder: defectChipLabel,
-          onSelected: onDefectCategorySelected,
-        ),
-        if (!isVisible)
-          MarkerInfoBanner(
-            message:
-                "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
-          ),
-        const Divider(height: 1),
-        Expanded(
-          child: MarkerList(
-            items: filteredDefects,
-            emptyLabel: '현재 페이지에 결함 마커가 없습니다.',
-            onTap: onSelectDefect,
-            titleBuilder: defectDisplayLabel,
-            subtitleBuilder: (defect) =>
-                defect.details.structuralMember.isNotEmpty
-                    ? defect.details.structuralMember
-                    : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEquipmentTab(BuildContext context) {
-    final isVisible =
-        visibleEquipmentCategories.contains(selectedEquipmentCategory);
-    final selectedLabel = equipmentChipLabel(selectedEquipmentCategory);
-    final filteredEquipment = equipmentMarkers
-        .where(
-          (marker) =>
-              marker.pageIndex == currentPage &&
-              marker.category == selectedEquipmentCategory &&
-              visibleEquipmentCategories.contains(marker.category),
-        )
-        .toList();
-    return Column(
-      children: [
-        MarkerFilterChips<EquipmentCategory>(
-          options: kEquipmentCategoryOrder,
-          selected: selectedEquipmentCategory,
-          labelBuilder: equipmentChipLabel,
-          onSelected: onEquipmentCategorySelected,
-        ),
-        if (!isVisible)
-          MarkerInfoBanner(
-            message:
-                "보기 탭에서 '$selectedLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
-          ),
-        const Divider(height: 1),
-        Expanded(
-          child: MarkerList(
-            items: filteredEquipment,
-            emptyLabel: '현재 페이지에 장비 마커가 없습니다.',
-            onTap: onSelectEquipment,
-            titleBuilder: (marker) {
-              return equipmentDisplayLabel(marker, equipmentMarkers);
-            },
-            subtitleBuilder: (marker) =>
-                marker.memberType?.isNotEmpty == true
-                    ? marker.memberType
-                    : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailTab(BuildContext context) {
-    final theme = Theme.of(context);
-    final defect = selectedDefect;
-    final equipment = selectedEquipment;
-    final hasSelection = defect != null || equipment != null;
-    return Column(
-      children: [
-        Expanded(
-          child:
-              hasSelection
-                  ? ListView(
-                    padding: const EdgeInsets.all(12),
-                    children: [
-                      if (defect != null) _buildDefectDetail(context, defect),
-                      if (equipment != null) _buildEquipmentDetail(equipment),
-                    ],
-                  )
-                  : Center(
-                    child: Text(
-                      '선택된 마커 없음',
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                  ),
-        ),
-        const Divider(height: 1),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: hasSelection ? onEditPressed : null,
-                  child: const Text('수정'),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: hasSelection ? onMovePressed : null,
-                  child: const Text('이동'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: hasSelection ? onDeletePressed : null,
-                  child: const Text('삭제'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 
