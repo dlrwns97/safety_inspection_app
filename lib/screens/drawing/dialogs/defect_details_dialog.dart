@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
+import 'photo_manager_dialog.dart';
 import '../widgets/narrow_dialog_frame.dart';
 
 Future<DefectDetails?> showDefectDetailsDialog({
@@ -288,14 +288,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<void> _replacePhotoAt({
     required int index,
-    required BuildContext dialogContext,
-    required void Function(VoidCallback) setDialogState,
   }) async {
     if (_isSavingPhotos) {
       return;
     }
     final selection = await _showPhotoSourceSheet(
-      dialogContext,
+      context,
     );
     if (selection == null) {
       return;
@@ -307,7 +305,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     setState(() {
       _isSavingPhotos = true;
     });
-    setDialogState(() {});
     final originalNames = [pickedPath.originalName];
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
@@ -326,7 +323,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         _storePhotoOriginalNames(savedPaths, originalNames);
       }
     });
-    setDialogState(() {});
   }
 
   Future<_PickedPhotoInfo?> _pickSinglePhotoPath(
@@ -716,139 +712,21 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_photoPaths.isEmpty) {
       return;
     }
-    int currentIndex = 0;
-    final controller = PageController();
-    await showDialog<void>(
+    await showPhotoManagerDialog(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('사진 관리'),
-              content: SizedBox(
-                width: min(MediaQuery.of(context).size.width * 0.7, 500),
-                height: min(MediaQuery.of(context).size.height * 0.6, 420),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: PageView.builder(
-                        controller: controller,
-                        itemCount: _photoPaths.length,
-                        onPageChanged: (index) {
-                          setDialogState(() {
-                            currentIndex = index;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          return InteractiveViewer(
-                            minScale: 1,
-                            maxScale: 4,
-                            child: Image.file(
-                              File(_photoPaths[index]),
-                              fit: BoxFit.contain,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Column(
-                      children: [
-                        Text(
-                          '${currentIndex + 1} / ${_photoPaths.length}',
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _photoDisplayName(_photoPaths[currentIndex]),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _isSavingPhotos
-                      ? null
-                      : () => _replacePhotoAt(
-                            index: currentIndex,
-                            dialogContext: dialogContext,
-                            setDialogState: setDialogState,
-                          ),
-                  child: const Text('교체'),
-                ),
-                IconButton(
-                  tooltip: '삭제',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: _isSavingPhotos
-                      ? null
-                      : () async {
-                    final dialogNavigator = Navigator.of(dialogContext);
-                    final confirmed = await showDialog<bool>(
-                      context: dialogContext,
-                      builder: (context) => AlertDialog(
-                        content: const Text('이 사진을 삭제할까요?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.of(context).pop(false),
-                            child: Text(StringsKo.cancel),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('삭제'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (!mounted) {
-                      return;
-                    }
-                    if (confirmed != true) {
-                      return;
-                    }
-                    setState(() {
-                      final removedPath = _photoPaths.removeAt(currentIndex);
-                      _photoOriginalNamesByPath.remove(removedPath);
-                    });
-                    if (_photoPaths.isEmpty) {
-                      dialogNavigator.pop();
-                      return;
-                    }
-                    final nextIndex = min(
-                      currentIndex,
-                      _photoPaths.length - 1,
-                    );
-                    setDialogState(() {
-                      currentIndex = nextIndex;
-                    });
-                    if (controller.hasClients) {
-                      controller.jumpToPage(nextIndex);
-                    }
-                  },
-                ),
-                if (_isSavingPhotos)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                TextButton(
-                  onPressed: _isSavingPhotos
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('닫기'),
-                ),
-              ],
-            );
-          },
-        );
+      photoPaths: _photoPaths,
+      photoOriginalNamesByPath: _photoOriginalNamesByPath,
+      initialIndex: 0,
+      isSavingPhotos: _isSavingPhotos,
+      onReplace: (index) => _replacePhotoAt(index: index),
+      onDelete: (index) async {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          final removedPath = _photoPaths.removeAt(index);
+          _photoOriginalNamesByPath.remove(removedPath);
+        });
       },
     );
   }
