@@ -478,7 +478,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (!mounted) {
       return false;
     }
-    final isGranted = permissionState.isAuth;
+    final isGranted = permissionState.isAuth || permissionState.hasAccess;
     if (!isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('사진 접근 권한이 필요합니다')),
