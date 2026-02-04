@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -311,6 +312,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                 ..._buildCategorySection(context),
                 ..._buildMemberTypeSection(context),
                 ..._buildFieldsSection(context),
+                ..._buildPhotoSection(context),
                 ..._buildActions(context),
               ],
             ),
@@ -490,6 +492,130 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       ],
       const SizedBox(height: 20),
     ];
+  }
+
+  List<Widget> _buildPhotoSection(BuildContext context) {
+    return [
+      Row(
+        children: [
+          const Text('사진'),
+          const SizedBox(width: 8),
+          Text('${_photoPaths.length}장'),
+          const Spacer(),
+          TextButton(
+            onPressed: _photoPaths.isEmpty ? null : _openPhotoManagerDialog,
+            child: const Text('관리'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  Future<void> _openPhotoManagerDialog() async {
+    if (_photoPaths.isEmpty) {
+      return;
+    }
+    int currentIndex = 0;
+    final controller = PageController();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('사진 관리'),
+              content: SizedBox(
+                width: min(MediaQuery.of(context).size.width * 0.7, 500),
+                height: min(MediaQuery.of(context).size.height * 0.6, 420),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: PageView.builder(
+                        controller: controller,
+                        itemCount: _photoPaths.length,
+                        onPageChanged: (index) {
+                          setDialogState(() {
+                            currentIndex = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          return InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Image.file(
+                              File(_photoPaths[index]),
+                              fit: BoxFit.contain,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${currentIndex + 1} / ${_photoPaths.length}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: '삭제',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: dialogContext,
+                      builder: (context) => AlertDialog(
+                        content: const Text('이 사진을 삭제할까요?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(context).pop(false),
+                            child: Text(StringsKo.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('삭제'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) {
+                      return;
+                    }
+                    if (!mounted) {
+                      return;
+                    }
+                    setState(() {
+                      _photoPaths.removeAt(currentIndex);
+                    });
+                    if (_photoPaths.isEmpty) {
+                      Navigator.of(dialogContext).pop();
+                      return;
+                    }
+                    final nextIndex = min(
+                      currentIndex,
+                      _photoPaths.length - 1,
+                    );
+                    setDialogState(() {
+                      currentIndex = nextIndex;
+                    });
+                    if (controller.hasClients) {
+                      controller.jumpToPage(nextIndex);
+                    }
+                  },
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('닫기'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   List<Widget> _buildActions(BuildContext context) {
