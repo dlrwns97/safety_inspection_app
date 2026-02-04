@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
+import 'package:safety_inspection_app/screens/drawing/dialogs/defect_photo_thumbnails_section.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/photo_source_bottom_sheet.dart';
 import 'photo_manager_dialog.dart';
 import '../widgets/narrow_dialog_frame.dart';
@@ -120,13 +121,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   bool get _isOtherType => _crackType == StringsKo.otherOptionLabel;
   bool get _isOtherCause => _cause == StringsKo.otherOptionLabel;
-
-  String _photoDisplayName(String storedPath) {
-    return photoDisplayName(
-      storedPath: storedPath,
-      originalNamesByPath: _photoOriginalNamesByPath,
-    );
-  }
 
   Future<void> _handlePhotoAction() async {
     if (_isSavingPhotos) {
@@ -666,27 +660,11 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   List<Widget> _buildPhotoSection(BuildContext context) {
     return [
-      Row(
-        children: [
-          const Text('사진'),
-          const SizedBox(width: 8),
-          Text('${_photoPaths.length}장'),
-          const Spacer(),
-          TextButton(
-            onPressed: _photoPaths.isEmpty ? null : _openPhotoManagerDialog,
-            child: const Text('관리'),
-          ),
-        ],
+      DefectPhotoThumbnailsSection(
+        photoPaths: _photoPaths,
+        photoOriginalNamesByPath: _photoOriginalNamesByPath,
+        onTapManage: _openPhotoManagerDialog,
       ),
-      if (_photoPaths.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            _photoDisplayName(_photoPaths.first),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-      const SizedBox(height: 12),
     ];
   }
 
