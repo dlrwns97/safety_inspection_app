@@ -6,6 +6,7 @@ class DefectDetails {
     required this.lengthMm,
     required this.cause,
     this.photoPaths = const [],
+    this.photoOriginalNamesByPath = const {},
   });
 
   final String structuralMember;
@@ -14,6 +15,7 @@ class DefectDetails {
   final double lengthMm;
   final String cause;
   final List<String> photoPaths;
+  final Map<String, String> photoOriginalNamesByPath;
 
   Map<String, dynamic> toJson() => {
     'structuralMember': structuralMember,
@@ -22,6 +24,7 @@ class DefectDetails {
     'lengthMm': lengthMm,
     'cause': cause,
     'photoPaths': photoPaths,
+    'photoOriginalNamesByPath': photoOriginalNamesByPath,
   };
 
   factory DefectDetails.fromJson(Map<String, dynamic> json) => DefectDetails(
@@ -35,5 +38,20 @@ class DefectDetails {
             ?.whereType<String>()
             .toList() ??
         const [],
+    photoOriginalNamesByPath:
+        _photoOriginalNamesFromJson(json['photoOriginalNamesByPath']),
   );
+
+  static Map<String, String> _photoOriginalNamesFromJson(dynamic rawValue) {
+    if (rawValue is! Map) {
+      return const {};
+    }
+    final names = <String, String>{};
+    for (final entry in rawValue.entries) {
+      if (entry.key is String && entry.value is String) {
+        names[entry.key as String] = entry.value as String;
+      }
+    }
+    return names;
+  }
 }
