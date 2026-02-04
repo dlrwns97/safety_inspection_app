@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:photo_manager/photo_manager.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
@@ -210,12 +211,15 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         return;
       }
       await _savePhotoPaths(pickedPhotos);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('AssetPicker error: $e\n$st');
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('갤러리를 열 수 없습니다')),
+        SnackBar(
+          content: Text('갤러리를 열 수 없습니다: ${_truncateErrorMessage(e)}'),
+        ),
       );
     }
   }
@@ -430,12 +434,15 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
           requestType: RequestType.image,
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('AssetPicker error: $e\n$st');
       if (!mounted) {
         return [];
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('갤러리를 열 수 없습니다')),
+        SnackBar(
+          content: Text('갤러리를 열 수 없습니다: ${_truncateErrorMessage(e)}'),
+        ),
       );
       return [];
     }
@@ -467,18 +474,26 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   }
 
   Future<bool> _ensureGalleryPermission() async {
-    final permissionState = await AssetPicker.permissionCheck();
-    final isGranted = permissionState == PermissionState.authorized ||
-        permissionState == PermissionState.limited;
+    final permissionState = await PhotoManager.requestPermissionExtend();
+    if (!mounted) {
+      return false;
+    }
+    final isGranted = permissionState.isAuth;
     if (!isGranted) {
-      if (!mounted) {
-        return false;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('사진 접근 권한이 필요합니다')),
       );
     }
     return isGranted;
+  }
+
+  String _truncateErrorMessage(Object error) {
+    final message = error.toString().trim();
+    const maxLength = 120;
+    if (message.length <= maxLength) {
+      return message;
+    }
+    return '${message.substring(0, maxLength - 3)}...';
   }
 
   Future<_PickedPhotoInfo?> _pickSinglePathFromFilePicker() async {
