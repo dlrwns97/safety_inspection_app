@@ -130,7 +130,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_isSavingPhotos) {
       return;
     }
-    final selection = await _showPhotoSourceSheet(context);
+    final parentContext = context;
+    final selection = await _showPhotoSourceSheet(
+      context,
+      parentContext: parentContext,
+      onGalleryTap: _handleGallerySelection,
+    );
     if (selection == null) {
       return;
     }
@@ -145,7 +150,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<_DefectPhotoSource?> _showPhotoSourceSheet(
     BuildContext sheetContext,
-  ) {
+    {
+    required BuildContext parentContext,
+    Future<void> Function(BuildContext, BuildContext)? onGalleryTap,
+  }) {
     return showModalBottomSheet<_DefectPhotoSource>(
       context: sheetContext,
       showDragHandle: true,
@@ -162,8 +170,13 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text('갤러리에서 가져오기'),
-              onTap: () =>
-                  Navigator.of(context).pop(_DefectPhotoSource.gallery),
+              onTap: () async {
+                if (onGalleryTap != null) {
+                  await onGalleryTap(context, parentContext);
+                  return;
+                }
+                Navigator.of(context).pop(_DefectPhotoSource.gallery);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.folder_open),
@@ -174,6 +187,37 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleGallerySelection(
+    BuildContext sheetContext,
+    BuildContext parentContext,
+  ) async {
+    Navigator.of(sheetContext).pop();
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (!mounted) {
+      return;
+    }
+    try {
+      final pickedPhotos = await _pickFromGalleryAssets(
+        maxAssets: 50,
+        parentContext: parentContext,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (pickedPhotos.isEmpty) {
+        return;
+      }
+      await _savePhotoPaths(pickedPhotos);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('갤러리를 열 수 없습니다')),
+      );
+    }
   }
 
   Future<void> _pickFromCamera() async {
@@ -197,7 +241,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   }
 
   Future<void> _pickFromGallery() async {
-    final pickedPhotos = await _pickFromGalleryAssets(maxAssets: 50);
+    final pickedPhotos = await _pickFromGalleryAssets(
+      maxAssets: 50,
+      parentContext: context,
+    );
     if (pickedPhotos.isEmpty) {
       return;
     }
@@ -299,7 +346,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_isSavingPhotos) {
       return;
     }
-    final selection = await _showPhotoSourceSheet(dialogContext);
+    final selection = await _showPhotoSourceSheet(
+      dialogContext,
+      parentContext: dialogContext,
+    );
     if (selection == null) {
       return;
     }
@@ -351,7 +401,10 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       );
     }
     if (source == _DefectPhotoSource.gallery) {
-      final pickedPhotos = await _pickFromGalleryAssets(maxAssets: 1);
+      final pickedPhotos = await _pickFromGalleryAssets(
+        maxAssets: 1,
+        parentContext: context,
+      );
       if (pickedPhotos.isEmpty) {
         return null;
       }
@@ -362,18 +415,30 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<List<_PickedPhotoInfo>> _pickFromGalleryAssets({
     required int maxAssets,
+    required BuildContext parentContext,
   }) async {
     final permissionGranted = await _ensureGalleryPermission();
     if (!permissionGranted) {
       return [];
     }
-    final assets = await AssetPicker.pickAssets(
-      context,
-      pickerConfig: AssetPickerConfig(
-        maxAssets: maxAssets,
-        requestType: RequestType.image,
-      ),
-    );
+    final List<AssetEntity>? assets;
+    try {
+      assets = await AssetPicker.pickAssets(
+        parentContext,
+        pickerConfig: AssetPickerConfig(
+          maxAssets: maxAssets,
+          requestType: RequestType.image,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return [];
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('갤러리를 열 수 없습니다')),
+      );
+      return [];
+    }
     if (assets == null || assets.isEmpty) {
       return [];
     }
@@ -385,7 +450,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
           continue;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('선택한 사진을 불러올 수 없습니다.')),
+          const SnackBar(content: Text('파일을 불러올 수 없습니다')),
         );
         continue;
       }
