@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:photo_manager/photo_manager.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -192,7 +190,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<void> _handleGallerySelection(
     BuildContext sheetContext,
-    BuildContext parentContext,
+    BuildContext _,
   ) async {
     Navigator.of(sheetContext).pop();
     await Future.delayed(const Duration(milliseconds: 50));
@@ -200,10 +198,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       return;
     }
     try {
-      final pickedPhotos = await _pickFromGalleryAssets(
-        maxAssets: 50,
-        parentContext: parentContext,
-      );
+      final pickedPhotos = await _pickFromGalleryPicker();
       if (!mounted) {
         return;
       }
@@ -245,10 +240,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   }
 
   Future<void> _pickFromGallery() async {
-    final pickedPhotos = await _pickFromGalleryAssets(
-      maxAssets: 50,
-      parentContext: context,
-    );
+    final pickedPhotos = await _pickFromGalleryPicker();
     if (pickedPhotos.isEmpty) {
       return;
     }
@@ -405,10 +397,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       );
     }
     if (source == _DefectPhotoSource.gallery) {
-      final pickedPhotos = await _pickFromGalleryAssets(
-        maxAssets: 1,
-        parentContext: context,
-      );
+      final pickedPhotos = await _pickFromGalleryPicker();
       if (pickedPhotos.isEmpty) {
         return null;
       }
@@ -417,74 +406,22 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     return _pickSinglePathFromFilePicker();
   }
 
-  Future<List<_PickedPhotoInfo>> _pickFromGalleryAssets({
-    required int maxAssets,
-    required BuildContext parentContext,
-  }) async {
-    final permissionGranted = await _ensureGalleryPermission();
-    if (!permissionGranted) {
+  Future<List<_PickedPhotoInfo>> _pickFromGalleryPicker() async {
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage();
+    if (files.isEmpty) {
       return [];
     }
-    final List<AssetEntity>? assets;
-    try {
-      assets = await AssetPicker.pickAssets(
-        parentContext,
-        pickerConfig: AssetPickerConfig(
-          maxAssets: maxAssets,
-          requestType: RequestType.image,
-        ),
-      );
-    } catch (e, st) {
-      debugPrint('AssetPicker error: $e\n$st');
-      if (!mounted) {
-        return [];
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('갤러리를 열 수 없습니다: ${_truncateErrorMessage(e)}'),
-        ),
-      );
-      return [];
-    }
-    if (assets == null || assets.isEmpty) {
-      return [];
-    }
-    final pickedPhotos = <_PickedPhotoInfo>[];
-    for (final asset in assets) {
-      final file = await asset.file;
-      if (file == null) {
-        if (!mounted) {
-          continue;
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('파일을 불러올 수 없습니다')),
-        );
-        continue;
-      }
-      final title = asset.title?.trim();
-      pickedPhotos.add(
-        _PickedPhotoInfo(
-          path: file.path,
-          originalName:
-              title == null || title.isEmpty ? p.basename(file.path) : title,
-        ),
-      );
-    }
-    return pickedPhotos;
-  }
-
-  Future<bool> _ensureGalleryPermission() async {
-    final permissionState = await PhotoManager.requestPermissionExtend();
-    if (!mounted) {
-      return false;
-    }
-    final isGranted = permissionState.isAuth || permissionState.hasAccess;
-    if (!isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('사진 접근 권한이 필요합니다')),
-      );
-    }
-    return isGranted;
+    return files
+        .map(
+          (file) => _PickedPhotoInfo(
+            path: file.path,
+            originalName: file.name.trim().isNotEmpty
+                ? file.name.trim()
+                : p.basename(file.path),
+          ),
+        )
+        .toList();
   }
 
   String _truncateErrorMessage(Object error) {
