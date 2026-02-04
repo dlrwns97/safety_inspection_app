@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_list.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_list_item_tile.dart';
 
 class MarkerSidePanelListSection<T> extends StatelessWidget {
   const MarkerSidePanelListSection({
@@ -19,12 +19,23 @@ class MarkerSidePanelListSection<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MarkerList<T>(
-      items: items,
-      emptyLabel: emptyLabel,
-      onTap: onTap,
-      titleBuilder: titleBuilder,
-      subtitleBuilder: subtitleBuilder,
+    if (items.isEmpty) {
+      return Center(
+        child: Text(emptyLabel),
+      );
+    }
+    return ListView.separated(
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return MarkerSidePanelListItemTile<T>(
+          item: item,
+          titleBuilder: titleBuilder,
+          subtitleBuilder: subtitleBuilder,
+          onTap: () => onTap(item),
+        );
+      },
     );
   }
 }
