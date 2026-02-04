@@ -129,11 +129,8 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_isSavingPhotos) {
       return;
     }
-    final parentContext = context;
     final selection = await _showPhotoSourceSheet(
       context,
-      parentContext: parentContext,
-      onGalleryTap: _handleGallerySelection,
     );
     if (selection == null) {
       return;
@@ -149,10 +146,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   Future<_DefectPhotoSource?> _showPhotoSourceSheet(
     BuildContext sheetContext,
-    {
-    required BuildContext parentContext,
-    Future<void> Function(BuildContext, BuildContext)? onGalleryTap,
-  }) {
+  ) {
     return showModalBottomSheet<_DefectPhotoSource>(
       context: sheetContext,
       showDragHandle: true,
@@ -167,56 +161,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
                   Navigator.of(context).pop(_DefectPhotoSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('갤러리에서 가져오기'),
-              onTap: () async {
-                if (onGalleryTap != null) {
-                  await onGalleryTap(context, parentContext);
-                  return;
-                }
-                Navigator.of(context).pop(_DefectPhotoSource.gallery);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.folder_open),
-              title: const Text('파일에서 가져오기'),
+              title: const Text('기기에서 가져오기'),
               onTap: () => Navigator.of(context).pop(_DefectPhotoSource.file),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _handleGallerySelection(
-    BuildContext sheetContext,
-    BuildContext _,
-  ) async {
-    Navigator.of(sheetContext).pop();
-    await Future.delayed(const Duration(milliseconds: 50));
-    if (!mounted) {
-      return;
-    }
-    try {
-      final pickedPhotos = await _pickFromGalleryPicker();
-      if (!mounted) {
-        return;
-      }
-      if (pickedPhotos.isEmpty) {
-        return;
-      }
-      await _savePhotoPaths(pickedPhotos);
-    } catch (e, st) {
-      debugPrint('AssetPicker error: $e\n$st');
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('갤러리를 열 수 없습니다: ${_truncateErrorMessage(e)}'),
-        ),
-      );
-    }
   }
 
   Future<void> _pickFromCamera() async {
@@ -344,7 +296,6 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     }
     final selection = await _showPhotoSourceSheet(
       dialogContext,
-      parentContext: dialogContext,
     );
     if (selection == null) {
       return;
