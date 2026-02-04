@@ -10,6 +10,7 @@ import 'package:safety_inspection_app/screens/drawing/drawing_screen.dart';
 import 'package:safety_inspection_app/screens/home/dialogs/new_site_dialog.dart';
 import 'package:safety_inspection_app/screens/home/dialogs/site_trash_dialogs.dart';
 import 'package:safety_inspection_app/screens/home/home_storage.dart';
+import 'package:safety_inspection_app/screens/home/site_photo_orphan_scanner.dart';
 import 'package:safety_inspection_app/screens/home/trash_screen.dart';
 import 'package:safety_inspection_app/screens/home/widgets/home_overflow_menu.dart';
 import 'package:safety_inspection_app/screens/home/widgets/site_list_tile.dart';
@@ -117,6 +118,44 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     await _loadSites();
+  }
+
+  Future<void> _showOrphanPhotoScanDialog(Site site) async {
+    final scanFuture = scanOrphanDefectPhotos(siteId: site.id, site: site);
+    if (!mounted) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return FutureBuilder<OrphanScanResult>(
+          future: scanFuture,
+          builder: (context, snapshot) {
+            final result = snapshot.data ?? OrphanScanResult.empty();
+            final isLoading =
+                snapshot.connectionState != ConnectionState.done;
+            return AlertDialog(
+              title: const Text('사진 정리'),
+              content: isLoading
+                  ? const SizedBox(
+                      height: 72,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : _OrphanScanResultList(
+                      result: result,
+                      siteId: site.id,
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('닫기'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<_DrawingSelection?> _selectDrawingType() async {
@@ -244,7 +283,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     final site = activeSites[index];
                     return SiteListTile(
                       site: site,
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PopupMenuButton<_SiteMenuAction>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (action) {
+                              if (action ==
+                                  _SiteMenuAction.scanOrphanPhotos) {
+                                _showOrphanPhotoScanDialog(site);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: _SiteMenuAction.scanOrphanPhotos,
+                                child: Text('사진 정리'),
+                              ),
+                            ],
+                          ),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
                       onTap: () async {
                         await Navigator.of(context).push(
                           MaterialPageRoute(
@@ -274,4 +333,63 @@ class _DrawingSelection {
   final DrawingType type;
   final String? path;
   final String? fileName;
+}
+
+enum _SiteMenuAction { scanOrphanPhotos }
+
+class _OrphanScanResultList extends StatelessWidget {
+  const _OrphanScanResultList({
+    required this.result,
+    required this.siteId,
+  });
+
+  final OrphanScanResult result;
+  final String siteId;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalCount = result.totalCount;
+    final displayedFiles = result.orphanFiles.take(20).toList();
+    return SizedBox(
+      width: double.maxFinite,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('고아 파일 ${totalCount}개'),
+          const SizedBox(height: 12),
+          if (displayedFiles.isEmpty)
+            const Text('표시할 파일이 없습니다.')
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: displayedFiles.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final entity = displayedFiles[index];
+                  final fileName = extractOrphanFileName(entity);
+                  final defectId = extractDefectIdFromPath(
+                    entity: entity,
+                    siteId: siteId,
+                  );
+                  return ListTile(
+                    dense: true,
+                    title: Text(fileName),
+                    subtitle: defectId == null
+                        ? null
+                        : Text('defectId: $defectId'),
+                  );
+                },
+              ),
+            ),
+          if (totalCount > displayedFiles.length) ...[
+            const SizedBox(height: 12),
+            Text('외 ${totalCount - displayedFiles.length}개'),
+          ],
+        ],
+      ),
+    );
+  }
 }
