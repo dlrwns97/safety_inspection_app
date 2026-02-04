@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel_action_bar.dart';
 
 class MarkerSidePanelDetailsSection extends StatelessWidget {
   const MarkerSidePanelDetailsSection({
@@ -36,30 +37,11 @@ class MarkerSidePanelDetailsSection extends StatelessWidget {
                   ),
         ),
         const Divider(height: 1),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: hasSelection ? onEditPressed : null,
-                  child: const Text('수정'),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: hasSelection ? onMovePressed : null,
-                  child: const Text('이동'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: hasSelection ? onDeletePressed : null,
-                  child: const Text('삭제'),
-                ),
-              ],
-            ),
-          ),
+        MarkerSidePanelActionBar(
+          hasSelection: hasSelection,
+          onEditPressed: onEditPressed,
+          onMovePressed: onMovePressed,
+          onDeletePressed: onDeletePressed,
         ),
       ],
     );
