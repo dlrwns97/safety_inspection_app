@@ -421,14 +421,24 @@ class _OrphanScanResultList extends StatefulWidget {
 
 class _OrphanScanResultListState extends State<_OrphanScanResultList> {
   late List<FileSystemEntity> _orphanFiles;
+  late Site _currentSite;
   final Map<String, String> _originalNameByStoredPath = {};
   bool _isCleaning = false;
 
   @override
   void initState() {
     super.initState();
+    _currentSite = widget.site;
     _orphanFiles = List<FileSystemEntity>.from(widget.result.orphanFiles);
     _loadOriginalNamesForOrphans();
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrphanScanResultList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.site != widget.site) {
+      _currentSite = widget.site;
+    }
   }
 
   Future<void> _loadOriginalNamesForOrphans() async {
@@ -510,6 +520,7 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
       return;
     }
     await widget.onSiteUpdated(restoredSite);
+    _currentSite = restoredSite;
     if (!mounted) {
       return;
     }
@@ -612,22 +623,17 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     required FileSystemEntity entity,
     required String defectId,
   }) async {
-    final defectIndex = widget.site.defects.indexWhere(
+    final defectIndex = _currentSite.defects.indexWhere(
       (defect) => defect.id == defectId,
     );
     if (defectIndex == -1) {
       return null;
     }
-    final defect = widget.site.defects[defectIndex];
+    final defect = _currentSite.defects[defectIndex];
     final storedPath = entity.path;
-    final storedKey = photoReferenceKey(storedPath);
+    final restoreKey = photoReferenceKey(storedPath);
     final photoPaths = List<String>.from(defect.details.photoPaths);
-    final hasStoredKey = photoPaths.any(
-      (path) => photoReferenceKey(path) == storedKey,
-    );
-    if (!hasStoredKey) {
-      photoPaths.add(storedKey);
-    }
+    _insertPreservingKeyOrder(photoPaths, restoreKey);
     final photoOriginalNamesByPath = Map<String, String>.from(
       defect.details.photoOriginalNamesByPath,
     );
@@ -640,9 +646,23 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
       photoOriginalNamesByPath: photoOriginalNamesByPath,
     );
     final updatedDefect = defect.copyWith(details: updatedDetails);
-    final updatedDefects = List<Defect>.from(widget.site.defects);
+    final updatedDefects = List<Defect>.from(_currentSite.defects);
     updatedDefects[defectIndex] = updatedDefect;
-    return widget.site.copyWith(defects: updatedDefects);
+    return _currentSite.copyWith(defects: updatedDefects);
+  }
+
+  void _insertPreservingKeyOrder(List<String> photoPaths, String restoreKey) {
+    for (var i = 0; i < photoPaths.length; i += 1) {
+      final existingKey = photoReferenceKey(photoPaths[i]);
+      if (existingKey == restoreKey) {
+        return;
+      }
+      if (restoreKey.compareTo(existingKey) < 0) {
+        photoPaths.insert(i, restoreKey);
+        return;
+      }
+    }
+    photoPaths.add(restoreKey);
   }
 
   @override
