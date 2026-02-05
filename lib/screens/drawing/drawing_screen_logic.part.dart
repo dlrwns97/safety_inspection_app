@@ -766,16 +766,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
     _activePointerIds.add(event.pointer);
-    _updateOverlayIgnoring();
+    _updateFreeDrawGestureState();
   }
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
     _activePointerIds.remove(event.pointer);
-    _updateOverlayIgnoring();
+    _updateFreeDrawGestureState();
   }
 
-  void _updateOverlayIgnoring() {
-    final shouldIgnore = _isFreeDrawMode && _activePointerIds.length >= 2;
+  void _updateFreeDrawGestureState() {
+    final bool shouldIgnore =
+        _isFreeDrawMode && _activePointerIds.length >= 2;
     if (_overlayIgnoring == shouldIgnore) {
       return;
     }
@@ -796,28 +797,31 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPanStart(DragStartDetails details, int pageNumber) {
-    if (_overlayIgnoring) {
+    if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
       return;
     }
+    final scenePoint = _transformationController.toScene(details.localPosition);
     _safeSetState(() {
       _inProgressPage = pageNumber;
-      _inProgress = [details.localPosition];
+      _inProgress = [scenePoint];
     });
   }
 
   void _handleFreeDrawPanUpdate(DragUpdateDetails details, int pageNumber) {
     final inProgress = _inProgress;
-    if (_overlayIgnoring ||
+    if (!_isFreeDrawMode ||
+        _activePointerIds.length >= 2 ||
         inProgress == null ||
         inProgress.isEmpty ||
         _inProgressPage != pageNumber) {
       return;
     }
+    final scenePoint = _transformationController.toScene(details.localPosition);
     const double distanceThreshold = 2.5;
-    if ((details.localPosition - inProgress.last).distance < distanceThreshold) {
+    if ((scenePoint - inProgress.last).distance < distanceThreshold) {
       return;
     }
-    _safeSetState(() => inProgress.add(details.localPosition));
+    _safeSetState(() => inProgress.add(scenePoint));
   }
 
   void _handleFreeDrawPanEnd(DragEndDetails details, int pageNumber) {
@@ -879,6 +883,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       } else {
         _activePointerIds.clear();
         _overlayIgnoring = false;
+        _inProgress = null;
+        _inProgressPage = null;
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {

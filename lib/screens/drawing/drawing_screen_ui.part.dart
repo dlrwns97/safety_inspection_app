@@ -144,6 +144,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
+    final bool isTwoFinger = _activePointerIds.length >= 2;
+    final bool enablePdfGestures = !_isFreeDrawMode || isTwoFinger;
     return PdfDrawingView(
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
@@ -156,6 +158,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       onUpdatePageSize: _handleUpdatePageSize,
       photoControllerForPage: _photoControllerForPage,
       scaleStateControllerForPage: _scaleStateControllerForPage,
+      enablePdfGestures: enablePdfGestures,
       buildPageOverlay:
           ({required pageSize, required pageNumber, required imageProvider}) =>
               _buildPdfPageOverlay(
@@ -217,10 +220,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Offset.zero & overlaySize,
               );
               _pdfPageDestRects[pageNumber] = destRect;
-              final bool pdfIgnoring =
-                  _isFreeDrawMode && !_overlayIgnoring;
-              final bool overlayIgnoring =
-                  !_isFreeDrawMode || _overlayIgnoring;
+              final bool isTwoFinger = _activePointerIds.length >= 2;
+              final bool overlayIgnoring = !_isFreeDrawMode || isTwoFinger;
               return _wrapWithPointerHandlers(
                 tapRegionKey: tapKey,
                 behavior: HitTestBehavior.opaque,
@@ -255,54 +256,49 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         rect: destRect,
                         child: Stack(
                           children: [
-                            IgnorePointer(
-                              ignoring: pdfIgnoring,
-                              child: _buildMarkerLayer(
-                                size: destRect.size,
-                                pageIndex: pageNumber,
-                                child: SizedBox.expand(
-                                  child: Image(
-                                    image: imageProvider,
-                                    fit: BoxFit.fill,
-                                  ),
+                            _buildMarkerLayer(
+                              size: destRect.size,
+                              pageIndex: pageNumber,
+                              child: SizedBox.expand(
+                                child: Image(
+                                  image: imageProvider,
+                                  fit: BoxFit.fill,
                                 ),
                               ),
                             ),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onPanStart: overlayIgnoring
-                                  ? null
-                                  : (details) =>
-                                        _handleFreeDrawPanStart(
-                                          details,
-                                          pageNumber,
-                                        ),
-                              onPanUpdate: overlayIgnoring
-                                  ? null
-                                  : (details) =>
-                                        _handleFreeDrawPanUpdate(
-                                          details,
-                                          pageNumber,
-                                        ),
-                              onPanEnd: overlayIgnoring
-                                  ? null
-                                  : (details) =>
+                            IgnorePointer(
+                              ignoring: overlayIgnoring,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onPanStart:
+                                    (details) => _handleFreeDrawPanStart(
+                                      details,
+                                      pageNumber,
+                                    ),
+                                onPanUpdate:
+                                    (details) => _handleFreeDrawPanUpdate(
+                                      details,
+                                      pageNumber,
+                                    ),
+                                onPanEnd:
+                                    (details) =>
                                         _handleFreeDrawPanEnd(
                                           details,
                                           pageNumber,
                                         ),
-                              onPanCancel: _handleFreeDrawPanCancel,
-                              child: CustomPaint(
-                                painter: TempPolylinePainter(
-                                  strokes:
-                                      _strokesByPage[pageNumber] ??
-                                      const <List<Offset>>[],
-                                  inProgress:
-                                      _inProgressPage == pageNumber
-                                      ? _inProgress
-                                      : null,
+                                onPanCancel: _handleFreeDrawPanCancel,
+                                child: CustomPaint(
+                                  painter: TempPolylinePainter(
+                                    strokes:
+                                        _strokesByPage[pageNumber] ??
+                                        const <List<Offset>>[],
+                                    inProgress:
+                                        _inProgressPage == pageNumber
+                                        ? _inProgress
+                                        : null,
+                                  ),
+                                  child: const SizedBox.expand(),
                                 ),
-                                child: const SizedBox.expand(),
                               ),
                             ),
                             Positioned.fill(
