@@ -114,27 +114,25 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
-  Widget _buildRightPanelHandle({
+  Widget _buildRightPanelOverlayToggle({
     required bool isCollapsed,
     required VoidCallback onToggle,
   }) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Material(
         color: theme.colorScheme.surface,
-        border: Border(
-          left: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onToggle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        shape: const CircleBorder(),
+        elevation: 2,
+        child: InkResponse(
+          onTap: onToggle,
+          customBorder: const CircleBorder(),
           child: Center(
             child: Icon(
               isCollapsed ? Icons.chevron_left : Icons.chevron_right,
-              size: 18,
+              size: 20,
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
