@@ -829,19 +829,19 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
   VoidCallback? onCancel;
 
   int? _primaryPointer;
+  bool _accepted = false;
+  bool _didCancel = false;
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
-    if (_primaryPointer != null) {
-      stopTrackingPointer(event.pointer);
-      resolve(GestureDisposition.rejected);
-      onCancel?.call();
+    if (_primaryPointer == null) {
+      _primaryPointer = event.pointer;
+      _accepted = false;
+      _didCancel = false;
+      startTrackingPointer(event.pointer);
       return;
     }
-    _primaryPointer = event.pointer;
-    startTrackingPointer(event.pointer);
-    resolve(GestureDisposition.accepted);
-    onStart?.call(event.localPosition);
+    _cancelAndRejectAll();
   }
 
   @override
@@ -850,20 +850,46 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
       return;
     }
     if (event is PointerMoveEvent) {
+      if (!_accepted) {
+        resolve(GestureDisposition.accepted);
+        _accepted = true;
+        onStart?.call(event.localPosition);
+      }
       onUpdate?.call(event.localPosition);
       return;
     }
     if (event is PointerUpEvent) {
-      onEnd?.call();
-      stopTrackingPointer(event.pointer);
-      _primaryPointer = null;
+      if (_accepted) {
+        onEnd?.call();
+      }
+      _stopAndReset();
       return;
     }
     if (event is PointerCancelEvent) {
-      onCancel?.call();
-      stopTrackingPointer(event.pointer);
-      _primaryPointer = null;
+      _cancelAndRejectAll();
     }
+  }
+
+  void _cancelAndRejectAll() {
+    if (_primaryPointer != null) {
+      stopTrackingPointer(_primaryPointer!);
+    }
+    if (!_didCancel) {
+      _didCancel = true;
+      onCancel?.call();
+    }
+    resolve(GestureDisposition.rejected);
+    _stopAndReset();
+  }
+
+  void _stopAndReset() {
+    final primary = _primaryPointer;
+    if (primary != null) {
+      stopTrackingPointer(primary);
+    }
+    _primaryPointer = null;
+    _accepted = false;
+    _didCancel = false;
   }
 
   @override
@@ -872,5 +898,7 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
   @override
   void didStopTrackingLastPointer(int pointer) {
     _primaryPointer = null;
+    _accepted = false;
+    _didCancel = false;
   }
 }
