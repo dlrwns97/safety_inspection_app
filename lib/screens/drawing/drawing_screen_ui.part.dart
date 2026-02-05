@@ -70,19 +70,36 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
+    final bool canMove = _isMoveMode && _hasMoveTarget;
     return [
       if (isPdf)
-        PdfViewLayer(
-          pdfViewer: _buildPdfViewer(),
-          currentPage: _currentPage,
-          pageCount: _pageCount,
-          canPrev: _currentPage > 1,
-          canNext: _currentPage < _pageCount,
-          onPrevPage: _handlePrevPage,
-          onNextPage: _handleNextPage,
+        AbsorbPointer(
+          absorbing: _isMoveMode,
+          child: PdfViewLayer(
+            pdfViewer: _buildPdfViewer(),
+            currentPage: _currentPage,
+            pageCount: _pageCount,
+            canPrev: _currentPage > 1,
+            canNext: _currentPage < _pageCount,
+            onPrevPage: _handlePrevPage,
+            onNextPage: _handleNextPage,
+          ),
         )
       else
         _buildCanvasDrawingLayer(),
+      if (canMove)
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanStart: _handleMoveOverlayPanStart,
+            onPanUpdate:
+                isPdf
+                    ? _handleMovePdfOverlayPanUpdate
+                    : _handleMoveCanvasOverlayPanUpdate,
+            onPanEnd: (_) => _handleMovePanEnd(),
+            onPanCancel: _handleMovePanCancel,
+          ),
+        ),
     ];
   }
 
@@ -200,6 +217,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 fittedSizes.destination,
                 Offset.zero & overlaySize,
               );
+              _pdfPageDestRects[pageNumber] = destRect;
               return _wrapWithPointerHandlers(
                 tapRegionKey: tapKey,
                 behavior: HitTestBehavior.opaque,
@@ -258,6 +276,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       minScale: DrawingCanvasMinScale,
       maxScale: DrawingCanvasMaxScale,
       panEnabled: !_isMoveMode,
+      scaleEnabled: !_isMoveMode,
       constrained: false,
       child: SizedBox(
         key: _canvasKey,
