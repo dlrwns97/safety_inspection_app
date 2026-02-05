@@ -410,6 +410,33 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     await _bulkCleanup();
   }
 
+  Future<void> _confirmRestore(FileSystemEntity entity) async {
+    final defectId = extractDefectIdFromPath(
+      entity: entity,
+      siteId: widget.siteId,
+    );
+    if (defectId == null) {
+      return;
+    }
+    final restoredSite = await _restoreOrphanFile(
+      entity: entity,
+      defectId: defectId,
+    );
+    if (restoredSite == null) {
+      return;
+    }
+    final sites = await HomeStorage.loadSites();
+    await HomeStorage.updateSite(sites, restoredSite);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _orphanFiles = _orphanFiles
+          .where((existing) => existing.path != entity.path)
+          .toList();
+    });
+  }
+
   Future<void> _bulkCleanup() async {
     setState(() {
       _isCleaning = true;
@@ -630,7 +657,25 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
                         );
                         return ListTile(
                           dense: true,
-                          title: Text(fileName),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  fileName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed:
+                                    _isCleaning
+                                        ? null
+                                        : () => _confirmRestore(entity),
+                                child: const Text('복구'),
+                              ),
+                            ],
+                          ),
                           subtitle: defectId == null
                               ? null
                               : Text('defectId: $defectId'),
