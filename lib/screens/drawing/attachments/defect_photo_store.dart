@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class DefectPhotoStore {
@@ -40,9 +42,59 @@ class DefectPhotoStore {
       } catch (_) {
         continue;
       }
+      await _writeSidecarMetadata(
+        destinationPath: destinationPath,
+        originalName: p.basename(sourcePath),
+      );
     }
 
     return savedPaths;
+  }
+
+  String sidecarPathFor(String storedPhotoPath) {
+    return p.setExtension(storedPhotoPath, '.json');
+  }
+
+  Future<String?> readOriginalNameForStoredPath(
+    String storedPhotoPath,
+  ) async {
+    final sidecarPath = sidecarPathFor(storedPhotoPath);
+    final sidecarFile = File(sidecarPath);
+    if (!await sidecarFile.exists()) {
+      return null;
+    }
+    try {
+      final content = await sidecarFile.readAsString();
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+      final originalName = decoded['originalName'];
+      if (originalName is! String) {
+        return null;
+      }
+      final trimmed = originalName.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writeSidecarMetadata({
+    required String destinationPath,
+    required String originalName,
+  }) async {
+    final trimmed = originalName.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    try {
+      final sidecarFile = File(sidecarPathFor(destinationPath));
+      await sidecarFile.writeAsString(
+        jsonEncode({'originalName': trimmed}),
+        flush: true,
+      );
+    } catch (_) {}
   }
 
   String _formatTimestamp(DateTime dateTime) {
