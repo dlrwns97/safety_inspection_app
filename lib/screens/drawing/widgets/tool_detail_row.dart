@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_header_row.dart';
 
 class ToolDetailRow extends StatelessWidget {

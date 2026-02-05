@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_detail_row.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_selection_row.dart';
 
