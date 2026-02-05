@@ -39,6 +39,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.da
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
+import 'package:safety_inspection_app/widgets/drawing/drawing_toolbar.dart';
 
 part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
@@ -96,6 +97,13 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didLoadScalePrefs = false;
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
+  bool _isFreeDrawMode = false;
+  DrawingTool _activeTool = DrawingTool.pen;
+  final Set<int> _activePointerIds = <int>{};
+  bool _overlayIgnoring = false;
+  bool _didShowFreeDrawGuide = false;
+  bool _canUndoDrawing = false;
+  bool _canRedoDrawing = false;
   String? _moveTargetDefectId;
   String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;

@@ -100,6 +100,20 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPanCancel: _handleMovePanCancel,
           ),
         ),
+      if (_isFreeDrawMode)
+        Positioned(
+          top: 12,
+          left: 12,
+          right: 12,
+          child: DrawingToolbar(
+            activeTool: _activeTool,
+            onToolSelected: _handleDrawingToolChanged,
+            onUndo: () {},
+            onRedo: () {},
+            canUndo: _canUndoDrawing,
+            canRedo: _canRedoDrawing,
+          ),
+        ),
     ];
   }
 
@@ -255,6 +269,29 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             child: Image(
                               image: imageProvider,
                               fit: BoxFit.fill,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: _handleOverlayPointerDown,
+                          onPointerUp: _handleOverlayPointerUpOrCancel,
+                          onPointerCancel: _handleOverlayPointerUpOrCancel,
+                          child: IgnorePointer(
+                            ignoring: !_isFreeDrawMode ? true : _overlayIgnoring,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onPanStart: _isFreeDrawMode
+                                  ? _handleFreeDrawPanStart
+                                  : null,
+                              onPanUpdate: _isFreeDrawMode
+                                  ? _handleFreeDrawPanUpdate
+                                  : null,
+                              onPanEnd: _isFreeDrawMode
+                                  ? _handleFreeDrawPanEnd
+                                  : null,
                             ),
                           ),
                         ),

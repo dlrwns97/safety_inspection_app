@@ -764,6 +764,37 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _tapCanceled = false;
   }
 
+  void _handleOverlayPointerDown(PointerDownEvent event) {
+    _activePointerIds.add(event.pointer);
+    _updateOverlayIgnoring();
+  }
+
+  void _handleOverlayPointerUpOrCancel(PointerEvent event) {
+    _activePointerIds.remove(event.pointer);
+    _updateOverlayIgnoring();
+  }
+
+  void _updateOverlayIgnoring() {
+    final shouldIgnore = _isFreeDrawMode && _activePointerIds.length >= 2;
+    if (_overlayIgnoring == shouldIgnore) {
+      return;
+    }
+    _safeSetState(() => _overlayIgnoring = shouldIgnore);
+  }
+
+  void _handleDrawingToolChanged(DrawingTool tool) {
+    if (_activeTool == tool) {
+      return;
+    }
+    _safeSetState(() => _activeTool = tool);
+  }
+
+  void _handleFreeDrawPanStart(DragStartDetails details) {}
+
+  void _handleFreeDrawPanUpdate(DragUpdateDetails details) {}
+
+  void _handleFreeDrawPanEnd(DragEndDetails details) {}
+
   ({Offset localPosition, Size size})? _resolveTapPosition(
     BuildContext? tapContext,
     Offset globalPosition,
@@ -784,9 +815,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _toggleMode(DrawMode nextMode) {
+    final toggledMode = _controller.toggleMode(_mode, nextMode);
+    final enableFreeDraw =
+        toggledMode == DrawMode.freeDraw || toggledMode == DrawMode.eraser;
     _safeSetState(() {
-      _mode = _controller.toggleMode(_mode, nextMode);
+      _mode = toggledMode;
+      _isFreeDrawMode = enableFreeDraw;
+      if (_isFreeDrawMode) {
+        _activeTool = toggledMode == DrawMode.eraser
+            ? DrawingTool.eraser
+            : DrawingTool.pen;
+      } else {
+        _activePointerIds.clear();
+        _overlayIgnoring = false;
+      }
     });
+    if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
+      _didShowFreeDrawGuide = true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('자유 그리기: 한 손가락으로 그리기, 두 손가락으로 확대/이동'),
+        ),
+      );
+    }
   }
 
   void _enterMoveMode() {
