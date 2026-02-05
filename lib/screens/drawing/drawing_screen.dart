@@ -103,8 +103,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _activePointerIds = <int>{};
   bool _overlayIgnoring = false;
   bool _didShowFreeDrawGuide = false;
-  List<List<Offset>> _strokes = [];
+  final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
   List<Offset>? _inProgress;
+  int? _inProgressPage;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;
@@ -134,6 +135,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _moveTargetEquipmentId == null
           ? null
           : _findEquipmentById(_site, _moveTargetEquipmentId!);
+
 
   PhotoViewController _photoControllerForPage(int pageNumber) {
     return _pdfPhotoControllers.putIfAbsent(

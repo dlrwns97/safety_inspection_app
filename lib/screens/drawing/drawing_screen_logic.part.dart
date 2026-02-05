@@ -783,6 +783,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _overlayIgnoring = shouldIgnore;
       if (shouldIgnore) {
         _inProgress = null;
+        _inProgressPage = null;
       }
     });
   }
@@ -794,16 +795,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPanStart(DragStartDetails details) {
+  void _handleFreeDrawPanStart(DragStartDetails details, int pageNumber) {
     if (_overlayIgnoring) {
       return;
     }
-    _safeSetState(() => _inProgress = [details.localPosition]);
+    _safeSetState(() {
+      _inProgressPage = pageNumber;
+      _inProgress = [details.localPosition];
+    });
   }
 
-  void _handleFreeDrawPanUpdate(DragUpdateDetails details) {
+  void _handleFreeDrawPanUpdate(DragUpdateDetails details, int pageNumber) {
     final inProgress = _inProgress;
-    if (_overlayIgnoring || inProgress == null || inProgress.isEmpty) {
+    if (_overlayIgnoring ||
+        inProgress == null ||
+        inProgress.isEmpty ||
+        _inProgressPage != pageNumber) {
       return;
     }
     const double distanceThreshold = 2.5;
@@ -813,14 +820,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => inProgress.add(details.localPosition));
   }
 
-  void _handleFreeDrawPanEnd(DragEndDetails details) {
+  void _handleFreeDrawPanEnd(DragEndDetails details, int pageNumber) {
     final inProgress = _inProgress;
-    if (inProgress == null || inProgress.isEmpty) {
+    if (inProgress == null ||
+        inProgress.isEmpty ||
+        _inProgressPage != pageNumber) {
       return;
     }
     _safeSetState(() {
-      _strokes.add(List<Offset>.from(inProgress));
+      _strokesByPage.putIfAbsent(pageNumber, () => <List<Offset>>[]).add(
+        List<Offset>.from(inProgress),
+      );
       _inProgress = null;
+      _inProgressPage = null;
     });
   }
 
@@ -828,7 +840,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_inProgress == null) {
       return;
     }
-    _safeSetState(() => _inProgress = null);
+    _safeSetState(() {
+      _inProgress = null;
+      _inProgressPage = null;
+    });
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(

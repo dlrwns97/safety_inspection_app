@@ -253,43 +253,67 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     children: [
                       Positioned.fromRect(
                         rect: destRect,
-                        child: IgnorePointer(
-                          ignoring: pdfIgnoring,
-                          child: _buildMarkerLayer(
-                            size: destRect.size,
-                            pageIndex: pageNumber,
-                            child: SizedBox.expand(
-                              child: Image(
-                                image: imageProvider,
-                                fit: BoxFit.fill,
+                        child: Stack(
+                          children: [
+                            IgnorePointer(
+                              ignoring: pdfIgnoring,
+                              child: _buildMarkerLayer(
+                                size: destRect.size,
+                                pageIndex: pageNumber,
+                                child: SizedBox.expand(
+                                  child: Image(
+                                    image: imageProvider,
+                                    fit: BoxFit.fill,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                      IgnorePointer(
-                        ignoring: overlayIgnoring,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onPanStart: _handleFreeDrawPanStart,
-                          onPanUpdate: _handleFreeDrawPanUpdate,
-                          onPanEnd: _handleFreeDrawPanEnd,
-                          onPanCancel: _handleFreeDrawPanCancel,
-                          child: CustomPaint(
-                            painter: TempPolylinePainter(
-                              strokes: _strokes,
-                              inProgress: _inProgress,
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onPanStart: overlayIgnoring
+                                  ? null
+                                  : (details) =>
+                                        _handleFreeDrawPanStart(
+                                          details,
+                                          pageNumber,
+                                        ),
+                              onPanUpdate: overlayIgnoring
+                                  ? null
+                                  : (details) =>
+                                        _handleFreeDrawPanUpdate(
+                                          details,
+                                          pageNumber,
+                                        ),
+                              onPanEnd: overlayIgnoring
+                                  ? null
+                                  : (details) =>
+                                        _handleFreeDrawPanEnd(
+                                          details,
+                                          pageNumber,
+                                        ),
+                              onPanCancel: _handleFreeDrawPanCancel,
+                              child: CustomPaint(
+                                painter: TempPolylinePainter(
+                                  strokes:
+                                      _strokesByPage[pageNumber] ??
+                                      const <List<Offset>>[],
+                                  inProgress:
+                                      _inProgressPage == pageNumber
+                                      ? _inProgress
+                                      : null,
+                                ),
+                                child: const SizedBox.expand(),
+                              ),
                             ),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Listener(
-                          behavior: HitTestBehavior.translucent,
-                          onPointerDown: _handleOverlayPointerDown,
-                          onPointerUp: _handleOverlayPointerUpOrCancel,
-                          onPointerCancel: _handleOverlayPointerUpOrCancel,
+                            Positioned.fill(
+                              child: Listener(
+                                behavior: HitTestBehavior.translucent,
+                                onPointerDown: _handleOverlayPointerDown,
+                                onPointerUp: _handleOverlayPointerUpOrCancel,
+                                onPointerCancel: _handleOverlayPointerUpOrCancel,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
