@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_screen.dart';
 import 'package:safety_inspection_app/screens/home/dialogs/new_site_dialog.dart';
 import 'package:safety_inspection_app/screens/home/dialogs/site_trash_dialogs.dart';
@@ -337,7 +339,7 @@ class _DrawingSelection {
 
 enum _SiteMenuAction { scanOrphanPhotos }
 
-class _OrphanScanResultList extends StatelessWidget {
+class _OrphanScanResultList extends StatefulWidget {
   const _OrphanScanResultList({
     required this.result,
     required this.siteId,
@@ -347,9 +349,108 @@ class _OrphanScanResultList extends StatelessWidget {
   final String siteId;
 
   @override
+  State<_OrphanScanResultList> createState() => _OrphanScanResultListState();
+}
+
+class _OrphanScanResultListState extends State<_OrphanScanResultList> {
+  late List<FileSystemEntity> _orphanFiles;
+  bool _isCleaning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _orphanFiles = List<FileSystemEntity>.from(widget.result.orphanFiles);
+  }
+
+  Future<void> _confirmBulkCleanup() async {
+    final count = _orphanFiles.length;
+    if (count == 0) {
+      return;
+    }
+    final shouldClean = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('미사용 파일 정리'),
+        content: Text(
+          '총 $count개 파일을 정리합니다.\n'
+          '앱이 저장한 미사용 사진 파일만 삭제됩니다. 갤러리/원본 파일은 삭제되지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+    if (shouldClean != true || !mounted) {
+      return;
+    }
+    await _bulkCleanup();
+  }
+
+  Future<void> _bulkCleanup() async {
+    setState(() {
+      _isCleaning = true;
+    });
+    final storeRoot = await DefectPhotoStore().getRootDirectory();
+    final normalizedRoot = p.normalize(p.absolute(storeRoot.path));
+    var skippedCount = 0;
+    final deletedPaths = <String>{};
+
+    for (final entity in _orphanFiles) {
+      final filePath = entity.path;
+      final normalizedPath = p.normalize(p.absolute(filePath));
+      final isWithinRoot =
+          p.equals(normalizedRoot, normalizedPath) ||
+          p.isWithin(normalizedRoot, normalizedPath);
+      if (!isWithinRoot) {
+        skippedCount += 1;
+        continue;
+      }
+      final file = File(filePath);
+      final exists = await file.exists();
+      if (!exists) {
+        continue;
+      }
+      final stat = await file.stat();
+      if (stat.type != FileSystemEntityType.file) {
+        continue;
+      }
+      try {
+        await file.delete();
+        deletedPaths.add(filePath);
+      } catch (_) {
+        continue;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _orphanFiles = _orphanFiles
+          .where((entity) => !deletedPaths.contains(entity.path))
+          .toList();
+      _isCleaning = false;
+    });
+    final deletedCount = deletedPaths.length;
+    final snackBarMessage = skippedCount > 0
+        ? '$deletedCount개 정리 완료, $skippedCount개는 안전상 건너뜀'
+        : '$deletedCount개 정리 완료';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(snackBarMessage)),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final totalCount = result.totalCount;
-    final displayedFiles = result.orphanFiles.take(20).toList();
+    final totalCount = _orphanFiles.length;
+    final displayedFiles = _orphanFiles.take(20).toList();
     return SizedBox(
       width: double.maxFinite,
       child: ConstrainedBox(
@@ -361,6 +462,15 @@ class _OrphanScanResultList extends StatelessWidget {
             Text('미사용 파일 ${totalCount}개'),
             const SizedBox(height: 4),
             const Text('현재 현장 데이터에서 참조되지 않는 사진입니다.'),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _isCleaning ? null : _confirmBulkCleanup,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('미사용 파일 정리'),
+              ),
+            ),
             const SizedBox(height: 12),
             Flexible(
               child: displayedFiles.isEmpty
@@ -373,7 +483,7 @@ class _OrphanScanResultList extends StatelessWidget {
                         final fileName = extractOrphanFileName(entity);
                         final defectId = extractDefectIdFromPath(
                           entity: entity,
-                          siteId: siteId,
+                          siteId: widget.siteId,
                         );
                         return ListTile(
                           dense: true,
