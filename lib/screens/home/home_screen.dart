@@ -550,17 +550,6 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     final photoOriginalNamesByPath = Map<String, String>.from(
       defect.details.photoOriginalNamesByPath,
     );
-    if (!photoOriginalNamesByPath.containsKey(storedKey)) {
-      final originalName = _resolveOriginalName(
-        entity: entity,
-        originalNamesByPath: defect.details.photoOriginalNamesByPath,
-      );
-      if (originalName != null &&
-          originalName.trim().isNotEmpty &&
-          !_looksLikeCameraName(p.basenameWithoutExtension(originalName))) {
-        photoOriginalNamesByPath[storedKey] = originalName;
-      }
-    }
     final updatedDetails = defect.details.copyWith(
       photoPaths: photoPaths,
       photoOriginalNamesByPath: photoOriginalNamesByPath,
@@ -645,20 +634,6 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
       return base;
     }
     return extractOrphanFileName(entity);
-  }
-
-  String? _resolveOriginalName({
-    required FileSystemEntity entity,
-    required Map<String, String> originalNamesByPath,
-  }) {
-    final candidateKeys = _candidatePhotoKeysFor(entity);
-    for (final key in candidateKeys) {
-      final originalName = originalNamesByPath[key];
-      if (originalName != null && originalName.trim().isNotEmpty) {
-        return originalName;
-      }
-    }
-    return null;
   }
 
   @override
