@@ -37,11 +37,14 @@ class MarkerSidePanelDetailsSection extends StatelessWidget {
                   ),
         ),
         const Divider(height: 1),
-        MarkerSidePanelActionBar(
-          hasSelection: hasSelection,
-          onEditPressed: onEditPressed,
-          onMovePressed: onMovePressed,
-          onDeletePressed: onDeletePressed,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: MarkerSidePanelActionBar(
+            hasSelection: hasSelection,
+            onEditPressed: onEditPressed,
+            onMovePressed: onMovePressed,
+            onDeletePressed: onDeletePressed,
+          ),
         ),
       ],
     );
