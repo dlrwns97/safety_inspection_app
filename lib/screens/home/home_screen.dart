@@ -400,7 +400,7 @@ class _OrphanScanResultList extends StatefulWidget {
   final OrphanScanResult result;
   final Site site;
   final String siteId;
-  final ValueChanged<Site> onSiteUpdated;
+  final Future<void> Function(Site site) onSiteUpdated;
 
   @override
   State<_OrphanScanResultList> createState() => _OrphanScanResultListState();
