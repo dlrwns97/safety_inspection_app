@@ -823,9 +823,9 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
     super.supportedDevices,
   });
 
-  ValueChanged<PointerDownEvent>? onStart;
-  ValueChanged<PointerMoveEvent>? onUpdate;
-  ValueChanged<PointerUpEvent>? onEnd;
+  ValueChanged<Offset>? onStart;
+  ValueChanged<Offset>? onUpdate;
+  VoidCallback? onEnd;
   VoidCallback? onCancel;
 
   int? _primaryPointer;
@@ -833,6 +833,7 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
   @override
   void addAllowedPointer(PointerDownEvent event) {
     if (_primaryPointer != null) {
+      stopTrackingPointer(event.pointer);
       resolve(GestureDisposition.rejected);
       onCancel?.call();
       return;
@@ -840,7 +841,7 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
     _primaryPointer = event.pointer;
     startTrackingPointer(event.pointer);
     resolve(GestureDisposition.accepted);
-    onStart?.call(event);
+    onStart?.call(event.localPosition);
   }
 
   @override
@@ -849,11 +850,11 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
       return;
     }
     if (event is PointerMoveEvent) {
-      onUpdate?.call(event);
+      onUpdate?.call(event.localPosition);
       return;
     }
     if (event is PointerUpEvent) {
-      onEnd?.call(event);
+      onEnd?.call();
       stopTrackingPointer(event.pointer);
       _primaryPointer = null;
       return;
