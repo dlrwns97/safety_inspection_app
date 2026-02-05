@@ -67,6 +67,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, Size> _pdfPageSizes = {};
+  final Map<int, Rect> _pdfPageDestRects = {};
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
@@ -101,6 +102,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   double? _moveOriginNormalizedY;
   double? _movePreviewNormalizedX;
   double? _movePreviewNormalizedY;
+  Offset? _moveLastGlobalPosition;
 
   Defect? get _selectedDefect =>
       _selectedDefectId == null

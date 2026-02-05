@@ -811,6 +811,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       _movePreviewNormalizedX = _moveOriginNormalizedX;
       _movePreviewNormalizedY = _moveOriginNormalizedY;
+      _moveLastGlobalPosition = null;
     });
   }
 
@@ -960,6 +961,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isMoveMode) {
       return;
     }
+    _moveLastGlobalPosition = null;
   }
 
   void _handleMovePanStartGlobal() {
@@ -982,6 +984,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _movePreviewNormalizedX = _moveOriginNormalizedX;
       _movePreviewNormalizedY = _moveOriginNormalizedY;
     });
+  }
+
+  void _handleMoveOverlayPanStart(DragStartDetails details) {
+    if (!_isMoveMode || !_hasMoveTarget) {
+      return;
+    }
+    _moveLastGlobalPosition = details.globalPosition;
+    _handleMovePanStartGlobal();
+  }
+
+  void _handleMoveCanvasOverlayPanUpdate(DragUpdateDetails details) {
+    _updateMovePreviewFromGlobalDelta(
+      globalPosition: details.globalPosition,
+      pageIndex: _currentPage,
+      tapContext: _canvasTapRegionKey.currentContext,
+      transformToScene: true,
+    );
+  }
+
+  void _handleMovePdfOverlayPanUpdate(DragUpdateDetails details) {
+    final pageIndex = _currentPage;
+    _updateMovePreviewFromGlobalDelta(
+      globalPosition: details.globalPosition,
+      pageIndex: pageIndex,
+      tapContext: _pdfTapRegionKeyForPage(pageIndex).currentContext,
+      destRect: _pdfPageDestRects[pageIndex],
+    );
   }
 
   void _handleMoveCanvasPanUpdate(DragUpdateDetails details) {
@@ -1058,10 +1087,97 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
+  void _updateMovePreviewFromGlobalDelta({
+    required Offset globalPosition,
+    required int pageIndex,
+    required BuildContext? tapContext,
+    bool transformToScene = false,
+    Size? overlaySize,
+    Rect? destRect,
+  }) {
+    if (!_isMoveMode || !_hasMoveTarget) {
+      return;
+    }
+    final targetPageIndex = _moveTargetPageIndex;
+    if (targetPageIndex == null || targetPageIndex != pageIndex) {
+      return;
+    }
+    final lastGlobalPosition = _moveLastGlobalPosition;
+    if (lastGlobalPosition == null) {
+      _moveLastGlobalPosition = globalPosition;
+      return;
+    }
+    final prevTapInfo = _resolveTapPosition(tapContext, lastGlobalPosition);
+    final nextTapInfo = _resolveTapPosition(tapContext, globalPosition);
+    _moveLastGlobalPosition = globalPosition;
+    if (prevTapInfo == null || nextTapInfo == null) {
+      return;
+    }
+    final currentX = _movePreviewNormalizedX;
+    final currentY = _movePreviewNormalizedY;
+    if (currentX == null || currentY == null) {
+      return;
+    }
+    Offset deltaNormalized;
+    if (transformToScene) {
+      final prevScene = _transformationController.toScene(
+        prevTapInfo.localPosition,
+      );
+      final nextScene = _transformationController.toScene(
+        nextTapInfo.localPosition,
+      );
+      final deltaScene = nextScene - prevScene;
+      deltaNormalized = Offset(
+        deltaScene.dx / DrawingCanvasSize.width,
+        deltaScene.dy / DrawingCanvasSize.height,
+      );
+    } else {
+      final resolvedOverlaySize = overlaySize ?? prevTapInfo.size;
+      final resolvedDestRect =
+          destRect == null || destRect.isEmpty
+              ? Offset.zero & resolvedOverlaySize
+              : destRect;
+      if (resolvedDestRect.isEmpty) {
+        return;
+      }
+      final clampedPrev = _clampOffsetToRect(
+        prevTapInfo.localPosition,
+        resolvedDestRect,
+      );
+      final clampedNext = _clampOffsetToRect(
+        nextTapInfo.localPosition,
+        resolvedDestRect,
+      );
+      final imagePrev = clampedPrev - resolvedDestRect.topLeft;
+      final imageNext = clampedNext - resolvedDestRect.topLeft;
+      final deltaImage = imageNext - imagePrev;
+      deltaNormalized = Offset(
+        deltaImage.dx / resolvedDestRect.width,
+        deltaImage.dy / resolvedDestRect.height,
+      );
+    }
+    final nextX =
+        (currentX + deltaNormalized.dx).clamp(0.0, 1.0);
+    final nextY =
+        (currentY + deltaNormalized.dy).clamp(0.0, 1.0);
+    _safeSetState(() {
+      _movePreviewNormalizedX = nextX.toDouble();
+      _movePreviewNormalizedY = nextY.toDouble();
+    });
+  }
+
+  Offset _clampOffsetToRect(Offset offset, Rect rect) {
+    return Offset(
+      offset.dx.clamp(rect.left, rect.right),
+      offset.dy.clamp(rect.top, rect.bottom),
+    );
+  }
+
   void _handleMovePanCancel() {
     if (!_isMoveMode) {
       return;
     }
+    _moveLastGlobalPosition = null;
     final originX = _moveOriginNormalizedX;
     final originY = _moveOriginNormalizedY;
     if (originX == null || originY == null) {
