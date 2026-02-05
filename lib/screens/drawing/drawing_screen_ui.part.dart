@@ -145,7 +145,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePdfGestures = !_isFreeDrawMode || isTwoFinger;
+    final bool enablePdfTransformGestures = !_isFreeDrawMode || isTwoFinger;
+    final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return PdfDrawingView(
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
@@ -158,7 +159,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       onUpdatePageSize: _handleUpdatePageSize,
       photoControllerForPage: _photoControllerForPage,
       scaleStateControllerForPage: _scaleStateControllerForPage,
-      enablePdfGestures: enablePdfGestures,
+      enablePdfTransformGestures: enablePdfTransformGestures,
+      disablePageSwipe: disablePageSwipe,
       buildPageOverlay:
           ({required pageSize, required pageNumber, required imageProvider}) =>
               _buildPdfPageOverlay(
@@ -221,7 +223,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               );
               _pdfPageDestRects[pageNumber] = destRect;
               final bool isTwoFinger = _activePointerIds.length >= 2;
-              final bool overlayIgnoring = !_isFreeDrawMode || isTwoFinger;
+              final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
               return _wrapWithPointerHandlers(
                 tapRegionKey: tapKey,
                 behavior: HitTestBehavior.opaque,
@@ -267,7 +269,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               ),
                             ),
                             IgnorePointer(
-                              ignoring: overlayIgnoring,
+                              ignoring: !enableOverlayDrawing,
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onPanStart:

@@ -19,7 +19,8 @@ class PdfDrawingView extends StatelessWidget {
     required this.photoControllerForPage,
     required this.scaleStateControllerForPage,
     required this.buildPageOverlay,
-    required this.enablePdfGestures,
+    required this.enablePdfTransformGestures,
+    required this.disablePageSwipe,
   });
 
   final PdfController? pdfController;
@@ -39,7 +40,8 @@ class PdfDrawingView extends StatelessWidget {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) buildPageOverlay;
-  final bool enablePdfGestures;
+  final bool enablePdfTransformGestures;
+  final bool disablePageSwipe;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +67,9 @@ class PdfDrawingView extends StatelessWidget {
           controller: pdfController!,
           scrollDirection: Axis.vertical,
           pageSnapping: true,
-          physics: const PageScrollPhysics(),
+          physics: disablePageSwipe
+              ? const NeverScrollableScrollPhysics()
+              : const PageScrollPhysics(),
           onPageChanged: onPageChanged,
           onDocumentLoaded: onDocumentLoaded,
           onDocumentError: onDocumentError,
@@ -92,7 +96,7 @@ class PdfDrawingView extends StatelessWidget {
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController:
                     scaleStateControllerForPage(pageNumber),
-                disableGestures: !enablePdfGestures,
+                disableGestures: !enablePdfTransformGestures,
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {

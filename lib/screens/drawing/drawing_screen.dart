@@ -101,7 +101,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isFreeDrawMode = false;
   DrawingTool _activeTool = DrawingTool.pen;
   final Set<int> _activePointerIds = <int>{};
-  bool _overlayIgnoring = false;
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
   List<Offset>? _inProgress;
