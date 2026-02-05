@@ -797,34 +797,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  Offset? _sceneFromGlobalPosition(Offset globalPosition) {
-    final viewerContext = _pdfViewerKey.currentContext;
-    if (viewerContext == null) {
-      return null;
-    }
-    final renderObject = viewerContext.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.hasSize) {
-      return null;
-    }
-    final viewerLocal = renderObject.globalToLocal(globalPosition);
-    return _transformationController.toScene(viewerLocal);
-  }
-
-  void _handleFreeDrawPointerStart(PointerDownEvent event, int pageNumber) {
+  void _handleFreeDrawPointerStart(Offset localPosition, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
-      return;
-    }
-    final scenePoint = _sceneFromGlobalPosition(event.position);
-    if (scenePoint == null) {
       return;
     }
     _safeSetState(() {
       _inProgressPage = pageNumber;
-      _inProgress = [scenePoint];
+      _inProgress = [localPosition];
     });
   }
 
-  void _handleFreeDrawPointerUpdate(PointerMoveEvent event, int pageNumber) {
+  void _handleFreeDrawPointerUpdate(Offset localPosition, int pageNumber) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -833,18 +816,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    final scenePoint = _sceneFromGlobalPosition(event.position);
-    if (scenePoint == null) {
-      return;
-    }
     const double distanceThreshold = 2.5;
-    if ((scenePoint - inProgress.last).distance < distanceThreshold) {
+    if ((localPosition - inProgress.last).distance < distanceThreshold) {
       return;
     }
-    _safeSetState(() => inProgress.add(scenePoint));
+    _safeSetState(() => inProgress.add(localPosition));
   }
 
-  void _handleFreeDrawPointerEnd(PointerUpEvent event, int pageNumber) {
+  void _handleFreeDrawPointerEnd(int pageNumber) {
     _handleFreeDrawEnd(pageNumber);
   }
 

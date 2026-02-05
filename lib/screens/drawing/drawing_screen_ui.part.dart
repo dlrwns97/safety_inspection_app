@@ -281,23 +281,20 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     SingleFingerPanRecognizer.new,
                                     (SingleFingerPanRecognizer recognizer) {
                                       recognizer
-                                        ..onStart = (event) {
+                                        ..onStart = (localPosition) {
                                           _handleFreeDrawPointerStart(
-                                            event,
+                                            localPosition,
                                             pageNumber,
                                           );
                                         }
-                                        ..onUpdate = (event) {
+                                        ..onUpdate = (localPosition) {
                                           _handleFreeDrawPointerUpdate(
-                                            event,
+                                            localPosition,
                                             pageNumber,
                                           );
                                         }
-                                        ..onEnd = (event) {
-                                          _handleFreeDrawPointerEnd(
-                                            event,
-                                            pageNumber,
-                                          );
+                                        ..onEnd = () {
+                                          _handleFreeDrawPointerEnd(pageNumber);
                                         }
                                         ..onCancel = _handleFreeDrawPanCancel;
                                     },
