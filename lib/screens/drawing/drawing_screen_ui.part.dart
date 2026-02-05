@@ -266,35 +266,37 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           onPointerDown: _handleOverlayPointerDown,
                           onPointerUp: _handleOverlayPointerUpOrCancel,
                           onPointerCancel: _handleOverlayPointerUpOrCancel,
-                          child: IgnorePointer(
-                            ignoring: !_isFreeDrawMode ? true : _overlayIgnoring,
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
+                          child: Stack(
+                            children: [
+                              IgnorePointer(
+                                ignoring: !_isFreeDrawMode || _overlayIgnoring,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onPanStart: _handleFreeDrawPanStart,
+                                  onPanUpdate: _handleFreeDrawPanUpdate,
+                                  onPanEnd: _handleFreeDrawPanEnd,
+                                  onPanCancel: _handleFreeDrawPanCancel,
                                   child: CustomPaint(
                                     painter: TempPolylinePainter(
                                       strokes: _strokes,
                                       inProgress: _inProgress,
                                     ),
+                                    child: const SizedBox.expand(),
                                   ),
                                 ),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onPanStart: _isFreeDrawMode
-                                      ? _handleFreeDrawPanStart
-                                      : null,
-                                  onPanUpdate: _isFreeDrawMode
-                                      ? _handleFreeDrawPanUpdate
-                                      : null,
-                                  onPanEnd: _isFreeDrawMode
-                                      ? _handleFreeDrawPanEnd
-                                      : null,
-                                  onPanCancel: _isFreeDrawMode
-                                      ? _handleFreeDrawPanCancel
-                                      : null,
+                              ),
+                              Positioned(
+                                left: 8,
+                                top: 8,
+                                child: _DebugBadge(
+                                  pointers: _activePointerIds.length,
+                                  overlayIgnoring: _overlayIgnoring,
+                                  inProgressPoints: _inProgress?.length ?? 0,
+                                  strokes: _strokes.length,
+                                  freeDraw: _isFreeDrawMode,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -398,6 +400,44 @@ extension _DrawingScreenUi on _DrawingScreenState {
         onPanEnd: canMove ? (_) => _handleMovePanEnd() : null,
         onPanCancel: canMove ? _handleMovePanCancel : null,
         child: KeyedSubtree(key: tapRegionKey, child: child),
+      ),
+    );
+  }
+}
+
+class _DebugBadge extends StatelessWidget {
+  const _DebugBadge({
+    required this.pointers,
+    required this.overlayIgnoring,
+    required this.inProgressPoints,
+    required this.strokes,
+    required this.freeDraw,
+  });
+
+  final int pointers;
+  final bool overlayIgnoring;
+  final int inProgressPoints;
+  final int strokes;
+  final bool freeDraw;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.72),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          'pointers=$pointers ignoring=$overlayIgnoring freeDraw=$freeDraw '
+          'strokes=$strokes inProg=$inProgressPoints',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
