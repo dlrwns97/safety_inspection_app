@@ -18,6 +18,7 @@ import 'package:safety_inspection_app/screens/home/site_photo_orphan_scanner.dar
 import 'package:safety_inspection_app/screens/home/trash_screen.dart';
 import 'package:safety_inspection_app/screens/home/widgets/home_overflow_menu.dart';
 import 'package:safety_inspection_app/screens/home/widgets/site_list_tile.dart';
+import 'package:safety_inspection_app/utils/photo_path_ordering.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -631,9 +632,12 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     }
     final defect = _currentSite.defects[defectIndex];
     final storedPath = entity.path;
-    final restoreKey = photoReferenceKey(storedPath);
-    final photoPaths = List<String>.from(defect.details.photoPaths);
-    _insertPreservingKeyOrder(photoPaths, restoreKey);
+    final storedKey = photoReferenceKey(storedPath);
+    final photoPaths = insertPreservingReferenceOrder(
+      photoPaths: defect.details.photoPaths,
+      restoreKey: storedKey,
+      normalizeKey: photoReferenceKey,
+    );
     final photoOriginalNamesByPath = Map<String, String>.from(
       defect.details.photoOriginalNamesByPath,
     );
@@ -649,20 +653,6 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     final updatedDefects = List<Defect>.from(_currentSite.defects);
     updatedDefects[defectIndex] = updatedDefect;
     return _currentSite.copyWith(defects: updatedDefects);
-  }
-
-  void _insertPreservingKeyOrder(List<String> photoPaths, String restoreKey) {
-    for (var i = 0; i < photoPaths.length; i += 1) {
-      final existingKey = photoReferenceKey(photoPaths[i]);
-      if (existingKey == restoreKey) {
-        return;
-      }
-      if (restoreKey.compareTo(existingKey) < 0) {
-        photoPaths.insert(i, restoreKey);
-        return;
-      }
-    }
-    photoPaths.add(restoreKey);
   }
 
   @override
