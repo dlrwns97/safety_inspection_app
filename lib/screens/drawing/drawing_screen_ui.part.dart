@@ -281,21 +281,24 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     SingleFingerPanRecognizer.new,
                                     (SingleFingerPanRecognizer recognizer) {
                                       recognizer
-                                        ..onStart = (event) =>
-                                            _handleFreeDrawPointerStart(
-                                              event,
-                                              pageNumber,
-                                            )
-                                        ..onUpdate = (event) =>
-                                            _handleFreeDrawPointerUpdate(
-                                              event,
-                                              pageNumber,
-                                            )
-                                        ..onEnd = (event) =>
-                                            _handleFreeDrawPointerEnd(
-                                              event,
-                                              pageNumber,
-                                            )
+                                        ..onStart = (event) {
+                                          _handleFreeDrawPointerStart(
+                                            event,
+                                            pageNumber,
+                                          );
+                                        }
+                                        ..onUpdate = (event) {
+                                          _handleFreeDrawPointerUpdate(
+                                            event,
+                                            pageNumber,
+                                          );
+                                        }
+                                        ..onEnd = (event) {
+                                          _handleFreeDrawPointerEnd(
+                                            event,
+                                            pageNumber,
+                                          );
+                                        }
                                         ..onCancel = _handleFreeDrawPanCancel;
                                     },
                                   ),
