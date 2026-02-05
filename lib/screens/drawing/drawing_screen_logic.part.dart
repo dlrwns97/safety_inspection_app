@@ -765,28 +765,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
+    final previousCount = _activePointerIds.length;
     _activePointerIds.add(event.pointer);
-    _updateFreeDrawGestureState();
+    if (!_isFreeDrawMode) {
+      return;
+    }
+    final bool becameTwoFinger =
+        previousCount < 2 && _activePointerIds.length >= 2;
+    if (becameTwoFinger) {
+      _safeSetState(() {
+        _inProgress = null;
+        _inProgressPage = null;
+      });
+      return;
+    }
+    _safeSetState(() {});
   }
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
-    _activePointerIds.remove(event.pointer);
-    _updateFreeDrawGestureState();
-  }
-
-  void _updateFreeDrawGestureState() {
-    final bool shouldIgnore =
-        _isFreeDrawMode && _activePointerIds.length >= 2;
-    if (_overlayIgnoring == shouldIgnore) {
+    final didRemove = _activePointerIds.remove(event.pointer);
+    if (!didRemove || !_isFreeDrawMode) {
       return;
     }
-    _safeSetState(() {
-      _overlayIgnoring = shouldIgnore;
-      if (shouldIgnore) {
-        _inProgress = null;
-        _inProgressPage = null;
-      }
-    });
+    _safeSetState(() {});
   }
 
   void _handleDrawingToolChanged(DrawingTool tool) {
@@ -882,7 +883,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             : DrawingTool.pen;
       } else {
         _activePointerIds.clear();
-        _overlayIgnoring = false;
         _inProgress = null;
         _inProgressPage = null;
       }
