@@ -16,106 +16,114 @@ Future<Site?> showNewSiteDialog(BuildContext context) {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text(StringsKo.newSite),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: StringsKo.siteNameLabel,
-                    errorText: nameErrorText,
-                  ),
-                  textInputAction: TextInputAction.next,
-                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedStructureType,
-                  decoration: InputDecoration(
-                    labelText: StringsKo.structureTypeLabel,
-                    errorText: structureErrorText,
-                  ),
-                  items: StringsKo.structureTypes
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedStructureType = value;
-                      structureErrorText = null;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedInspectionType,
-                  decoration: InputDecoration(
-                    labelText: StringsKo.inspectionTypeLabel,
-                    errorText: inspectionErrorText,
-                  ),
-                  items: StringsKo.inspectionTypes
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedInspectionType = value;
-                      inspectionErrorText = null;
-                    });
-                  },
-                ),
-              ],
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(StringsKo.cancel),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final name = controller.text.trim();
-                  final hasName = name.isNotEmpty;
-                  final hasStructure = selectedStructureType != null;
-                  final hasInspection = selectedInspectionType != null;
-                  if (!hasName || !hasStructure || !hasInspection) {
-                    setState(() {
-                      nameErrorText =
-                          hasName ? null : StringsKo.siteNameRequired;
-                      structureErrorText =
-                          hasStructure ? null : StringsKo.structureTypeRequired;
-                      inspectionErrorText = hasInspection
-                          ? null
-                          : StringsKo.inspectionTypeRequired;
-                    });
-                    return;
-                  }
-                  Navigator.of(context).pop(
-                    Site(
-                      id: 'draft',
-                      name: name,
-                      createdAt: DateTime.now(),
-                      drawingType: DrawingType.blank,
-                      structureType: selectedStructureType!,
-                      inspectionType: selectedInspectionType!,
-                      inspectionDate: DateTime.now(),
-                      visibleDefectCategoryNames: const [],
-                      visibleEquipmentCategoryNames: const [],
+            child: SingleChildScrollView(
+              child: AlertDialog(
+                title: const Text(StringsKo.newSite),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: InputDecoration(
+                        labelText: StringsKo.siteNameLabel,
+                        errorText: nameErrorText,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     ),
-                  );
-                },
-                child: const Text(StringsKo.create),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedStructureType,
+                      decoration: InputDecoration(
+                        labelText: StringsKo.structureTypeLabel,
+                        errorText: structureErrorText,
+                      ),
+                      items: StringsKo.structureTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedStructureType = value;
+                          structureErrorText = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedInspectionType,
+                      decoration: InputDecoration(
+                        labelText: StringsKo.inspectionTypeLabel,
+                        errorText: inspectionErrorText,
+                      ),
+                      items: StringsKo.inspectionTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedInspectionType = value;
+                          inspectionErrorText = null;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(StringsKo.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final name = controller.text.trim();
+                      final hasName = name.isNotEmpty;
+                      final hasStructure = selectedStructureType != null;
+                      final hasInspection = selectedInspectionType != null;
+                      if (!hasName || !hasStructure || !hasInspection) {
+                        setState(() {
+                          nameErrorText =
+                              hasName ? null : StringsKo.siteNameRequired;
+                          structureErrorText = hasStructure
+                              ? null
+                              : StringsKo.structureTypeRequired;
+                          inspectionErrorText = hasInspection
+                              ? null
+                              : StringsKo.inspectionTypeRequired;
+                        });
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        Site(
+                          id: 'draft',
+                          name: name,
+                          createdAt: DateTime.now(),
+                          drawingType: DrawingType.blank,
+                          structureType: selectedStructureType!,
+                          inspectionType: selectedInspectionType!,
+                          inspectionDate: DateTime.now(),
+                          visibleDefectCategoryNames: const [],
+                          visibleEquipmentCategoryNames: const [],
+                        ),
+                      );
+                    },
+                    child: const Text(StringsKo.create),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );
