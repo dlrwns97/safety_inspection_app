@@ -145,7 +145,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePdfTransformGestures = !_isFreeDrawMode || isTwoFinger;
+    final bool enablePdfPanGestures = !_isFreeDrawMode || isTwoFinger;
+    final bool enablePdfScaleGestures = true;
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return PdfDrawingView(
       key: _pdfViewerKey,
@@ -160,7 +161,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       onUpdatePageSize: _handleUpdatePageSize,
       photoControllerForPage: _photoControllerForPage,
       scaleStateControllerForPage: _scaleStateControllerForPage,
-      enablePdfTransformGestures: enablePdfTransformGestures,
+      enablePdfPanGestures: enablePdfPanGestures,
+      enablePdfScaleGestures: enablePdfScaleGestures,
       disablePageSwipe: disablePageSwipe,
       buildPageOverlay:
           ({required pageSize, required pageNumber, required imageProvider}) =>
