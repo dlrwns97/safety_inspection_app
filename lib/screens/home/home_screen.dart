@@ -360,11 +360,23 @@ class _OrphanScanResultList extends StatefulWidget {
 class _OrphanScanResultListState extends State<_OrphanScanResultList> {
   late List<FileSystemEntity> _orphanFiles;
   bool _isCleaning = false;
+  String? _photoStoreRootPath;
 
   @override
   void initState() {
     super.initState();
     _orphanFiles = List<FileSystemEntity>.from(widget.result.orphanFiles);
+    _loadPhotoStoreRoot();
+  }
+
+  Future<void> _loadPhotoStoreRoot() async {
+    final storeRoot = await DefectPhotoStore().getRootDirectory();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _photoStoreRootPath = p.normalize(p.absolute(storeRoot.path));
+    });
   }
 
   Future<void> _confirmBulkCleanup() async {
@@ -500,10 +512,51 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     return RegExp(r'^\d{8}_\d{6}(_\d+)?$').hasMatch(base);
   }
 
+  List<String> _candidatePhotoKeysFor(FileSystemEntity entity) {
+    final candidates = <String>[];
+    final seen = <String>{};
+
+    void addCandidate(String? value) {
+      if (value == null) {
+        return;
+      }
+      final trimmed = value.trim();
+      if (trimmed.isEmpty || !seen.add(trimmed)) {
+        return;
+      }
+      candidates.add(trimmed);
+    }
+
+    addCandidate(entity.path);
+    addCandidate(p.normalize(entity.path));
+    addCandidate(p.basename(entity.path));
+    addCandidate(p.basenameWithoutExtension(entity.path));
+
+    final storeRoot = _photoStoreRootPath;
+    if (storeRoot != null) {
+      final relativePath = p.relative(entity.path, from: storeRoot);
+      addCandidate(p.normalize(relativePath));
+      addCandidate(p.basename(relativePath));
+    }
+
+    return candidates;
+  }
+
   String _resolveOrphanDisplayName({
     required FileSystemEntity entity,
     required String? defectId,
   }) {
+    final candidateKeys = _candidatePhotoKeysFor(entity);
+    String? resolveFromDefect(Defect defect) {
+      for (final key in candidateKeys) {
+        final originalName = defect.details.photoOriginalNamesByPath[key];
+        if (originalName != null && originalName.trim().isNotEmpty) {
+          return originalName;
+        }
+      }
+      return null;
+    }
+
     if (defectId != null) {
       Defect? defect;
       for (final candidate in widget.site.defects) {
@@ -513,12 +566,20 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
         }
       }
       if (defect != null) {
-        final originalName = defect.details.photoOriginalNamesByPath[entity.path];
-        if (originalName != null && originalName.trim().isNotEmpty) {
+        final originalName = resolveFromDefect(defect);
+        if (originalName != null) {
           return p.basenameWithoutExtension(originalName);
         }
       }
     }
+
+    for (final defect in widget.site.defects) {
+      final originalName = resolveFromDefect(defect);
+      if (originalName != null) {
+        return p.basenameWithoutExtension(originalName);
+      }
+    }
+
     final base = p.basenameWithoutExtension(entity.path);
     if (_looksLikeCameraName(base)) {
       return base;
