@@ -149,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       result: result,
                       site: site,
                       siteId: site.id,
+                      onSiteUpdated: _updateSite,
                     ),
               actions: [
                 TextButton(
@@ -332,6 +333,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+extension DefectDetailsCopyWith on DefectDetails {
+  DefectDetails copyWith({
+    String? structuralMember,
+    String? crackType,
+    double? widthMm,
+    double? lengthMm,
+    String? cause,
+    List<String>? photoPaths,
+    Map<String, String>? photoOriginalNamesByPath,
+  }) {
+    return DefectDetails(
+      structuralMember: structuralMember ?? this.structuralMember,
+      crackType: crackType ?? this.crackType,
+      widthMm: widthMm ?? this.widthMm,
+      lengthMm: lengthMm ?? this.lengthMm,
+      cause: cause ?? this.cause,
+      photoPaths: photoPaths ?? List<String>.from(this.photoPaths),
+      photoOriginalNamesByPath:
+          photoOriginalNamesByPath ??
+          Map<String, String>.from(this.photoOriginalNamesByPath),
+    );
+  }
+}
+
+extension DefectCopyWith on Defect {
+  Defect copyWith({
+    String? id,
+    String? label,
+    int? pageIndex,
+    DefectCategory? category,
+    double? normalizedX,
+    double? normalizedY,
+    DefectDetails? details,
+  }) {
+    return Defect(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      pageIndex: pageIndex ?? this.pageIndex,
+      category: category ?? this.category,
+      normalizedX: normalizedX ?? this.normalizedX,
+      normalizedY: normalizedY ?? this.normalizedY,
+      details: details ?? this.details,
+    );
+  }
+}
+
 class _DrawingSelection {
   const _DrawingSelection({required this.type, this.path, this.fileName});
 
@@ -347,11 +394,13 @@ class _OrphanScanResultList extends StatefulWidget {
     required this.result,
     required this.site,
     required this.siteId,
+    required this.onSiteUpdated,
   });
 
   final OrphanScanResult result;
   final Site site;
   final String siteId;
+  final ValueChanged<Site> onSiteUpdated;
 
   @override
   State<_OrphanScanResultList> createState() => _OrphanScanResultListState();
@@ -360,23 +409,11 @@ class _OrphanScanResultList extends StatefulWidget {
 class _OrphanScanResultListState extends State<_OrphanScanResultList> {
   late List<FileSystemEntity> _orphanFiles;
   bool _isCleaning = false;
-  String? _photoStoreRootPath;
 
   @override
   void initState() {
     super.initState();
     _orphanFiles = List<FileSystemEntity>.from(widget.result.orphanFiles);
-    _loadPhotoStoreRoot();
-  }
-
-  Future<void> _loadPhotoStoreRoot() async {
-    final storeRoot = await DefectPhotoStore().getRootDirectory();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _photoStoreRootPath = p.normalize(p.absolute(storeRoot.path));
-    });
   }
 
   Future<void> _confirmBulkCleanup() async {
@@ -425,8 +462,7 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     if (restoredSite == null) {
       return;
     }
-    final sites = await HomeStorage.loadSites();
-    await HomeStorage.updateSite(sites, restoredSite);
+    await widget.onSiteUpdated(restoredSite);
     if (!mounted) {
       return;
     }
@@ -503,33 +539,33 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     }
     final defect = widget.site.defects[defectIndex];
     final storedPath = entity.path;
-    final photoPaths = [...defect.details.photoPaths, storedPath];
+    final storedKey = photoReferenceKey(storedPath);
+    final photoPaths = List<String>.from(defect.details.photoPaths);
+    final hasStoredKey = photoPaths.any(
+      (path) => photoReferenceKey(path) == storedKey,
+    );
+    if (!hasStoredKey) {
+      photoPaths.add(storedKey);
+    }
     final photoOriginalNamesByPath = Map<String, String>.from(
       defect.details.photoOriginalNamesByPath,
     );
-    if (!photoOriginalNamesByPath.containsKey(storedPath)) {
-      final baseName = p.basenameWithoutExtension(storedPath);
-      if (_looksLikeCameraName(baseName)) {
-        photoOriginalNamesByPath[storedPath] = baseName;
+    if (!photoOriginalNamesByPath.containsKey(storedKey)) {
+      final originalName = _resolveOriginalName(
+        entity: entity,
+        originalNamesByPath: defect.details.photoOriginalNamesByPath,
+      );
+      if (originalName != null &&
+          originalName.trim().isNotEmpty &&
+          !_looksLikeCameraName(p.basenameWithoutExtension(originalName))) {
+        photoOriginalNamesByPath[storedKey] = originalName;
       }
     }
-    final updatedDefect = Defect(
-      id: defect.id,
-      label: defect.label,
-      pageIndex: defect.pageIndex,
-      category: defect.category,
-      normalizedX: defect.normalizedX,
-      normalizedY: defect.normalizedY,
-      details: DefectDetails(
-        structuralMember: defect.details.structuralMember,
-        crackType: defect.details.crackType,
-        widthMm: defect.details.widthMm,
-        lengthMm: defect.details.lengthMm,
-        cause: defect.details.cause,
-        photoPaths: photoPaths,
-        photoOriginalNamesByPath: photoOriginalNamesByPath,
-      ),
+    final updatedDetails = defect.details.copyWith(
+      photoPaths: photoPaths,
+      photoOriginalNamesByPath: photoOriginalNamesByPath,
     );
+    final updatedDefect = defect.copyWith(details: updatedDetails);
     final updatedDefects = List<Defect>.from(widget.site.defects);
     updatedDefects[defectIndex] = updatedDefect;
     return widget.site.copyWith(defects: updatedDefects);
@@ -558,12 +594,9 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     addCandidate(p.normalize(entity.path));
     addCandidate(p.basename(entity.path));
     addCandidate(p.basenameWithoutExtension(entity.path));
-
-    final storeRoot = _photoStoreRootPath;
-    if (storeRoot != null) {
-      final relativePath = p.relative(entity.path, from: storeRoot);
-      addCandidate(p.normalize(relativePath));
-      addCandidate(p.basename(relativePath));
+    final normalizedCandidates = List<String>.from(candidates);
+    for (final candidate in normalizedCandidates) {
+      addCandidate(photoReferenceKey(candidate));
     }
 
     return candidates;
@@ -612,6 +645,20 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
       return base;
     }
     return extractOrphanFileName(entity);
+  }
+
+  String? _resolveOriginalName({
+    required FileSystemEntity entity,
+    required Map<String, String> originalNamesByPath,
+  }) {
+    final candidateKeys = _candidatePhotoKeysFor(entity);
+    for (final key in candidateKeys) {
+      final originalName = originalNamesByPath[key];
+      if (originalName != null && originalName.trim().isNotEmpty) {
+        return originalName;
+      }
+    }
+    return null;
   }
 
   @override
