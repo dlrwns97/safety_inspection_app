@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,6 +67,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, PhotoViewController> _pdfPhotoControllers = {};
   final Map<int, PhotoViewScaleStateController> _pdfScaleStateControllers = {};
   final GlobalKey _canvasKey = GlobalKey();
+  final GlobalKey _pdfViewerKey = GlobalKey();
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, Size> _pdfPageSizes = {};
@@ -809,5 +811,65 @@ class _DrawingScreenState extends State<DrawingScreen>
         },
       ),
     );
+  }
+}
+
+class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
+  SingleFingerPanRecognizer({
+    this.onStart,
+    this.onUpdate,
+    this.onEnd,
+    this.onCancel,
+    super.supportedDevices,
+  });
+
+  ValueChanged<PointerDownEvent>? onStart;
+  ValueChanged<PointerMoveEvent>? onUpdate;
+  ValueChanged<PointerUpEvent>? onEnd;
+  VoidCallback? onCancel;
+
+  int? _primaryPointer;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    if (_primaryPointer != null) {
+      resolve(GestureDisposition.rejected);
+      onCancel?.call();
+      return;
+    }
+    _primaryPointer = event.pointer;
+    startTrackingPointer(event.pointer);
+    resolve(GestureDisposition.accepted);
+    onStart?.call(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event.pointer != _primaryPointer) {
+      return;
+    }
+    if (event is PointerMoveEvent) {
+      onUpdate?.call(event);
+      return;
+    }
+    if (event is PointerUpEvent) {
+      onEnd?.call(event);
+      stopTrackingPointer(event.pointer);
+      _primaryPointer = null;
+      return;
+    }
+    if (event is PointerCancelEvent) {
+      onCancel?.call();
+      stopTrackingPointer(event.pointer);
+      _primaryPointer = null;
+    }
+  }
+
+  @override
+  String get debugDescription => 'single_finger_pan';
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _primaryPointer = null;
   }
 }

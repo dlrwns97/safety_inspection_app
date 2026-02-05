@@ -148,6 +148,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final bool enablePdfTransformGestures = !_isFreeDrawMode || isTwoFinger;
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return PdfDrawingView(
+      key: _pdfViewerKey,
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
       sitePdfName: _site.pdfName,
@@ -256,62 +257,70 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     children: [
                       Positioned.fromRect(
                         rect: destRect,
-                        child: Stack(
-                          children: [
-                            _buildMarkerLayer(
-                              size: destRect.size,
-                              pageIndex: pageNumber,
-                              child: SizedBox.expand(
-                                child: Image(
-                                  image: imageProvider,
-                                  fit: BoxFit.fill,
-                                ),
-                              ),
+                        child: _buildMarkerLayer(
+                          size: destRect.size,
+                          pageIndex: pageNumber,
+                          child: SizedBox.expand(
+                            child: Image(
+                              image: imageProvider,
+                              fit: BoxFit.fill,
                             ),
-                            IgnorePointer(
-                              ignoring: !enableOverlayDrawing,
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onPanStart:
-                                    (details) => _handleFreeDrawPanStart(
-                                      details,
-                                      pageNumber,
-                                    ),
-                                onPanUpdate:
-                                    (details) => _handleFreeDrawPanUpdate(
-                                      details,
-                                      pageNumber,
-                                    ),
-                                onPanEnd:
-                                    (details) =>
-                                        _handleFreeDrawPanEnd(
-                                          details,
-                                          pageNumber,
-                                        ),
-                                onPanCancel: _handleFreeDrawPanCancel,
-                                child: CustomPaint(
-                                  painter: TempPolylinePainter(
-                                    strokes:
-                                        _strokesByPage[pageNumber] ??
-                                        const <List<Offset>>[],
-                                    inProgress:
-                                        _inProgressPage == pageNumber
-                                        ? _inProgress
-                                        : null,
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          ignoring: !enableOverlayDrawing,
+                          child: RawGestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            gestures: <Type, GestureRecognizerFactory>{
+                              SingleFingerPanRecognizer:
+                                  GestureRecognizerFactoryWithHandlers<
+                                    SingleFingerPanRecognizer
+                                  >(
+                                    SingleFingerPanRecognizer.new,
+                                    (SingleFingerPanRecognizer recognizer) {
+                                      recognizer
+                                        ..onStart = (event) =>
+                                            _handleFreeDrawPointerStart(
+                                              event,
+                                              pageNumber,
+                                            )
+                                        ..onUpdate = (event) =>
+                                            _handleFreeDrawPointerUpdate(
+                                              event,
+                                              pageNumber,
+                                            )
+                                        ..onEnd = (event) =>
+                                            _handleFreeDrawPointerEnd(
+                                              event,
+                                              pageNumber,
+                                            )
+                                        ..onCancel = _handleFreeDrawPanCancel;
+                                    },
                                   ),
-                                  child: const SizedBox.expand(),
-                                ),
+                            },
+                            child: CustomPaint(
+                              painter: TempPolylinePainter(
+                                strokes:
+                                    _strokesByPage[pageNumber] ??
+                                    const <List<Offset>>[],
+                                inProgress:
+                                    _inProgressPage == pageNumber
+                                    ? _inProgress
+                                    : null,
                               ),
+                              child: const SizedBox.expand(),
                             ),
-                            Positioned.fill(
-                              child: Listener(
-                                behavior: HitTestBehavior.translucent,
-                                onPointerDown: _handleOverlayPointerDown,
-                                onPointerUp: _handleOverlayPointerUpOrCancel,
-                                onPointerCancel: _handleOverlayPointerUpOrCancel,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: _handleOverlayPointerDown,
+                          onPointerUp: _handleOverlayPointerUpOrCancel,
+                          onPointerCancel: _handleOverlayPointerUpOrCancel,
                         ),
                       ),
                     ],

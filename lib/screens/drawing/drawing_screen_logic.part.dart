@@ -797,18 +797,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPanStart(DragStartDetails details, int pageNumber) {
+  Offset? _sceneFromGlobalPosition(Offset globalPosition) {
+    final viewerContext = _pdfViewerKey.currentContext;
+    if (viewerContext == null) {
+      return null;
+    }
+    final renderObject = viewerContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return null;
+    }
+    final viewerLocal = renderObject.globalToLocal(globalPosition);
+    return _transformationController.toScene(viewerLocal);
+  }
+
+  void _handleFreeDrawPointerStart(PointerDownEvent event, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
       return;
     }
-    final scenePoint = _transformationController.toScene(details.localPosition);
+    final scenePoint = _sceneFromGlobalPosition(event.position);
+    if (scenePoint == null) {
+      return;
+    }
     _safeSetState(() {
       _inProgressPage = pageNumber;
       _inProgress = [scenePoint];
     });
   }
 
-  void _handleFreeDrawPanUpdate(DragUpdateDetails details, int pageNumber) {
+  void _handleFreeDrawPointerUpdate(PointerMoveEvent event, int pageNumber) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -817,7 +833,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    final scenePoint = _transformationController.toScene(details.localPosition);
+    final scenePoint = _sceneFromGlobalPosition(event.position);
+    if (scenePoint == null) {
+      return;
+    }
     const double distanceThreshold = 2.5;
     if ((scenePoint - inProgress.last).distance < distanceThreshold) {
       return;
@@ -825,7 +844,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => inProgress.add(scenePoint));
   }
 
-  void _handleFreeDrawPanEnd(DragEndDetails details, int pageNumber) {
+  void _handleFreeDrawPointerEnd(PointerUpEvent event, int pageNumber) {
+    _handleFreeDrawEnd(pageNumber);
+  }
+
+  void _handleFreeDrawEnd(int pageNumber) {
     final inProgress = _inProgress;
     if (inProgress == null ||
         inProgress.isEmpty ||
