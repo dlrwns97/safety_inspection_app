@@ -527,26 +527,44 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     });
     final storeRoot = await DefectPhotoStore().getRootDirectory();
     final normalizedRoot = p.normalize(p.absolute(storeRoot.path));
+    final rootWithSeparator = normalizedRoot.endsWith(p.separator)
+        ? normalizedRoot
+        : '$normalizedRoot${p.separator}';
+    final allowedImageExtensions = {
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.heic',
+      '.heif',
+    };
+
+    bool isPathInsideRoot(String targetPath) {
+      final candidate = p.normalize(p.absolute(targetPath));
+      return candidate == normalizedRoot ||
+          candidate.startsWith(rootWithSeparator);
+    }
+
     var skippedCount = 0;
     final deletedPaths = <String>{};
 
     for (final entity in _orphanFiles) {
       final filePath = entity.path;
-      final normalizedPath = p.normalize(p.absolute(filePath));
-      final isWithinRoot =
-          p.equals(normalizedRoot, normalizedPath) ||
-          p.isWithin(normalizedRoot, normalizedPath);
-      if (!isWithinRoot) {
+      if (!isPathInsideRoot(filePath)) {
         skippedCount += 1;
+        continue;
+      }
+      final extension = p.extension(filePath).toLowerCase();
+      if (!allowedImageExtensions.contains(extension)) {
+        continue;
+      }
+      final stat = await entity.stat();
+      if (stat.type != FileSystemEntityType.file) {
         continue;
       }
       final file = File(filePath);
       final exists = await file.exists();
       if (!exists) {
-        continue;
-      }
-      final stat = await file.stat();
-      if (stat.type != FileSystemEntityType.file) {
         continue;
       }
       try {
@@ -556,14 +574,14 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
           p.dirname(filePath),
           '${p.basenameWithoutExtension(filePath)}.json',
         );
-        final normalizedSidecar = p.normalize(p.absolute(sidecarPath));
-        final isSidecarWithinRoot =
-            p.equals(normalizedRoot, normalizedSidecar) ||
-            p.isWithin(normalizedRoot, normalizedSidecar);
-        if (isSidecarWithinRoot) {
+        if (isPathInsideRoot(sidecarPath)) {
           final sidecarFile = File(sidecarPath);
-          if (await sidecarFile.exists()) {
-            await sidecarFile.delete();
+          try {
+            if (await sidecarFile.exists()) {
+              await sidecarFile.delete();
+            }
+          } catch (_) {
+            // Best effort sidecar cleanup.
           }
         }
       } catch (_) {
