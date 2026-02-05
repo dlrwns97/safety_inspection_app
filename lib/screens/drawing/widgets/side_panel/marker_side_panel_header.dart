@@ -153,18 +153,21 @@ class _MarkerHeaderControls extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$percent%'),
-          const SizedBox(width: 4),
-          const Icon(Icons.expand_more, size: 18),
+          Text(
+            '$percent%',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(width: 2),
+          const Icon(Icons.expand_more, size: 16),
         ],
       ),
     );
@@ -178,25 +181,23 @@ class _MarkerHeaderControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 44,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
             IconButton(
               icon: Icon(isLocked ? Icons.lock : Icons.lock_open),
+              iconSize: 16,
               tooltip: isLocked ? '잠금' : '잠금 해제',
               onPressed: onToggleLock,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 32,
-                minHeight: 32,
-              ),
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               visualDensity: VisualDensity.compact,
             ),
-            const SizedBox(width: 6),
-            const Icon(Icons.place, size: 17),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
+            const Icon(Icons.place, size: 16),
+            const SizedBox(width: 4),
             Expanded(
               child: Builder(
                 builder: (context) => _buildScaleBox(
@@ -211,9 +212,9 @@ class _MarkerHeaderControls extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            const Icon(Icons.text_fields, size: 17),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
+            const Icon(Icons.text_fields, size: 16),
+            const SizedBox(width: 4),
             Expanded(
               child: Builder(
                 builder: (context) => _buildScaleBox(
