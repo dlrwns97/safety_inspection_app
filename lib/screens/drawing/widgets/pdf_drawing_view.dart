@@ -19,6 +19,7 @@ class PdfDrawingView extends StatelessWidget {
     required this.photoControllerForPage,
     required this.scaleStateControllerForPage,
     required this.buildPageOverlay,
+    required this.enablePdfGestures,
   });
 
   final PdfController? pdfController;
@@ -38,6 +39,7 @@ class PdfDrawingView extends StatelessWidget {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) buildPageOverlay;
+  final bool enablePdfGestures;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +92,7 @@ class PdfDrawingView extends StatelessWidget {
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController:
                     scaleStateControllerForPage(pageNumber),
+                disableGestures: !enablePdfGestures,
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {
