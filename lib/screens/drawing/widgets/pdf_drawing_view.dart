@@ -98,8 +98,8 @@ class PdfDrawingView extends StatelessWidget {
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController:
                     scaleStateControllerForPage(pageNumber),
-                panEnabled: enablePdfPanGestures,
-                scaleEnabled: enablePdfScaleGestures,
+                disableGestures:
+                    !(enablePdfPanGestures || enablePdfScaleGestures),
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {
