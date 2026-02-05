@@ -26,7 +26,7 @@ Future<OrphanScanResult> scanOrphanDefectPhotos({
         if (path.isEmpty) {
           continue;
         }
-        usedPaths.add(_normalizePath(path));
+        usedPaths.add(photoReferenceKey(path));
       }
     }
 
@@ -44,7 +44,7 @@ Future<OrphanScanResult> scanOrphanDefectPhotos({
       if (entity is! File) {
         continue;
       }
-      final normalizedPath = _normalizePath(entity.path);
+      final normalizedPath = photoReferenceKey(entity.path);
       if (!usedPaths.contains(normalizedPath)) {
         orphanFiles.add(entity);
       }
@@ -59,12 +59,12 @@ Future<OrphanScanResult> scanOrphanDefectPhotos({
   }
 }
 
-String _normalizePath(String path) {
-  return path.replaceAll('\\', '/');
+String photoReferenceKey(String path) {
+  return p.normalize(path).replaceAll('\\', '/');
 }
 
 String extractOrphanFileName(FileSystemEntity entity) {
-  final normalized = _normalizePath(entity.path);
+  final normalized = photoReferenceKey(entity.path);
   return p.basenameWithoutExtension(normalized);
 }
 
@@ -72,7 +72,7 @@ String? extractDefectIdFromPath({
   required FileSystemEntity entity,
   required String siteId,
 }) {
-  final normalized = _normalizePath(entity.path);
+  final normalized = photoReferenceKey(entity.path);
   final marker = '/sites/$siteId/defects/';
   final index = normalized.indexOf(marker);
   if (index == -1) {
