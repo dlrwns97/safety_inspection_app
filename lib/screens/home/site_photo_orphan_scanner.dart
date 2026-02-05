@@ -44,6 +44,9 @@ Future<OrphanScanResult> scanOrphanDefectPhotos({
       if (entity is! File) {
         continue;
       }
+      if (!_isAllowedImagePath(entity.path)) {
+        continue;
+      }
       final normalizedPath = photoReferenceKey(entity.path);
       if (!usedPaths.contains(normalizedPath)) {
         orphanFiles.add(entity);
@@ -57,6 +60,19 @@ Future<OrphanScanResult> scanOrphanDefectPhotos({
   } catch (error) {
     return OrphanScanResult.empty();
   }
+}
+
+bool _isAllowedImagePath(String path) {
+  const allowedExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.heic',
+    '.heif',
+  };
+  final extension = p.extension(path).toLowerCase();
+  return allowedExtensions.contains(extension);
 }
 
 String photoReferenceKey(String path) {

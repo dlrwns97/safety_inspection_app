@@ -389,6 +389,19 @@ class _DrawingSelection {
 
 enum _SiteMenuAction { scanOrphanPhotos }
 
+bool _isAllowedImagePath(String path) {
+  const allowedExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.heic',
+    '.heif',
+  };
+  final extension = p.extension(path).toLowerCase();
+  return allowedExtensions.contains(extension);
+}
+
 class _OrphanScanResultList extends StatefulWidget {
   const _OrphanScanResultList({
     required this.result,
@@ -474,6 +487,14 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
   }
 
   Future<void> _confirmRestore(FileSystemEntity entity) async {
+    if (!_isAllowedImagePath(entity.path)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('복구할 수 없는 파일입니다.')),
+        );
+      }
+      return;
+    }
     final defectId = extractDefectIdFromPath(
       entity: entity,
       siteId: widget.siteId,
@@ -531,6 +552,20 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
       try {
         await file.delete();
         deletedPaths.add(filePath);
+        final sidecarPath = p.join(
+          p.dirname(filePath),
+          '${p.basenameWithoutExtension(filePath)}.json',
+        );
+        final normalizedSidecar = p.normalize(p.absolute(sidecarPath));
+        final isSidecarWithinRoot =
+            p.equals(normalizedRoot, normalizedSidecar) ||
+            p.isWithin(normalizedRoot, normalizedSidecar);
+        if (isSidecarWithinRoot) {
+          final sidecarFile = File(sidecarPath);
+          if (await sidecarFile.exists()) {
+            await sidecarFile.delete();
+          }
+        }
       } catch (_) {
         continue;
       }
