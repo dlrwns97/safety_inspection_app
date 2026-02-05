@@ -12,6 +12,7 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
@@ -102,6 +103,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _activePointerIds = <int>{};
   bool _overlayIgnoring = false;
   bool _didShowFreeDrawGuide = false;
+  final List<List<Offset>> _strokes = [];
+  List<Offset>? _inProgress;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;

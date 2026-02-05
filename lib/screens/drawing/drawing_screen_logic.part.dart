@@ -789,11 +789,42 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPanStart(DragStartDetails details) {}
+  void _handleFreeDrawPanStart(DragStartDetails details) {
+    if (_overlayIgnoring) {
+      return;
+    }
+    _safeSetState(() => _inProgress = [details.localPosition]);
+  }
 
-  void _handleFreeDrawPanUpdate(DragUpdateDetails details) {}
+  void _handleFreeDrawPanUpdate(DragUpdateDetails details) {
+    final inProgress = _inProgress;
+    if (_overlayIgnoring || inProgress == null || inProgress.isEmpty) {
+      return;
+    }
+    const double distanceThreshold = 2.5;
+    if ((details.localPosition - inProgress.last).distance < distanceThreshold) {
+      return;
+    }
+    _safeSetState(() => inProgress.add(details.localPosition));
+  }
 
-  void _handleFreeDrawPanEnd(DragEndDetails details) {}
+  void _handleFreeDrawPanEnd(DragEndDetails details) {
+    final inProgress = _inProgress;
+    if (inProgress == null || inProgress.isEmpty) {
+      return;
+    }
+    _safeSetState(() {
+      _strokes.add(List<Offset>.from(inProgress));
+      _inProgress = null;
+    });
+  }
+
+  void _handleFreeDrawPanCancel() {
+    if (_inProgress == null) {
+      return;
+    }
+    _safeSetState(() => _inProgress = null);
+  }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(
     BuildContext? tapContext,
