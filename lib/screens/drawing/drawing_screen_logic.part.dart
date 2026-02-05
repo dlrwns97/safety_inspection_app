@@ -779,7 +779,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_overlayIgnoring == shouldIgnore) {
       return;
     }
-    _safeSetState(() => _overlayIgnoring = shouldIgnore);
+    _safeSetState(() {
+      _overlayIgnoring = shouldIgnore;
+      if (shouldIgnore) {
+        _inProgress = null;
+      }
+    });
   }
 
   void _handleDrawingToolChanged(DrawingTool tool) {
