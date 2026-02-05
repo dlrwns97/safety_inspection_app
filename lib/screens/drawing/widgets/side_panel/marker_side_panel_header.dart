@@ -194,42 +194,36 @@ class _MarkerHeaderControls extends StatelessWidget {
               ),
               visualDensity: VisualDensity.compact,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Icon(Icons.place, size: 17),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Builder(
-                  builder: (context) => _buildScaleBox(
+            const SizedBox(width: 6),
+            Expanded(
+              child: Builder(
+                builder: (context) => _buildScaleBox(
+                  context: context,
+                  percent: _selectedPercent(markerScale),
+                  tooltip: '마커 크기 선택',
+                  onTap: () => _showScaleMenu(
                     context: context,
-                    percent: _selectedPercent(markerScale),
-                    tooltip: '마커 크기 선택',
-                    onTap: () => _showScaleMenu(
-                      context: context,
-                      onSelected: (value) =>
-                          onMarkerScaleChanged(_percentToScale(value)),
-                    ),
+                    onSelected: (value) =>
+                        onMarkerScaleChanged(_percentToScale(value)),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Icon(Icons.text_fields, size: 17),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Builder(
-                  builder: (context) => _buildScaleBox(
+            const SizedBox(width: 6),
+            Expanded(
+              child: Builder(
+                builder: (context) => _buildScaleBox(
+                  context: context,
+                  percent: _selectedPercent(labelScale),
+                  tooltip: '라벨 크기 선택',
+                  onTap: () => _showScaleMenu(
                     context: context,
-                    percent: _selectedPercent(labelScale),
-                    tooltip: '라벨 크기 선택',
-                    onTap: () => _showScaleMenu(
-                      context: context,
-                      onSelected: (value) =>
-                          onLabelScaleChanged(_percentToScale(value)),
-                    ),
+                    onSelected: (value) =>
+                        onLabelScaleChanged(_percentToScale(value)),
                   ),
                 ),
               ),
