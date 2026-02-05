@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/models/defect.dart';
+import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
@@ -145,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : _OrphanScanResultList(
                       result: result,
+                      site: site,
                       siteId: site.id,
                     ),
               actions: [
@@ -342,10 +345,12 @@ enum _SiteMenuAction { scanOrphanPhotos }
 class _OrphanScanResultList extends StatefulWidget {
   const _OrphanScanResultList({
     required this.result,
+    required this.site,
     required this.siteId,
   });
 
   final OrphanScanResult result;
+  final Site site;
   final String siteId;
 
   @override
@@ -447,6 +452,80 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     );
   }
 
+  Future<Site?> _restoreOrphanFile({
+    required FileSystemEntity entity,
+    required String defectId,
+  }) async {
+    final defectIndex = widget.site.defects.indexWhere(
+      (defect) => defect.id == defectId,
+    );
+    if (defectIndex == -1) {
+      return null;
+    }
+    final defect = widget.site.defects[defectIndex];
+    final storedPath = entity.path;
+    final photoPaths = [...defect.details.photoPaths, storedPath];
+    final photoOriginalNamesByPath = Map<String, String>.from(
+      defect.details.photoOriginalNamesByPath,
+    );
+    if (!photoOriginalNamesByPath.containsKey(storedPath)) {
+      final baseName = p.basenameWithoutExtension(storedPath);
+      if (_looksLikeCameraName(baseName)) {
+        photoOriginalNamesByPath[storedPath] = baseName;
+      }
+    }
+    final updatedDefect = Defect(
+      id: defect.id,
+      label: defect.label,
+      pageIndex: defect.pageIndex,
+      category: defect.category,
+      normalizedX: defect.normalizedX,
+      normalizedY: defect.normalizedY,
+      details: DefectDetails(
+        structuralMember: defect.details.structuralMember,
+        crackType: defect.details.crackType,
+        widthMm: defect.details.widthMm,
+        lengthMm: defect.details.lengthMm,
+        cause: defect.details.cause,
+        photoPaths: photoPaths,
+        photoOriginalNamesByPath: photoOriginalNamesByPath,
+      ),
+    );
+    final updatedDefects = List<Defect>.from(widget.site.defects);
+    updatedDefects[defectIndex] = updatedDefect;
+    return widget.site.copyWith(defects: updatedDefects);
+  }
+
+  bool _looksLikeCameraName(String base) {
+    return RegExp(r'^\d{8}_\d{6}(_\d+)?$').hasMatch(base);
+  }
+
+  String _resolveOrphanDisplayName({
+    required FileSystemEntity entity,
+    required String? defectId,
+  }) {
+    if (defectId != null) {
+      Defect? defect;
+      for (final candidate in widget.site.defects) {
+        if (candidate.id == defectId) {
+          defect = candidate;
+          break;
+        }
+      }
+      if (defect != null) {
+        final originalName = defect.details.photoOriginalNamesByPath[entity.path];
+        if (originalName != null && originalName.trim().isNotEmpty) {
+          return p.basenameWithoutExtension(originalName);
+        }
+      }
+    }
+    final base = p.basenameWithoutExtension(entity.path);
+    if (_looksLikeCameraName(base)) {
+      return base;
+    }
+    return extractOrphanFileName(entity);
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalCount = _orphanFiles.length;
@@ -480,10 +559,13 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final entity = displayedFiles[index];
-                        final fileName = extractOrphanFileName(entity);
                         final defectId = extractDefectIdFromPath(
                           entity: entity,
                           siteId: widget.siteId,
+                        );
+                        final fileName = _resolveOrphanDisplayName(
+                          entity: entity,
+                          defectId: defectId,
                         );
                         return ListTile(
                           dense: true,
