@@ -17,6 +17,12 @@ class ToolDetailRow extends StatelessWidget {
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
+    required this.activeDrawingTool,
+    required this.canUndoDrawing,
+    required this.canRedoDrawing,
+    required this.onDrawingToolSelected,
+    required this.onUndoDrawing,
+    required this.onRedoDrawing,
   });
 
   final DrawMode mode;
@@ -30,6 +36,12 @@ class ToolDetailRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
+  final DrawingTool activeDrawingTool;
+  final bool canUndoDrawing;
+  final bool canRedoDrawing;
+  final ValueChanged<DrawingTool> onDrawingToolSelected;
+  final VoidCallback onUndoDrawing;
+  final VoidCallback onRedoDrawing;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +57,12 @@ class ToolDetailRow extends StatelessWidget {
       onDefectLongPress: onDefectLongPress,
       onEquipmentSelected: onEquipmentSelected,
       onEquipmentLongPress: onEquipmentLongPress,
+      activeDrawingTool: activeDrawingTool,
+      canUndoDrawing: canUndoDrawing,
+      canRedoDrawing: canRedoDrawing,
+      onDrawingToolSelected: onDrawingToolSelected,
+      onUndoDrawing: onUndoDrawing,
+      onRedoDrawing: onRedoDrawing,
     );
   }
 }

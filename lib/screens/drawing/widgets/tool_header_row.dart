@@ -19,6 +19,12 @@ class ToolHeaderRow extends StatelessWidget {
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
+    required this.activeDrawingTool,
+    required this.canUndoDrawing,
+    required this.canRedoDrawing,
+    required this.onDrawingToolSelected,
+    required this.onUndoDrawing,
+    required this.onRedoDrawing,
   });
 
   final DrawMode mode;
@@ -32,6 +38,12 @@ class ToolHeaderRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
+  final DrawingTool activeDrawingTool;
+  final bool canUndoDrawing;
+  final bool canRedoDrawing;
+  final ValueChanged<DrawingTool> onDrawingToolSelected;
+  final VoidCallback onUndoDrawing;
+  final VoidCallback onRedoDrawing;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +51,7 @@ class ToolHeaderRow extends StatelessWidget {
     final showTabs = mode == DrawMode.defect
         ? defectTabs.isNotEmpty
         : equipmentTabs.isNotEmpty;
+    final isFreeDrawMode = mode == DrawMode.freeDraw || mode == DrawMode.eraser;
 
     return Row(
       children: [
@@ -50,46 +63,62 @@ class ToolHeaderRow extends StatelessWidget {
         const SizedBox(width: 4),
         Flexible(
           fit: FlexFit.loose,
-          child: Text(
-            _modeTitle(mode),
-            style: Theme.of(context).textTheme.titleSmall,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: isFreeDrawMode
+              ? _FreeDrawActionTabs(
+                  activeTool: activeDrawingTool,
+                  canUndo: canUndoDrawing,
+                  canRedo: canRedoDrawing,
+                  onToolSelected: onDrawingToolSelected,
+                  onUndo: onUndoDrawing,
+                  onRedo: onRedoDrawing,
+                )
+              : Row(
+                  children: [
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Text(
+                        _modeTitle(mode),
+                        style: Theme.of(context).textTheme.titleSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (showAddButton) ...[
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 18,
+                          onPressed: onAdd,
+                          icon: const Icon(Icons.add),
+                          tooltip: '추가',
+                        ),
+                      ),
+                    ],
+                    if (showTabs) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: mode == DrawMode.defect
+                            ? _DefectCategoryTabs(
+                                defectTabs: defectTabs,
+                                activeCategory: activeCategory,
+                                onSelected: onDefectSelected,
+                                onLongPress: onDefectLongPress,
+                              )
+                            : NumberedTabs<EquipmentCategory>(
+                                items: equipmentTabs,
+                                selected: activeEquipmentCategory,
+                                onSelected: onEquipmentSelected,
+                                labelBuilder: equipmentChipLabel,
+                                onLongPress: onEquipmentLongPress,
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
         ),
-        if (showAddButton) ...[
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 18,
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              tooltip: '추가',
-            ),
-          ),
-        ],
-        if (showTabs) ...[
-          const SizedBox(width: 8),
-          Flexible(
-            fit: FlexFit.loose,
-            child: mode == DrawMode.defect
-                ? _DefectCategoryTabs(
-                    defectTabs: defectTabs,
-                    activeCategory: activeCategory,
-                    onSelected: onDefectSelected,
-                    onLongPress: onDefectLongPress,
-                  )
-                : NumberedTabs<EquipmentCategory>(
-                    items: equipmentTabs,
-                    selected: activeEquipmentCategory,
-                    onSelected: onEquipmentSelected,
-                    labelBuilder: equipmentChipLabel,
-                    onLongPress: onEquipmentLongPress,
-                  ),
-          ),
-        ],
       ],
     );
   }
@@ -107,6 +136,57 @@ class ToolHeaderRow extends StatelessWidget {
       case DrawMode.hand:
         return '';
     }
+  }
+}
+
+class _FreeDrawActionTabs extends StatelessWidget {
+  const _FreeDrawActionTabs({
+    required this.activeTool,
+    required this.canUndo,
+    required this.canRedo,
+    required this.onToolSelected,
+    required this.onUndo,
+    required this.onRedo,
+  });
+
+  final DrawingTool activeTool;
+  final bool canUndo;
+  final bool canRedo;
+  final ValueChanged<DrawingTool> onToolSelected;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ChoiceChip(
+            label: const Text('자유선'),
+            selected: activeTool == DrawingTool.pen,
+            onSelected: (_) => onToolSelected(DrawingTool.pen),
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: const Text('지우개'),
+            selected: activeTool == DrawingTool.eraser,
+            onSelected: (_) => onToolSelected(DrawingTool.eraser),
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            label: const Text('되돌리기'),
+            onPressed: canUndo ? onUndo : null,
+          ),
+          const SizedBox(width: 8),
+          ActionChip(
+            label: const Text('앞으로'),
+            onPressed: canRedo ? onRedo : null,
+          ),
+        ],
+      ),
+    );
   }
 }
 

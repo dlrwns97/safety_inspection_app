@@ -20,28 +20,22 @@ class ToolSelectionRow extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ToolToggleButton(
+          _ToolToggleChip(
             label: StringsKo.defectModeLabel,
             isSelected: mode == DrawMode.defect,
             onTap: () => onToggleMode(DrawMode.defect),
           ),
           const SizedBox(width: 8),
-          _ToolToggleButton(
+          _ToolToggleChip(
             label: StringsKo.equipmentModeLabel,
             isSelected: mode == DrawMode.equipment,
             onTap: () => onToggleMode(DrawMode.equipment),
           ),
           const SizedBox(width: 8),
-          _ToolToggleButton(
+          _ToolToggleChip(
             label: StringsKo.freeDrawModeLabel,
-            isSelected: mode == DrawMode.freeDraw,
+            isSelected: mode == DrawMode.freeDraw || mode == DrawMode.eraser,
             onTap: () => onToggleMode(DrawMode.freeDraw),
-          ),
-          const SizedBox(width: 8),
-          _ToolToggleButton(
-            label: StringsKo.eraserModeLabel,
-            isSelected: mode == DrawMode.eraser,
-            onTap: () => onToggleMode(DrawMode.eraser),
           ),
         ],
       ),
@@ -49,8 +43,8 @@ class ToolSelectionRow extends StatelessWidget {
   }
 }
 
-class _ToolToggleButton extends StatelessWidget {
-  const _ToolToggleButton({
+class _ToolToggleChip extends StatelessWidget {
+  const _ToolToggleChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -62,21 +56,10 @@ class _ToolToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        backgroundColor:
-            isSelected ? colors.primary : colors.surfaceContainerHighest,
-        foregroundColor:
-            isSelected ? colors.onPrimary : colors.onSurfaceVariant,
-        side: BorderSide(
-          color: isSelected ? colors.primary : colors.outlineVariant,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-      child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
     );
   }
 }
