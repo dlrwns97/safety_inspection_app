@@ -40,7 +40,6 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.da
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
-import 'package:safety_inspection_app/widgets/drawing/drawing_toolbar.dart';
 
 part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
@@ -103,7 +102,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _activePointerIds = <int>{};
   bool _overlayIgnoring = false;
   bool _didShowFreeDrawGuide = false;
-  final List<List<Offset>> _strokes = [];
+  List<List<Offset>> _strokes = [];
   List<Offset>? _inProgress;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
@@ -664,6 +663,12 @@ class _DrawingScreenState extends State<DrawingScreen>
           .activeCategory,
     ),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
+    activeDrawingTool: _activeTool,
+    canUndoDrawing: _canUndoDrawing,
+    canRedoDrawing: _canRedoDrawing,
+    onDrawingToolSelected: _handleDrawingToolChanged,
+    onUndoDrawing: () {},
+    onRedoDrawing: () {},
   );
   CanvasMarkerLayer _buildMarkerLayer({
     required Widget child,

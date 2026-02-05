@@ -55,7 +55,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   PreferredSizeWidget _buildAppBar() {
     final drawingTopBar = _buildDrawingTopBar();
-    final toolbarBottomHeight = _isFreeDrawMode ? 68.0 : 0.0;
     return AppBar(
       title: Text(_site.name),
       actions: [
@@ -66,29 +65,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPressed: _replacePdf,
           ),
       ],
-      bottom: PreferredSize(
-        preferredSize: Size.fromHeight(
-          drawingTopBar.preferredSize.height + toolbarBottomHeight,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            drawingTopBar,
-            if (_isFreeDrawMode)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                child: DrawingToolbar(
-                  activeTool: _activeTool,
-                  onToolSelected: _handleDrawingToolChanged,
-                  onUndo: () {},
-                  onRedo: () {},
-                  canUndo: _canUndoDrawing,
-                  canRedo: _canRedoDrawing,
-                ),
-              ),
-          ],
-        ),
-      ),
+      bottom: drawingTopBar,
     );
   }
 
