@@ -3,6 +3,11 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 class DefectPhotoStore {
+  Future<Directory> getRootDirectory() async {
+    final documentsDir = await getApplicationDocumentsDirectory();
+    return Directory('${documentsDir.path}/sites');
+  }
+
   Future<List<String>> savePickedImages({
     required String siteId,
     required String defectId,
