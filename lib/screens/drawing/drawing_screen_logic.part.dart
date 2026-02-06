@@ -797,6 +797,38 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
+  bool _areStrokesNormalized(List<List<Offset>> strokes) {
+    const int maxSamplePoints = 200;
+    int sampledPoints = 0;
+    int normalizedPoints = 0;
+
+    for (final stroke in strokes) {
+      for (final point in stroke) {
+        if (sampledPoints >= maxSamplePoints) {
+          break;
+        }
+        sampledPoints += 1;
+        final isWithinNormalizedRange =
+            point.dx >= 0.0 &&
+            point.dx <= 1.0 &&
+            point.dy >= 0.0 &&
+            point.dy <= 1.0;
+        if (isWithinNormalizedRange) {
+          normalizedPoints += 1;
+        }
+      }
+      if (sampledPoints >= maxSamplePoints) {
+        break;
+      }
+    }
+
+    if (sampledPoints == 0) {
+      return true;
+    }
+
+    return (normalizedPoints / sampledPoints) >= 0.95;
+  }
+
 
   void _migrateLegacyFreeDrawStrokesIfNeeded({
     required int pageNumber,
@@ -807,6 +839,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     final strokes = _strokesByPage[pageNumber];
     if (strokes == null || strokes.isEmpty) {
+      _migratedFreeDrawPages.add(pageNumber);
+      return;
+    }
+    if (_areStrokesNormalized(strokes)) {
       _migratedFreeDrawPages.add(pageNumber);
       return;
     }
