@@ -876,62 +876,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPointerStart(
-    Offset localPosition,
+    Offset normalized,
     int pageNumber,
     Size pageSize,
   ) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
       return;
     }
-    if (localPosition.dx < 0 ||
-        localPosition.dx > pageSize.width ||
-        localPosition.dy < 0 ||
-        localPosition.dy > pageSize.height ||
-        pageSize.width <= 0 ||
-        pageSize.height <= 0) {
+    if (pageSize.width <= 0 ||
+        pageSize.height <= 0 ||
+        normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
       return;
     }
-    final normalizedPoint = Offset(
-      localPosition.dx / pageSize.width,
-      localPosition.dy / pageSize.height,
-    );
     _safeSetState(() {
-      _debugLastPageLocal = localPosition;
       _inProgressPage = pageNumber;
-      _inProgress = [normalizedPoint];
+      _inProgress = [normalized];
     });
   }
 
-  void _handleFreeDrawPointerStartFromGlobal(
-    Offset globalPosition,
-    int pageNumber,
-    Size pageSize,
-    Rect destRect,
-  ) {
-    final tapContext = _pdfTapRegionKeyForPage(pageNumber).currentContext;
-    final tapInfo = _resolveTapPosition(tapContext, globalPosition);
-    if (tapInfo == null) {
-      return;
-    }
-    final resolvedDestRect =
-        destRect.isEmpty ? Offset.zero & tapInfo.size : destRect;
-    if (!resolvedDestRect.contains(tapInfo.localPosition)) {
-      return;
-    }
-    final pageLocal = _mapPdfViewportPointToPageLocal(
-      viewportLocal: tapInfo.localPosition - resolvedDestRect.topLeft,
-      pageIndex: pageNumber,
-      viewportSize: resolvedDestRect.size,
-      childSize: pageSize,
-    );
-    if (pageLocal == null) {
-      return;
-    }
-    _handleFreeDrawPointerStart(pageLocal, pageNumber, pageSize);
-  }
-
   void _handleFreeDrawPointerUpdate(
-    Offset localPosition,
+    Offset normalized,
     int pageNumber,
     Size pageSize,
   ) {
@@ -943,58 +910,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    if (localPosition.dx < 0 ||
-        localPosition.dx > pageSize.width ||
-        localPosition.dy < 0 ||
-        localPosition.dy > pageSize.height ||
-        pageSize.width <= 0 ||
-        pageSize.height <= 0) {
+    if (pageSize.width <= 0 ||
+        pageSize.height <= 0 ||
+        normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
       return;
     }
-    final normalizedPoint = Offset(
-      localPosition.dx / pageSize.width,
-      localPosition.dy / pageSize.height,
-    );
     const double thresholdPx = 2.5;
     final double denom = pageSize.shortestSide <= 0
         ? 1.0
         : pageSize.shortestSide;
     final double thresholdNorm = thresholdPx / denom;
-    if ((normalizedPoint - inProgress.last).distance < thresholdNorm) {
+    if ((normalized - inProgress.last).distance < thresholdNorm) {
       return;
     }
     _safeSetState(() {
-      _debugLastPageLocal = localPosition;
-      inProgress.add(normalizedPoint);
+      inProgress.add(normalized);
     });
-  }
-
-  void _handleFreeDrawPointerUpdateFromGlobal(
-    Offset globalPosition,
-    int pageNumber,
-    Size pageSize,
-    Rect destRect,
-  ) {
-    final tapContext = _pdfTapRegionKeyForPage(pageNumber).currentContext;
-    final tapInfo = _resolveTapPosition(tapContext, globalPosition);
-    if (tapInfo == null) {
-      return;
-    }
-    final resolvedDestRect =
-        destRect.isEmpty ? Offset.zero & tapInfo.size : destRect;
-    if (!resolvedDestRect.contains(tapInfo.localPosition)) {
-      return;
-    }
-    final pageLocal = _mapPdfViewportPointToPageLocal(
-      viewportLocal: tapInfo.localPosition - resolvedDestRect.topLeft,
-      pageIndex: pageNumber,
-      viewportSize: resolvedDestRect.size,
-      childSize: pageSize,
-    );
-    if (pageLocal == null) {
-      return;
-    }
-    _handleFreeDrawPointerUpdate(pageLocal, pageNumber, pageSize);
   }
 
   void _handleFreeDrawPointerEnd(int pageNumber) {
