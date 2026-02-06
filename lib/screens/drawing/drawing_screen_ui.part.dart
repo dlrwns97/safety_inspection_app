@@ -227,7 +227,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
               final previousDestRect = _pdfPageDestRects[pageNumber];
               _migrateLegacyFreeDrawStrokesIfNeeded(
                 pageNumber: pageNumber,
-                pageSize: pageSize,
                 oldDestRect: previousDestRect,
               );
               _pdfPageDestRects[pageNumber] = destRect;
@@ -279,69 +278,69 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       Positioned.fromRect(
                         rect: destRect,
                         child: ClipRect(
-                          child: IgnorePointer(
-                            ignoring: !enableOverlayDrawing,
-                            child: RawGestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              gestures: <Type, GestureRecognizerFactory>{
-                                SingleFingerPanRecognizer:
-                                    GestureRecognizerFactoryWithHandlers<
-                                      SingleFingerPanRecognizer
-                                    >(
-                                      SingleFingerPanRecognizer.new,
-                                      (SingleFingerPanRecognizer recognizer) {
-                                        recognizer
-                                          ..onStart = (localPosition) {
-                                            final pagePoint = _viewToPagePoint(
-                                                  pageNumber: pageNumber,
-                                                  viewLocal:
-                                                      localPosition,
-                                                  pageSize: pageSize,
-                                                  destSize: destRect.size,
-                                                );
-                                            _handleFreeDrawPointerStart(
-                                              pagePoint,
-                                              pageNumber,
-                                            );
-                                          }
-                                          ..onUpdate = (localPosition) {
-                                            final pagePoint = _viewToPagePoint(
-                                                  pageNumber: pageNumber,
-                                                  viewLocal:
-                                                      localPosition,
-                                                  pageSize: pageSize,
-                                                  destSize: destRect.size,
-                                                );
-                                            _handleFreeDrawPointerUpdate(
-                                              pagePoint,
-                                              pageNumber,
-                                            );
-                                          }
-                                          ..onEnd = () {
-                                            _handleFreeDrawPointerEnd(
-                                              pageNumber,
-                                            );
-                                          }
-                                          ..onCancel =
-                                              _handleFreeDrawPanCancel;
-                                      },
-                                    ),
-                              },
-                              child: CustomPaint(
-                                painter: TempPolylinePainter(
-                                  strokes:
-                                      _strokesByPage[pageNumber] ??
-                                      const <List<Offset>>[],
-                                  inProgress:
-                                      _inProgressPage == pageNumber
-                                      ? _inProgress
-                                      : null,
-                                  baseScale:
-                                      destRect.size.width / pageSize.width,
-                                ),
-                                child: const SizedBox.expand(),
-                              ),
+                          child: CustomPaint(
+                            painter: TempPolylinePainter(
+                              strokes:
+                                  _strokesByPage[pageNumber] ??
+                                  const <List<Offset>>[],
+                              inProgress:
+                                  _inProgressPage == pageNumber
+                                  ? _inProgress
+                                  : null,
+                              destSize: destRect.size,
                             ),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          ignoring: !enableOverlayDrawing,
+                          child: RawGestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            gestures: <Type, GestureRecognizerFactory>{
+                              SingleFingerPanRecognizer:
+                                  GestureRecognizerFactoryWithHandlers<
+                                    SingleFingerPanRecognizer
+                                  >(
+                                    SingleFingerPanRecognizer.new,
+                                    (SingleFingerPanRecognizer recognizer) {
+                                      recognizer
+                                        ..onStart = (localPosition) {
+                                          final normalizedPoint =
+                                              _overlayToNormalizedPoint(
+                                                pageNumber: pageNumber,
+                                                overlayLocal: localPosition,
+                                                destRect: destRect,
+                                              );
+                                          _handleFreeDrawPointerStart(
+                                            normalizedPoint,
+                                            pageNumber,
+                                          );
+                                        }
+                                        ..onUpdate = (localPosition) {
+                                          final normalizedPoint =
+                                              _overlayToNormalizedPoint(
+                                                pageNumber: pageNumber,
+                                                overlayLocal: localPosition,
+                                                destRect: destRect,
+                                              );
+                                          _handleFreeDrawPointerUpdate(
+                                            normalizedPoint,
+                                            pageNumber,
+                                          );
+                                        }
+                                        ..onEnd = () {
+                                          _handleFreeDrawPointerEnd(
+                                            pageNumber,
+                                          );
+                                        }
+                                        ..onCancel =
+                                            _handleFreeDrawPanCancel;
+                                    },
+                                  ),
+                            },
+                            child: const SizedBox.expand(),
                           ),
                         ),
                       ),
