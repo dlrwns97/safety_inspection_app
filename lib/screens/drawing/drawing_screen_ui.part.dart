@@ -418,7 +418,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                     ],
                   ),
-                  );
+                  ));
                 },
               );
             },
