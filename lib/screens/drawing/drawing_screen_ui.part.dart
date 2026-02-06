@@ -149,7 +149,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final bool enablePdfScaleGestures = true;
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return PdfDrawingView(
-      key: _pdfViewerKey,
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
       sitePdfName: _site.pdfName,
@@ -211,10 +210,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
       builder:
           (tapContext) => LayoutBuilder(
             builder: (context, constraints) {
-              var overlaySize = Size(
-                constraints.maxWidth,
-                constraints.maxHeight,
-              );
+              final viewerContext = _pdfViewerKey.currentContext;
+              final viewerRenderObject = viewerContext?.findRenderObject();
+              final viewerBox =
+                  viewerRenderObject is RenderBox && viewerRenderObject.hasSize
+                      ? viewerRenderObject
+                      : null;
+              var overlaySize =
+                  viewerBox?.size ??
+                  Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                  );
               if (!constraints.hasBoundedWidth ||
                   !constraints.hasBoundedHeight) {
                 overlaySize = pageSize;
@@ -239,56 +246,55 @@ extension _DrawingScreenUi on _DrawingScreenState {
               _pdfPageDestRects[pageNumber] = destRect;
               final bool isTwoFinger = _activePointerIds.length >= 2;
               final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
-              return Builder(
-                builder: (stackContext) {
-                  final Matrix4 freeDrawTransform =
-                      _resolvePdfPageToDestTransform(
-                        pageNumber: pageNumber,
-                        destRect: destRect,
-                        pageSize: pageSize,
-                        stackContext: stackContext,
-                      );
-                  return _wrapWithPointerHandlers(
-                  tapRegionKey: tapKey,
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) => _handlePdfTap(
-                    details,
-                    overlaySize,
-                    pageNumber,
-                    tapContext,
-                    destRect: destRect,
-                  ),
-                  onLongPressStart: (details) => _handlePdfLongPress(
-                    details,
-                    overlaySize,
-                    pageNumber,
-                    tapContext,
-                    destRect: destRect,
-                  ),
-                  onMovePanUpdate:
-                      (details) => _handleMovePdfPanUpdate(
-                        details,
-                        overlaySize,
-                        pageNumber,
-                        tapContext,
-                        destRect: destRect,
-                      ),
-                  child: SizedBox(
+              final Matrix4 freeDrawTransform = _resolvePdfPageToDestTransform(
+                pageNumber: pageNumber,
+                destRect: destRect,
+                pageSize: pageSize,
+              );
+              return _wrapWithPointerHandlers(
+                tapRegionKey: tapKey,
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) => _handlePdfTap(
+                  details,
+                  overlaySize,
+                  pageNumber,
+                  tapContext,
+                  destRect: destRect,
+                ),
+                onLongPressStart: (details) => _handlePdfLongPress(
+                  details,
+                  overlaySize,
+                  pageNumber,
+                  tapContext,
+                  destRect: destRect,
+                ),
+                onMovePanUpdate:
+                    (details) => _handleMovePdfPanUpdate(
+                      details,
+                      overlaySize,
+                      pageNumber,
+                      tapContext,
+                      destRect: destRect,
+                    ),
+                child: SizedBox(
                   width: overlaySize.width,
                   height: overlaySize.height,
                   child: Stack(
                     children: [
-                      Positioned.fromRect(
-                        rect: destRect,
-                        child: KeyedSubtree(
-                          key: pageContentKey,
-                          child: _buildMarkerLayer(
-                            size: destRect.size,
-                            pageIndex: pageNumber,
-                            child: SizedBox.expand(
-                              child: Image(
-                                image: imageProvider,
-                                fit: BoxFit.fill,
+                      Align(
+                        child: SizedBox(
+                          width: destRect.width,
+                          height: destRect.height,
+                          child: KeyedSubtree(
+                            key: pageContentKey,
+                            child: _buildMarkerLayer(
+                              size: destRect.size,
+                              pageIndex: pageNumber,
+                              child: SizedBox.expand(
+                                child: Image(
+                                  image: imageProvider,
+                                  fit: BoxFit.fill,
+                                ),
                               ),
                             ),
                           ),
@@ -302,8 +308,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 const <List<Offset>>[],
                             inProgress:
                                 _inProgressPage == pageNumber
-                                ? _inProgress
-                                : null,
+                                    ? _inProgress
+                                    : null,
                             overlaySize: overlaySize,
                             pageSize: pageSize,
                             transform: freeDrawTransform,
@@ -326,31 +332,36 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     (SingleFingerPanRecognizer recognizer) {
                                       recognizer
                                         ..onStart = (pointerDetails) {
-                                          final renderObject =
-                                              stackContext.findRenderObject();
-                                          if (renderObject is! RenderBox ||
-                                              !renderObject.hasSize) {
+                                          final boxContext =
+                                              _pdfViewerKey.currentContext;
+                                          final boxRenderObject =
+                                              boxContext?.findRenderObject();
+                                          if (boxRenderObject is! RenderBox ||
+                                              !boxRenderObject.hasSize) {
                                             return;
                                           }
                                           _isStrokeActive = true;
                                           _activeStrokeDestRect = destRect;
-                                          _activeStrokeOverlaySize = overlaySize;
-                                          _activeStrokeBox = renderObject;
-                                          final Offset p =
-                                              _activeStrokeBox!.globalToLocal(
+                                          _activeStrokeOverlaySize =
+                                              boxRenderObject.size;
+                                          _activeStrokeBox = boxRenderObject;
+                                          final Offset p = boxRenderObject
+                                              .globalToLocal(
                                                 pointerDetails.globalPosition,
                                               );
                                           final activeDestRect =
                                               _activeStrokeDestRect;
                                           final normalizedPoint =
                                               activeDestRect == null
-                                              ? null
-                                              : _overlayToNormalizedPoint(
-                                                  pageNumber: pageNumber,
-                                                  pointInStackLocal: p,
-                                                  destRect: activeDestRect,
-                                                  pageSize: pageSize,
-                                                );
+                                                  ? null
+                                                  : _overlayToNormalizedPoint(
+                                                    pageNumber: pageNumber,
+                                                    pointInStackLocal: p,
+                                                    destRect: activeDestRect,
+                                                    pageSize: pageSize,
+                                                    overlaySize:
+                                                        boxRenderObject.size,
+                                                  );
                                           _handleFreeDrawPointerStart(
                                             normalizedPoint,
                                             pageNumber,
@@ -372,19 +383,29 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                               activeOverlaySize.height <= 0) {
                                             return;
                                           }
-                                          final box = _activeStrokeBox;
-                                          if (box == null || !box.hasSize) {
+                                          final boxContext =
+                                              _pdfViewerKey.currentContext;
+                                          final boxRenderObject =
+                                              boxContext?.findRenderObject();
+                                          if (boxRenderObject is! RenderBox ||
+                                              !boxRenderObject.hasSize) {
                                             return;
                                           }
-                                          final Offset p = box.globalToLocal(
-                                            pointerDetails.globalPosition,
-                                          );
+                                          _activeStrokeOverlaySize =
+                                              boxRenderObject.size;
+                                          _activeStrokeBox = boxRenderObject;
+                                          final Offset p = boxRenderObject
+                                              .globalToLocal(
+                                                pointerDetails.globalPosition,
+                                              );
                                           final normalizedPoint =
                                               _overlayToNormalizedPoint(
                                                 pageNumber: pageNumber,
                                                 pointInStackLocal: p,
                                                 destRect: activeDestRect,
                                                 pageSize: pageSize,
+                                                overlaySize:
+                                                    boxRenderObject.size,
                                               );
                                           _handleFreeDrawPointerUpdate(
                                             normalizedPoint,
@@ -392,12 +413,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           );
                                         }
                                         ..onEnd = () {
-                                          _handleFreeDrawPointerEnd(
-                                            pageNumber,
-                                          );
+                                          _handleFreeDrawPointerEnd(pageNumber);
                                         }
-                                        ..onCancel =
-                                            _handleFreeDrawPanCancel;
+                                        ..onCancel = _handleFreeDrawPanCancel;
                                     },
                                   ),
                             },
@@ -405,8 +423,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
-                      // Keep pointer counting across the full overlay so
-                      // two-finger detection still works outside destRect.
                       Positioned.fill(
                         child: Listener(
                           behavior: HitTestBehavior.translucent,
@@ -417,8 +433,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                     ],
                   ),
-                  ));
-                },
+                ),
               );
             },
           ),
@@ -429,7 +444,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required int pageNumber,
     required Rect destRect,
     required Size pageSize,
-    required BuildContext stackContext,
   }) {
     final sx = pageSize.width <= 0 ? 1.0 : destRect.width / pageSize.width;
     final sy = pageSize.height <= 0 ? 1.0 : destRect.height / pageSize.height;
@@ -437,7 +451,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
     final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
     final contentObject = contentContext?.findRenderObject();
-    final stackObject = stackContext.findRenderObject();
+    final stackObject = _pdfViewerKey.currentContext?.findRenderObject();
     if (contentObject is! RenderBox ||
         !contentObject.hasSize ||
         stackObject is! RenderBox ||

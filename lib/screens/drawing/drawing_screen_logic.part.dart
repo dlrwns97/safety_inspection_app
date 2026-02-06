@@ -870,6 +870,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Offset pointInStackLocal,
     required Rect destRect,
     required Size pageSize,
+    required Size overlaySize,
   }) {
     if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
       return null;
@@ -883,10 +884,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return null;
     }
 
-    final overlaySize = _activeStrokeOverlaySize;
-    if (overlaySize == null ||
-        overlaySize.width <= 0 ||
-        overlaySize.height <= 0) {
+    if (overlaySize.width <= 0 || overlaySize.height <= 0) {
       return null;
     }
     if (!(Offset.zero & overlaySize).contains(pointInStackLocal)) {
