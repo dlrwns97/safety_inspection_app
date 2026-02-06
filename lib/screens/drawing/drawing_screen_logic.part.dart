@@ -807,11 +807,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final double scale = value.scale ?? 1.0;
     final Offset position = value.position;
-    final Offset point = (viewLocalPosition - position) / scale;
+    final Offset viewportCenter = contentSize.center(Offset.zero);
+    final Offset contentCenter = viewportCenter;
+    final Offset contentPoint =
+        ((viewLocalPosition - viewportCenter) - position) / scale +
+        contentCenter;
 
     return Offset(
-      point.dx.clamp(0.0, contentSize.width),
-      point.dy.clamp(0.0, contentSize.height),
+      contentPoint.dx.clamp(0.0, contentSize.width),
+      contentPoint.dy.clamp(0.0, contentSize.height),
     );
   }
 
