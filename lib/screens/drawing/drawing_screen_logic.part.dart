@@ -797,82 +797,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  Offset _photoViewDestLocalToPageLocal({
-    required Offset destLocal,
-    required Size pageSize,
-    required Size destSize,
-    required PhotoViewControllerValue value,
-  }) {
-    final double scale = value.scale ?? 1.0;
-    final double safe = scale <= 0 ? 1.0 : scale;
-    final Offset center = destSize.center(Offset.zero);
-    final Offset pageInDest =
-        ((destLocal - center) - value.position) / safe + center;
-    if (destSize == pageSize) {
-      return pageInDest;
-    }
-    final double sx = pageSize.width / destSize.width;
-    final double sy = pageSize.height / destSize.height;
-    return Offset(pageInDest.dx * sx, pageInDest.dy * sy);
-  }
-
-  Offset? _overlayToNormalizedPoint({
-    required Offset globalPosition,
-    required int pageNumber,
+  Offset? _pageLocalToNormalized({
+    required Offset localPosition,
     required Size pageSize,
   }) {
     if (pageSize.width <= 0 || pageSize.height <= 0) {
       return null;
     }
-    final viewerContext = _pdfViewerKey.currentContext;
-    final viewerObject = viewerContext?.findRenderObject();
-    if (viewerObject is! RenderBox || !viewerObject.hasSize) {
-      return null;
-    }
-    final local = viewerObject.globalToLocal(globalPosition);
-    final Rect destRect = Offset.zero & viewerObject.size;
-    if (destRect.isEmpty) {
-      return null;
-    }
-    if (!destRect.contains(local)) {
-      return null;
-    }
-    final destLocal = local - destRect.topLeft;
-    final controller = _photoControllerForPage(pageNumber);
-    final value = controller.value;
-    final pageLocal = _photoViewDestLocalToPageLocal(
-      destLocal: destLocal,
-      pageSize: pageSize,
-      destSize: destRect.size,
-      value: value,
-    );
-    if (pageLocal.dx < 0 ||
-        pageLocal.dx > pageSize.width ||
-        pageLocal.dy < 0 ||
-        pageLocal.dy > pageSize.height) {
+    if (localPosition.dx < 0 ||
+        localPosition.dx > pageSize.width ||
+        localPosition.dy < 0 ||
+        localPosition.dy > pageSize.height) {
       return null;
     }
     return Offset(
-      pageLocal.dx / pageSize.width,
-      pageLocal.dy / pageSize.height,
-    );
-  }
-
-  Offset? _pdfGlobalToPageNormalized({
-    required Offset globalPosition,
-    required int pageNumber,
-    required Size pageSize,
-  }) {
-    return _overlayToNormalizedPoint(
-      globalPosition: globalPosition,
-      pageNumber: pageNumber,
-      pageSize: pageSize,
+      localPosition.dx / pageSize.width,
+      localPosition.dy / pageSize.height,
     );
   }
 
   void _handleFreeDrawPointerStart(
     Offset? localPosition,
     int pageNumber,
+    Size _pageSize,
   ) {
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -888,6 +835,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleFreeDrawPointerUpdate(
     Offset? localPosition,
     int pageNumber,
+    Size pageSize,
   ) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
@@ -898,7 +846,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    final pageSize = _pdfPageSizes[pageNumber] ?? DrawingCanvasSize;
     const double thresholdPx = 2.5;
     final double denom = pageSize.shortestSide <= 0
         ? 1.0
