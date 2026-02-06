@@ -68,7 +68,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, PhotoViewController> _pdfPhotoControllers = {};
   final Map<int, PhotoViewScaleStateController> _pdfScaleStateControllers = {};
   final GlobalKey _canvasKey = GlobalKey();
-  final GlobalKey _pdfViewerKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _pdfViewerKey =
+      GlobalKey<State<StatefulWidget>>();
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
@@ -731,7 +732,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final showSidePanel = constraints.maxWidth >= 900;
-          final drawingStack = Stack(children: _buildDrawingStackChildren());
+          final drawingStack = SizedBox.expand(
+            key: _pdfViewerKey,
+            child: Stack(children: _buildDrawingStackChildren()),
+          );
           if (!showSidePanel) {
             return drawingStack;
           }
