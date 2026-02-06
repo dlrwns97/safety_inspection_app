@@ -109,6 +109,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _migratedFreeDrawPages = <int>{};
   List<Offset>? _inProgress;
   int? _inProgressPage;
+  Rect? _activeStrokeDestRect;
+  Size? _activeStrokeOverlaySize;
+  RenderBox? _activeStrokeBox;
+  bool _isStrokeActive = false;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;

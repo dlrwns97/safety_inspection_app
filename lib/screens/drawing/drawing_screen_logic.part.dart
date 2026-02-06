@@ -914,14 +914,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return normalized;
   }
 
+
+  void _resetActiveStrokeSnapshot() {
+    _isStrokeActive = false;
+    _activeStrokeDestRect = null;
+    _activeStrokeOverlaySize = null;
+    _activeStrokeBox = null;
+  }
+
   void _handleFreeDrawPointerStart(
     Offset? localPosition,
     int pageNumber,
-    Size destSize,
   ) {
+    final activeDestRect = _activeStrokeDestRect;
+    final activeOverlaySize = _activeStrokeOverlaySize;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
-        destSize.shortestSide <= 0 ||
+        !_isStrokeActive ||
+        activeDestRect == null ||
+        activeOverlaySize == null ||
+        activeDestRect.width <= 0 ||
+        activeDestRect.height <= 0 ||
+        activeOverlaySize.width <= 0 ||
+        activeOverlaySize.height <= 0 ||
         localPosition == null) {
       return;
     }
@@ -934,11 +949,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleFreeDrawPointerUpdate(
     Offset? localPosition,
     int pageNumber,
-    Size destSize,
   ) {
     final inProgress = _inProgress;
+    final activeDestRect = _activeStrokeDestRect;
+    final activeOverlaySize = _activeStrokeOverlaySize;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
+        !_isStrokeActive ||
+        activeDestRect == null ||
+        activeOverlaySize == null ||
+        activeDestRect.width <= 0 ||
+        activeDestRect.height <= 0 ||
+        activeOverlaySize.width <= 0 ||
+        activeOverlaySize.height <= 0 ||
         localPosition == null ||
         inProgress == null ||
         inProgress.isEmpty ||
@@ -946,8 +969,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     const double thresholdPx = 2.5;
-    final double denom =
-        destSize.shortestSide <= 0 ? 1.0 : destSize.shortestSide;
+    final double denom = activeDestRect.shortestSide <= 0
+        ? 1.0
+        : activeDestRect.shortestSide;
     final double thresholdNorm = thresholdPx / denom;
     if ((localPosition - inProgress.last).distance < thresholdNorm) {
       return;
@@ -957,6 +981,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleFreeDrawPointerEnd(int pageNumber) {
     _handleFreeDrawEnd(pageNumber);
+    _resetActiveStrokeSnapshot();
   }
 
   void _handleFreeDrawEnd(int pageNumber) {
@@ -976,6 +1001,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPanCancel() {
+    _resetActiveStrokeSnapshot();
     if (_inProgress == null) {
       return;
     }
@@ -1019,6 +1045,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activePointerIds.clear();
         _inProgress = null;
         _inProgressPage = null;
+        _resetActiveStrokeSnapshot();
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
