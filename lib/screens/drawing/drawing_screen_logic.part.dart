@@ -797,40 +797,26 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  bool _areStrokesNormalized(List<List<Offset>> strokes) {
-    const int maxSamplePoints = 200;
-    int sampledPoints = 0;
-    int normalizedPoints = 0;
-
-    for (final stroke in strokes) {
-      for (final point in stroke) {
-        if (sampledPoints >= maxSamplePoints) {
-          break;
-        }
-        sampledPoints += 1;
-        final isWithinNormalizedRange =
-            point.dx >= 0.0 &&
-            point.dx <= 1.0 &&
-            point.dy >= 0.0 &&
-            point.dy <= 1.0;
-        if (isWithinNormalizedRange) {
-          normalizedPoints += 1;
-        }
-      }
-      if (sampledPoints >= maxSamplePoints) {
-        break;
-      }
+  Offset _photoViewDestLocalToPageLocal({
+    required Offset destLocal,
+    required Size pageSize,
+    required Size destSize,
+    required PhotoViewControllerValue value,
+  }) {
+    final double scale = value.scale ?? 1.0;
+    final double safe = scale <= 0 ? 1.0 : scale;
+    final Offset center = destSize.center(Offset.zero);
+    final Offset pageInDest =
+        ((destLocal - center) - value.position) / safe + center;
+    if (destSize == pageSize) {
+      return pageInDest;
     }
-
-    if (sampledPoints == 0) {
-      return true;
-    }
-
-    return (normalizedPoints / sampledPoints) >= 0.95;
+    final double sx = pageSize.width / destSize.width;
+    final double sy = pageSize.height / destSize.height;
+    return Offset(pageInDest.dx * sx, pageInDest.dy * sy);
   }
 
-
-  Offset? _pdfGlobalToPageNormalized({
+  Offset? _overlayToNormalizedPoint({
     required Offset globalPosition,
     required int pageNumber,
     required Size pageSize,
@@ -844,19 +830,44 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return null;
     }
     final local = viewerObject.globalToLocal(globalPosition);
-    final controller = _photoControllerForPage(pageNumber);
-    final value = controller.value;
-    final Matrix4 matrix =
-        value == null ? Matrix4.identity() : Matrix4.copy(value);
-    final Matrix4 inverse = Matrix4.inverted(matrix);
-    final scene = MatrixUtils.transformPoint(inverse, local);
-    if (scene.dx < 0 ||
-        scene.dx > pageSize.width ||
-        scene.dy < 0 ||
-        scene.dy > pageSize.height) {
+    final Rect destRect = Offset.zero & viewerObject.size;
+    if (destRect.isEmpty) {
       return null;
     }
-    return Offset(scene.dx / pageSize.width, scene.dy / pageSize.height);
+    if (!destRect.contains(local)) {
+      return null;
+    }
+    final destLocal = local - destRect.topLeft;
+    final controller = _photoControllerForPage(pageNumber);
+    final value = controller.value;
+    final pageLocal = _photoViewDestLocalToPageLocal(
+      destLocal: destLocal,
+      pageSize: pageSize,
+      destSize: destRect.size,
+      value: value,
+    );
+    if (pageLocal.dx < 0 ||
+        pageLocal.dx > pageSize.width ||
+        pageLocal.dy < 0 ||
+        pageLocal.dy > pageSize.height) {
+      return null;
+    }
+    return Offset(
+      pageLocal.dx / pageSize.width,
+      pageLocal.dy / pageSize.height,
+    );
+  }
+
+  Offset? _pdfGlobalToPageNormalized({
+    required Offset globalPosition,
+    required int pageNumber,
+    required Size pageSize,
+  }) {
+    return _overlayToNormalizedPoint(
+      globalPosition: globalPosition,
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+    );
   }
 
   void _handleFreeDrawPointerStart(
