@@ -270,49 +270,55 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          ignoring: !enableOverlayDrawing,
-                          child: RawGestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            gestures: <Type, GestureRecognizerFactory>{
-                              SingleFingerPanRecognizer:
-                                  GestureRecognizerFactoryWithHandlers<
-                                    SingleFingerPanRecognizer
-                                  >(
-                                    SingleFingerPanRecognizer.new,
-                                    (SingleFingerPanRecognizer recognizer) {
-                                      recognizer
-                                        ..onStart = (localPosition) {
-                                          _handleFreeDrawPointerStart(
-                                            localPosition,
-                                            pageNumber,
-                                          );
-                                        }
-                                        ..onUpdate = (localPosition) {
-                                          _handleFreeDrawPointerUpdate(
-                                            localPosition,
-                                            pageNumber,
-                                          );
-                                        }
-                                        ..onEnd = () {
-                                          _handleFreeDrawPointerEnd(pageNumber);
-                                        }
-                                        ..onCancel = _handleFreeDrawPanCancel;
-                                    },
-                                  ),
-                            },
-                            child: CustomPaint(
-                              painter: TempPolylinePainter(
-                                strokes:
-                                    _strokesByPage[pageNumber] ??
-                                    const <List<Offset>>[],
-                                inProgress:
-                                    _inProgressPage == pageNumber
-                                    ? _inProgress
-                                    : null,
+                      Positioned.fromRect(
+                        rect: destRect,
+                        child: ClipRect(
+                          child: IgnorePointer(
+                            ignoring: !enableOverlayDrawing,
+                            child: RawGestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              gestures: <Type, GestureRecognizerFactory>{
+                                SingleFingerPanRecognizer:
+                                    GestureRecognizerFactoryWithHandlers<
+                                      SingleFingerPanRecognizer
+                                    >(
+                                      SingleFingerPanRecognizer.new,
+                                      (SingleFingerPanRecognizer recognizer) {
+                                        recognizer
+                                          ..onStart = (localPosition) {
+                                            _handleFreeDrawPointerStart(
+                                              localPosition,
+                                              pageNumber,
+                                            );
+                                          }
+                                          ..onUpdate = (localPosition) {
+                                            _handleFreeDrawPointerUpdate(
+                                              localPosition,
+                                              pageNumber,
+                                            );
+                                          }
+                                          ..onEnd = () {
+                                            _handleFreeDrawPointerEnd(
+                                              pageNumber,
+                                            );
+                                          }
+                                          ..onCancel =
+                                              _handleFreeDrawPanCancel;
+                                      },
+                                    ),
+                              },
+                              child: CustomPaint(
+                                painter: TempPolylinePainter(
+                                  strokes:
+                                      _strokesByPage[pageNumber] ??
+                                      const <List<Offset>>[],
+                                  inProgress:
+                                      _inProgressPage == pageNumber
+                                      ? _inProgress
+                                      : null,
+                                ),
+                                child: const SizedBox.expand(),
                               ),
-                              child: const SizedBox.expand(),
                             ),
                           ),
                         ),
