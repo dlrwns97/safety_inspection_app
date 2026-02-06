@@ -207,7 +207,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
+    final bool enablePageLocalDrawing = _isFreeDrawMode && !isTwoFinger;
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
@@ -257,13 +257,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   strokes: _strokesByPage[pageNumber] ?? const <List<Offset>>[],
                   inProgress: _inProgressPage == pageNumber ? _inProgress : null,
                   pageSize: pageSize,
+                  debugLastPageLocal:
+                      kDebugMode && _inProgressPage == pageNumber
+                          ? _debugLastPageLocal
+                          : null,
                 ),
                 child: const SizedBox.expand(),
               ),
             ),
             Positioned.fill(
               child: IgnorePointer(
-                ignoring: !enableOverlayDrawing,
+                ignoring: !enablePageLocalDrawing,
                 child: RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
                   gestures: <Type, GestureRecognizerFactory>{
@@ -276,24 +280,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             recognizer
                               ..onStart = (pointerDetails) {
                                 final local = pointerDetails.localPosition;
-                                final normalizedPoint = _pageLocalToNormalized(
-                                  localPosition: local,
-                                  pageSize: pageSize,
-                                );
                                 _handleFreeDrawPointerStart(
-                                  normalizedPoint,
+                                  local,
                                   pageNumber,
                                   pageSize,
                                 );
                               }
                               ..onUpdate = (pointerDetails) {
                                 final local = pointerDetails.localPosition;
-                                final normalizedPoint = _pageLocalToNormalized(
-                                  localPosition: local,
-                                  pageSize: pageSize,
-                                );
                                 _handleFreeDrawPointerUpdate(
-                                  normalizedPoint,
+                                  local,
                                   pageNumber,
                                   pageSize,
                                 );
@@ -393,12 +389,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
     Key? tapRegionKey,
   }) {
     final GestureTapUpCallback? tapHandler =
-        _isMoveMode ? null : onTapUp;
+        (_isMoveMode || _isFreeDrawMode) ? null : onTapUp;
     final GestureLongPressStartCallback? longPressHandler =
-        _isMoveMode ? null : onLongPressStart;
+        (_isMoveMode || _isFreeDrawMode) ? null : onLongPressStart;
     final bool canMove = _isMoveMode && _hasMoveTarget;
     final GestureDragUpdateCallback? movePanUpdate =
-        canMove ? onMovePanUpdate : null;
+        (_isFreeDrawMode || !canMove) ? null : onMovePanUpdate;
     return Listener(
       behavior: behavior,
       onPointerDown: (e) => _handlePointerDown(e.localPosition),

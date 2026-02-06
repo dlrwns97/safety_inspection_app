@@ -5,11 +5,13 @@ class TempPolylinePainter extends CustomPainter {
     required this.strokes,
     required this.inProgress,
     required this.pageSize,
+    this.debugLastPageLocal,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
   final Size pageSize;
+  final Offset? debugLastPageLocal;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -25,6 +27,12 @@ class TempPolylinePainter extends CustomPainter {
     }
     if (inProgress != null) {
       _drawPolyline(canvas, inProgress!, paint);
+    }
+    if (debugLastPageLocal != null) {
+      final debugPaint = Paint()
+        ..color = Colors.blueAccent
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(debugLastPageLocal!, 4, debugPaint);
     }
   }
 
@@ -54,6 +62,7 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
-        oldDelegate.pageSize != pageSize;
+        oldDelegate.pageSize != pageSize ||
+        oldDelegate.debugLastPageLocal != debugLastPageLocal;
   }
 }
