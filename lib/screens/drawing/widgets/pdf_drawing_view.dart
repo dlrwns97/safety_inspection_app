@@ -39,6 +39,7 @@ class PdfDrawingView extends StatelessWidget {
       scaleStateControllerForPage;
   final Widget Function({
     required Size pageSize,
+    required Size renderSize,
     required int pageNumber,
     required ImageProvider imageProvider,
     required Key pageContentKey,
@@ -177,15 +178,19 @@ class PdfDrawingView extends StatelessWidget {
   }) {
     return AspectRatio(
       aspectRatio: pageSize.width / pageSize.height,
-      child: SizedBox(
-        width: pageSize.width,
-        height: pageSize.height,
-        child: buildPageOverlay(
-          pageSize: pageSize,
-          pageNumber: pageNumber,
-          imageProvider: imageProvider,
-          pageContentKey: pageContentKeyForPage(pageNumber),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final renderSize = constraints.biggest;
+          return SizedBox.expand(
+            child: buildPageOverlay(
+              pageSize: pageSize,
+              renderSize: renderSize,
+              pageNumber: pageNumber,
+              imageProvider: imageProvider,
+              pageContentKey: pageContentKeyForPage(pageNumber),
+            ),
+          );
+        },
       ),
     );
   }

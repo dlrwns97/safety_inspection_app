@@ -167,11 +167,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
       buildPageOverlay:
           ({
             required pageSize,
+            required renderSize,
             required pageNumber,
             required imageProvider,
             required pageContentKey,
           }) => _buildPdfPageOverlay(
                 pageSize: pageSize,
+                renderSize: renderSize,
                 pageNumber: pageNumber,
                 imageProvider: imageProvider,
                 pageContentKey: pageContentKey,
@@ -201,6 +203,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildPdfPageOverlay({
     required Size pageSize,
+    required Size renderSize,
     required int pageNumber,
     required ImageProvider imageProvider,
     required Key pageContentKey,
@@ -213,38 +216,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) => _handlePdfTap(
         details,
-        pageSize,
+        renderSize,
         pageNumber,
         context,
-        destRect: Offset.zero & pageSize,
+        destRect: Offset.zero & renderSize,
       ),
       onLongPressStart: (details) => _handlePdfLongPress(
         details,
-        pageSize,
+        renderSize,
         pageNumber,
         context,
-        destRect: Offset.zero & pageSize,
+        destRect: Offset.zero & renderSize,
       ),
       onMovePanUpdate:
           (details) => _handleMovePdfPanUpdate(
             details,
-            pageSize,
+            renderSize,
             pageNumber,
             context,
-            destRect: Offset.zero & pageSize,
+            destRect: Offset.zero & renderSize,
           ),
-      child: SizedBox(
-        width: pageSize.width,
-        height: pageSize.height,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final renderedSize = constraints.biggest;
-            return Stack(
+      child: SizedBox.expand(
+        child: Stack(
               children: [
                 KeyedSubtree(
                   key: pageContentKey,
                   child: _buildMarkerLayer(
-                    size: renderedSize,
+                    size: renderSize,
                     pageIndex: pageNumber,
                     child: SizedBox.expand(
                       child: Image(
@@ -261,7 +259,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _strokesByPage[pageNumber] ?? const <List<Offset>>[],
                       inProgress:
                           _inProgressPage == pageNumber ? _inProgress : null,
-                      pageSize: renderedSize,
+                      pageSize: renderSize,
                       debugLastPageLocal:
                           kDebugMode && _inProgressPage == pageNumber
                               ? _debugLastPageLocal
@@ -286,15 +284,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   ..onStart = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
                                     if (p.dx < 0 ||
-                                        p.dx > renderedSize.width ||
+                                        p.dx > renderSize.width ||
                                         p.dy < 0 ||
-                                        p.dy > renderedSize.height) {
+                                        p.dy > renderSize.height) {
                                       return;
                                     }
                                     _debugLastPageLocal = p;
                                     final norm = Offset(
-                                      p.dx / renderedSize.width,
-                                      p.dy / renderedSize.height,
+                                      p.dx / renderSize.width,
+                                      p.dy / renderSize.height,
                                     );
                                     _handleFreeDrawPointerStart(
                                       norm,
@@ -304,15 +302,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   ..onUpdate = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
                                     if (p.dx < 0 ||
-                                        p.dx > renderedSize.width ||
+                                        p.dx > renderSize.width ||
                                         p.dy < 0 ||
-                                        p.dy > renderedSize.height) {
+                                        p.dy > renderSize.height) {
                                       return;
                                     }
                                     _debugLastPageLocal = p;
                                     final norm = Offset(
-                                      p.dx / renderedSize.width,
-                                      p.dy / renderedSize.height,
+                                      p.dx / renderSize.width,
+                                      p.dy / renderSize.height,
                                     );
                                     _handleFreeDrawPointerUpdate(
                                       norm,
@@ -339,9 +337,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
               ],
-            );
-          },
-        ),
+            ),
       ),
     );
   }
