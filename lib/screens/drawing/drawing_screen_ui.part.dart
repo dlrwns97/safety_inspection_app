@@ -279,19 +279,41 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           (SingleFingerPanRecognizer recognizer) {
                             recognizer
                               ..onStart = (pointerDetails) {
-                                _handleFreeDrawPointerStartFromGlobal(
-                                  pointerDetails.globalPosition,
+                                final p = pointerDetails.localPosition;
+                                if (p.dx < 0 ||
+                                    p.dx > pageSize.width ||
+                                    p.dy < 0 ||
+                                    p.dy > pageSize.height) {
+                                  return;
+                                }
+                                final norm = Offset(
+                                  p.dx / pageSize.width,
+                                  p.dy / pageSize.height,
+                                );
+                                _debugLastPageLocal = p;
+                                _handleFreeDrawPointerStart(
+                                  norm,
                                   pageNumber,
                                   pageSize,
-                                  Offset.zero & pageSize,
                                 );
                               }
                               ..onUpdate = (pointerDetails) {
-                                _handleFreeDrawPointerUpdateFromGlobal(
-                                  pointerDetails.globalPosition,
+                                final p = pointerDetails.localPosition;
+                                if (p.dx < 0 ||
+                                    p.dx > pageSize.width ||
+                                    p.dy < 0 ||
+                                    p.dy > pageSize.height) {
+                                  return;
+                                }
+                                final norm = Offset(
+                                  p.dx / pageSize.width,
+                                  p.dy / pageSize.height,
+                                );
+                                _debugLastPageLocal = p;
+                                _handleFreeDrawPointerUpdate(
+                                  norm,
                                   pageNumber,
                                   pageSize,
-                                  Offset.zero & pageSize,
                                 );
                               }
                               ..onEnd = () {
