@@ -869,44 +869,64 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required int pageNumber,
     required Offset pointInStackLocal,
     required Rect destRect,
+    required Size pageSize,
   }) {
     if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
       return null;
     }
-
-    if (!destRect.contains(pointInStackLocal)) {
+    if (pageSize.width <= 0 || pageSize.height <= 0) {
       return null;
     }
 
-    final controller = _photoControllerForPage(pageNumber);
-    final value = controller.value;
-
-    final double z = value.scale ?? 1.0;
-    final Offset p = value.position;
-    final double safeScale = z <= 0 ? 1.0 : z;
-    final Size destSize = destRect.size;
-    final Offset localInDest = pointInStackLocal - destRect.topLeft;
-
-    final Offset center = destSize.center(Offset.zero);
-    final Offset contentInDest =
-        ((localInDest - center) - p) / safeScale + center;
-
-    if (contentInDest.dx < 0 || contentInDest.dx > destSize.width) {
+    final stackBox = _activeStrokeBox;
+    if (stackBox == null || !stackBox.hasSize) {
       return null;
     }
-    if (contentInDest.dy < 0 || contentInDest.dy > destSize.height) {
+
+    final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
+    final contentObject = contentContext?.findRenderObject();
+    if (contentObject is! RenderBox || !contentObject.hasSize) {
       return null;
     }
+
+    final Offset pointerInDestLocal = pointInStackLocal - destRect.topLeft;
+
+    final Matrix4 transformMatrix = contentObject.getTransformTo(stackBox);
+    final Matrix4 inverseTransform = Matrix4.inverted(transformMatrix);
+    final Offset contentLocal = MatrixUtils.transformPoint(
+      inverseTransform,
+      pointInStackLocal,
+    );
+
+    if (contentLocal.dx < 0 ||
+        contentLocal.dx > contentObject.size.width ||
+        contentLocal.dy < 0 ||
+        contentLocal.dy > contentObject.size.height) {
+      return null;
+    }
+
+    final Offset pageLocal = Offset(
+      contentLocal.dx * (pageSize.width / contentObject.size.width),
+      contentLocal.dy * (pageSize.height / contentObject.size.height),
+    );
 
     final normalized = Offset(
-      contentInDest.dx / destSize.width,
-      contentInDest.dy / destSize.height,
+      pageLocal.dx / pageSize.width,
+      pageLocal.dy / pageSize.height,
     );
+
+    if (normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
+      return null;
+    }
 
     if (kDebugMode) {
       debugPrint(
         '[FreeDrawCoord] page=$pageNumber destRect=$destRect '
-        'stackLocal=$pointInStackLocal localInDest=$localInDest '
+        'stackLocal=$pointInStackLocal inDest=$pointerInDestLocal '
+        'contentLocal=$contentLocal pageLocal=$pageLocal '
         'normalized=$normalized',
       );
     }

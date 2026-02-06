@@ -71,6 +71,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final GlobalKey _pdfViewerKey = GlobalKey();
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
+  final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
   final Map<int, Size> _pdfPageSizes = {};
   final Map<int, Rect> _pdfPageDestRects = {};
   int _pdfViewVersion = 0;
@@ -158,6 +159,10 @@ class _DrawingScreenState extends State<DrawingScreen>
     );
   }
 
+  GlobalKey _pdfPageContentKeyForPage(int pageNumber) {
+    return _pdfPageContentKeys.putIfAbsent(pageNumber, GlobalKey.new);
+  }
+
   void _resetPdfViewControllers() {
     for (final controller in _pdfPhotoControllers.values) {
       controller.dispose();
@@ -167,6 +172,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     _pdfPhotoControllers.clear();
     _pdfScaleStateControllers.clear();
+    _pdfPageContentKeys.clear();
   }
 
   void _handleEditPressed() async {
