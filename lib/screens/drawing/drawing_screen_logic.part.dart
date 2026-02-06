@@ -829,13 +829,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _migratedFreeDrawPages.add(pageNumber);
   }
 
-  Offset _overlayToNormalizedPoint({
+  Offset? _overlayToNormalizedPoint({
     required int pageNumber,
     required Offset overlayLocal,
     required Rect destRect,
   }) {
     if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
-      return Offset.zero;
+      return null;
+    }
+
+    if (!destRect.contains(overlayLocal)) {
+      return null;
     }
 
     final controller = _photoControllerForPage(pageNumber);
@@ -851,14 +855,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final Offset contentInDest =
         ((localInDest - center) - p) / safeScale + center;
 
+    if (contentInDest.dx < 0 || contentInDest.dx > destSize.width) {
+      return null;
+    }
+    if (contentInDest.dy < 0 || contentInDest.dy > destSize.height) {
+      return null;
+    }
+
     return Offset(
-      (contentInDest.dx / destSize.width).clamp(0.0, 1.0),
-      (contentInDest.dy / destSize.height).clamp(0.0, 1.0),
+      contentInDest.dx / destSize.width,
+      contentInDest.dy / destSize.height,
     );
   }
 
-  void _handleFreeDrawPointerStart(Offset localPosition, int pageNumber) {
-    if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
+  void _handleFreeDrawPointerStart(Offset? localPosition, int pageNumber) {
+    if (!_isFreeDrawMode ||
+        _activePointerIds.length >= 2 ||
+        localPosition == null) {
       return;
     }
     _safeSetState(() {
@@ -867,10 +880,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleFreeDrawPointerUpdate(Offset localPosition, int pageNumber) {
+  void _handleFreeDrawPointerUpdate(Offset? localPosition, int pageNumber) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
+        localPosition == null ||
         inProgress == null ||
         inProgress.isEmpty ||
         _inProgressPage != pageNumber) {
