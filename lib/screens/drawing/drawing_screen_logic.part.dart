@@ -62,11 +62,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return pageLocal;
   }
 
-  Offset? _pdfLocalToNormalized(Offset local, Size pageSize) {
-    if (!(Offset.zero & pageSize).contains(local)) {
+  Offset? _overlayToNormalizedPoint({
+    required Offset overlayLocal,
+    required Size destSize,
+  }) {
+    if (destSize.isEmpty) {
       return null;
     }
-    return Offset(local.dx / pageSize.width, local.dy / pageSize.height);
+    if (!(Offset.zero & destSize).contains(overlayLocal)) {
+      return null;
+    }
+    return Offset(
+      overlayLocal.dx / destSize.width,
+      overlayLocal.dy / destSize.height,
+    );
   }
 
   bool get _isPlaceMode {
@@ -844,8 +853,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
+  void _handleFreeDrawPointerStart(Offset? normalized, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
+      return;
+    }
+    if (normalized == null) {
       return;
     }
     if (normalized.dx < 0 ||
@@ -860,13 +872,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleFreeDrawPointerUpdate(Offset normalized, int pageNumber) {
+  void _handleFreeDrawPointerUpdate(
+    Offset? normalized,
+    int pageNumber,
+    Size destSize,
+  ) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
         inProgress == null ||
         inProgress.isEmpty ||
         _inProgressPage != pageNumber) {
+      return;
+    }
+    if (normalized == null) {
       return;
     }
     if (normalized.dx < 0 ||
@@ -876,7 +895,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     const double thresholdPx = 2.5;
-    final double thresholdNorm = thresholdPx / DrawingCanvasSize.shortestSide;
+    final double thresholdNorm = thresholdPx / destSize.shortestSide;
     if ((normalized - inProgress.last).distance < thresholdNorm) {
       return;
     }
