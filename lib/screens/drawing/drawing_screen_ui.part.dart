@@ -286,15 +286,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     p.dy > pageSize.height) {
                                   return;
                                 }
+                                _debugLastPageLocal = p;
                                 final norm = Offset(
                                   p.dx / pageSize.width,
                                   p.dy / pageSize.height,
                                 );
-                                _debugLastPageLocal = p;
                                 _handleFreeDrawPointerStart(
                                   norm,
                                   pageNumber,
-                                  pageSize,
                                 );
                               }
                               ..onUpdate = (pointerDetails) {
@@ -305,15 +304,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     p.dy > pageSize.height) {
                                   return;
                                 }
+                                _debugLastPageLocal = p;
                                 final norm = Offset(
                                   p.dx / pageSize.width,
                                   p.dy / pageSize.height,
                                 );
-                                _debugLastPageLocal = p;
                                 _handleFreeDrawPointerUpdate(
                                   norm,
                                   pageNumber,
-                                  pageSize,
                                 );
                               }
                               ..onEnd = () {

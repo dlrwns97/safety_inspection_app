@@ -875,17 +875,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPointerStart(
-    Offset normalized,
-    int pageNumber,
-    Size pageSize,
-  ) {
+  void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
       return;
     }
-    if (pageSize.width <= 0 ||
-        pageSize.height <= 0 ||
-        normalized.dx < 0 ||
+    if (normalized.dx < 0 ||
         normalized.dx > 1 ||
         normalized.dy < 0 ||
         normalized.dy > 1) {
@@ -897,11 +891,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleFreeDrawPointerUpdate(
-    Offset normalized,
-    int pageNumber,
-    Size pageSize,
-  ) {
+  void _handleFreeDrawPointerUpdate(Offset normalized, int pageNumber) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -910,19 +900,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    if (pageSize.width <= 0 ||
-        pageSize.height <= 0 ||
-        normalized.dx < 0 ||
+    if (normalized.dx < 0 ||
         normalized.dx > 1 ||
         normalized.dy < 0 ||
         normalized.dy > 1) {
       return;
     }
     const double thresholdPx = 2.5;
-    final double denom = pageSize.shortestSide <= 0
-        ? 1.0
-        : pageSize.shortestSide;
-    final double thresholdNorm = thresholdPx / denom;
+    final double thresholdNorm = thresholdPx / DrawingCanvasSize.shortestSide;
     if ((normalized - inProgress.last).distance < thresholdNorm) {
       return;
     }
