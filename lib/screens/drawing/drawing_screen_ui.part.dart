@@ -144,8 +144,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
-    final bool enablePdfPanGestures = !_isFreeDrawMode;
-    final bool enablePdfScaleGestures = !_isFreeDrawMode;
+    final bool isTwoFinger = _activePointerIds.length >= 2;
+    final bool enablePdfPanGestures =
+        _isFreeDrawMode ? isTwoFinger : true;
+    final bool enablePdfScaleGestures =
+        _isFreeDrawMode ? isTwoFinger : true;
     final bool disablePageSwipe = _isFreeDrawMode;
     return PdfDrawingView(
       pdfController: _pdfController,
@@ -210,7 +213,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool enablePageLocalDrawing = _isFreeDrawMode;
-    final Size overlaySize = renderSize;
+    final Size overlaySize = pageSize;
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,

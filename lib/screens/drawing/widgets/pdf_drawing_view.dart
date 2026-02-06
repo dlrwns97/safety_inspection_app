@@ -96,51 +96,49 @@ class PdfDrawingView extends StatelessWidget {
                 pageNumber,
                 document.id,
               );
-              final fallbackSize =
-                  pageSizes[pageNumber] ?? DrawingCanvasSize;
-              return PhotoViewGalleryPageOptions.customChild(
-                controller: photoControllerForPage(pageNumber),
-                scaleStateController:
-                    scaleStateControllerForPage(pageNumber),
-                disableGestures:
-                    !(enablePdfPanGestures || enablePdfScaleGestures),
-                child: FutureBuilder<PdfPageImage>(
-                  future: pageImage,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      final data = snapshot.data!;
-                      final w = (data.width ?? 1).toDouble();
-                      final h = (data.height ?? 1).toDouble();
-                      final imageSize = Size(
-                        w,
-                        h,
-                      );
-                      final resolvedSize =
-                          pageSizes[pageNumber] ?? imageSize;
-                      if (pageSizes[pageNumber] == null &&
-                          pageSizes[pageNumber] != imageSize) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!context.mounted) {
-                            return;
-                          }
-                          onUpdatePageSize(pageNumber, imageSize);
-                        });
-                      }
-                      return _buildPdfPageLayer(
-                        pageSize: resolvedSize,
-                        pageNumber: pageNumber,
-                        imageProvider: imageProvider,
-                      );
-                    }
+              return FutureBuilder<PdfPageImage>(
+                future: pageImage,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
-                  },
-                ),
-                childSize: fallbackSize,
-                initialScale: PdfDrawingInitialScale,
-                minScale: PdfDrawingMinScale,
-                maxScale:
-                    PhotoViewComputedScale.covered * PdfDrawingMaxScaleMultiplier,
-                basePosition: Alignment.center,
+                  }
+                  final data = snapshot.data!;
+                  final w = (data.width ?? 1).toDouble();
+                  final h = (data.height ?? 1).toDouble();
+                  final imageSize = Size(
+                    w,
+                    h,
+                  );
+                  final resolvedSize = pageSizes[pageNumber] ?? imageSize;
+                  if (pageSizes[pageNumber] == null &&
+                      pageSizes[pageNumber] != imageSize) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      onUpdatePageSize(pageNumber, imageSize);
+                    });
+                  }
+                  return PhotoViewGalleryPageOptions.customChild(
+                    controller: photoControllerForPage(pageNumber),
+                    scaleStateController:
+                        scaleStateControllerForPage(pageNumber),
+                    disableGestures:
+                        !(enablePdfPanGestures || enablePdfScaleGestures),
+                    child: _buildPdfPageLayer(
+                      pageSize: resolvedSize,
+                      pageNumber: pageNumber,
+                      imageProvider: imageProvider,
+                    ),
+                    childSize: resolvedSize,
+                    initialScale: PdfDrawingInitialScale,
+                    minScale: PdfDrawingMinScale,
+                    maxScale:
+                        PhotoViewComputedScale.covered *
+                        PdfDrawingMaxScaleMultiplier,
+                    basePosition: Alignment.center,
+                  );
+                },
               );
             },
           ),
@@ -176,21 +174,15 @@ class PdfDrawingView extends StatelessWidget {
     required int pageNumber,
     required ImageProvider imageProvider,
   }) {
-    return AspectRatio(
-      aspectRatio: pageSize.width / pageSize.height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final renderSize = constraints.biggest;
-          return SizedBox.expand(
-            child: buildPageOverlay(
-              pageSize: pageSize,
-              renderSize: renderSize,
-              pageNumber: pageNumber,
-              imageProvider: imageProvider,
-              pageContentKey: pageContentKeyForPage(pageNumber),
-            ),
-          );
-        },
+    return SizedBox(
+      width: pageSize.width,
+      height: pageSize.height,
+      child: buildPageOverlay(
+        pageSize: pageSize,
+        renderSize: pageSize,
+        pageNumber: pageNumber,
+        imageProvider: imageProvider,
+        pageContentKey: pageContentKeyForPage(pageNumber),
       ),
     );
   }

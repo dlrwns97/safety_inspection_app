@@ -823,6 +823,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final previousCount = _activePointerIds.length;
     _activePointerIds.add(event.pointer);
     if (!_isFreeDrawMode) {
+      if (previousCount != _activePointerIds.length) {
+        _safeSetState(() {});
+      }
       return;
     }
     final bool becameTwoFinger =
@@ -840,7 +843,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
     final didRemove = _activePointerIds.remove(event.pointer);
-    if (!didRemove || !_isFreeDrawMode) {
+    if (!didRemove) {
+      return;
+    }
+    if (_isFreeDrawMode) {
+      _safeSetState(() {});
       return;
     }
     _safeSetState(() {});
