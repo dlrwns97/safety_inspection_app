@@ -23,6 +23,7 @@ class PdfDrawingView extends StatelessWidget {
     required this.enablePdfPanGestures,
     required this.enablePdfScaleGestures,
     required this.disablePageSwipe,
+    required this.viewportSize,
   });
 
   final PdfController? pdfController;
@@ -48,6 +49,7 @@ class PdfDrawingView extends StatelessWidget {
   final bool enablePdfPanGestures;
   final bool enablePdfScaleGestures;
   final bool disablePageSwipe;
+  final Size viewportSize;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +105,7 @@ class PdfDrawingView extends StatelessWidget {
                 scaleStateController: scaleStateControllerForPage(pageNumber),
                 disableGestures:
                     !(enablePdfPanGestures || enablePdfScaleGestures),
-                childSize: pageSizes[pageNumber] ?? fallbackSize,
+                childSize: viewportSize,
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {
@@ -174,11 +176,11 @@ class PdfDrawingView extends StatelessWidget {
     required ImageProvider imageProvider,
   }) {
     return SizedBox(
-      width: pageSize.width,
-      height: pageSize.height,
+      width: viewportSize.width,
+      height: viewportSize.height,
       child: buildPageOverlay(
         pageSize: pageSize,
-        renderSize: pageSize,
+        renderSize: viewportSize,
         pageNumber: pageNumber,
         imageProvider: imageProvider,
         pageContentKey: pageContentKeyForPage(pageNumber),

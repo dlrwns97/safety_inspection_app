@@ -150,36 +150,41 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final bool enablePdfScaleGestures =
         _isFreeDrawMode ? isTwoFinger : true;
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
-    return PdfDrawingView(
-      pdfController: _pdfController,
-      pdfLoadError: _pdfLoadError,
-      sitePdfName: _site.pdfName,
-      onPageChanged: _handlePdfPageChanged,
-      onDocumentLoaded: _handlePdfDocumentLoaded,
-      onDocumentError: _handlePdfDocumentError,
-      pageSizes: _pdfPageSizes,
-      pdfViewVersion: _pdfViewVersion,
-      onUpdatePageSize: _handleUpdatePageSize,
-      photoControllerForPage: _photoControllerForPage,
-      scaleStateControllerForPage: _scaleStateControllerForPage,
-      enablePdfPanGestures: enablePdfPanGestures,
-      enablePdfScaleGestures: enablePdfScaleGestures,
-      disablePageSwipe: disablePageSwipe,
-      pageContentKeyForPage: _pdfPageContentKeyForPage,
-      buildPageOverlay:
-          ({
-            required pageSize,
-            required renderSize,
-            required pageNumber,
-            required imageProvider,
-            required pageContentKey,
-          }) => _buildPdfPageOverlay(
-                pageSize: pageSize,
-                renderSize: renderSize,
-                pageNumber: pageNumber,
-                imageProvider: imageProvider,
-                pageContentKey: pageContentKey,
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return PdfDrawingView(
+          pdfController: _pdfController,
+          pdfLoadError: _pdfLoadError,
+          sitePdfName: _site.pdfName,
+          onPageChanged: _handlePdfPageChanged,
+          onDocumentLoaded: _handlePdfDocumentLoaded,
+          onDocumentError: _handlePdfDocumentError,
+          pageSizes: _pdfPageSizes,
+          pdfViewVersion: _pdfViewVersion,
+          onUpdatePageSize: _handleUpdatePageSize,
+          photoControllerForPage: _photoControllerForPage,
+          scaleStateControllerForPage: _scaleStateControllerForPage,
+          enablePdfPanGestures: enablePdfPanGestures,
+          enablePdfScaleGestures: enablePdfScaleGestures,
+          disablePageSwipe: disablePageSwipe,
+          viewportSize: constraints.biggest,
+          pageContentKeyForPage: _pdfPageContentKeyForPage,
+          buildPageOverlay:
+              ({
+                required pageSize,
+                required renderSize,
+                required pageNumber,
+                required imageProvider,
+                required pageContentKey,
+              }) => _buildPdfPageOverlay(
+                    pageSize: pageSize,
+                    renderSize: renderSize,
+                    pageNumber: pageNumber,
+                    imageProvider: imageProvider,
+                    pageContentKey: pageContentKey,
+                  ),
+        );
+      },
     );
   }
 
@@ -205,7 +210,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildPdfPageOverlay({
     required Size pageSize,
-    // ignore: unused_parameter
     required Size renderSize,
     required int pageNumber,
     required ImageProvider imageProvider,
@@ -213,7 +217,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool enablePageLocalDrawing = _isFreeDrawMode;
-    final Size overlaySize = pageSize;
+    final Size overlaySize = renderSize;
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
@@ -243,10 +247,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   child: _buildMarkerLayer(
                     size: overlaySize,
                     pageIndex: pageNumber,
-                    child: SizedBox.expand(
-                      child: Image(
-                        image: imageProvider,
-                        fit: BoxFit.fill,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: SizedBox(
+                        width: pageSize.width,
+                        height: pageSize.height,
+                        child: Image(
+                          image: imageProvider,
+                          fit: BoxFit.fill,
+                        ),
                       ),
                     ),
                   ),
@@ -269,9 +278,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 ),
                 Positioned.fill(
                   child: IgnorePointer(
-                    ignoring: !enablePageLocalDrawing,
+                    ignoring:
+                        !enablePageLocalDrawing ||
+                        _activePointerIds.length >= 2,
                     child: Listener(
-                      behavior: HitTestBehavior.opaque,
+                      behavior: HitTestBehavior.translucent,
                       onPointerDown: (event) {
                         final p = event.localPosition;
                         final normalized = _overlayToNormalizedPoint(
