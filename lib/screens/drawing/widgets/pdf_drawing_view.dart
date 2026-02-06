@@ -97,13 +97,13 @@ class PdfDrawingView extends StatelessWidget {
                 document.id,
               );
               final fallbackSize =
-                  pageSizes[pageNumber] ?? const Size(1, 1);
+                  pageSizes[pageNumber] ?? DrawingCanvasSize;
               return PhotoViewGalleryPageOptions.customChild(
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController: scaleStateControllerForPage(pageNumber),
                 disableGestures:
                     !(enablePdfPanGestures || enablePdfScaleGestures),
-                childSize: fallbackSize,
+                childSize: pageSizes[pageNumber] ?? fallbackSize,
                 child: FutureBuilder<PdfPageImage>(
                   future: pageImage,
                   builder: (context, snapshot) {

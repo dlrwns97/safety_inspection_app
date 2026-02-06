@@ -149,7 +149,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _isFreeDrawMode ? isTwoFinger : true;
     final bool enablePdfScaleGestures =
         _isFreeDrawMode ? isTwoFinger : true;
-    final bool disablePageSwipe = _isFreeDrawMode;
+    final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return PdfDrawingView(
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
