@@ -109,6 +109,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
   List<Offset>? _inProgress;
   int? _inProgressPage;
+  Offset? _debugLastPageLocal;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;
