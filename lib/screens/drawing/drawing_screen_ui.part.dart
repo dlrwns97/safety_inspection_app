@@ -224,6 +224,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 fittedSizes.destination,
                 Offset.zero & overlaySize,
               );
+              final previousDestRect = _pdfPageDestRects[pageNumber];
+              _migrateLegacyFreeDrawStrokesIfNeeded(
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                oldDestRect: previousDestRect,
+              );
               _pdfPageDestRects[pageNumber] = destRect;
               final bool isTwoFinger = _activePointerIds.length >= 2;
               final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
@@ -288,7 +294,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           ..onStart = (localPosition) {
                                             final pagePoint = _viewToPagePoint(
                                                   pageNumber: pageNumber,
-                                                  viewLocalPosition:
+                                                  viewLocal:
                                                       localPosition,
                                                   pageSize: pageSize,
                                                   destSize: destRect.size,
@@ -301,7 +307,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           ..onUpdate = (localPosition) {
                                             final pagePoint = _viewToPagePoint(
                                                   pageNumber: pageNumber,
-                                                  viewLocalPosition:
+                                                  viewLocal:
                                                       localPosition,
                                                   pageSize: pageSize,
                                                   destSize: destRect.size,

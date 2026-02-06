@@ -797,9 +797,47 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
+
+  void _migrateLegacyFreeDrawStrokesIfNeeded({
+    required int pageNumber,
+    required Size pageSize,
+    required Rect? oldDestRect,
+  }) {
+    if (_migratedFreeDrawPages.contains(pageNumber)) {
+      return;
+    }
+    final strokes = _strokesByPage[pageNumber];
+    if (strokes == null || strokes.isEmpty) {
+      _migratedFreeDrawPages.add(pageNumber);
+      return;
+    }
+    if (oldDestRect == null || oldDestRect.width <= 0) {
+      return;
+    }
+
+    final oldBaseScale = oldDestRect.width / pageSize.width;
+    if (oldBaseScale <= 0) {
+      return;
+    }
+
+    _strokesByPage[pageNumber] = strokes
+        .map(
+          (stroke) => stroke
+              .map(
+                (point) => Offset(
+                  point.dx / oldBaseScale,
+                  point.dy / oldBaseScale,
+                ),
+              )
+              .toList(growable: false),
+        )
+        .toList(growable: false);
+    _migratedFreeDrawPages.add(pageNumber);
+  }
+
   Offset _viewToPagePoint({
     required int pageNumber,
-    required Offset viewLocalPosition,
+    required Offset viewLocal,
     required Size pageSize,
     required Size destSize,
   }) {
@@ -812,7 +850,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final Offset center = destSize.center(Offset.zero);
     final Offset contentInDest =
-        ((viewLocalPosition - center) - p) / z + center;
+        ((viewLocal - center) - p) / z + center;
     final Offset pagePoint = contentInDest / baseScale;
 
     return Offset(
