@@ -203,6 +203,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildPdfPageOverlay({
     required Size pageSize,
+    // ignore: unused_parameter
     required Size renderSize,
     required int pageNumber,
     required ImageProvider imageProvider,
@@ -216,25 +217,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) => _handlePdfTap(
         details,
-        renderSize,
+        pageSize,
         pageNumber,
-        context,
-        destRect: Offset.zero & renderSize,
       ),
       onLongPressStart: (details) => _handlePdfLongPress(
         details,
-        renderSize,
+        pageSize,
         pageNumber,
-        context,
-        destRect: Offset.zero & renderSize,
       ),
       onMovePanUpdate:
           (details) => _handleMovePdfPanUpdate(
             details,
-            renderSize,
+            pageSize,
             pageNumber,
             context,
-            destRect: Offset.zero & renderSize,
+            destRect: Offset.zero & pageSize,
           ),
       child: SizedBox.expand(
         child: Stack(
@@ -242,7 +239,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 KeyedSubtree(
                   key: pageContentKey,
                   child: _buildMarkerLayer(
-                    size: renderSize,
+                    size: pageSize,
                     pageIndex: pageNumber,
                     child: SizedBox.expand(
                       child: Image(
@@ -259,7 +256,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _strokesByPage[pageNumber] ?? const <List<Offset>>[],
                       inProgress:
                           _inProgressPage == pageNumber ? _inProgress : null,
-                      pageSize: renderSize,
+                      pageSize: pageSize,
                       debugLastPageLocal:
                           kDebugMode && _inProgressPage == pageNumber
                               ? _debugLastPageLocal
@@ -283,37 +280,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 recognizer
                                   ..onStart = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
-                                    if (p.dx < 0 ||
-                                        p.dx > renderSize.width ||
-                                        p.dy < 0 ||
-                                        p.dy > renderSize.height) {
+                                    final normalized =
+                                        _pdfLocalToNormalized(p, pageSize);
+                                    if (normalized == null) {
                                       return;
                                     }
                                     _debugLastPageLocal = p;
-                                    final norm = Offset(
-                                      p.dx / renderSize.width,
-                                      p.dy / renderSize.height,
-                                    );
                                     _handleFreeDrawPointerStart(
-                                      norm,
+                                      normalized,
                                       pageNumber,
                                     );
                                   }
                                   ..onUpdate = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
-                                    if (p.dx < 0 ||
-                                        p.dx > renderSize.width ||
-                                        p.dy < 0 ||
-                                        p.dy > renderSize.height) {
+                                    final normalized =
+                                        _pdfLocalToNormalized(p, pageSize);
+                                    if (normalized == null) {
                                       return;
                                     }
                                     _debugLastPageLocal = p;
-                                    final norm = Offset(
-                                      p.dx / renderSize.width,
-                                      p.dy / renderSize.height,
-                                    );
                                     _handleFreeDrawPointerUpdate(
-                                      norm,
+                                      normalized,
                                       pageNumber,
                                     );
                                   }

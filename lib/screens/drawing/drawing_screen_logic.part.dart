@@ -62,6 +62,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return pageLocal;
   }
 
+  Offset? _pdfLocalToNormalized(Offset local, Size pageSize) {
+    if (!(Offset.zero & pageSize).contains(local)) {
+      return null;
+    }
+    return Offset(local.dx / pageSize.width, local.dy / pageSize.height);
+  }
+
   bool get _isPlaceMode {
     if (_mode == DrawMode.defect) {
       return _activeCategory != null;
@@ -529,35 +536,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     TapUpDetails details,
     Size pageSize,
     int pageIndex,
-    BuildContext tapContext,
-    {required Rect destRect}
   ) async {
     if (_isMoveMode) {
       return;
     }
-    final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
-    final tapInfo = _resolveTapPosition(
-      tapRegionContext ?? tapContext,
-      details.globalPosition,
-    );
-    final localPosition = tapInfo?.localPosition ?? details.localPosition;
-    final overlaySize = tapInfo?.size ?? pageSize;
-    final resolvedDestRect =
-        destRect.isEmpty ? Offset.zero & overlaySize : destRect;
-    if (!resolvedDestRect.contains(localPosition)) {
+    final localPosition = details.localPosition;
+    if (!(Offset.zero & pageSize).contains(localPosition)) {
       return;
     }
-    final destLocal = localPosition - resolvedDestRect.topLeft;
     final imageSize = pageSize;
-    final imageLocal = _mapPdfViewportPointToPageLocal(
-      viewportLocal: destLocal,
-      pageIndex: pageIndex,
-      viewportSize: resolvedDestRect.size,
-      childSize: imageSize,
-    );
-    if (imageLocal == null) {
-      return;
-    }
+    final imageLocal = localPosition;
     final hitResult = _hitTestMarker(
       point: imageLocal,
       size: imageSize,
@@ -607,36 +595,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     LongPressStartDetails details,
     Size pageSize,
     int pageIndex,
-    BuildContext tapContext,
-    {required Rect destRect}
   ) async {
     if (_isMoveMode) {
       return;
     }
     _tapCanceled = true;
-    final tapRegionContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
-    final tapInfo = _resolveTapPosition(
-      tapRegionContext ?? tapContext,
-      details.globalPosition,
-    );
-    final localPosition = tapInfo?.localPosition ?? details.localPosition;
-    final overlaySize = tapInfo?.size ?? pageSize;
-    final resolvedDestRect =
-        destRect.isEmpty ? Offset.zero & overlaySize : destRect;
-    if (!resolvedDestRect.contains(localPosition)) {
+    final localPosition = details.localPosition;
+    if (!(Offset.zero & pageSize).contains(localPosition)) {
       return;
     }
-    final destLocal = localPosition - resolvedDestRect.topLeft;
     final imageSize = pageSize;
-    final imageLocal = _mapPdfViewportPointToPageLocal(
-      viewportLocal: destLocal,
-      pageIndex: pageIndex,
-      viewportSize: resolvedDestRect.size,
-      childSize: imageSize,
-    );
-    if (imageLocal == null) {
-      return;
-    }
+    final imageLocal = localPosition;
     final hits = _hitTestMarkers(
       point: imageLocal,
       size: imageSize,
