@@ -96,49 +96,48 @@ class PdfDrawingView extends StatelessWidget {
                 pageNumber,
                 document.id,
               );
-              return FutureBuilder<PdfPageImage>(
-                future: pageImage,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final data = snapshot.data!;
-                  final w = (data.width ?? 1).toDouble();
-                  final h = (data.height ?? 1).toDouble();
-                  final imageSize = Size(
-                    w,
-                    h,
-                  );
-                  final resolvedSize = pageSizes[pageNumber] ?? imageSize;
-                  if (pageSizes[pageNumber] == null &&
-                      pageSizes[pageNumber] != imageSize) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      onUpdatePageSize(pageNumber, imageSize);
-                    });
-                  }
-                  return PhotoViewGalleryPageOptions.customChild(
-                    controller: photoControllerForPage(pageNumber),
-                    scaleStateController:
-                        scaleStateControllerForPage(pageNumber),
-                    disableGestures:
-                        !(enablePdfPanGestures || enablePdfScaleGestures),
-                    child: _buildPdfPageLayer(
+              final fallbackSize =
+                  pageSizes[pageNumber] ?? const Size(1, 1);
+              return PhotoViewGalleryPageOptions.customChild(
+                controller: photoControllerForPage(pageNumber),
+                scaleStateController: scaleStateControllerForPage(pageNumber),
+                disableGestures:
+                    !(enablePdfPanGestures || enablePdfScaleGestures),
+                childSize: fallbackSize,
+                child: FutureBuilder<PdfPageImage>(
+                  future: pageImage,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final data = snapshot.data!;
+                    final imageSize = Size(
+                      (data.width ?? 1).toDouble(),
+                      (data.height ?? 1).toDouble(),
+                    );
+                    final resolvedSize = pageSizes[pageNumber] ?? imageSize;
+                    if (pageSizes[pageNumber] == null &&
+                        pageSizes[pageNumber] != imageSize) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        onUpdatePageSize(pageNumber, imageSize);
+                      });
+                    }
+                    return _buildPdfPageLayer(
                       pageSize: resolvedSize,
                       pageNumber: pageNumber,
                       imageProvider: imageProvider,
-                    ),
-                    childSize: resolvedSize,
-                    initialScale: PdfDrawingInitialScale,
-                    minScale: PdfDrawingMinScale,
-                    maxScale:
-                        PhotoViewComputedScale.covered *
-                        PdfDrawingMaxScaleMultiplier,
-                    basePosition: Alignment.center,
-                  );
-                },
+                    );
+                  },
+                ),
+                initialScale: PdfDrawingInitialScale,
+                minScale: PdfDrawingMinScale,
+                maxScale:
+                    PhotoViewComputedScale.covered *
+                    PdfDrawingMaxScaleMultiplier,
+                basePosition: Alignment.center,
               );
             },
           ),
