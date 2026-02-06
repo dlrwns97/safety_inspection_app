@@ -308,28 +308,55 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     (SingleFingerPanRecognizer recognizer) {
                                       recognizer
                                         ..onStart = (pointerDetails) {
-                                          final box =
-                                              stackContext.findRenderObject()
-                                                  as RenderBox;
-                                          final Offset p = box.globalToLocal(
-                                            pointerDetails.globalPosition,
-                                          );
-                                          final normalizedPoint =
-                                              _overlayToNormalizedPoint(
-                                                pageNumber: pageNumber,
-                                                pointInStackLocal: p,
-                                                destRect: destRect,
+                                          final renderObject =
+                                              stackContext.findRenderObject();
+                                          if (renderObject is! RenderBox ||
+                                              !renderObject.hasSize) {
+                                            return;
+                                          }
+                                          _isStrokeActive = true;
+                                          _activeStrokeDestRect = destRect;
+                                          _activeStrokeOverlaySize = overlaySize;
+                                          _activeStrokeBox = renderObject;
+                                          final Offset p =
+                                              _activeStrokeBox!.globalToLocal(
+                                                pointerDetails.globalPosition,
                                               );
+                                          final activeDestRect =
+                                              _activeStrokeDestRect;
+                                          final normalizedPoint =
+                                              activeDestRect == null
+                                              ? null
+                                              : _overlayToNormalizedPoint(
+                                                  pageNumber: pageNumber,
+                                                  pointInStackLocal: p,
+                                                  destRect: activeDestRect,
+                                                );
                                           _handleFreeDrawPointerStart(
                                             normalizedPoint,
                                             pageNumber,
-                                            destRect.size,
                                           );
                                         }
                                         ..onUpdate = (pointerDetails) {
-                                          final box =
-                                              stackContext.findRenderObject()
-                                                  as RenderBox;
+                                          if (!_isStrokeActive) {
+                                            return;
+                                          }
+                                          final activeDestRect =
+                                              _activeStrokeDestRect;
+                                          final activeOverlaySize =
+                                              _activeStrokeOverlaySize;
+                                          if (activeDestRect == null ||
+                                              activeOverlaySize == null ||
+                                              activeDestRect.width <= 0 ||
+                                              activeDestRect.height <= 0 ||
+                                              activeOverlaySize.width <= 0 ||
+                                              activeOverlaySize.height <= 0) {
+                                            return;
+                                          }
+                                          final box = _activeStrokeBox;
+                                          if (box == null || !box.hasSize) {
+                                            return;
+                                          }
                                           final Offset p = box.globalToLocal(
                                             pointerDetails.globalPosition,
                                           );
@@ -337,12 +364,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                               _overlayToNormalizedPoint(
                                                 pageNumber: pageNumber,
                                                 pointInStackLocal: p,
-                                                destRect: destRect,
+                                                destRect: activeDestRect,
                                               );
                                           _handleFreeDrawPointerUpdate(
                                             normalizedPoint,
                                             pageNumber,
-                                            destRect.size,
                                           );
                                         }
                                         ..onEnd = () {
