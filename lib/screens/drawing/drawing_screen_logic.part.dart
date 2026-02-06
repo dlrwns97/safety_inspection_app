@@ -842,10 +842,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _migratedFreeDrawPages.add(pageNumber);
       return;
     }
+
     if (_areStrokesNormalized(strokes)) {
       _migratedFreeDrawPages.add(pageNumber);
       return;
     }
+
     if (oldDestRect == null || oldDestRect.width <= 0 || oldDestRect.height <= 0) {
       return;
     }
@@ -855,8 +857,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           (stroke) => stroke
               .map(
                 (point) => Offset(
-                  (point.dx / oldDestRect.width).clamp(0.0, 1.0),
-                  (point.dy / oldDestRect.height).clamp(0.0, 1.0),
+                  point.dx / oldDestRect.width,
+                  point.dy / oldDestRect.height,
                 ),
               )
               .toList(growable: false),
@@ -890,6 +892,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!(Offset.zero & overlaySize).contains(pointInStackLocal)) {
       return null;
     }
+    if (!destRect.contains(pointInStackLocal)) {
+      return null;
+    }
 
     final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
     final contentObject = contentContext?.findRenderObject();
@@ -918,6 +923,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageLocal.dx / pageSize.width,
       pageLocal.dy / pageSize.height,
     );
+
+    if (normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
+      return null;
+    }
 
     if (kDebugMode) {
       debugPrint(

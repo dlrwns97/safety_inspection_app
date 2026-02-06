@@ -300,22 +300,23 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: TempPolylinePainter(
-                            strokes:
-                                _strokesByPage[pageNumber] ??
-                                const <List<Offset>>[],
-                            inProgress:
-                                _inProgressPage == pageNumber
-                                    ? _inProgress
-                                    : null,
-                            overlaySize: overlaySize,
-                            pageSize: pageSize,
-                            transform: freeDrawTransform,
-                            destTopLeft: destRect.topLeft,
+                      Positioned.fromRect(
+                        rect: destRect,
+                        child: ClipRect(
+                          child: CustomPaint(
+                            painter: TempPolylinePainter(
+                              strokes:
+                                  _strokesByPage[pageNumber] ??
+                                  const <List<Offset>>[],
+                              inProgress:
+                                  _inProgressPage == pageNumber
+                                      ? _inProgress
+                                      : null,
+                              pageSize: pageSize,
+                              transform: freeDrawTransform,
+                            ),
+                            child: const SizedBox.expand(),
                           ),
-                          child: const SizedBox.expand(),
                         ),
                       ),
                       Positioned.fill(
@@ -342,10 +343,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           }
                                           _isStrokeActive = true;
                                           _activeStrokeDestRect = destRect;
-                                          _activeStrokeOverlaySize =
-                                              boxRenderObject.size;
+                                          _activeStrokeOverlaySize = boxRenderObject.size;
                                           _activeStrokeBox = boxRenderObject;
-                                          final Offset p = boxRenderObject
+                                          final overlaySize = boxRenderObject.size;
+                                          final pointer = boxRenderObject
                                               .globalToLocal(
                                                 pointerDetails.globalPosition,
                                               );
@@ -356,11 +357,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                                   ? null
                                                   : _overlayToNormalizedPoint(
                                                     pageNumber: pageNumber,
-                                                    pointInStackLocal: p,
+                                                    pointInStackLocal: pointer,
                                                     destRect: activeDestRect,
                                                     pageSize: pageSize,
-                                                    overlaySize:
-                                                        boxRenderObject.size,
+                                                    overlaySize: overlaySize,
                                                   );
                                           _handleFreeDrawPointerStart(
                                             normalizedPoint,
@@ -394,18 +394,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           _activeStrokeOverlaySize =
                                               boxRenderObject.size;
                                           _activeStrokeBox = boxRenderObject;
-                                          final Offset p = boxRenderObject
+                                          final overlaySize = boxRenderObject.size;
+                                          final pointer = boxRenderObject
                                               .globalToLocal(
                                                 pointerDetails.globalPosition,
                                               );
                                           final normalizedPoint =
                                               _overlayToNormalizedPoint(
                                                 pageNumber: pageNumber,
-                                                pointInStackLocal: p,
+                                                pointInStackLocal: pointer,
                                                 destRect: activeDestRect,
                                                 pageSize: pageSize,
-                                                overlaySize:
-                                                    boxRenderObject.size,
+                                                overlaySize: overlaySize,
                                               );
                                           _handleFreeDrawPointerUpdate(
                                             normalizedPoint,
