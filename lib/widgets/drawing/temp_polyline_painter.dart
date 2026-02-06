@@ -4,6 +4,7 @@ class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
     required this.strokes,
     required this.inProgress,
+    required this.overlaySize,
     required this.pageSize,
     required this.transform,
     required this.destTopLeft,
@@ -11,12 +12,17 @@ class TempPolylinePainter extends CustomPainter {
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
+  final Size overlaySize;
   final Size pageSize;
   final Matrix4 transform;
   final Offset destTopLeft;
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (overlaySize.width <= 0 || overlaySize.height <= 0) {
+      return;
+    }
+
     final paint = Paint()
       ..color = Colors.red
       ..strokeWidth = 2.5
@@ -64,6 +70,7 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
+        oldDelegate.overlaySize != overlaySize ||
         oldDelegate.pageSize != pageSize ||
         oldDelegate.transform != transform ||
         oldDelegate.destTopLeft != destTopLeft;

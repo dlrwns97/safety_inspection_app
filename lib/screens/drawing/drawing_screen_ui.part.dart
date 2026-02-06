@@ -295,22 +295,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ),
                       ),
                       Positioned.fill(
-                        child: ClipRect(
-                          child: CustomPaint(
-                            painter: TempPolylinePainter(
-                              strokes:
-                                  _strokesByPage[pageNumber] ??
-                                  const <List<Offset>>[],
-                              inProgress:
-                                  _inProgressPage == pageNumber
-                                  ? _inProgress
-                                  : null,
-                              pageSize: pageSize,
-                              transform: freeDrawTransform,
-                              destTopLeft: destRect.topLeft,
-                            ),
-                            child: const SizedBox.expand(),
+                        child: CustomPaint(
+                          painter: TempPolylinePainter(
+                            strokes:
+                                _strokesByPage[pageNumber] ??
+                                const <List<Offset>>[],
+                            inProgress:
+                                _inProgressPage == pageNumber
+                                ? _inProgress
+                                : null,
+                            overlaySize: overlaySize,
+                            pageSize: pageSize,
+                            transform: freeDrawTransform,
+                            destTopLeft: destRect.topLeft,
                           ),
+                          child: const SizedBox.expand(),
                         ),
                       ),
                       Positioned.fill(

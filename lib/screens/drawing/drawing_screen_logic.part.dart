@@ -886,11 +886,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final overlaySize = _activeStrokeOverlaySize;
     if (overlaySize == null ||
         overlaySize.width <= 0 ||
-        overlaySize.height <= 0 ||
-        pointInStackLocal.dx < 0 ||
-        pointInStackLocal.dx > overlaySize.width ||
-        pointInStackLocal.dy < 0 ||
-        pointInStackLocal.dy > overlaySize.height) {
+        overlaySize.height <= 0) {
+      return null;
+    }
+    if (!(Offset.zero & overlaySize).contains(pointInStackLocal)) {
       return null;
     }
 
