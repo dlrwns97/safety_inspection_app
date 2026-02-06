@@ -10,6 +10,7 @@ class TempPolylinePainter extends CustomPainter {
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
+  // Kept for call-site compatibility; painting uses the runtime canvas size.
   final Size pageSize;
   final Offset? debugLastPageLocal;
 
@@ -36,23 +37,32 @@ class TempPolylinePainter extends CustomPainter {
     }
   }
 
-  void _drawPolyline(Canvas canvas, Size size, List<Offset> points, Paint paint) {
+  void _drawPolyline(
+    Canvas canvas,
+    Size size,
+    List<Offset> points,
+    Paint paint,
+  ) {
     if (points.isEmpty || size.width <= 0 || size.height <= 0) {
       return;
     }
 
-    Offset toCanvas(Offset point) =>
-        Offset(point.dx * size.width, point.dy * size.height);
+    Offset toCanvas(Offset norm, Size canvasSize) =>
+        Offset(norm.dx * canvasSize.width, norm.dy * canvasSize.height);
 
     if (points.length == 1) {
-      canvas.drawCircle(toCanvas(points.first), paint.strokeWidth / 2, paint);
+      canvas.drawCircle(
+        toCanvas(points.first, size),
+        paint.strokeWidth / 2,
+        paint,
+      );
       return;
     }
 
-    final first = toCanvas(points.first);
+    final first = toCanvas(points.first, size);
     final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = toCanvas(points[i]);
+      final point = toCanvas(points[i], size);
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
@@ -62,7 +72,6 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
-        oldDelegate.pageSize != pageSize ||
         oldDelegate.debugLastPageLocal != debugLastPageLocal;
   }
 }
