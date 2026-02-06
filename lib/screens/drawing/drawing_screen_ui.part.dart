@@ -232,32 +232,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
               _pdfPageDestRects[pageNumber] = destRect;
               final bool isTwoFinger = _activePointerIds.length >= 2;
               final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
-              return _wrapWithPointerHandlers(
-                tapRegionKey: tapKey,
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (details) => _handlePdfTap(
-                  details,
-                  overlaySize,
-                  pageNumber,
-                  tapContext,
-                  destRect: destRect,
-                ),
-                onLongPressStart: (details) => _handlePdfLongPress(
-                  details,
-                  overlaySize,
-                  pageNumber,
-                  tapContext,
-                  destRect: destRect,
-                ),
-                onMovePanUpdate:
-                    (details) => _handleMovePdfPanUpdate(
-                      details,
-                      overlaySize,
-                      pageNumber,
-                      tapContext,
-                      destRect: destRect,
-                    ),
-                child: SizedBox(
+              return Builder(
+                builder: (stackContext) => _wrapWithPointerHandlers(
+                  tapRegionKey: tapKey,
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) => _handlePdfTap(
+                    details,
+                    overlaySize,
+                    pageNumber,
+                    tapContext,
+                    destRect: destRect,
+                  ),
+                  onLongPressStart: (details) => _handlePdfLongPress(
+                    details,
+                    overlaySize,
+                    pageNumber,
+                    tapContext,
+                    destRect: destRect,
+                  ),
+                  onMovePanUpdate:
+                      (details) => _handleMovePdfPanUpdate(
+                        details,
+                        overlaySize,
+                        pageNumber,
+                        tapContext,
+                        destRect: destRect,
+                      ),
+                  child: SizedBox(
                   width: overlaySize.width,
                   height: overlaySize.height,
                   child: Stack(
@@ -306,11 +307,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     SingleFingerPanRecognizer.new,
                                     (SingleFingerPanRecognizer recognizer) {
                                       recognizer
-                                        ..onStart = (localPosition) {
+                                        ..onStart = (pointerDetails) {
+                                          final box =
+                                              stackContext.findRenderObject()
+                                                  as RenderBox;
+                                          final Offset p = box.globalToLocal(
+                                            pointerDetails.globalPosition,
+                                          );
                                           final normalizedPoint =
                                               _overlayToNormalizedPoint(
                                                 pageNumber: pageNumber,
-                                                overlayLocal: localPosition,
+                                                pointInStackLocal: p,
                                                 destRect: destRect,
                                               );
                                           _handleFreeDrawPointerStart(
@@ -319,11 +326,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                             destRect.size,
                                           );
                                         }
-                                        ..onUpdate = (localPosition) {
+                                        ..onUpdate = (pointerDetails) {
+                                          final box =
+                                              stackContext.findRenderObject()
+                                                  as RenderBox;
+                                          final Offset p = box.globalToLocal(
+                                            pointerDetails.globalPosition,
+                                          );
                                           final normalizedPoint =
                                               _overlayToNormalizedPoint(
                                                 pageNumber: pageNumber,
-                                                overlayLocal: localPosition,
+                                                pointInStackLocal: p,
                                                 destRect: destRect,
                                               );
                                           _handleFreeDrawPointerUpdate(
@@ -357,6 +370,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               );

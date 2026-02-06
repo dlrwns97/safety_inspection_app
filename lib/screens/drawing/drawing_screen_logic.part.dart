@@ -867,14 +867,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   Offset? _overlayToNormalizedPoint({
     required int pageNumber,
-    required Offset overlayLocal,
+    required Offset pointInStackLocal,
     required Rect destRect,
   }) {
     if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
       return null;
     }
 
-    if (!destRect.contains(overlayLocal)) {
+    if (!destRect.contains(pointInStackLocal)) {
       return null;
     }
 
@@ -885,7 +885,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final Offset p = value.position;
     final double safeScale = z <= 0 ? 1.0 : z;
     final Size destSize = destRect.size;
-    final Offset localInDest = overlayLocal - destRect.topLeft;
+    final Offset localInDest = pointInStackLocal - destRect.topLeft;
 
     final Offset center = destSize.center(Offset.zero);
     final Offset contentInDest =
@@ -898,10 +898,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return null;
     }
 
-    return Offset(
+    final normalized = Offset(
       contentInDest.dx / destSize.width,
       contentInDest.dy / destSize.height,
     );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[FreeDrawCoord] page=$pageNumber destRect=$destRect '
+        'stackLocal=$pointInStackLocal localInDest=$localInDest '
+        'normalized=$normalized',
+      );
+    }
+
+    return normalized;
   }
 
   void _handleFreeDrawPointerStart(

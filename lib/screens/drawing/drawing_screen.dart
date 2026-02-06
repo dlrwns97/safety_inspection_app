@@ -824,8 +824,8 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
     super.supportedDevices,
   });
 
-  ValueChanged<Offset>? onStart;
-  ValueChanged<Offset>? onUpdate;
+  ValueChanged<PanPointerDetails>? onStart;
+  ValueChanged<PanPointerDetails>? onUpdate;
   VoidCallback? onEnd;
   VoidCallback? onCancel;
 
@@ -854,9 +854,19 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
       if (!_accepted) {
         resolve(GestureDisposition.accepted);
         _accepted = true;
-        onStart?.call(event.localPosition);
+        onStart?.call(
+          PanPointerDetails(
+            localPosition: event.localPosition,
+            globalPosition: event.position,
+          ),
+        );
       }
-      onUpdate?.call(event.localPosition);
+      onUpdate?.call(
+        PanPointerDetails(
+          localPosition: event.localPosition,
+          globalPosition: event.position,
+        ),
+      );
       return;
     }
     if (event is PointerUpEvent) {
@@ -902,4 +912,14 @@ class SingleFingerPanRecognizer extends OneSequenceGestureRecognizer {
     _accepted = false;
     _didCancel = false;
   }
+}
+
+class PanPointerDetails {
+  const PanPointerDetails({
+    required this.localPosition,
+    required this.globalPosition,
+  });
+
+  final Offset localPosition;
+  final Offset globalPosition;
 }
