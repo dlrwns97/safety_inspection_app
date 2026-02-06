@@ -4,12 +4,16 @@ class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
     required this.strokes,
     required this.inProgress,
-    required this.destSize,
+    required this.pageSize,
+    required this.transform,
+    required this.destTopLeft,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
-  final Size destSize;
+  final Size pageSize;
+  final Matrix4 transform;
+  final Offset destTopLeft;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -29,24 +33,28 @@ class TempPolylinePainter extends CustomPainter {
   }
 
   void _drawPolyline(Canvas canvas, List<Offset> points, Paint paint) {
-    if (points.isEmpty || destSize.width <= 0 || destSize.height <= 0) {
+    if (points.isEmpty || pageSize.width <= 0 || pageSize.height <= 0) {
       return;
     }
 
-    Offset denormalize(Offset point) => Offset(
-      point.dx * destSize.width,
-      point.dy * destSize.height,
-    );
+    Offset toOverlayPoint(Offset point) {
+      final pageLocal = Offset(
+        point.dx * pageSize.width,
+        point.dy * pageSize.height,
+      );
+      final destLocal = MatrixUtils.transformPoint(transform, pageLocal);
+      return destTopLeft + destLocal;
+    }
 
     if (points.length == 1) {
-      canvas.drawCircle(denormalize(points.first), paint.strokeWidth / 2, paint);
+      canvas.drawCircle(toOverlayPoint(points.first), paint.strokeWidth / 2, paint);
       return;
     }
 
-    final first = denormalize(points.first);
+    final first = toOverlayPoint(points.first);
     final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = denormalize(points[i]);
+      final point = toOverlayPoint(points[i]);
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
@@ -56,6 +64,8 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
-        oldDelegate.destSize != destSize;
+        oldDelegate.pageSize != pageSize ||
+        oldDelegate.transform != transform ||
+        oldDelegate.destTopLeft != destTopLeft;
   }
 }

@@ -883,6 +883,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return null;
     }
 
+    final overlaySize = _activeStrokeOverlaySize;
+    if (overlaySize == null ||
+        overlaySize.width <= 0 ||
+        overlaySize.height <= 0 ||
+        pointInStackLocal.dx < 0 ||
+        pointInStackLocal.dx > overlaySize.width ||
+        pointInStackLocal.dy < 0 ||
+        pointInStackLocal.dy > overlaySize.height) {
+      return null;
+    }
+
     final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
     final contentObject = contentContext?.findRenderObject();
     if (contentObject is! RenderBox || !contentObject.hasSize) {
@@ -891,19 +902,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final Offset pointerInDestLocal = pointInStackLocal - destRect.topLeft;
 
-    final Matrix4 transformMatrix = contentObject.getTransformTo(stackBox);
-    final Matrix4 inverseTransform = Matrix4.inverted(transformMatrix);
+    final Matrix4 contentToStack = contentObject.getTransformTo(stackBox);
+    final Matrix4 stackToDestLocal =
+        Matrix4.identity()..translate(-destRect.left, -destRect.top);
+    final Matrix4 contentToDestLocal = stackToDestLocal..multiply(contentToStack);
+    final Matrix4 inverseTransform = Matrix4.inverted(contentToDestLocal);
     final Offset contentLocal = MatrixUtils.transformPoint(
       inverseTransform,
-      pointInStackLocal,
+      pointerInDestLocal,
     );
-
-    if (contentLocal.dx < 0 ||
-        contentLocal.dx > contentObject.size.width ||
-        contentLocal.dy < 0 ||
-        contentLocal.dy > contentObject.size.height) {
-      return null;
-    }
 
     final Offset pageLocal = Offset(
       contentLocal.dx * (pageSize.width / contentObject.size.width),
@@ -914,13 +921,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageLocal.dx / pageSize.width,
       pageLocal.dy / pageSize.height,
     );
-
-    if (normalized.dx < 0 ||
-        normalized.dx > 1 ||
-        normalized.dy < 0 ||
-        normalized.dy > 1) {
-      return null;
-    }
 
     if (kDebugMode) {
       debugPrint(
@@ -933,7 +933,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     return normalized;
   }
-
 
   void _resetActiveStrokeSnapshot() {
     _isStrokeActive = false;
@@ -988,10 +987,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
+    final pageSize = _pdfPageSizes[pageNumber] ?? activeDestRect.size;
     const double thresholdPx = 2.5;
-    final double denom = activeDestRect.shortestSide <= 0
+    final double denom = pageSize.shortestSide <= 0
         ? 1.0
-        : activeDestRect.shortestSide;
+        : pageSize.shortestSide;
     final double thresholdNorm = thresholdPx / denom;
     if ((localPosition - inProgress.last).distance < thresholdNorm) {
       return;

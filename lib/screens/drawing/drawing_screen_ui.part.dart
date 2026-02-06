@@ -240,7 +240,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
               final bool isTwoFinger = _activePointerIds.length >= 2;
               final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
               return Builder(
-                builder: (stackContext) => _wrapWithPointerHandlers(
+                builder: (stackContext) {
+                  final Matrix4 freeDrawTransform =
+                      _resolvePdfPageToDestTransform(
+                        pageNumber: pageNumber,
+                        destRect: destRect,
+                        pageSize: pageSize,
+                        stackContext: stackContext,
+                      );
+                  return _wrapWithPointerHandlers(
                   tapRegionKey: tapKey,
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (details) => _handlePdfTap(
@@ -286,8 +294,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
-                      Positioned.fromRect(
-                        rect: destRect,
+                      Positioned.fill(
                         child: ClipRect(
                           child: CustomPaint(
                             painter: TempPolylinePainter(
@@ -298,7 +305,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   _inProgressPage == pageNumber
                                   ? _inProgress
                                   : null,
-                              destSize: destRect.size,
+                              pageSize: pageSize,
+                              transform: freeDrawTransform,
+                              destTopLeft: destRect.topLeft,
                             ),
                             child: const SizedBox.expand(),
                           ),
@@ -409,12 +418,46 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                     ],
                   ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),
     );
+  }
+
+  Matrix4 _resolvePdfPageToDestTransform({
+    required int pageNumber,
+    required Rect destRect,
+    required Size pageSize,
+    required BuildContext stackContext,
+  }) {
+    final sx = pageSize.width <= 0 ? 1.0 : destRect.width / pageSize.width;
+    final sy = pageSize.height <= 0 ? 1.0 : destRect.height / pageSize.height;
+    final fallback = Matrix4.identity()..scale(sx, sy);
+
+    final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
+    final contentObject = contentContext?.findRenderObject();
+    final stackObject = stackContext.findRenderObject();
+    if (contentObject is! RenderBox ||
+        !contentObject.hasSize ||
+        stackObject is! RenderBox ||
+        !stackObject.hasSize ||
+        pageSize.width <= 0 ||
+        pageSize.height <= 0) {
+      return fallback;
+    }
+
+    final Matrix4 contentToStack = contentObject.getTransformTo(stackObject);
+    final Matrix4 stackToDestLocal =
+        Matrix4.identity()..translate(-destRect.left, -destRect.top);
+    final Matrix4 contentToDestLocal = stackToDestLocal..multiply(contentToStack);
+    final Matrix4 pageToContent = Matrix4.identity()
+      ..scale(
+        contentObject.size.width / pageSize.width,
+        contentObject.size.height / pageSize.height,
+      );
+    return contentToDestLocal..multiply(pageToContent);
   }
 
   Widget _buildCanvasViewer(ThemeData theme) {
