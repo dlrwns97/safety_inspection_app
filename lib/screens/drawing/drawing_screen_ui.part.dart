@@ -212,26 +212,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool isTwoFinger = _activePointerIds.length >= 2;
     final bool enablePageLocalDrawing = _isFreeDrawMode && !isTwoFinger;
+    final Size overlaySize = renderSize;
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) => _handlePdfTap(
         details,
-        pageSize,
+        overlaySize,
         pageNumber,
       ),
       onLongPressStart: (details) => _handlePdfLongPress(
         details,
-        pageSize,
+        overlaySize,
         pageNumber,
       ),
       onMovePanUpdate:
           (details) => _handleMovePdfPanUpdate(
             details,
-            pageSize,
+            overlaySize,
             pageNumber,
             context,
-            destRect: Offset.zero & pageSize,
+            destRect: Offset.zero & overlaySize,
           ),
       child: SizedBox.expand(
         child: Stack(
@@ -239,7 +240,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 KeyedSubtree(
                   key: pageContentKey,
                   child: _buildMarkerLayer(
-                    size: pageSize,
+                    size: overlaySize,
                     pageIndex: pageNumber,
                     child: SizedBox.expand(
                       child: Image(
@@ -256,7 +257,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _strokesByPage[pageNumber] ?? const <List<Offset>>[],
                       inProgress:
                           _inProgressPage == pageNumber ? _inProgress : null,
-                      pageSize: pageSize,
+                      pageSize: overlaySize,
                       debugLastPageLocal:
                           kDebugMode && _inProgressPage == pageNumber
                               ? _debugLastPageLocal
@@ -281,10 +282,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   ..onStart = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
                                     final normalized =
-                                        _pdfLocalToNormalized(p, pageSize);
-                                    if (normalized == null) {
-                                      return;
-                                    }
+                                        _overlayToNormalizedPoint(
+                                          overlayLocal: p,
+                                          destSize: overlaySize,
+                                        );
                                     _debugLastPageLocal = p;
                                     _handleFreeDrawPointerStart(
                                       normalized,
@@ -294,14 +295,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   ..onUpdate = (pointerDetails) {
                                     final p = pointerDetails.localPosition;
                                     final normalized =
-                                        _pdfLocalToNormalized(p, pageSize);
-                                    if (normalized == null) {
-                                      return;
-                                    }
+                                        _overlayToNormalizedPoint(
+                                          overlayLocal: p,
+                                          destSize: overlaySize,
+                                        );
                                     _debugLastPageLocal = p;
                                     _handleFreeDrawPointerUpdate(
                                       normalized,
                                       pageNumber,
+                                      overlaySize,
                                     );
                                   }
                                   ..onEnd = () {
