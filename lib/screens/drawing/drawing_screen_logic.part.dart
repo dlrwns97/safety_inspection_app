@@ -830,141 +830,41 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
 
-  void _migrateLegacyFreeDrawStrokesIfNeeded({
+  Offset? _pdfGlobalToPageNormalized({
+    required Offset globalPosition,
     required int pageNumber,
-    required Rect? oldDestRect,
-  }) {
-    if (_migratedFreeDrawPages.contains(pageNumber)) {
-      return;
-    }
-    final strokes = _strokesByPage[pageNumber];
-    if (strokes == null || strokes.isEmpty) {
-      _migratedFreeDrawPages.add(pageNumber);
-      return;
-    }
-
-    if (_areStrokesNormalized(strokes)) {
-      _migratedFreeDrawPages.add(pageNumber);
-      return;
-    }
-
-    if (oldDestRect == null || oldDestRect.width <= 0 || oldDestRect.height <= 0) {
-      return;
-    }
-
-    _strokesByPage[pageNumber] = strokes
-        .map(
-          (stroke) => stroke
-              .map(
-                (point) => Offset(
-                  point.dx / oldDestRect.width,
-                  point.dy / oldDestRect.height,
-                ),
-              )
-              .toList(growable: false),
-        )
-        .toList(growable: false);
-    _migratedFreeDrawPages.add(pageNumber);
-  }
-
-  Offset? _overlayToNormalizedPoint({
-    required int pageNumber,
-    required Offset pointInStackLocal,
-    required Rect destRect,
     required Size pageSize,
-    required Size overlaySize,
   }) {
-    if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
-      return null;
-    }
     if (pageSize.width <= 0 || pageSize.height <= 0) {
       return null;
     }
-
-    final stackBox = _activeStrokeBox;
-    if (stackBox == null || !stackBox.hasSize) {
+    final viewerContext = _pdfViewerKey.currentContext;
+    final viewerObject = viewerContext?.findRenderObject();
+    if (viewerObject is! RenderBox || !viewerObject.hasSize) {
       return null;
     }
-
-    if (overlaySize.width <= 0 || overlaySize.height <= 0) {
+    final local = viewerObject.globalToLocal(globalPosition);
+    final controller = _photoControllerForPage(pageNumber);
+    final value = controller.value;
+    final Matrix4 matrix =
+        value == null ? Matrix4.identity() : Matrix4.copy(value);
+    final Matrix4 inverse = Matrix4.inverted(matrix);
+    final scene = MatrixUtils.transformPoint(inverse, local);
+    if (scene.dx < 0 ||
+        scene.dx > pageSize.width ||
+        scene.dy < 0 ||
+        scene.dy > pageSize.height) {
       return null;
     }
-    if (!(Offset.zero & overlaySize).contains(pointInStackLocal)) {
-      return null;
-    }
-    if (!destRect.contains(pointInStackLocal)) {
-      return null;
-    }
-
-    final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
-    final contentObject = contentContext?.findRenderObject();
-    if (contentObject is! RenderBox || !contentObject.hasSize) {
-      return null;
-    }
-
-    final Offset pointerInDestLocal = pointInStackLocal - destRect.topLeft;
-
-    final Matrix4 contentToStack = contentObject.getTransformTo(stackBox);
-    final Matrix4 stackToDestLocal =
-        Matrix4.identity()..translate(-destRect.left, -destRect.top);
-    final Matrix4 contentToDestLocal = stackToDestLocal..multiply(contentToStack);
-    final Matrix4 inverseTransform = Matrix4.inverted(contentToDestLocal);
-    final Offset contentLocal = MatrixUtils.transformPoint(
-      inverseTransform,
-      pointerInDestLocal,
-    );
-
-    final Offset pageLocal = Offset(
-      contentLocal.dx * (pageSize.width / contentObject.size.width),
-      contentLocal.dy * (pageSize.height / contentObject.size.height),
-    );
-
-    final normalized = Offset(
-      pageLocal.dx / pageSize.width,
-      pageLocal.dy / pageSize.height,
-    );
-
-    if (normalized.dx < 0 ||
-        normalized.dx > 1 ||
-        normalized.dy < 0 ||
-        normalized.dy > 1) {
-      return null;
-    }
-
-    if (kDebugMode) {
-      debugPrint(
-        '[FreeDrawCoord] page=$pageNumber destRect=$destRect '
-        'stackLocal=$pointInStackLocal inDest=$pointerInDestLocal '
-        'contentLocal=$contentLocal pageLocal=$pageLocal '
-        'normalized=$normalized',
-      );
-    }
-
-    return normalized;
-  }
-
-  void _resetActiveStrokeSnapshot() {
-    _isStrokeActive = false;
-    _activeStrokeDestRect = null;
-    _activeStrokeOverlaySize = null;
-    _activeStrokeBox = null;
+    return Offset(scene.dx / pageSize.width, scene.dy / pageSize.height);
   }
 
   void _handleFreeDrawPointerStart(
     Offset? localPosition,
     int pageNumber,
   ) {
-    final activeDestRect = _activeStrokeDestRect;
-    final activeOverlaySize = _activeStrokeOverlaySize;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
-        !_isStrokeActive ||
-        activeDestRect == null ||
-        activeOverlaySize == null ||
-        activeDestRect.width <= 0 ||
-        activeDestRect.height <= 0 ||
-        activeOverlaySize.width <= 0 ||
-        activeOverlaySize.height <= 0 ||
         localPosition == null) {
       return;
     }
@@ -979,24 +879,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     int pageNumber,
   ) {
     final inProgress = _inProgress;
-    final activeDestRect = _activeStrokeDestRect;
-    final activeOverlaySize = _activeStrokeOverlaySize;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
-        !_isStrokeActive ||
-        activeDestRect == null ||
-        activeOverlaySize == null ||
-        activeDestRect.width <= 0 ||
-        activeDestRect.height <= 0 ||
-        activeOverlaySize.width <= 0 ||
-        activeOverlaySize.height <= 0 ||
         localPosition == null ||
         inProgress == null ||
         inProgress.isEmpty ||
         _inProgressPage != pageNumber) {
       return;
     }
-    final pageSize = _pdfPageSizes[pageNumber] ?? activeDestRect.size;
+    final pageSize = _pdfPageSizes[pageNumber] ?? DrawingCanvasSize;
     const double thresholdPx = 2.5;
     final double denom = pageSize.shortestSide <= 0
         ? 1.0
@@ -1010,7 +901,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleFreeDrawPointerEnd(int pageNumber) {
     _handleFreeDrawEnd(pageNumber);
-    _resetActiveStrokeSnapshot();
   }
 
   void _handleFreeDrawEnd(int pageNumber) {
@@ -1030,7 +920,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPanCancel() {
-    _resetActiveStrokeSnapshot();
     if (_inProgress == null) {
       return;
     }
@@ -1074,7 +963,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activePointerIds.clear();
         _inProgress = null;
         _inProgressPage = null;
-        _resetActiveStrokeSnapshot();
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
@@ -1307,7 +1195,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       globalPosition: details.globalPosition,
       pageIndex: pageIndex,
       tapContext: _pdfTapRegionKeyForPage(pageIndex).currentContext,
-      destRect: _pdfPageDestRects[pageIndex],
+      overlaySize: _pdfPageSizes[pageIndex],
+      destRect: (_pdfPageSizes[pageIndex] == null)
+          ? null
+          : (Offset.zero & _pdfPageSizes[pageIndex]!),
     );
   }
 

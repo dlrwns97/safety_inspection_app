@@ -206,271 +206,119 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required Key pageContentKey,
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
-    return Builder(
-      builder:
-          (tapContext) => LayoutBuilder(
-            builder: (context, constraints) {
-              final viewerContext = _pdfViewerKey.currentContext;
-              final viewerRenderObject = viewerContext?.findRenderObject();
-              final viewerBox =
-                  viewerRenderObject is RenderBox && viewerRenderObject.hasSize
-                      ? viewerRenderObject
-                      : null;
-              var overlaySize =
-                  viewerBox?.size ??
-                  Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
-              if (!constraints.hasBoundedWidth ||
-                  !constraints.hasBoundedHeight) {
-                overlaySize = pageSize;
-              }
-              if (overlaySize.width <= 0 || overlaySize.height <= 0) {
-                overlaySize = pageSize;
-              }
-              final fittedSizes = applyBoxFit(
-                BoxFit.contain,
-                pageSize,
-                overlaySize,
-              );
-              final destRect = Alignment.center.inscribe(
-                fittedSizes.destination,
-                Offset.zero & overlaySize,
-              );
-              final previousDestRect = _pdfPageDestRects[pageNumber];
-              _migrateLegacyFreeDrawStrokesIfNeeded(
-                pageNumber: pageNumber,
-                oldDestRect: previousDestRect,
-              );
-              _pdfPageDestRects[pageNumber] = destRect;
-              final bool isTwoFinger = _activePointerIds.length >= 2;
-              final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
-              final Matrix4 freeDrawTransform = _resolvePdfPageToDestTransform(
-                pageNumber: pageNumber,
-                destRect: destRect,
-                pageSize: pageSize,
-              );
-              return _wrapWithPointerHandlers(
-                tapRegionKey: tapKey,
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (details) => _handlePdfTap(
-                  details,
-                  overlaySize,
-                  pageNumber,
-                  tapContext,
-                  destRect: destRect,
-                ),
-                onLongPressStart: (details) => _handlePdfLongPress(
-                  details,
-                  overlaySize,
-                  pageNumber,
-                  tapContext,
-                  destRect: destRect,
-                ),
-                onMovePanUpdate:
-                    (details) => _handleMovePdfPanUpdate(
-                      details,
-                      overlaySize,
-                      pageNumber,
-                      tapContext,
-                      destRect: destRect,
-                    ),
-                child: SizedBox(
-                  width: overlaySize.width,
-                  height: overlaySize.height,
-                  child: Stack(
-                    children: [
-                      Align(
-                        child: SizedBox(
-                          width: destRect.width,
-                          height: destRect.height,
-                          child: KeyedSubtree(
-                            key: pageContentKey,
-                            child: _buildMarkerLayer(
-                              size: destRect.size,
-                              pageIndex: pageNumber,
-                              child: SizedBox.expand(
-                                child: Image(
-                                  image: imageProvider,
-                                  fit: BoxFit.fill,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned.fromRect(
-                        rect: destRect,
-                        child: ClipRect(
-                          child: CustomPaint(
-                            painter: TempPolylinePainter(
-                              strokes:
-                                  _strokesByPage[pageNumber] ??
-                                  const <List<Offset>>[],
-                              inProgress:
-                                  _inProgressPage == pageNumber
-                                      ? _inProgress
-                                      : null,
-                              pageSize: pageSize,
-                              transform: freeDrawTransform,
-                            ),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          ignoring: !enableOverlayDrawing,
-                          child: RawGestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            gestures: <Type, GestureRecognizerFactory>{
-                              SingleFingerPanRecognizer:
-                                  GestureRecognizerFactoryWithHandlers<
-                                    SingleFingerPanRecognizer
-                                  >(
-                                    SingleFingerPanRecognizer.new,
-                                    (SingleFingerPanRecognizer recognizer) {
-                                      recognizer
-                                        ..onStart = (pointerDetails) {
-                                          final boxContext =
-                                              _pdfViewerKey.currentContext;
-                                          final boxRenderObject =
-                                              boxContext?.findRenderObject();
-                                          if (boxRenderObject is! RenderBox ||
-                                              !boxRenderObject.hasSize) {
-                                            return;
-                                          }
-                                          _isStrokeActive = true;
-                                          _activeStrokeDestRect = destRect;
-                                          _activeStrokeOverlaySize = boxRenderObject.size;
-                                          _activeStrokeBox = boxRenderObject;
-                                          final overlaySize = boxRenderObject.size;
-                                          final pointer = boxRenderObject
-                                              .globalToLocal(
-                                                pointerDetails.globalPosition,
-                                              );
-                                          final activeDestRect =
-                                              _activeStrokeDestRect;
-                                          final normalizedPoint =
-                                              activeDestRect == null
-                                                  ? null
-                                                  : _overlayToNormalizedPoint(
-                                                    pageNumber: pageNumber,
-                                                    pointInStackLocal: pointer,
-                                                    destRect: activeDestRect,
-                                                    pageSize: pageSize,
-                                                    overlaySize: overlaySize,
-                                                  );
-                                          _handleFreeDrawPointerStart(
-                                            normalizedPoint,
-                                            pageNumber,
-                                          );
-                                        }
-                                        ..onUpdate = (pointerDetails) {
-                                          if (!_isStrokeActive) {
-                                            return;
-                                          }
-                                          final activeDestRect =
-                                              _activeStrokeDestRect;
-                                          final activeOverlaySize =
-                                              _activeStrokeOverlaySize;
-                                          if (activeDestRect == null ||
-                                              activeOverlaySize == null ||
-                                              activeDestRect.width <= 0 ||
-                                              activeDestRect.height <= 0 ||
-                                              activeOverlaySize.width <= 0 ||
-                                              activeOverlaySize.height <= 0) {
-                                            return;
-                                          }
-                                          final boxContext =
-                                              _pdfViewerKey.currentContext;
-                                          final boxRenderObject =
-                                              boxContext?.findRenderObject();
-                                          if (boxRenderObject is! RenderBox ||
-                                              !boxRenderObject.hasSize) {
-                                            return;
-                                          }
-                                          _activeStrokeOverlaySize =
-                                              boxRenderObject.size;
-                                          _activeStrokeBox = boxRenderObject;
-                                          final overlaySize = boxRenderObject.size;
-                                          final pointer = boxRenderObject
-                                              .globalToLocal(
-                                                pointerDetails.globalPosition,
-                                              );
-                                          final normalizedPoint =
-                                              _overlayToNormalizedPoint(
-                                                pageNumber: pageNumber,
-                                                pointInStackLocal: pointer,
-                                                destRect: activeDestRect,
-                                                pageSize: pageSize,
-                                                overlaySize: overlaySize,
-                                              );
-                                          _handleFreeDrawPointerUpdate(
-                                            normalizedPoint,
-                                            pageNumber,
-                                          );
-                                        }
-                                        ..onEnd = () {
-                                          _handleFreeDrawPointerEnd(pageNumber);
-                                        }
-                                        ..onCancel = _handleFreeDrawPanCancel;
-                                    },
-                                  ),
-                            },
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Listener(
-                          behavior: HitTestBehavior.translucent,
-                          onPointerDown: _handleOverlayPointerDown,
-                          onPointerUp: _handleOverlayPointerUpOrCancel,
-                          onPointerCancel: _handleOverlayPointerUpOrCancel,
-                        ),
-                      ),
-                    ],
+    final bool isTwoFinger = _activePointerIds.length >= 2;
+    final bool enableOverlayDrawing = _isFreeDrawMode && !isTwoFinger;
+    return _wrapWithPointerHandlers(
+      tapRegionKey: tapKey,
+      behavior: HitTestBehavior.opaque,
+      onTapUp: (details) => _handlePdfTap(
+        details,
+        pageSize,
+        pageNumber,
+        context,
+        destRect: Offset.zero & pageSize,
+      ),
+      onLongPressStart: (details) => _handlePdfLongPress(
+        details,
+        pageSize,
+        pageNumber,
+        context,
+        destRect: Offset.zero & pageSize,
+      ),
+      onMovePanUpdate:
+          (details) => _handleMovePdfPanUpdate(
+            details,
+            pageSize,
+            pageNumber,
+            context,
+            destRect: Offset.zero & pageSize,
+          ),
+      child: SizedBox(
+        width: pageSize.width,
+        height: pageSize.height,
+        child: Stack(
+          children: [
+            KeyedSubtree(
+              key: pageContentKey,
+              child: _buildMarkerLayer(
+                size: pageSize,
+                pageIndex: pageNumber,
+                child: SizedBox.expand(
+                  child: Image(
+                    image: imageProvider,
+                    fit: BoxFit.fill,
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: TempPolylinePainter(
+                  strokes: _strokesByPage[pageNumber] ?? const <List<Offset>>[],
+                  inProgress: _inProgressPage == pageNumber ? _inProgress : null,
+                  pageSize: pageSize,
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !enableOverlayDrawing,
+                child: RawGestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  gestures: <Type, GestureRecognizerFactory>{
+                    SingleFingerPanRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          SingleFingerPanRecognizer
+                        >(
+                          SingleFingerPanRecognizer.new,
+                          (SingleFingerPanRecognizer recognizer) {
+                            recognizer
+                              ..onStart = (pointerDetails) {
+                                final normalizedPoint = _pdfGlobalToPageNormalized(
+                                  globalPosition: pointerDetails.globalPosition,
+                                  pageNumber: pageNumber,
+                                  pageSize: pageSize,
+                                );
+                                _handleFreeDrawPointerStart(
+                                  normalizedPoint,
+                                  pageNumber,
+                                );
+                              }
+                              ..onUpdate = (pointerDetails) {
+                                final normalizedPoint = _pdfGlobalToPageNormalized(
+                                  globalPosition: pointerDetails.globalPosition,
+                                  pageNumber: pageNumber,
+                                  pageSize: pageSize,
+                                );
+                                _handleFreeDrawPointerUpdate(
+                                  normalizedPoint,
+                                  pageNumber,
+                                );
+                              }
+                              ..onEnd = () {
+                                _handleFreeDrawPointerEnd(pageNumber);
+                              }
+                              ..onCancel = _handleFreeDrawPanCancel;
+                          },
+                        ),
+                  },
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleOverlayPointerDown,
+                onPointerUp: _handleOverlayPointerUpOrCancel,
+                onPointerCancel: _handleOverlayPointerUpOrCancel,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  Matrix4 _resolvePdfPageToDestTransform({
-    required int pageNumber,
-    required Rect destRect,
-    required Size pageSize,
-  }) {
-    final sx = pageSize.width <= 0 ? 1.0 : destRect.width / pageSize.width;
-    final sy = pageSize.height <= 0 ? 1.0 : destRect.height / pageSize.height;
-    final fallback = Matrix4.identity()..scale(sx, sy);
-
-    final contentContext = _pdfPageContentKeyForPage(pageNumber).currentContext;
-    final contentObject = contentContext?.findRenderObject();
-    final stackObject = _pdfViewerKey.currentContext?.findRenderObject();
-    if (contentObject is! RenderBox ||
-        !contentObject.hasSize ||
-        stackObject is! RenderBox ||
-        !stackObject.hasSize ||
-        pageSize.width <= 0 ||
-        pageSize.height <= 0) {
-      return fallback;
-    }
-
-    final Matrix4 contentToStack = contentObject.getTransformTo(stackObject);
-    final Matrix4 stackToDestLocal =
-        Matrix4.identity()..translate(-destRect.left, -destRect.top);
-    final Matrix4 contentToDestLocal = stackToDestLocal..multiply(contentToStack);
-    final Matrix4 pageToContent = Matrix4.identity()
-      ..scale(
-        contentObject.size.width / pageSize.width,
-        contentObject.size.height / pageSize.height,
-      );
-    return contentToDestLocal..multiply(pageToContent);
   }
 
   Widget _buildCanvasViewer(ThemeData theme) {
