@@ -74,7 +74,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
   final Map<int, Size> _pdfPageSizes = {};
-  final Map<int, Rect> _pdfPageDestRects = {};
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
@@ -108,13 +107,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _activePointerIds = <int>{};
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
-  final Set<int> _migratedFreeDrawPages = <int>{};
   List<Offset>? _inProgress;
   int? _inProgressPage;
-  Rect? _activeStrokeDestRect;
-  Size? _activeStrokeOverlaySize;
-  RenderBox? _activeStrokeBox;
-  bool _isStrokeActive = false;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;

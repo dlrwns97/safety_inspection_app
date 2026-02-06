@@ -5,13 +5,11 @@ class TempPolylinePainter extends CustomPainter {
     required this.strokes,
     required this.inProgress,
     required this.pageSize,
-    required this.transform,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
   final Size pageSize;
-  final Matrix4 transform;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -35,24 +33,18 @@ class TempPolylinePainter extends CustomPainter {
       return;
     }
 
-    Offset toOverlayPoint(Offset point) {
-      final pageLocal = Offset(
-        point.dx * pageSize.width,
-        point.dy * pageSize.height,
-      );
-      final destLocal = MatrixUtils.transformPoint(transform, pageLocal);
-      return destLocal;
-    }
+    Offset toPagePoint(Offset point) =>
+        Offset(point.dx * pageSize.width, point.dy * pageSize.height);
 
     if (points.length == 1) {
-      canvas.drawCircle(toOverlayPoint(points.first), paint.strokeWidth / 2, paint);
+      canvas.drawCircle(toPagePoint(points.first), paint.strokeWidth / 2, paint);
       return;
     }
 
-    final first = toOverlayPoint(points.first);
+    final first = toPagePoint(points.first);
     final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = toOverlayPoint(points[i]);
+      final point = toPagePoint(points[i]);
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
@@ -62,7 +54,6 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
-        oldDelegate.pageSize != pageSize ||
-        oldDelegate.transform != transform;
+        oldDelegate.pageSize != pageSize;
   }
 }
