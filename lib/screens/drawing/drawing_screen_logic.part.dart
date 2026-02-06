@@ -868,9 +868,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
-  void _handleFreeDrawPointerStart(Offset? localPosition, int pageNumber) {
+  void _handleFreeDrawPointerStart(
+    Offset? localPosition,
+    int pageNumber,
+    Size destSize,
+  ) {
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
+        destSize.shortestSide <= 0 ||
         localPosition == null) {
       return;
     }
@@ -880,7 +885,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleFreeDrawPointerUpdate(Offset? localPosition, int pageNumber) {
+  void _handleFreeDrawPointerUpdate(
+    Offset? localPosition,
+    int pageNumber,
+    Size destSize,
+  ) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -890,8 +899,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    const double distanceThreshold = 2.5;
-    if ((localPosition - inProgress.last).distance < distanceThreshold) {
+    const double thresholdPx = 2.5;
+    final double denom =
+        destSize.shortestSide <= 0 ? 1.0 : destSize.shortestSide;
+    final double thresholdNorm = thresholdPx / denom;
+    if ((localPosition - inProgress.last).distance < thresholdNorm) {
       return;
     }
     _safeSetState(() => inProgress.add(localPosition));

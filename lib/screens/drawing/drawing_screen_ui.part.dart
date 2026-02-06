@@ -316,6 +316,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           _handleFreeDrawPointerStart(
                                             normalizedPoint,
                                             pageNumber,
+                                            destRect.size,
                                           );
                                         }
                                         ..onUpdate = (localPosition) {
@@ -328,6 +329,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           _handleFreeDrawPointerUpdate(
                                             normalizedPoint,
                                             pageNumber,
+                                            destRect.size,
                                           );
                                         }
                                         ..onEnd = () {
