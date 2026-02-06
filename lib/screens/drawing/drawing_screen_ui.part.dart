@@ -164,12 +164,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
       enablePdfPanGestures: enablePdfPanGestures,
       enablePdfScaleGestures: enablePdfScaleGestures,
       disablePageSwipe: disablePageSwipe,
+      pageContentKeyForPage: _pdfPageContentKeyForPage,
       buildPageOverlay:
-          ({required pageSize, required pageNumber, required imageProvider}) =>
-              _buildPdfPageOverlay(
+          ({
+            required pageSize,
+            required pageNumber,
+            required imageProvider,
+            required pageContentKey,
+          }) => _buildPdfPageOverlay(
                 pageSize: pageSize,
                 pageNumber: pageNumber,
                 imageProvider: imageProvider,
+                pageContentKey: pageContentKey,
               ),
     );
   }
@@ -198,6 +204,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required Size pageSize,
     required int pageNumber,
     required ImageProvider imageProvider,
+    required Key pageContentKey,
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     return Builder(
@@ -265,13 +272,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     children: [
                       Positioned.fromRect(
                         rect: destRect,
-                        child: _buildMarkerLayer(
-                          size: destRect.size,
-                          pageIndex: pageNumber,
-                          child: SizedBox.expand(
-                            child: Image(
-                              image: imageProvider,
-                              fit: BoxFit.fill,
+                        child: KeyedSubtree(
+                          key: pageContentKey,
+                          child: _buildMarkerLayer(
+                            size: destRect.size,
+                            pageIndex: pageNumber,
+                            child: SizedBox.expand(
+                              child: Image(
+                                image: imageProvider,
+                                fit: BoxFit.fill,
+                              ),
                             ),
                           ),
                         ),
@@ -331,6 +341,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                                   pageNumber: pageNumber,
                                                   pointInStackLocal: p,
                                                   destRect: activeDestRect,
+                                                  pageSize: pageSize,
                                                 );
                                           _handleFreeDrawPointerStart(
                                             normalizedPoint,
@@ -365,6 +376,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                                 pageNumber: pageNumber,
                                                 pointInStackLocal: p,
                                                 destRect: activeDestRect,
+                                                pageSize: pageSize,
                                               );
                                           _handleFreeDrawPointerUpdate(
                                             normalizedPoint,
