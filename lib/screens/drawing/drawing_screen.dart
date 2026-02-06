@@ -110,6 +110,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   List<Offset>? _inProgress;
   int? _inProgressPage;
   Offset? _debugLastPageLocal;
+  Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   String? _moveTargetDefectId;

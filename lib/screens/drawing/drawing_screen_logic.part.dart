@@ -3,6 +3,65 @@ part of 'drawing_screen.dart';
 const double _kMinValidPdfPageSide = 200.0;
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  Matrix4 _buildPhotoViewChildMatrix({
+    required PhotoViewControllerValue value,
+    required Size viewportSize,
+    required Size childSize,
+  }) {
+    final scale = value.scale ?? 1.0;
+    final position = value.position;
+    final viewportCenter = viewportSize.center(Offset.zero);
+    final childCenter = childSize.center(Offset.zero);
+
+    return Matrix4.identity()
+      ..translate(viewportCenter.dx, viewportCenter.dy)
+      ..translate(position.dx, position.dy)
+      ..scale(scale, scale, 1.0)
+      ..translate(-childCenter.dx, -childCenter.dy);
+  }
+
+  Offset? _mapPdfViewportPointToPageLocal({
+    required Offset viewportLocal,
+    required int pageIndex,
+    required Size viewportSize,
+    required Size childSize,
+  }) {
+    if (viewportSize.isEmpty || childSize.isEmpty) {
+      return null;
+    }
+    final controllerValue = _photoControllerForPage(pageIndex).value;
+    final matrix = _buildPhotoViewChildMatrix(
+      value: controllerValue,
+      viewportSize: viewportSize,
+      childSize: childSize,
+    );
+    final inverted = Matrix4.inverted(matrix);
+    final pageLocal = MatrixUtils.transformPoint(inverted, viewportLocal);
+
+    if (kDebugMode) {
+      _debugLastPdfPointerMapping = <String, Object?>{
+        'destLocal': viewportLocal,
+        'pageLocal': pageLocal,
+        'normalized': Offset(
+          pageLocal.dx / childSize.width,
+          pageLocal.dy / childSize.height,
+        ),
+        'position': controllerValue.position,
+        'scale': controllerValue.scale,
+        'viewportSize': viewportSize,
+        'childSize': childSize,
+      };
+    }
+
+    if (pageLocal.dx < 0 ||
+        pageLocal.dx > childSize.width ||
+        pageLocal.dy < 0 ||
+        pageLocal.dy > childSize.height) {
+      return null;
+    }
+    return pageLocal;
+  }
+
   bool get _isPlaceMode {
     if (_mode == DrawMode.defect) {
       return _activeCategory != null;
@@ -488,8 +547,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!resolvedDestRect.contains(localPosition)) {
       return;
     }
-    final imageLocal = localPosition - resolvedDestRect.topLeft;
-    final imageSize = resolvedDestRect.size;
+    final destLocal = localPosition - resolvedDestRect.topLeft;
+    final imageSize = pageSize;
+    final imageLocal = _mapPdfViewportPointToPageLocal(
+      viewportLocal: destLocal,
+      pageIndex: pageIndex,
+      viewportSize: resolvedDestRect.size,
+      childSize: imageSize,
+    );
+    if (imageLocal == null) {
+      return;
+    }
     final hitResult = _hitTestMarker(
       point: imageLocal,
       size: imageSize,
@@ -558,8 +626,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!resolvedDestRect.contains(localPosition)) {
       return;
     }
-    final imageLocal = localPosition - resolvedDestRect.topLeft;
-    final imageSize = resolvedDestRect.size;
+    final destLocal = localPosition - resolvedDestRect.topLeft;
+    final imageSize = pageSize;
+    final imageLocal = _mapPdfViewportPointToPageLocal(
+      viewportLocal: destLocal,
+      pageIndex: pageIndex,
+      viewportSize: resolvedDestRect.size,
+      childSize: imageSize,
+    );
+    if (imageLocal == null) {
+      return;
+    }
     final hits = _hitTestMarkers(
       point: imageLocal,
       size: imageSize,
@@ -825,6 +902,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
+  void _handleFreeDrawPointerStartFromGlobal(
+    Offset globalPosition,
+    int pageNumber,
+    Size pageSize,
+    Rect destRect,
+  ) {
+    final tapContext = _pdfTapRegionKeyForPage(pageNumber).currentContext;
+    final tapInfo = _resolveTapPosition(tapContext, globalPosition);
+    if (tapInfo == null) {
+      return;
+    }
+    final resolvedDestRect =
+        destRect.isEmpty ? Offset.zero & tapInfo.size : destRect;
+    if (!resolvedDestRect.contains(tapInfo.localPosition)) {
+      return;
+    }
+    final pageLocal = _mapPdfViewportPointToPageLocal(
+      viewportLocal: tapInfo.localPosition - resolvedDestRect.topLeft,
+      pageIndex: pageNumber,
+      viewportSize: resolvedDestRect.size,
+      childSize: pageSize,
+    );
+    if (pageLocal == null) {
+      return;
+    }
+    _handleFreeDrawPointerStart(pageLocal, pageNumber, pageSize);
+  }
+
   void _handleFreeDrawPointerUpdate(
     Offset localPosition,
     int pageNumber,
@@ -862,6 +967,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _debugLastPageLocal = localPosition;
       inProgress.add(normalizedPoint);
     });
+  }
+
+  void _handleFreeDrawPointerUpdateFromGlobal(
+    Offset globalPosition,
+    int pageNumber,
+    Size pageSize,
+    Rect destRect,
+  ) {
+    final tapContext = _pdfTapRegionKeyForPage(pageNumber).currentContext;
+    final tapInfo = _resolveTapPosition(tapContext, globalPosition);
+    if (tapInfo == null) {
+      return;
+    }
+    final resolvedDestRect =
+        destRect.isEmpty ? Offset.zero & tapInfo.size : destRect;
+    if (!resolvedDestRect.contains(tapInfo.localPosition)) {
+      return;
+    }
+    final pageLocal = _mapPdfViewportPointToPageLocal(
+      viewportLocal: tapInfo.localPosition - resolvedDestRect.topLeft,
+      pageIndex: pageNumber,
+      viewportSize: resolvedDestRect.size,
+      childSize: pageSize,
+    );
+    if (pageLocal == null) {
+      return;
+    }
+    _handleFreeDrawPointerUpdate(pageLocal, pageNumber, pageSize);
   }
 
   void _handleFreeDrawPointerEnd(int pageNumber) {
@@ -1232,8 +1365,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (!resolvedDestRect.contains(localPosition)) {
         return;
       }
-      final imageLocal = localPosition - resolvedDestRect.topLeft;
-      final imageSize = resolvedDestRect.size;
+      final destLocal = localPosition - resolvedDestRect.topLeft;
+      final imageSize = _pdfPageSizes[pageIndex] ?? resolvedDestRect.size;
+      final imageLocal = _mapPdfViewportPointToPageLocal(
+        viewportLocal: destLocal,
+        pageIndex: pageIndex,
+        viewportSize: resolvedDestRect.size,
+        childSize: imageSize,
+      );
+      if (imageLocal == null) {
+        return;
+      }
       final normalized = toNormalized(imageLocal, imageSize);
       nextX = normalized.dx;
       nextY = normalized.dy;
@@ -1305,12 +1447,26 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         nextTapInfo.localPosition,
         resolvedDestRect,
       );
-      final imagePrev = clampedPrev - resolvedDestRect.topLeft;
-      final imageNext = clampedNext - resolvedDestRect.topLeft;
+      final imageSize = _pdfPageSizes[pageIndex] ?? resolvedDestRect.size;
+      final imagePrev = _mapPdfViewportPointToPageLocal(
+        viewportLocal: clampedPrev - resolvedDestRect.topLeft,
+        pageIndex: pageIndex,
+        viewportSize: resolvedDestRect.size,
+        childSize: imageSize,
+      );
+      final imageNext = _mapPdfViewportPointToPageLocal(
+        viewportLocal: clampedNext - resolvedDestRect.topLeft,
+        pageIndex: pageIndex,
+        viewportSize: resolvedDestRect.size,
+        childSize: imageSize,
+      );
+      if (imagePrev == null || imageNext == null) {
+        return;
+      }
       final deltaImage = imageNext - imagePrev;
       deltaNormalized = Offset(
-        deltaImage.dx / resolvedDestRect.width,
-        deltaImage.dy / resolvedDestRect.height,
+        deltaImage.dx / imageSize.width,
+        deltaImage.dy / imageSize.height,
       );
     }
     final nextX =

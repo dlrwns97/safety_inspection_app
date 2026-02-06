@@ -279,19 +279,19 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           (SingleFingerPanRecognizer recognizer) {
                             recognizer
                               ..onStart = (pointerDetails) {
-                                final local = pointerDetails.localPosition;
-                                _handleFreeDrawPointerStart(
-                                  local,
+                                _handleFreeDrawPointerStartFromGlobal(
+                                  pointerDetails.globalPosition,
                                   pageNumber,
                                   pageSize,
+                                  Offset.zero & pageSize,
                                 );
                               }
                               ..onUpdate = (pointerDetails) {
-                                final local = pointerDetails.localPosition;
-                                _handleFreeDrawPointerUpdate(
-                                  local,
+                                _handleFreeDrawPointerUpdateFromGlobal(
+                                  pointerDetails.globalPosition,
                                   pageNumber,
                                   pageSize,
+                                  Offset.zero & pageSize,
                                 );
                               }
                               ..onEnd = () {
