@@ -323,6 +323,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
+                      // Keep pointer counting across the full overlay so
+                      // two-finger detection still works outside destRect.
                       Positioned.fill(
                         child: Listener(
                           behavior: HitTestBehavior.translucent,
