@@ -797,6 +797,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
+  Offset _toPdfContentPoint({
+    required int pageNumber,
+    required Offset viewLocalPosition,
+    required Size contentSize,
+  }) {
+    final controller = _photoControllerForPage(pageNumber);
+    final value = controller.value;
+
+    final double scale = value.scale ?? 1.0;
+    final Offset position = value.position;
+    final Offset point = (viewLocalPosition - position) / scale;
+
+    return Offset(
+      point.dx.clamp(0.0, contentSize.width),
+      point.dy.clamp(0.0, contentSize.height),
+    );
+  }
+
   void _handleFreeDrawPointerStart(Offset localPosition, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
       return;

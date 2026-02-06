@@ -286,14 +286,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       (SingleFingerPanRecognizer recognizer) {
                                         recognizer
                                           ..onStart = (localPosition) {
+                                            final contentPoint =
+                                                _toPdfContentPoint(
+                                                  pageNumber: pageNumber,
+                                                  viewLocalPosition:
+                                                      localPosition,
+                                                  contentSize: destRect.size,
+                                                );
                                             _handleFreeDrawPointerStart(
-                                              localPosition,
+                                              contentPoint,
                                               pageNumber,
                                             );
                                           }
                                           ..onUpdate = (localPosition) {
+                                            final contentPoint =
+                                                _toPdfContentPoint(
+                                                  pageNumber: pageNumber,
+                                                  viewLocalPosition:
+                                                      localPosition,
+                                                  contentSize: destRect.size,
+                                                );
                                             _handleFreeDrawPointerUpdate(
-                                              localPosition,
+                                              contentPoint,
                                               pageNumber,
                                             );
                                           }
