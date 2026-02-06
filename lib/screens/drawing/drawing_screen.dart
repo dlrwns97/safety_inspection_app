@@ -105,6 +105,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Set<int> _activePointerIds = <int>{};
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
+  final Set<int> _migratedFreeDrawPages = <int>{};
   List<Offset>? _inProgress;
   int? _inProgressPage;
   bool _canUndoDrawing = false;
