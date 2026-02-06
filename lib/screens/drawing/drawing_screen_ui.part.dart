@@ -275,25 +275,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           (SingleFingerPanRecognizer recognizer) {
                             recognizer
                               ..onStart = (pointerDetails) {
-                                final normalizedPoint = _pdfGlobalToPageNormalized(
-                                  globalPosition: pointerDetails.globalPosition,
-                                  pageNumber: pageNumber,
+                                final local = pointerDetails.localPosition;
+                                final normalizedPoint = _pageLocalToNormalized(
+                                  localPosition: local,
                                   pageSize: pageSize,
                                 );
                                 _handleFreeDrawPointerStart(
                                   normalizedPoint,
                                   pageNumber,
+                                  pageSize,
                                 );
                               }
                               ..onUpdate = (pointerDetails) {
-                                final normalizedPoint = _pdfGlobalToPageNormalized(
-                                  globalPosition: pointerDetails.globalPosition,
-                                  pageNumber: pageNumber,
+                                final local = pointerDetails.localPosition;
+                                final normalizedPoint = _pageLocalToNormalized(
+                                  localPosition: local,
                                   pageSize: pageSize,
                                 );
                                 _handleFreeDrawPointerUpdate(
                                   normalizedPoint,
                                   pageNumber,
+                                  pageSize,
                                 );
                               }
                               ..onEnd = () {
