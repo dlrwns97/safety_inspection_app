@@ -4,12 +4,12 @@ class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
     required this.strokes,
     required this.inProgress,
-    required this.baseScale,
+    required this.destSize,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
-  final double baseScale;
+  final Size destSize;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -20,28 +20,34 @@ class TempPolylinePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
-    canvas.save();
-    canvas.scale(baseScale);
     for (final stroke in strokes) {
       _drawPolyline(canvas, stroke, paint);
     }
     if (inProgress != null) {
       _drawPolyline(canvas, inProgress!, paint);
     }
-    canvas.restore();
   }
 
   void _drawPolyline(Canvas canvas, List<Offset> points, Paint paint) {
-    if (points.isEmpty) {
+    if (points.isEmpty || destSize.width <= 0 || destSize.height <= 0) {
       return;
     }
+
+    Offset denormalize(Offset point) => Offset(
+      point.dx * destSize.width,
+      point.dy * destSize.height,
+    );
+
     if (points.length == 1) {
-      canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
+      canvas.drawCircle(denormalize(points.first), paint.strokeWidth / 2, paint);
       return;
     }
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
+
+    final first = denormalize(points.first);
+    final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
+      final point = denormalize(points[i]);
+      path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
   }
@@ -50,6 +56,6 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
-        oldDelegate.baseScale != baseScale;
+        oldDelegate.destSize != destSize;
   }
 }

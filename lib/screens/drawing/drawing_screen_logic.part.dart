@@ -800,7 +800,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _migrateLegacyFreeDrawStrokesIfNeeded({
     required int pageNumber,
-    required Size pageSize,
     required Rect? oldDestRect,
   }) {
     if (_migratedFreeDrawPages.contains(pageNumber)) {
@@ -811,12 +810,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _migratedFreeDrawPages.add(pageNumber);
       return;
     }
-    if (oldDestRect == null || oldDestRect.width <= 0) {
-      return;
-    }
-
-    final oldBaseScale = oldDestRect.width / pageSize.width;
-    if (oldBaseScale <= 0) {
+    if (oldDestRect == null || oldDestRect.width <= 0 || oldDestRect.height <= 0) {
       return;
     }
 
@@ -825,8 +819,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           (stroke) => stroke
               .map(
                 (point) => Offset(
-                  point.dx / oldBaseScale,
-                  point.dy / oldBaseScale,
+                  (point.dx / oldDestRect.width).clamp(0.0, 1.0),
+                  (point.dy / oldDestRect.height).clamp(0.0, 1.0),
                 ),
               )
               .toList(growable: false),
@@ -835,27 +829,31 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _migratedFreeDrawPages.add(pageNumber);
   }
 
-  Offset _viewToPagePoint({
+  Offset _overlayToNormalizedPoint({
     required int pageNumber,
-    required Offset viewLocal,
-    required Size pageSize,
-    required Size destSize,
+    required Offset overlayLocal,
+    required Rect destRect,
   }) {
+    if (destRect.isEmpty || destRect.width <= 0 || destRect.height <= 0) {
+      return Offset.zero;
+    }
+
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
 
     final double z = value.scale ?? 1.0;
     final Offset p = value.position;
-    final double baseScale = destSize.width / pageSize.width;
+    final double safeScale = z <= 0 ? 1.0 : z;
+    final Size destSize = destRect.size;
+    final Offset localInDest = overlayLocal - destRect.topLeft;
 
     final Offset center = destSize.center(Offset.zero);
     final Offset contentInDest =
-        ((viewLocal - center) - p) / z + center;
-    final Offset pagePoint = contentInDest / baseScale;
+        ((localInDest - center) - p) / safeScale + center;
 
     return Offset(
-      pagePoint.dx.clamp(0.0, pageSize.width),
-      pagePoint.dy.clamp(0.0, pageSize.height),
+      (contentInDest.dx / destSize.width).clamp(0.0, 1.0),
+      (contentInDest.dy / destSize.height).clamp(0.0, 1.0),
     );
   }
 
