@@ -144,10 +144,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   PdfDrawingView _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
-    final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePdfPanGestures = !_isFreeDrawMode || isTwoFinger;
-    final bool enablePdfScaleGestures = true;
-    final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
+    final bool enablePdfPanGestures = !_isFreeDrawMode;
+    final bool enablePdfScaleGestures = !_isFreeDrawMode;
+    final bool disablePageSwipe = _isFreeDrawMode;
     return PdfDrawingView(
       pdfController: _pdfController,
       pdfLoadError: _pdfLoadError,
@@ -210,8 +209,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required Key pageContentKey,
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
-    final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePageLocalDrawing = _isFreeDrawMode && !isTwoFinger;
+    final bool enablePageLocalDrawing = _isFreeDrawMode;
     final Size overlaySize = renderSize;
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
@@ -269,50 +267,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Positioned.fill(
                   child: IgnorePointer(
                     ignoring: !enablePageLocalDrawing,
-                    child: RawGestureDetector(
+                    child: Listener(
                       behavior: HitTestBehavior.opaque,
-                      gestures: <Type, GestureRecognizerFactory>{
-                        SingleFingerPanRecognizer:
-                            GestureRecognizerFactoryWithHandlers<
-                              SingleFingerPanRecognizer
-                            >(
-                              SingleFingerPanRecognizer.new,
-                              (SingleFingerPanRecognizer recognizer) {
-                                recognizer
-                                  ..onStart = (pointerDetails) {
-                                    final p = pointerDetails.localPosition;
-                                    final normalized =
-                                        _overlayToNormalizedPoint(
-                                          overlayLocal: p,
-                                          destSize: overlaySize,
-                                        );
-                                    _debugLastPageLocal = p;
-                                    _handleFreeDrawPointerStart(
-                                      normalized,
-                                      pageNumber,
-                                    );
-                                  }
-                                  ..onUpdate = (pointerDetails) {
-                                    final p = pointerDetails.localPosition;
-                                    final normalized =
-                                        _overlayToNormalizedPoint(
-                                          overlayLocal: p,
-                                          destSize: overlaySize,
-                                        );
-                                    _debugLastPageLocal = p;
-                                    _handleFreeDrawPointerUpdate(
-                                      normalized,
-                                      pageNumber,
-                                      overlaySize,
-                                    );
-                                  }
-                                  ..onEnd = () {
-                                    _handleFreeDrawPointerEnd(pageNumber);
-                                  }
-                                  ..onCancel = _handleFreeDrawPanCancel;
-                              },
-                            ),
+                      onPointerDown: (event) {
+                        final p = event.localPosition;
+                        final normalized = _overlayToNormalizedPoint(
+                          overlayLocal: p,
+                          destSize: overlaySize,
+                        );
+                        _debugLastPageLocal = p;
+                        _handleFreeDrawPointerStart(normalized, pageNumber);
                       },
+                      onPointerMove: (event) {
+                        final p = event.localPosition;
+                        final normalized = _overlayToNormalizedPoint(
+                          overlayLocal: p,
+                          destSize: overlaySize,
+                        );
+                        _debugLastPageLocal = p;
+                        _handleFreeDrawPointerUpdate(
+                          normalized,
+                          pageNumber,
+                          overlaySize,
+                        );
+                      },
+                      onPointerUp:
+                          (_) => _handleFreeDrawPointerEnd(pageNumber),
+                      onPointerCancel: (_) => _handleFreeDrawPanCancel(),
                       child: const SizedBox.expand(),
                     ),
                   ),
