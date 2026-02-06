@@ -23,10 +23,10 @@ class TempPolylinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     for (final stroke in strokes) {
-      _drawPolyline(canvas, stroke, paint);
+      _drawPolyline(canvas, size, stroke, paint);
     }
     if (inProgress != null) {
-      _drawPolyline(canvas, inProgress!, paint);
+      _drawPolyline(canvas, size, inProgress!, paint);
     }
     if (debugLastPageLocal != null) {
       final debugPaint = Paint()
@@ -36,23 +36,23 @@ class TempPolylinePainter extends CustomPainter {
     }
   }
 
-  void _drawPolyline(Canvas canvas, List<Offset> points, Paint paint) {
-    if (points.isEmpty || pageSize.width <= 0 || pageSize.height <= 0) {
+  void _drawPolyline(Canvas canvas, Size size, List<Offset> points, Paint paint) {
+    if (points.isEmpty || size.width <= 0 || size.height <= 0) {
       return;
     }
 
-    Offset toPagePoint(Offset point) =>
-        Offset(point.dx * pageSize.width, point.dy * pageSize.height);
+    Offset toCanvas(Offset point) =>
+        Offset(point.dx * size.width, point.dy * size.height);
 
     if (points.length == 1) {
-      canvas.drawCircle(toPagePoint(points.first), paint.strokeWidth / 2, paint);
+      canvas.drawCircle(toCanvas(points.first), paint.strokeWidth / 2, paint);
       return;
     }
 
-    final first = toPagePoint(points.first);
+    final first = toCanvas(points.first);
     final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = toPagePoint(points[i]);
+      final point = toCanvas(points[i]);
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);

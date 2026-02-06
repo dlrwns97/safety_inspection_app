@@ -236,104 +236,111 @@ extension _DrawingScreenUi on _DrawingScreenState {
       child: SizedBox(
         width: pageSize.width,
         height: pageSize.height,
-        child: Stack(
-          children: [
-            KeyedSubtree(
-              key: pageContentKey,
-              child: _buildMarkerLayer(
-                size: pageSize,
-                pageIndex: pageNumber,
-                child: SizedBox.expand(
-                  child: Image(
-                    image: imageProvider,
-                    fit: BoxFit.fill,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final renderedSize = constraints.biggest;
+            return Stack(
+              children: [
+                KeyedSubtree(
+                  key: pageContentKey,
+                  child: _buildMarkerLayer(
+                    size: renderedSize,
+                    pageIndex: pageNumber,
+                    child: SizedBox.expand(
+                      child: Image(
+                        image: imageProvider,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Positioned.fill(
-              child: CustomPaint(
-                painter: TempPolylinePainter(
-                  strokes: _strokesByPage[pageNumber] ?? const <List<Offset>>[],
-                  inProgress: _inProgressPage == pageNumber ? _inProgress : null,
-                  pageSize: pageSize,
-                  debugLastPageLocal:
-                      kDebugMode && _inProgressPage == pageNumber
-                          ? _debugLastPageLocal
-                          : null,
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: TempPolylinePainter(
+                      strokes:
+                          _strokesByPage[pageNumber] ?? const <List<Offset>>[],
+                      inProgress:
+                          _inProgressPage == pageNumber ? _inProgress : null,
+                      pageSize: renderedSize,
+                      debugLastPageLocal:
+                          kDebugMode && _inProgressPage == pageNumber
+                              ? _debugLastPageLocal
+                              : null,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: !enablePageLocalDrawing,
-                child: RawGestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  gestures: <Type, GestureRecognizerFactory>{
-                    SingleFingerPanRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          SingleFingerPanRecognizer
-                        >(
-                          SingleFingerPanRecognizer.new,
-                          (SingleFingerPanRecognizer recognizer) {
-                            recognizer
-                              ..onStart = (pointerDetails) {
-                                final p = pointerDetails.localPosition;
-                                if (p.dx < 0 ||
-                                    p.dx > pageSize.width ||
-                                    p.dy < 0 ||
-                                    p.dy > pageSize.height) {
-                                  return;
-                                }
-                                _debugLastPageLocal = p;
-                                final norm = Offset(
-                                  p.dx / pageSize.width,
-                                  p.dy / pageSize.height,
-                                );
-                                _handleFreeDrawPointerStart(
-                                  norm,
-                                  pageNumber,
-                                );
-                              }
-                              ..onUpdate = (pointerDetails) {
-                                final p = pointerDetails.localPosition;
-                                if (p.dx < 0 ||
-                                    p.dx > pageSize.width ||
-                                    p.dy < 0 ||
-                                    p.dy > pageSize.height) {
-                                  return;
-                                }
-                                _debugLastPageLocal = p;
-                                final norm = Offset(
-                                  p.dx / pageSize.width,
-                                  p.dy / pageSize.height,
-                                );
-                                _handleFreeDrawPointerUpdate(
-                                  norm,
-                                  pageNumber,
-                                );
-                              }
-                              ..onEnd = () {
-                                _handleFreeDrawPointerEnd(pageNumber);
-                              }
-                              ..onCancel = _handleFreeDrawPanCancel;
-                          },
-                        ),
-                  },
-                  child: const SizedBox.expand(),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: !enablePageLocalDrawing,
+                    child: RawGestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      gestures: <Type, GestureRecognizerFactory>{
+                        SingleFingerPanRecognizer:
+                            GestureRecognizerFactoryWithHandlers<
+                              SingleFingerPanRecognizer
+                            >(
+                              SingleFingerPanRecognizer.new,
+                              (SingleFingerPanRecognizer recognizer) {
+                                recognizer
+                                  ..onStart = (pointerDetails) {
+                                    final p = pointerDetails.localPosition;
+                                    if (p.dx < 0 ||
+                                        p.dx > renderedSize.width ||
+                                        p.dy < 0 ||
+                                        p.dy > renderedSize.height) {
+                                      return;
+                                    }
+                                    _debugLastPageLocal = p;
+                                    final norm = Offset(
+                                      p.dx / renderedSize.width,
+                                      p.dy / renderedSize.height,
+                                    );
+                                    _handleFreeDrawPointerStart(
+                                      norm,
+                                      pageNumber,
+                                    );
+                                  }
+                                  ..onUpdate = (pointerDetails) {
+                                    final p = pointerDetails.localPosition;
+                                    if (p.dx < 0 ||
+                                        p.dx > renderedSize.width ||
+                                        p.dy < 0 ||
+                                        p.dy > renderedSize.height) {
+                                      return;
+                                    }
+                                    _debugLastPageLocal = p;
+                                    final norm = Offset(
+                                      p.dx / renderedSize.width,
+                                      p.dy / renderedSize.height,
+                                    );
+                                    _handleFreeDrawPointerUpdate(
+                                      norm,
+                                      pageNumber,
+                                    );
+                                  }
+                                  ..onEnd = () {
+                                    _handleFreeDrawPointerEnd(pageNumber);
+                                  }
+                                  ..onCancel = _handleFreeDrawPanCancel;
+                              },
+                            ),
+                      },
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Positioned.fill(
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _handleOverlayPointerDown,
-                onPointerUp: _handleOverlayPointerUpOrCancel,
-                onPointerCancel: _handleOverlayPointerUpOrCancel,
-              ),
-            ),
-          ],
+                Positioned.fill(
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: _handleOverlayPointerDown,
+                    onPointerUp: _handleOverlayPointerUpOrCancel,
+                    onPointerCancel: _handleOverlayPointerUpOrCancel,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
