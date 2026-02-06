@@ -286,28 +286,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       (SingleFingerPanRecognizer recognizer) {
                                         recognizer
                                           ..onStart = (localPosition) {
-                                            final contentPoint =
-                                                _toPdfContentPoint(
+                                            final pagePoint = _viewToPagePoint(
                                                   pageNumber: pageNumber,
                                                   viewLocalPosition:
                                                       localPosition,
-                                                  contentSize: destRect.size,
+                                                  pageSize: pageSize,
+                                                  destSize: destRect.size,
                                                 );
                                             _handleFreeDrawPointerStart(
-                                              contentPoint,
+                                              pagePoint,
                                               pageNumber,
                                             );
                                           }
                                           ..onUpdate = (localPosition) {
-                                            final contentPoint =
-                                                _toPdfContentPoint(
+                                            final pagePoint = _viewToPagePoint(
                                                   pageNumber: pageNumber,
                                                   viewLocalPosition:
                                                       localPosition,
-                                                  contentSize: destRect.size,
+                                                  pageSize: pageSize,
+                                                  destSize: destRect.size,
                                                 );
                                             _handleFreeDrawPointerUpdate(
-                                              contentPoint,
+                                              pagePoint,
                                               pageNumber,
                                             );
                                           }
@@ -330,6 +330,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       _inProgressPage == pageNumber
                                       ? _inProgress
                                       : null,
+                                  baseScale:
+                                      destRect.size.width / pageSize.width,
                                 ),
                                 child: const SizedBox.expand(),
                               ),

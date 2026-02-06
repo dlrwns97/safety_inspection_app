@@ -4,10 +4,12 @@ class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
     required this.strokes,
     required this.inProgress,
+    required this.baseScale,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset>? inProgress;
+  final double baseScale;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -18,12 +20,15 @@ class TempPolylinePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
+    canvas.save();
+    canvas.scale(baseScale);
     for (final stroke in strokes) {
       _drawPolyline(canvas, stroke, paint);
     }
     if (inProgress != null) {
       _drawPolyline(canvas, inProgress!, paint);
     }
+    canvas.restore();
   }
 
   void _drawPolyline(Canvas canvas, List<Offset> points, Paint paint) {
@@ -44,6 +49,7 @@ class TempPolylinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
-        oldDelegate.inProgress != inProgress;
+        oldDelegate.inProgress != inProgress ||
+        oldDelegate.baseScale != baseScale;
   }
 }

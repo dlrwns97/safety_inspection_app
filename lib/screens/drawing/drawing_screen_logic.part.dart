@@ -797,25 +797,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  Offset _toPdfContentPoint({
+  Offset _viewToPagePoint({
     required int pageNumber,
     required Offset viewLocalPosition,
-    required Size contentSize,
+    required Size pageSize,
+    required Size destSize,
   }) {
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
 
-    final double scale = value.scale ?? 1.0;
-    final Offset position = value.position;
-    final Offset viewportCenter = contentSize.center(Offset.zero);
-    final Offset contentCenter = viewportCenter;
-    final Offset contentPoint =
-        ((viewLocalPosition - viewportCenter) - position) / scale +
-        contentCenter;
+    final double z = value.scale ?? 1.0;
+    final Offset p = value.position;
+    final double baseScale = destSize.width / pageSize.width;
+
+    final Offset center = destSize.center(Offset.zero);
+    final Offset contentInDest =
+        ((viewLocalPosition - center) - p) / z + center;
+    final Offset pagePoint = contentInDest / baseScale;
 
     return Offset(
-      contentPoint.dx.clamp(0.0, contentSize.width),
-      contentPoint.dy.clamp(0.0, contentSize.height),
+      pagePoint.dx.clamp(0.0, pageSize.width),
+      pagePoint.dy.clamp(0.0, pageSize.height),
     );
   }
 
