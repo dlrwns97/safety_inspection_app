@@ -98,8 +98,7 @@ class PdfDrawingView extends StatelessWidget {
                 pageNumber,
                 document.id,
               );
-              final fallbackSize =
-                  pageSizes[pageNumber] ?? DrawingCanvasSize;
+              final fallbackSize = DrawingCanvasSize;
               return PhotoViewGalleryPageOptions.customChild(
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController: scaleStateControllerForPage(pageNumber),
@@ -117,7 +116,8 @@ class PdfDrawingView extends StatelessWidget {
                       (data.width ?? 1).toDouble(),
                       (data.height ?? 1).toDouble(),
                     );
-                    final resolvedSize = pageSizes[pageNumber] ?? imageSize;
+                    final resolvedSize =
+                        pageSizes[pageNumber] ?? fallbackSize;
                     if (pageSizes[pageNumber] == null &&
                         pageSizes[pageNumber] != imageSize) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {

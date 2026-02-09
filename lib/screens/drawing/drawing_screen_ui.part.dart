@@ -12,14 +12,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
       pageIndex: pageIndex,
       pageSize: size,
       markerScale: _markerScale,
-      isSelected:
-          (defect) =>
-              _selectedDefectId != null &&
-              defect.id == _selectedDefectId,
+      isSelected: (defect) =>
+          _selectedDefectId != null && defect.id == _selectedDefectId,
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
-      buildMarker:
-          (defect, selected) => DefectMarkerWidget(
+      buildMarker: (defect, selected) => DefectMarkerWidget(
         label: defectDisplayLabel(defect),
         category: defect.category,
         color: defectCategoryConfig(defect.category).color,
@@ -35,14 +32,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
       pageIndex: pageIndex,
       pageSize: size,
       markerScale: _markerScale,
-      isSelected:
-          (marker) =>
-              _selectedEquipmentId != null &&
-              marker.id == _selectedEquipmentId,
+      isSelected: (marker) =>
+          _selectedEquipmentId != null && marker.id == _selectedEquipmentId,
       nx: (marker) => marker.normalizedX,
       ny: (marker) => marker.normalizedY,
-      buildMarker:
-          (marker, selected) => EquipmentMarkerWidget(
+      buildMarker: (marker, selected) => EquipmentMarkerWidget(
         label: equipmentDisplayLabel(marker, _site.equipmentMarkers),
         category: marker.category,
         color: equipmentColor(marker.category),
@@ -93,10 +87,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanStart: _handleMoveOverlayPanStart,
-            onPanUpdate:
-                isPdf
-                    ? _handleMovePdfOverlayPanUpdate
-                    : _handleMoveCanvasOverlayPanUpdate,
+            onPanUpdate: isPdf
+                ? _handleMovePdfOverlayPanUpdate
+                : _handleMoveCanvasOverlayPanUpdate,
             onPanEnd: (_) => _handleMovePanEnd(),
             onPanCancel: _handleMovePanCancel,
           ),
@@ -142,13 +135,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
-  PdfDrawingView _buildPdfViewer() {
+  Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePdfPanGestures =
-        _isFreeDrawMode ? isTwoFinger : true;
-    final bool enablePdfScaleGestures =
-        _isFreeDrawMode ? isTwoFinger : true;
+    final bool enablePdfPanGestures = _isFreeDrawMode ? isTwoFinger : true;
+    final bool enablePdfScaleGestures = _isFreeDrawMode ? isTwoFinger : true;
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -177,20 +168,19 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 required imageProvider,
                 required pageContentKey,
               }) => _buildPdfPageOverlay(
-                    pageSize: pageSize,
-                    renderSize: renderSize,
-                    pageNumber: pageNumber,
-                    imageProvider: imageProvider,
-                    pageContentKey: pageContentKey,
-                  ),
+                pageSize: pageSize,
+                renderSize: renderSize,
+                pageNumber: pageNumber,
+                imageProvider: imageProvider,
+                pageContentKey: pageContentKey,
+              ),
         );
       },
     );
   }
 
   void _ensurePdfFallbackPageSize(BuildContext context) {
-    if (_pdfPageSizes.isNotEmpty ||
-        _pdfPageSizes.containsKey(_currentPage)) {
+    if (_pdfPageSizes.isNotEmpty || _pdfPageSizes.containsKey(_currentPage)) {
       return;
     }
     final mq = MediaQuery.of(context).size;
@@ -218,110 +208,149 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool enablePageLocalDrawing = _isFreeDrawMode;
     final Size overlaySize = renderSize;
+    final FittedSizes fitted = applyBoxFit(
+      BoxFit.contain,
+      pageSize,
+      overlaySize,
+    );
+    final Size destSize = fitted.destination;
+    final double dx = (overlaySize.width - destSize.width) / 2;
+    final double dy = (overlaySize.height - destSize.height) / 2;
+    final Rect destRect = Offset(dx, dy) & destSize;
+    final double scale = pageSize.width == 0
+        ? 0
+        : destSize.width / pageSize.width;
+
+    Offset overlayToPage(Offset p) {
+      if (scale == 0) {
+        return Offset.zero;
+      }
+      return (p - destRect.topLeft) / scale;
+    }
+
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _handlePdfTap(
+      onTapUp: (details) => _handlePdfTapAt(
+        overlayToPage(details.localPosition),
+        pageSize,
+        pageNumber,
+      ),
+      onLongPressStart: (details) => _handlePdfLongPressAt(
+        overlayToPage(details.localPosition),
+        pageSize,
+        pageNumber,
+      ),
+      onMovePanUpdate: (details) => _handleMovePdfPanUpdate(
         details,
         overlaySize,
         pageNumber,
+        context,
+        destRect: destRect,
       ),
-      onLongPressStart: (details) => _handlePdfLongPress(
-        details,
-        overlaySize,
-        pageNumber,
-      ),
-      onMovePanUpdate:
-          (details) => _handleMovePdfPanUpdate(
-            details,
-            overlaySize,
-            pageNumber,
-            context,
-            destRect: Offset.zero & overlaySize,
-          ),
       child: SizedBox.expand(
         child: Stack(
-              children: [
-                KeyedSubtree(
-                  key: pageContentKey,
-                  child: _buildMarkerLayer(
-                    size: overlaySize,
-                    pageIndex: pageNumber,
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: SizedBox(
-                        width: pageSize.width,
-                        height: pageSize.height,
-                        child: Image(
-                          image: imageProvider,
-                          fit: BoxFit.fill,
+          clipBehavior: Clip.none,
+          children: [
+            KeyedSubtree(
+              key: pageContentKey,
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: SizedBox(
+                    width: pageSize.width,
+                    height: pageSize.height,
+                    child: Image(image: imageProvider, fit: BoxFit.fill),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: destRect.left,
+              top: destRect.top,
+              width: destRect.width,
+              height: destRect.height,
+              child: FittedBox(
+                fit: BoxFit.fill,
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: pageSize.width,
+                  height: pageSize.height,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ..._buildMarkerWidgetsForPage(
+                        size: pageSize,
+                        pageIndex: pageNumber,
+                      ),
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: TempPolylinePainter(
+                            strokes:
+                                _strokesByPage[pageNumber] ??
+                                const <List<Offset>>[],
+                            inProgress: _inProgressPage == pageNumber
+                                ? _inProgress
+                                : null,
+                            pageSize: pageSize,
+                            debugLastPageLocal:
+                                kDebugMode && _inProgressPage == pageNumber
+                                ? _debugLastPageLocal
+                                : null,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: TempPolylinePainter(
-                      strokes:
-                          _strokesByPage[pageNumber] ?? const <List<Offset>>[],
-                      inProgress:
-                          _inProgressPage == pageNumber ? _inProgress : null,
-                      pageSize: overlaySize,
-                      debugLastPageLocal:
-                          kDebugMode && _inProgressPage == pageNumber
-                              ? _debugLastPageLocal
-                              : null,
-                    ),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    ignoring:
-                        !enablePageLocalDrawing ||
-                        _activePointerIds.length >= 2,
-                    child: Listener(
-                      behavior: HitTestBehavior.translucent,
-                      onPointerDown: (event) {
-                        final p = event.localPosition;
-                        final normalized = _overlayToNormalizedPoint(
-                          overlayLocal: p,
-                          destSize: overlaySize,
-                        );
-                        _debugLastPageLocal = p;
-                        _handleFreeDrawPointerStart(normalized, pageNumber);
-                      },
-                      onPointerMove: (event) {
-                        final p = event.localPosition;
-                        final normalized = _overlayToNormalizedPoint(
-                          overlayLocal: p,
-                          destSize: overlaySize,
-                        );
-                        _debugLastPageLocal = p;
-                        _handleFreeDrawPointerUpdate(
-                          normalized,
-                          pageNumber,
-                          overlaySize,
-                        );
-                      },
-                      onPointerUp:
-                          (_) => _handleFreeDrawPointerEnd(pageNumber),
-                      onPointerCancel: (_) => _handleFreeDrawPanCancel(),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Listener(
-                    behavior: HitTestBehavior.translucent,
-                    onPointerDown: _handleOverlayPointerDown,
-                    onPointerUp: _handleOverlayPointerUpOrCancel,
-                    onPointerCancel: _handleOverlayPointerUpOrCancel,
-                  ),
-                ),
-              ],
+              ),
             ),
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring:
+                    !enablePageLocalDrawing || _activePointerIds.length >= 2,
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (event) {
+                    final overlayP = event.localPosition;
+                    final pageP = overlayToPage(overlayP);
+                    final normalized = _overlayToNormalizedPoint(
+                      overlayLocal: pageP,
+                      destSize: pageSize,
+                    );
+                    _debugLastPageLocal = pageP;
+                    _handleFreeDrawPointerStart(normalized, pageNumber);
+                  },
+                  onPointerMove: (event) {
+                    final overlayP = event.localPosition;
+                    final pageP = overlayToPage(overlayP);
+                    final normalized = _overlayToNormalizedPoint(
+                      overlayLocal: pageP,
+                      destSize: pageSize,
+                    );
+                    _debugLastPageLocal = pageP;
+                    _handleFreeDrawPointerUpdate(
+                      normalized,
+                      pageNumber,
+                      pageSize,
+                    );
+                  },
+                  onPointerUp: (_) => _handleFreeDrawPointerEnd(pageNumber),
+                  onPointerCancel: (_) => _handleFreeDrawPanCancel(),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleOverlayPointerDown,
+                onPointerUp: _handleOverlayPointerUpOrCancel,
+                onPointerCancel: _handleOverlayPointerUpOrCancel,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -395,8 +424,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     HitTestBehavior behavior = HitTestBehavior.opaque,
     Key? tapRegionKey,
   }) {
-    final GestureTapUpCallback? tapHandler =
-        (_isMoveMode || _isFreeDrawMode) ? null : onTapUp;
+    final GestureTapUpCallback? tapHandler = (_isMoveMode || _isFreeDrawMode)
+        ? null
+        : onTapUp;
     final GestureLongPressStartCallback? longPressHandler =
         (_isMoveMode || _isFreeDrawMode) ? null : onLongPressStart;
     final bool canMove = _isMoveMode && _hasMoveTarget;

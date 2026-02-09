@@ -69,9 +69,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (destSize.isEmpty) {
       return null;
     }
-    if (!(Offset.zero & destSize).contains(overlayLocal)) {
-      return null;
-    }
     return Offset(
       overlayLocal.dx / destSize.width,
       overlayLocal.dy / destSize.height,
@@ -96,8 +93,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _initializeDefectTabs() {
     final tabs = <DefectCategory>[];
     for (final name in _site.visibleDefectCategoryNames) {
-      final matches =
-          DefectCategory.values.where((category) => category.name == name);
+      final matches = DefectCategory.values.where(
+        (category) => category.name == name,
+      );
       if (matches.isNotEmpty) {
         tabs.add(matches.first);
       }
@@ -143,8 +141,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (width == null || height == null) {
         continue;
       }
-      if (width < _kMinValidPdfPageSide ||
-          height < _kMinValidPdfPageSide) {
+      if (width < _kMinValidPdfPageSide || height < _kMinValidPdfPageSide) {
         continue;
       }
       restored[page] = Size(width, height);
@@ -170,10 +167,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       map['$page'] = {'w': size.width, 'h': size.height};
     });
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _pdfPageSizeCacheKeyForSite(_site),
-      jsonEncode(map),
-    );
+    await prefs.setString(_pdfPageSizeCacheKeyForSite(_site), jsonEncode(map));
   }
 
   Future<void> _loadPdfController() async {
@@ -241,6 +235,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _selectedEquipmentId = null;
       _selectedMarkerScenePosition = null;
     }
+
     if (inSetState) {
       _safeSetState(clearSelection);
     } else {
@@ -541,18 +536,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
-  Future<void> _handlePdfTap(
-    TapUpDetails details,
+  Future<void> _handlePdfTapAt(
+    Offset pageLocal,
     Size pageSize,
     int pageIndex,
   ) async {
     if (_isMoveMode) {
       return;
     }
-    final localPosition = details.localPosition;
-    if (!(Offset.zero & pageSize).contains(localPosition)) {
-      return;
-    }
+    final localPosition = pageLocal;
     final imageSize = pageSize;
     final imageLocal = localPosition;
     final hitResult = _hitTestMarker(
@@ -564,7 +556,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final decision = _controller.handlePdfTapDecision(
       isDetailDialogOpen: _isDetailDialogOpen,
       tapCanceled: _tapCanceled,
-      isWithinCanvas: true, // PDF taps should always be treated as within canvas.
+      isWithinCanvas:
+          true, // PDF taps should always be treated as within canvas.
       hasHitResult: !isPlaceMode && hitResult != null,
       mode: _mode,
       hasActiveDefectCategory: _activeCategory != null,
@@ -600,8 +593,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     await _handleOverlapSelection(hits);
   }
 
-  Future<void> _handlePdfLongPress(
-    LongPressStartDetails details,
+  Future<void> _handlePdfLongPressAt(
+    Offset pageLocal,
     Size pageSize,
     int pageIndex,
   ) async {
@@ -609,10 +602,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _tapCanceled = true;
-    final localPosition = details.localPosition;
-    if (!(Offset.zero & pageSize).contains(localPosition)) {
-      return;
-    }
+    final localPosition = pageLocal;
     final imageSize = pageSize;
     final imageLocal = localPosition;
     final hits = _hitTestMarkers(
@@ -655,9 +645,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         .toList();
     final hasCreatedIndex = items.every((item) => item.createdIndex != null);
     if (hasCreatedIndex) {
-      items.sort(
-        (a, b) => a.createdIndex!.compareTo(b.createdIndex!),
-      );
+      items.sort((a, b) => a.createdIndex!.compareTo(b.createdIndex!));
     } else {
       items.sort((a, b) => a.index.compareTo(b.index));
     }
@@ -682,7 +670,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           child: ListView.separated(
             shrinkWrap: true,
             itemCount: orderedHits.length,
-            separatorBuilder: (_, __) => const Divider(height: 1), 
+            separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final hit = orderedHits[index];
               return ListTile(
@@ -727,8 +715,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       onSelectHit: _selectMarker,
       onClearSelection: _clearSelectionAndPopup,
       onShowDefectCategoryHint: _showSelectDefectCategoryHint,
-      showDefectDetailsDialog:
-          (_, defectId) => _showDefectDetailsDialog(defectId: defectId),
+      showDefectDetailsDialog: (_, defectId) =>
+          _showDefectDetailsDialog(defectId: defectId),
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
           (
@@ -867,12 +855,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (normalized == null) {
       return;
     }
-    if (normalized.dx < 0 ||
-        normalized.dx > 1 ||
-        normalized.dy < 0 ||
-        normalized.dy > 1) {
-      return;
-    }
     _safeSetState(() {
       _inProgressPage = pageNumber;
       _inProgress = [normalized];
@@ -893,12 +875,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (normalized == null) {
-      return;
-    }
-    if (normalized.dx < 0 ||
-        normalized.dx > 1 ||
-        normalized.dy < 0 ||
-        normalized.dy > 1) {
       return;
     }
     const double thresholdPx = 2.5;
@@ -923,9 +899,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
-      _strokesByPage.putIfAbsent(pageNumber, () => <List<Offset>>[]).add(
-        List<Offset>.from(inProgress),
-      );
+      _strokesByPage
+          .putIfAbsent(pageNumber, () => <List<Offset>>[])
+          .add(List<Offset>.from(inProgress));
       _debugLastPageLocal = null;
       _inProgress = null;
       _inProgressPage = null;
@@ -983,9 +959,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
       _didShowFreeDrawGuide = true;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('자유 그리기: 한 손가락으로 그리기, 두 손가락으로 확대/이동'),
-        ),
+        const SnackBar(content: Text('자유 그리기: 한 손가락으로 그리기, 두 손가락으로 확대/이동')),
       );
     }
   }
@@ -1090,10 +1064,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return null;
   }
 
-  bool _selectionMatchesMoveTarget(
-    Defect? defect,
-    EquipmentMarker? equipment,
-  ) {
+  bool _selectionMatchesMoveTarget(Defect? defect, EquipmentMarker? equipment) {
     final targetDefectId = _moveTargetDefectId;
     if (targetDefectId != null) {
       return defect != null && defect.id == targetDefectId;
@@ -1148,10 +1119,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (currentX == null || currentY == null) {
       return;
     }
-    final nextX =
-        (currentX + details.delta.dx / pageSize.width).clamp(0.0, 1.0);
-    final nextY =
-        (currentY + details.delta.dy / pageSize.height).clamp(0.0, 1.0);
+    final nextX = (currentX + details.delta.dx / pageSize.width).clamp(
+      0.0,
+      1.0,
+    );
+    final nextY = (currentY + details.delta.dy / pageSize.height).clamp(
+      0.0,
+      1.0,
+    );
     _safeSetState(() {
       _movePreviewNormalizedX = nextX.toDouble();
       _movePreviewNormalizedY = nextY.toDouble();
@@ -1272,10 +1247,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       nextY = normalized.dy;
     } else {
       final resolvedOverlaySize = overlaySize ?? tapInfo.size;
-      final resolvedDestRect =
-          destRect == null || destRect.isEmpty
-              ? Offset.zero & resolvedOverlaySize
-              : destRect;
+      final resolvedDestRect = destRect == null || destRect.isEmpty
+          ? Offset.zero & resolvedOverlaySize
+          : destRect;
       if (!resolvedDestRect.contains(localPosition)) {
         return;
       }
@@ -1346,10 +1320,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       );
     } else {
       final resolvedOverlaySize = overlaySize ?? prevTapInfo.size;
-      final resolvedDestRect =
-          destRect == null || destRect.isEmpty
-              ? Offset.zero & resolvedOverlaySize
-              : destRect;
+      final resolvedDestRect = destRect == null || destRect.isEmpty
+          ? Offset.zero & resolvedOverlaySize
+          : destRect;
       if (resolvedDestRect.isEmpty) {
         return;
       }
@@ -1383,10 +1356,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         deltaImage.dy / imageSize.height,
       );
     }
-    final nextX =
-        (currentX + deltaNormalized.dx).clamp(0.0, 1.0);
-    final nextY =
-        (currentY + deltaNormalized.dy).clamp(0.0, 1.0);
+    final nextX = (currentX + deltaNormalized.dx).clamp(0.0, 1.0);
+    final nextY = (currentY + deltaNormalized.dy).clamp(0.0, 1.0);
     _safeSetState(() {
       _movePreviewNormalizedX = nextX.toDouble();
       _movePreviewNormalizedY = nextY.toDouble();
@@ -1443,13 +1414,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         normalizedY: previewY,
         details: targetDefect.details,
       );
-      final updatedDefects =
-          _site.defects
-              .map(
-                (defect) =>
-                    defect.id == updatedDefect.id ? updatedDefect : defect,
-              )
-              .toList();
+      final updatedDefects = _site.defects
+          .map(
+            (defect) => defect.id == updatedDefect.id ? updatedDefect : defect,
+          )
+          .toList();
       final updatedSite = _site.copyWith(defects: updatedDefects);
       final pageSize = _pageSizeForMoveTarget(updatedDefect.pageIndex);
       await _applyUpdatedSite(
@@ -1460,9 +1429,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           _selectedMarkerScenePosition = pageSize == null
               ? null
               : Offset(
-                updatedDefect.normalizedX * pageSize.width,
-                updatedDefect.normalizedY * pageSize.height,
-              );
+                  updatedDefect.normalizedX * pageSize.width,
+                  updatedDefect.normalizedY * pageSize.height,
+                );
         },
       );
       _exitMoveMode();
@@ -1474,13 +1443,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         normalizedX: previewX,
         normalizedY: previewY,
       );
-      final updatedMarkers =
-          _site.equipmentMarkers
-              .map(
-                (marker) =>
-                    marker.id == updatedMarker.id ? updatedMarker : marker,
-              )
-              .toList();
+      final updatedMarkers = _site.equipmentMarkers
+          .map(
+            (marker) => marker.id == updatedMarker.id ? updatedMarker : marker,
+          )
+          .toList();
       final updatedSite = _site.copyWith(equipmentMarkers: updatedMarkers);
       final pageSize = _pageSizeForMoveTarget(updatedMarker.pageIndex);
       await _applyUpdatedSite(
@@ -1491,9 +1458,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           _selectedMarkerScenePosition = pageSize == null
               ? null
               : Offset(
-                updatedMarker.normalizedX * pageSize.width,
-                updatedMarker.normalizedY * pageSize.height,
-              );
+                  updatedMarker.normalizedX * pageSize.width,
+                  updatedMarker.normalizedY * pageSize.height,
+                );
         },
       );
       _exitMoveMode();
@@ -1530,8 +1497,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     await _applyUpdatedSite(
       _site.copyWith(
-        visibleDefectCategoryNames:
-            updated.tabs.map((tab) => tab.name).toList(),
+        visibleDefectCategoryNames: updated.tabs
+            .map((tab) => tab.name)
+            .toList(),
       ),
       onStateUpdated: () {
         _defectTabs
@@ -1556,12 +1524,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final updatedCategories = Set<EquipmentCategory>.from(
       _visibleEquipmentCategories,
     )..add(selectedCategory);
-    final orderedVisible =
-        _orderedVisibleEquipmentCategories(updatedCategories);
+    final orderedVisible = _orderedVisibleEquipmentCategories(
+      updatedCategories,
+    );
     await _applyUpdatedSite(
       _site.copyWith(
-        visibleEquipmentCategoryNames:
-            orderedVisible.map((category) => category.name).toList(),
+        visibleEquipmentCategoryNames: orderedVisible
+            .map((category) => category.name)
+            .toList(),
       ),
       onStateUpdated: () {
         _visibleEquipmentCategories
@@ -1575,15 +1545,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   Future<void> _updateVisibleEquipmentCategories(
     Set<EquipmentCategory> visibleCategories,
   ) async {
-    final orderedVisible = _orderedVisibleEquipmentCategories(visibleCategories);
+    final orderedVisible = _orderedVisibleEquipmentCategories(
+      visibleCategories,
+    );
     final nextActive = _nextActiveEquipmentCategory(
       _activeEquipmentCategory,
       visibleCategories,
     );
     await _applyUpdatedSite(
       _site.copyWith(
-        visibleEquipmentCategoryNames:
-            orderedVisible.map((category) => category.name).toList(),
+        visibleEquipmentCategoryNames: orderedVisible
+            .map((category) => category.name)
+            .toList(),
       ),
       onStateUpdated: () {
         _visibleEquipmentCategories
@@ -1624,8 +1597,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     await _applyUpdatedSite(
       _site.copyWith(
-        visibleDefectCategoryNames:
-            updated.tabs.map((tab) => tab.name).toList(),
+        visibleDefectCategoryNames: updated.tabs
+            .map((tab) => tab.name)
+            .toList(),
       ),
       onStateUpdated: () {
         _defectTabs
