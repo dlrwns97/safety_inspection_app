@@ -550,6 +550,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isMoveMode) {
       return;
     }
+    if (kDebugMode) {
+      debugPrint('[PDF] tap: $pageLocal');
+    }
     final localPosition = pageLocal;
     final imageSize = pageSize;
     final imageLocal = localPosition;

@@ -138,9 +138,20 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool enablePdfPanGestures = _isFreeDrawMode ? isTwoFinger : true;
-    final bool enablePdfScaleGestures = _isFreeDrawMode ? isTwoFinger : true;
+    // PhotoView cannot reliably start pinch if gestures are disabled at first
+    // pointer-down. Keep gestures enabled so the first down is delivered;
+    // the drawing layer already ignores input when 2 pointers exist.
+    final bool enablePdfPanGestures = true;
+    final bool enablePdfScaleGestures = true;
+    // Keep page swipe disabled while drawing with 1 finger to prevent
+    // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
+    if (kDebugMode) {
+      debugPrint(
+        '[FreeDraw] isTwoFinger: $isTwoFinger, panEnabled: $enablePdfPanGestures, '
+        'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         return PdfDrawingView(
@@ -335,6 +346,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: (event) {
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[FreeDraw] onPointerDown: ${event.localPosition}, '
+                        'pointers: ${_activePointerIds.length}',
+                      );
+                    }
                     final pageP = destLocalToPage(event.localPosition);
                     final normalized = _overlayToNormalizedPoint(
                       overlayLocal: pageP,
@@ -344,6 +361,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleFreeDrawPointerStart(normalized, pageNumber);
                   },
                   onPointerMove: (event) {
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[FreeDraw] onPointerMove: ${event.localPosition}, '
+                        'pointers: ${_activePointerIds.length}',
+                      );
+                    }
                     final pageP = destLocalToPage(event.localPosition);
                     final normalized = _overlayToNormalizedPoint(
                       overlayLocal: pageP,
@@ -356,7 +379,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       pageSize,
                     );
                   },
-                  onPointerUp: (_) => _handleFreeDrawPointerEnd(pageNumber),
+                  onPointerUp: (event) {
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[FreeDraw] onPointerUp: ${event.localPosition}, '
+                        'pointers: ${_activePointerIds.length}',
+                      );
+                    }
+                    _handleFreeDrawPointerEnd(pageNumber);
+                  },
                   onPointerCancel: (_) => _handleFreeDrawPanCancel(),
                   child: const SizedBox.expand(),
                 ),
