@@ -7,7 +7,6 @@ enum PenVariant {
   fountainPen,
   calligraphyPen,
   pencil,
-  brush,
 
   highlighter,
   highlighterChisel,
@@ -72,10 +71,13 @@ class StrokeStyle {
       (toolKind) => toolKind.name == json['kind'],
       orElse: () => StrokeToolKind.pen,
     );
+    final rawVariant = json['variant']?.toString();
+    final normalizedVariant = rawVariant == 'brush' ? 'pen' : rawVariant;
+
     return StrokeStyle(
       kind: kind,
       variant: PenVariant.values.firstWhere(
-        (penVariant) => penVariant.name == json['variant'],
+        (penVariant) => penVariant.name == normalizedVariant,
         orElse: () => kind == StrokeToolKind.highlighter
             ? PenVariant.highlighter
             : PenVariant.pen,

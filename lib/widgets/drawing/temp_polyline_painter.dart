@@ -124,16 +124,6 @@ class TempPolylinePainter extends CustomPainter {
           start: StrokeEndOptions.start(cap: true),
           end: StrokeEndOptions.end(cap: true),
         );
-      case PenVariant.brush:
-        return StrokeOptions(
-          size: size * 1.15,
-          thinning: 0.85,
-          smoothing: 0.85,
-          streamline: 0.80,
-          simulatePressure: true,
-          start: StrokeEndOptions.start(cap: true),
-          end: StrokeEndOptions.end(cap: true),
-        );
       case PenVariant.pen:
       default:
         return StrokeOptions(
@@ -151,8 +141,7 @@ class TempPolylinePainter extends CustomPainter {
   double _resolvedPenOpacity(StrokeStyle style) {
     var resolvedOpacity = style.opacity;
     if (style.variant == PenVariant.pencil) {
-      resolvedOpacity *= 0.75;
-      resolvedOpacity *= 0.70;
+      resolvedOpacity *= 0.85;
     }
     return resolvedOpacity;
   }
@@ -203,9 +192,6 @@ class TempPolylinePainter extends CustomPainter {
       case PenVariant.pencil:
         resolvedOpacity *= 0.75;
         resolvedStrokeWidth *= 0.9;
-        break;
-      case PenVariant.brush:
-        resolvedStrokeWidth *= 1.25;
         break;
       case PenVariant.highlighter:
         resolvedBlendMode = BlendMode.multiply;
