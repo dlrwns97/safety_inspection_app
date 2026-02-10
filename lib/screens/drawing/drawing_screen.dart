@@ -12,6 +12,7 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
@@ -113,9 +114,35 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
-  final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};
-  List<Offset>? _inProgress;
-  int? _inProgressPage;
+  final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
+  DrawingStroke? _inProgressStroke;
+  int _activePresetIndex = 0;
+  late final List<StrokeStyle> _presets = <StrokeStyle>[
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      widthPx: 3.0,
+      argbColor: 0xFF000000,
+      opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      widthPx: 6.0,
+      argbColor: 0xFFE53935,
+      opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.highlighter,
+      widthPx: 14.0,
+      argbColor: 0xFFFFEB3B,
+      opacity: 0.35,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      widthPx: 3.0,
+      argbColor: 0xFF1E88E5,
+      opacity: 1.0,
+    ),
+  ];
   Offset? _debugLastPageLocal;
   Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
@@ -148,6 +175,17 @@ class _DrawingScreenState extends State<DrawingScreen>
           ? null
           : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
+  StrokeStyle get _activeStrokeStyle {
+    if (_activeTool == DrawingTool.eraser || _mode == DrawMode.eraser) {
+      return const StrokeStyle(
+        kind: StrokeToolKind.eraser,
+        widthPx: 18.0,
+        argbColor: 0xFFFFFFFF,
+        opacity: 1.0,
+      );
+    }
+    return _presets[_activePresetIndex];
+  }
 
   PhotoViewController _photoControllerForPage(int pageNumber) {
     return _pdfPhotoControllers.putIfAbsent(

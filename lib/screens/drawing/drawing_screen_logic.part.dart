@@ -842,8 +842,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final bool becameTwoFinger =
         previousCount < 2 && _activePointerIds.length >= 2;
     if (becameTwoFinger) {
-      if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
-        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
+        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
       }
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -886,8 +886,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isFreeDrawMode) return;
 
     if (_hasAnyTouchPointer()) {
-      if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
-        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
+        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
       }
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -950,8 +950,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!_isFreeDrawConsumingOneFinger) return;
 
-    final inProgress = _inProgress;
-    if (inProgress == null || inProgress.isEmpty) return;
+    final inProgressStroke = _inProgressStroke;
+    if (inProgressStroke == null || inProgressStroke.pointsNorm.isEmpty) return;
 
     final pageLocal = drawingLocalToPageLocal(event.localPosition);
     if (pageLocal == null) {
@@ -966,7 +966,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final last = inProgress.last;
+    final last = inProgressStroke.pointsNorm.last;
     final points = _interpolateNormalizedPoints(
       from: last,
       to: norm,
@@ -1047,8 +1047,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeStylusPointerId = null;
     }
     if (_isFreeDrawMode) {
-      if (_activePointerIds.isEmpty && _inProgress != null) {
-        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      if (_activePointerIds.isEmpty && _inProgressStroke != null) {
+        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
       }
       _safeSetState(() {});
       return;
@@ -1068,8 +1068,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
-      _inProgressPage = pageNumber;
-      _inProgress = [normalized];
+      _inProgressStroke = DrawingStroke(
+        pageNumber: pageNumber,
+        style: _activeStrokeStyle,
+        pointsNorm: <Offset>[normalized],
+      );
     });
   }
 
@@ -1079,23 +1082,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size destSize, {
     required double photoScale,
   }) {
-    final inProgress = _inProgress;
+    final inProgressStroke = _inProgressStroke;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
-        inProgress == null ||
-        inProgress.isEmpty ||
-        _inProgressPage != pageNumber) {
+        inProgressStroke == null ||
+        inProgressStroke.pointsNorm.isEmpty ||
+        inProgressStroke.pageNumber != pageNumber) {
       return;
     }
     const double thresholdScreenPx = 1.2;
     final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
     final double thresholdNorm =
         (thresholdScreenPx / effectiveScale) / destSize.shortestSide;
-    if ((normalized - inProgress.last).distance < thresholdNorm) {
+    if ((normalized - inProgressStroke.pointsNorm.last).distance <
+        thresholdNorm) {
       return;
     }
     _safeSetState(() {
-      inProgress.add(normalized);
+      inProgressStroke.pointsNorm.add(normalized);
     });
   }
 
@@ -1104,19 +1108,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawEnd(int pageNumber) {
-    final inProgress = _inProgress;
-    if (inProgress == null ||
-        inProgress.isEmpty ||
-        _inProgressPage != pageNumber) {
+    final inProgressStroke = _inProgressStroke;
+    if (inProgressStroke == null ||
+        inProgressStroke.pointsNorm.isEmpty ||
+        inProgressStroke.pageNumber != pageNumber) {
       return;
     }
     _safeSetState(() {
-      _strokesByPage
-          .putIfAbsent(pageNumber, () => <List<Offset>>[])
-          .add(List<Offset>.from(inProgress));
+      _strokesByPage.putIfAbsent(pageNumber, () => <DrawingStroke>[]).add(
+        DrawingStroke(
+          pageNumber: pageNumber,
+          style: inProgressStroke.style,
+          pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
+        ),
+      );
       _debugLastPageLocal = null;
-      _inProgress = null;
-      _inProgressPage = null;
+      _inProgressStroke = null;
     });
   }
 
@@ -1153,8 +1160,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       } else {
         _activePointerIds.clear();
         _debugLastPageLocal = null;
-        _inProgress = null;
-        _inProgressPage = null;
+        _inProgressStroke = null;
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
         _pendingDrawDownViewportLocal = null;

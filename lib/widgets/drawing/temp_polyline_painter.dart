@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
 
 class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
@@ -8,26 +9,22 @@ class TempPolylinePainter extends CustomPainter {
     this.debugLastPageLocal,
   });
 
-  final List<List<Offset>> strokes;
-  final List<Offset>? inProgress;
-  // Kept for call-site compatibility; painting uses the runtime canvas size.
+  final List<DrawingStroke> strokes;
+  final DrawingStroke? inProgress;
   final Size pageSize;
   final Offset? debugLastPageLocal;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
+    if (pageSize.width <= 0 || pageSize.height <= 0) {
+      return;
+    }
 
     for (final stroke in strokes) {
-      _drawPolyline(canvas, size, stroke, paint);
+      _drawStroke(canvas, stroke);
     }
     if (inProgress != null) {
-      _drawPolyline(canvas, size, inProgress!, paint);
+      _drawStroke(canvas, inProgress!);
     }
     if (debugLastPageLocal != null) {
       final debugPaint = Paint()
@@ -37,32 +34,38 @@ class TempPolylinePainter extends CustomPainter {
     }
   }
 
-  void _drawPolyline(
-    Canvas canvas,
-    Size size,
-    List<Offset> points,
-    Paint paint,
-  ) {
-    if (points.isEmpty || size.width <= 0 || size.height <= 0) {
+  void _drawStroke(Canvas canvas, DrawingStroke stroke) {
+    final points = stroke.pointsNorm;
+    if (points.isEmpty) {
       return;
     }
 
-    Offset toCanvas(Offset norm, Size canvasSize) =>
-        Offset(norm.dx * canvasSize.width, norm.dy * canvasSize.height);
+    final style = stroke.style;
+    final paint = Paint()
+      ..color = Color(style.argbColor).withOpacity(style.opacity)
+      ..strokeWidth = style.widthPx
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..blendMode = switch (style.kind) {
+        StrokeToolKind.highlighter => BlendMode.multiply,
+        StrokeToolKind.eraser => BlendMode.clear,
+        StrokeToolKind.pen => BlendMode.srcOver,
+      };
+
+    Offset toPageLocal(Offset normPoint) {
+      return Offset(normPoint.dx * pageSize.width, normPoint.dy * pageSize.height);
+    }
 
     if (points.length == 1) {
-      canvas.drawCircle(
-        toCanvas(points.first, size),
-        paint.strokeWidth / 2,
-        paint,
-      );
+      canvas.drawCircle(toPageLocal(points.first), paint.strokeWidth / 2, paint);
       return;
     }
 
-    final first = toCanvas(points.first, size);
+    final first = toPageLocal(points.first);
     final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = toCanvas(points[i], size);
+      final point = toPageLocal(points[i]);
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
@@ -72,6 +75,7 @@ class TempPolylinePainter extends CustomPainter {
   bool shouldRepaint(covariant TempPolylinePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.inProgress != inProgress ||
+        oldDelegate.pageSize != pageSize ||
         oldDelegate.debugLastPageLocal != debugLastPageLocal;
   }
 }
