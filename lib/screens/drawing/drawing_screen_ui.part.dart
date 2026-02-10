@@ -308,7 +308,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final argb in _paletteArgb)
+                        for (final argb in _DrawingScreenState._paletteArgb)
                           GestureDetector(
                             onTap: () => apply(style.copyWith(argbColor: argb)),
                             child: Container(
