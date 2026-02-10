@@ -139,7 +139,9 @@ class MarkerSidePanel extends StatelessWidget {
     final selectedEquipmentLabel =
         selectedEquipmentCategory == null
             ? null
-            : equipmentChipLabel(selectedEquipmentCategory);
+            : equipmentChipLabel(
+              selectedEquipmentCategory ?? EquipmentCategory.equipment1,
+            );
     final filteredEquipment = equipmentMarkers
         .where(
           (marker) =>
