@@ -828,12 +828,26 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final bool becameTwoFinger =
         previousCount < 2 && _activePointerIds.length >= 2;
     if (becameTwoFinger) {
-      _safeSetState(() {
-        _debugLastPageLocal = null;
-        _inProgress = null;
-        _inProgressPage = null;
-      });
+      if (_inProgress != null) {
+        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      } else {
+        _safeSetState(() {});
+      }
       return;
+    }
+    _safeSetState(() {});
+  }
+
+  void _handleOverlayPointerMove(PointerMoveEvent event) {
+    if (_activePointerIds.contains(event.pointer)) {
+      return;
+    }
+    _activePointerIds.add(event.pointer);
+    if (_isFreeDrawMode && _activePointerIds.length >= 2) {
+      if (_inProgress != null) {
+        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+        return;
+      }
     }
     _safeSetState(() {});
   }
