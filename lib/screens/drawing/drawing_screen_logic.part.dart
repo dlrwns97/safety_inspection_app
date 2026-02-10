@@ -828,11 +828,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final bool becameTwoFinger =
         previousCount < 2 && _activePointerIds.length >= 2;
     if (becameTwoFinger) {
-      if (_inProgress != null) {
+      if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
         _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
-      } else {
-        _safeSetState(() {});
       }
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownDestLocal = null;
+      });
       return;
     }
     _safeSetState(() {});
@@ -922,6 +925,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _debugLastPageLocal = null;
       _inProgress = null;
       _inProgressPage = null;
+      _isFreeDrawConsumingOneFinger = false;
+      _pendingDraw = false;
+      _pendingDrawDownDestLocal = null;
     });
   }
 
@@ -960,6 +966,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _debugLastPageLocal = null;
         _inProgress = null;
         _inProgressPage = null;
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownDestLocal = null;
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
