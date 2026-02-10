@@ -3,13 +3,16 @@ import 'dart:ui';
 enum StrokeToolKind { pen, highlighter, eraser }
 
 enum PenVariant {
-  ballpoint,
-  fountain,
+  pen,
+  fountainPen,
+  calligraphyPen,
   pencil,
-  marker,
-  calligraphy,
-  highlighterSoft,
+  brush,
+
+  highlighter,
   highlighterChisel,
+  marker,
+  markerChisel,
 }
 
 class StrokeStyle {
@@ -22,8 +25,8 @@ class StrokeStyle {
   }) : variant =
            variant ??
            (kind == StrokeToolKind.highlighter
-               ? PenVariant.highlighterSoft
-               : PenVariant.ballpoint);
+               ? PenVariant.highlighter
+               : PenVariant.pen);
 
   final StrokeToolKind kind;
   final PenVariant variant;
@@ -46,8 +49,8 @@ class StrokeStyle {
           (kind == null
               ? this.variant
               : nextKind == StrokeToolKind.highlighter
-              ? PenVariant.highlighterSoft
-              : PenVariant.ballpoint),
+              ? PenVariant.highlighter
+              : PenVariant.pen),
       widthPx: widthPx ?? this.widthPx,
       argbColor: argbColor ?? this.argbColor,
       opacity: opacity ?? this.opacity,
@@ -74,8 +77,8 @@ class StrokeStyle {
       variant: PenVariant.values.firstWhere(
         (penVariant) => penVariant.name == json['variant'],
         orElse: () => kind == StrokeToolKind.highlighter
-            ? PenVariant.highlighterSoft
-            : PenVariant.ballpoint,
+            ? PenVariant.highlighter
+            : PenVariant.pen,
       ),
       widthPx: (json['widthPx'] as num?)?.toDouble() ?? 3.0,
       argbColor: (json['argbColor'] as num?)?.toInt() ?? 0xFF000000,

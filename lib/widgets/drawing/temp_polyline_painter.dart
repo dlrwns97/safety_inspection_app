@@ -52,21 +52,24 @@ class TempPolylinePainter extends CustomPainter {
     };
 
     switch (style.variant) {
-      case PenVariant.pencil:
-        resolvedOpacity *= 0.8;
+      case PenVariant.pen:
         break;
-      case PenVariant.fountain:
+      case PenVariant.fountainPen:
         resolvedStrokeWidth *= 1.15;
         break;
-      case PenVariant.marker:
-        resolvedStrokeWidth *= 1.10;
-        resolvedOpacity *= 0.98;
-        break;
-      case PenVariant.calligraphy:
+      case PenVariant.calligraphyPen:
         resolvedStrokeCap = StrokeCap.square;
         resolvedStrokeJoin = StrokeJoin.bevel;
+        resolvedStrokeWidth *= 1.1;
         break;
-      case PenVariant.highlighterSoft:
+      case PenVariant.pencil:
+        resolvedOpacity *= 0.75;
+        resolvedStrokeWidth *= 0.9;
+        break;
+      case PenVariant.brush:
+        resolvedStrokeWidth *= 1.25;
+        break;
+      case PenVariant.highlighter:
         resolvedBlendMode = BlendMode.multiply;
         break;
       case PenVariant.highlighterChisel:
@@ -74,7 +77,13 @@ class TempPolylinePainter extends CustomPainter {
         resolvedStrokeJoin = StrokeJoin.bevel;
         resolvedBlendMode = BlendMode.multiply;
         break;
-      case PenVariant.ballpoint:
+      case PenVariant.marker:
+        resolvedBlendMode = BlendMode.srcOver;
+        break;
+      case PenVariant.markerChisel:
+        resolvedStrokeCap = StrokeCap.square;
+        resolvedStrokeJoin = StrokeJoin.bevel;
+        resolvedBlendMode = BlendMode.srcOver;
         break;
     }
 
