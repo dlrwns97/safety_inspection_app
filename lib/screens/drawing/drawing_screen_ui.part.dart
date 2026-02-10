@@ -94,7 +94,232 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPanCancel: _handleMovePanCancel,
           ),
         ),
+      if (_isFreeDrawMode)
+        Positioned(
+          left: 12,
+          top: 12,
+          child: _buildStrokePresetPanel(),
+        ),
     ];
+  }
+
+  Widget _buildStrokePresetPanel() {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface.withOpacity(0.96),
+      elevation: 3,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List<Widget>.generate(_presets.length, (index) {
+            final style = _presets[index];
+            final selected = _activePresetIndex == index;
+            return Padding(
+              padding: EdgeInsets.only(bottom: index == _presets.length - 1 ? 0 : 6),
+              child: GestureDetector(
+                onLongPress: () => _showPresetEditorSheet(index),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setState(() => _activePresetIndex = index),
+                  child: Container(
+                    width: 54,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant,
+                        width: selected ? 2 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        if (style.kind == StrokeToolKind.highlighter)
+                          const Icon(Icons.highlight_alt, size: 16),
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(style.argbColor).withOpacity(style.opacity),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: style.widthPx.clamp(1, 6).toDouble(),
+                          width: 28,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(100),
+                            color: Color(style.argbColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPresetEditorSheet(int index) async {
+    StrokeStyle draft = _presets[index];
+    final selected = await showModalBottomSheet<StrokeStyle>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            const palette = <int>[
+              0xFF000000,
+              0xFFE53935,
+              0xFF1E88E5,
+              0xFF43A047,
+              0xFFFFEB3B,
+              0xFFFB8C00,
+            ];
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('프리셋 ${index + 1} 편집', style: Theme.of(context).textTheme.titleMedium),
+                    Slider(
+                      min: 1,
+                      max: 24,
+                      value: draft.widthPx.clamp(1, 24).toDouble(),
+                      label: '두께 ${draft.widthPx.toStringAsFixed(1)}',
+                      onChanged: (v) => setModalState(() => draft = draft.copyWith(widthPx: v)),
+                    ),
+                    Slider(
+                      min: 0.1,
+                      max: 1.0,
+                      value: draft.opacity.clamp(0.1, 1.0).toDouble(),
+                      label: '불투명도 ${draft.opacity.toStringAsFixed(2)}',
+                      onChanged: (v) => setModalState(() => draft = draft.copyWith(opacity: v)),
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ...palette.map(
+                          (color) => GestureDetector(
+                            onTap: () => setModalState(() => draft = draft.copyWith(argbColor: color)),
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(color),
+                                border: Border.all(
+                                  color: draft.argbColor == color
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () async {
+                            final color = await _showCustomColorPickerDialog(draft.argbColor);
+                            if (color == null) return;
+                            setModalState(() => draft = draft.copyWith(argbColor: color));
+                          },
+                          child: const Text('커스텀'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(draft),
+                        child: const Text('적용'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) {
+      return;
+    }
+    setState(() => _presets[index] = selected);
+  }
+
+  Future<int?> _showCustomColorPickerDialog(int initialColor) async {
+    int red = (initialColor >> 16) & 0xFF;
+    int green = (initialColor >> 8) & 0xFF;
+    int blue = initialColor & 0xFF;
+    return showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final selected = 0xFF000000 | (red << 16) | (green << 8) | blue;
+            return AlertDialog(
+              title: const Text('색상 선택'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 64, height: 32, color: Color(selected)),
+                  Slider(
+                    min: 0,
+                    max: 255,
+                    value: red.toDouble(),
+                    onChanged: (v) => setDialogState(() => red = v.round()),
+                    activeColor: Colors.red,
+                  ),
+                  Slider(
+                    min: 0,
+                    max: 255,
+                    value: green.toDouble(),
+                    onChanged: (v) => setDialogState(() => green = v.round()),
+                    activeColor: Colors.green,
+                  ),
+                  Slider(
+                    min: 0,
+                    max: 255,
+                    value: blue.toDouble(),
+                    onChanged: (v) => setDialogState(() => blue = v.round()),
+                    activeColor: Colors.blue,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('취소'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(selected),
+                  child: const Text('선택'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildCanvasDrawingLayer() {
@@ -327,13 +552,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           painter: TempPolylinePainter(
                             strokes:
                                 _strokesByPage[pageNumber] ??
-                                const <List<Offset>>[],
-                            inProgress: _inProgressPage == pageNumber
-                                ? _inProgress
+                                const <DrawingStroke>[],
+                            inProgress: _inProgressStroke?.pageNumber == pageNumber
+                                ? _inProgressStroke
                                 : null,
                             pageSize: pageSize,
                             debugLastPageLocal:
-                                kDebugMode && _inProgressPage == pageNumber
+                                kDebugMode && _inProgressStroke?.pageNumber == pageNumber
                                 ? _debugLastPageLocal
                                 : null,
                           ),
