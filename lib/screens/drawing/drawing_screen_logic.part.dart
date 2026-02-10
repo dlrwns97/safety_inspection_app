@@ -838,20 +838,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {});
   }
 
-  void _handleOverlayPointerMove(PointerMoveEvent event) {
-    if (_activePointerIds.contains(event.pointer)) {
-      return;
-    }
-    _activePointerIds.add(event.pointer);
-    if (_isFreeDrawMode && _activePointerIds.length >= 2) {
-      if (_inProgress != null) {
-        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
-        return;
-      }
-    }
-    _safeSetState(() {});
-  }
-
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
     final didRemove = _activePointerIds.remove(event.pointer);
     if (!didRemove) {
@@ -874,11 +860,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() => _activeTool = tool);
   }
 
-  void _handleFreeDrawPointerStart(Offset? normalized, int pageNumber) {
+  void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
     if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
-      return;
-    }
-    if (normalized == null) {
       return;
     }
     _safeSetState(() {
@@ -888,7 +871,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPointerUpdate(
-    Offset? normalized,
+    Offset normalized,
     int pageNumber,
     Size destSize,
   ) {
@@ -898,9 +881,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         inProgress == null ||
         inProgress.isEmpty ||
         _inProgressPage != pageNumber) {
-      return;
-    }
-    if (normalized == null) {
       return;
     }
     const double thresholdPx = 2.5;
