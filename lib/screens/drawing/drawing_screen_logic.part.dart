@@ -885,11 +885,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     if (!_isFreeDrawMode) return;
 
-    if (_activeStylusPointerId == null ||
-        event.pointer != _activeStylusPointerId) {
-      return;
-    }
-
     if (_hasAnyTouchPointer()) {
       if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
         _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
@@ -900,6 +895,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
+      return;
+    }
+
+    if (_activeStylusPointerId == null ||
+        event.pointer != _activeStylusPointerId) {
       return;
     }
 
