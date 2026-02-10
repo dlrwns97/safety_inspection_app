@@ -7,6 +7,7 @@ class _OneFingerDrawGestureRecognizer extends OneSequenceGestureRecognizer {
     required this.onEnd,
     required this.onCancel,
     required this.isTwoFingerNow,
+    this.createDotOnTap = true,
   });
 
   final void Function(Offset localPos) onStart;
@@ -14,16 +15,18 @@ class _OneFingerDrawGestureRecognizer extends OneSequenceGestureRecognizer {
   final VoidCallback onEnd;
   final VoidCallback onCancel;
   final bool Function() isTwoFingerNow;
+  final bool createDotOnTap;
 
   int? _primaryPointer;
   bool _accepted = false;
+  Offset? _downLocal;
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
     if (_primaryPointer == null) {
       _primaryPointer = event.pointer;
+      _downLocal = event.localPosition;
       startTrackingPointer(event.pointer);
-      onStart(event.localPosition);
     } else {
       resolve(GestureDisposition.rejected);
       onCancel();
@@ -54,11 +57,22 @@ class _OneFingerDrawGestureRecognizer extends OneSequenceGestureRecognizer {
       if (!_accepted) {
         resolve(GestureDisposition.accepted);
         _accepted = true;
+        final downLocal = _downLocal;
+        if (downLocal != null) {
+          onStart(downLocal);
+        }
       }
       onUpdate(event.localPosition);
     } else if (event is PointerUpEvent) {
       if (_accepted) {
         onEnd();
+      } else if (createDotOnTap) {
+        final downLocal = _downLocal;
+        if (downLocal != null) {
+          onStart(downLocal);
+          onUpdate(downLocal);
+          onEnd();
+        }
       } else {
         onCancel();
       }
@@ -74,6 +88,7 @@ class _OneFingerDrawGestureRecognizer extends OneSequenceGestureRecognizer {
   void _reset() {
     _primaryPointer = null;
     _accepted = false;
+    _downLocal = null;
   }
 
   @override
@@ -299,6 +314,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required ImageProvider imageProvider,
     required Key pageContentKey,
   }) {
+    const bool createDotOnTap = true;
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool enablePageLocalDrawing = _isFreeDrawMode;
     final Size overlaySize = renderSize;
@@ -436,6 +452,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           () => _OneFingerDrawGestureRecognizer(
                             isTwoFingerNow: () =>
                                 _activePointerIds.length >= 2,
+                            createDotOnTap: createDotOnTap,
                             onStart: (destLocal) {
                               if (_activePointerIds.length >= 2) {
                                 return;
@@ -515,7 +532,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: _handleOverlayPointerDown,
-                onPointerMove: _handleOverlayPointerMove,
                 onPointerUp: _handleOverlayPointerUpOrCancel,
                 onPointerCancel: _handleOverlayPointerUpOrCancel,
               ),
