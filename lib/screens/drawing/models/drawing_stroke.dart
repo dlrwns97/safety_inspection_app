@@ -2,27 +2,52 @@ import 'dart:ui';
 
 enum StrokeToolKind { pen, highlighter, eraser }
 
+enum PenVariant {
+  ballpoint,
+  fountain,
+  pencil,
+  marker,
+  calligraphy,
+  highlighterSoft,
+  highlighterChisel,
+}
+
 class StrokeStyle {
   const StrokeStyle({
     this.kind = StrokeToolKind.pen,
+    PenVariant? variant,
     this.widthPx = 3.0,
     this.argbColor = 0xFF000000,
     this.opacity = 1.0,
-  });
+  }) : variant =
+           variant ??
+           (kind == StrokeToolKind.highlighter
+               ? PenVariant.highlighterSoft
+               : PenVariant.ballpoint);
 
   final StrokeToolKind kind;
+  final PenVariant variant;
   final double widthPx;
   final int argbColor;
   final double opacity;
 
   StrokeStyle copyWith({
     StrokeToolKind? kind,
+    PenVariant? variant,
     double? widthPx,
     int? argbColor,
     double? opacity,
   }) {
+    final nextKind = kind ?? this.kind;
     return StrokeStyle(
-      kind: kind ?? this.kind,
+      kind: nextKind,
+      variant:
+          variant ??
+          (kind == null
+              ? this.variant
+              : nextKind == StrokeToolKind.highlighter
+              ? PenVariant.highlighterSoft
+              : PenVariant.ballpoint),
       widthPx: widthPx ?? this.widthPx,
       argbColor: argbColor ?? this.argbColor,
       opacity: opacity ?? this.opacity,
@@ -32,6 +57,7 @@ class StrokeStyle {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'kind': kind.name,
+      'variant': variant.name,
       'widthPx': widthPx,
       'argbColor': argbColor,
       'opacity': opacity,
@@ -39,10 +65,17 @@ class StrokeStyle {
   }
 
   factory StrokeStyle.fromJson(Map<String, dynamic> json) {
+    final kind = StrokeToolKind.values.firstWhere(
+      (toolKind) => toolKind.name == json['kind'],
+      orElse: () => StrokeToolKind.pen,
+    );
     return StrokeStyle(
-      kind: StrokeToolKind.values.firstWhere(
-        (toolKind) => toolKind.name == json['kind'],
-        orElse: () => StrokeToolKind.pen,
+      kind: kind,
+      variant: PenVariant.values.firstWhere(
+        (penVariant) => penVariant.name == json['variant'],
+        orElse: () => kind == StrokeToolKind.highlighter
+            ? PenVariant.highlighterSoft
+            : PenVariant.ballpoint,
       ),
       widthPx: (json['widthPx'] as num?)?.toDouble() ?? 3.0,
       argbColor: (json['argbColor'] as num?)?.toInt() ?? 0xFF000000,
