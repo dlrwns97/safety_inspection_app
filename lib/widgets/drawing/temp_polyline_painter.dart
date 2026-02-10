@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
 
 class TempPolylinePainter extends CustomPainter {
@@ -35,12 +36,95 @@ class TempPolylinePainter extends CustomPainter {
   }
 
   void _drawStroke(Canvas canvas, DrawingStroke stroke) {
-    final points = stroke.pointsNorm;
-    if (points.isEmpty) {
+    final pointsNorm = stroke.pointsNorm;
+    if (pointsNorm.isEmpty) {
       return;
     }
 
+    Offset toPageLocal(Offset normPoint) {
+      return Offset(normPoint.dx * pageSize.width, normPoint.dy * pageSize.height);
+    }
+
+    final points = pointsNorm.map(toPageLocal).toList(growable: false);
     final style = stroke.style;
+
+    if (style.kind == StrokeToolKind.pen) {
+      _drawPenStroke(canvas, points, style);
+      return;
+    }
+
+    _drawCenterlineStroke(canvas, points, style);
+  }
+
+  void _drawPenStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {
+    if (points.length == 1) {
+      final paint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = Color(style.argbColor).withOpacity(style.opacity.clamp(0.0, 1.0))
+        ..blendMode = BlendMode.srcOver;
+      canvas.drawCircle(points.first, style.widthPx / 2, paint);
+      return;
+    }
+
+    var resolvedOpacity = style.opacity;
+    var resolvedStrokeWidth = style.widthPx;
+    switch (style.variant) {
+      case PenVariant.pen:
+        break;
+      case PenVariant.fountainPen:
+        resolvedStrokeWidth *= 1.15;
+        break;
+      case PenVariant.calligraphyPen:
+        resolvedStrokeWidth *= 1.1;
+        break;
+      case PenVariant.pencil:
+        resolvedOpacity *= 0.75;
+        resolvedStrokeWidth *= 0.9;
+        break;
+      case PenVariant.brush:
+        resolvedStrokeWidth *= 1.25;
+        break;
+      case PenVariant.highlighter:
+      case PenVariant.highlighterChisel:
+      case PenVariant.marker:
+      case PenVariant.markerChisel:
+        break;
+    }
+
+    final strokeInput = <PointVector>[
+      for (final point in points) [point.dx, point.dy],
+    ];
+
+    final outline = getStroke(
+      strokeInput,
+      options: StrokeOptions(
+        size: resolvedStrokeWidth,
+        thinning: 0.45,
+        smoothing: 0.6,
+        streamline: 0.55,
+        simulatePressure: true,
+        isComplete: true,
+      ),
+    );
+
+    if (outline.isEmpty) {
+      return;
+    }
+
+    final polygon = <Offset>[
+      for (final point in outline) Offset(point[0], point[1]),
+    ];
+
+    final fillPath = Path()..addPolygon(polygon, true);
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
+      ..blendMode = BlendMode.srcOver;
+
+    canvas.drawPath(fillPath, paint);
+  }
+
+  void _drawCenterlineStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {
     var resolvedOpacity = style.opacity;
     var resolvedStrokeWidth = style.widthPx;
     var resolvedStrokeCap = StrokeCap.round;
@@ -95,19 +179,14 @@ class TempPolylinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..blendMode = resolvedBlendMode;
 
-    Offset toPageLocal(Offset normPoint) {
-      return Offset(normPoint.dx * pageSize.width, normPoint.dy * pageSize.height);
-    }
-
     if (points.length == 1) {
-      canvas.drawCircle(toPageLocal(points.first), paint.strokeWidth / 2, paint);
+      canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;
     }
 
-    final first = toPageLocal(points.first);
-    final path = Path()..moveTo(first.dx, first.dy);
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
     for (var i = 1; i < points.length; i++) {
-      final point = toPageLocal(points[i]);
+      final point = points[i];
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
