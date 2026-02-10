@@ -117,7 +117,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
-  int _activePresetIndex = 0;
+  int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
   final List<int> _standardPaletteArgb = const <int>[
     0xFF000000,
@@ -226,10 +226,30 @@ class _DrawingScreenState extends State<DrawingScreen>
           ? null
           : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
-  StrokeStyle get _activeStrokeStyle => _presets[_activePresetIndex];
+  StrokeStyle? get _activeStrokeStyle =>
+      _activePresetIndex == null ? null : _presets[_activePresetIndex!];
+
+  StrokeStyle get _activeStrokeStyleOrFallback =>
+      _activeStrokeStyle ?? _presets.first;
 
   void _setToolPanelOpen(bool value) =>
       _safeSetState(() => _isToolPanelOpen = value);
+
+  void _toggleActivePreset(int index) {
+    final shouldUnselect = _activePresetIndex == index;
+    if (shouldUnselect && _inProgressStroke != null) {
+      _handleFreeDrawEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+    }
+    _safeSetState(() {
+      _activePresetIndex = shouldUnselect ? null : index;
+      if (_activePresetIndex == null) {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
+      }
+    });
+  }
 
   void _pushRecentColor(int argb) {
     _safeSetState(() {
@@ -242,8 +262,12 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
 
   void _updateActivePreset(StrokeStyle next) {
+    final index = _activePresetIndex;
+    if (index == null) {
+      return;
+    }
     _safeSetState(() {
-      _presets[_activePresetIndex] = next;
+      _presets[index] = next;
     });
   }
 
@@ -876,11 +900,46 @@ class _DrawingScreenState extends State<DrawingScreen>
                               onSelectDefect: _selectDefectFromPanel,
                               onSelectEquipment: _selectEquipmentFromPanel,
                               onDefectCategorySelected: (category) => setState(
-                                () => _sidePanelDefectCategory = category,
+                                () {
+                                  if (_sidePanelDefectCategory == category) {
+                                    _sidePanelDefectCategory = null;
+                                    _visibleDefectCategories
+                                      ..clear()
+                                      ..addAll(DefectCategory.values);
+                                  } else {
+                                    _sidePanelDefectCategory = category;
+                                    _visibleDefectCategories
+                                      ..clear()
+                                      ..add(category);
+                                  }
+                                },
                               ),
                               onEquipmentCategorySelected:
                                   (category) => setState(
-                                    () => _sidePanelEquipmentCategory = category,
+                                    () {
+                                      if (_sidePanelEquipmentCategory ==
+                                          category) {
+                                        _sidePanelEquipmentCategory = null;
+                                        final allVisibleNames =
+                                            _site.visibleEquipmentCategoryNames
+                                                .toSet();
+                                        final allCategories =
+                                            kEquipmentCategoryOrder
+                                                .where(
+                                                  (c) => allVisibleNames
+                                                      .contains(c.name),
+                                                )
+                                                .toSet();
+                                        _visibleEquipmentCategories
+                                          ..clear()
+                                          ..addAll(allCategories);
+                                      } else {
+                                        _sidePanelEquipmentCategory = category;
+                                        _visibleEquipmentCategories
+                                          ..clear()
+                                          ..add(category);
+                                      }
+                                    },
                                   ),
                               visibleDefectCategories: _visibleDefectCategories,
                               visibleEquipmentCategories:

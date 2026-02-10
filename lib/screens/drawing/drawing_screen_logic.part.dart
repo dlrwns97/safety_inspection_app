@@ -864,7 +864,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     _handleOverlayPointerDown(event);
 
-    if (!_isFreeDrawMode) return;
+    if (!_isFreeDrawMode || _activeStrokeStyle == null) return;
     if (!_isStylusKind(event.kind)) return;
     if (_hasAnyTouchPointer()) return;
 
@@ -884,6 +884,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required double photoScale,
   }) {
     if (!_isFreeDrawMode) return;
+    if (_activeStrokeStyle == null) {
+      if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
+        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+      }
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
+      });
+      return;
+    }
 
     if (_hasAnyTouchPointer()) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
@@ -1064,13 +1076,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
-    if (!_isFreeDrawMode || _activePointerIds.length >= 2) {
+    final style = _activeStrokeStyle;
+    if (!_isFreeDrawMode || _activePointerIds.length >= 2 || style == null) {
       return;
     }
     _safeSetState(() {
       _inProgressStroke = DrawingStroke(
         pageNumber: pageNumber,
-        style: _activeStrokeStyle,
+        style: style,
         pointsNorm: <Offset>[normalized],
       );
     });
