@@ -1,103 +1,5 @@
 part of 'drawing_screen.dart';
 
-class _OneFingerDrawGestureRecognizer extends OneSequenceGestureRecognizer {
-  _OneFingerDrawGestureRecognizer({
-    required this.onStart,
-    required this.onUpdate,
-    required this.onEnd,
-    required this.onCancel,
-    required this.isTwoFingerNow,
-    this.createDotOnTap = true,
-  });
-
-  final void Function(Offset localPos) onStart;
-  final void Function(Offset localPos) onUpdate;
-  final VoidCallback onEnd;
-  final VoidCallback onCancel;
-  final bool Function() isTwoFingerNow;
-  final bool createDotOnTap;
-
-  int? _primaryPointer;
-  bool _accepted = false;
-  Offset? _downLocal;
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    if (_primaryPointer == null) {
-      _primaryPointer = event.pointer;
-      _downLocal = event.localPosition;
-      startTrackingPointer(event.pointer);
-    } else {
-      resolve(GestureDisposition.rejected);
-      onCancel();
-      stopTrackingPointer(_primaryPointer!);
-      _reset();
-    }
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (_primaryPointer != event.pointer) {
-      return;
-    }
-
-    if (isTwoFingerNow()) {
-      if (_accepted) {
-        onEnd();
-      } else {
-        onCancel();
-      }
-      resolve(GestureDisposition.rejected);
-      stopTrackingPointer(_primaryPointer!);
-      _reset();
-      return;
-    }
-
-    if (event is PointerMoveEvent) {
-      if (!_accepted) {
-        resolve(GestureDisposition.accepted);
-        _accepted = true;
-        final downLocal = _downLocal;
-        if (downLocal != null) {
-          onStart(downLocal);
-        }
-      }
-      onUpdate(event.localPosition);
-    } else if (event is PointerUpEvent) {
-      if (_accepted) {
-        onEnd();
-      } else if (createDotOnTap) {
-        final downLocal = _downLocal;
-        if (downLocal != null) {
-          onStart(downLocal);
-          onUpdate(downLocal);
-          onEnd();
-        }
-      } else {
-        onCancel();
-      }
-      stopTrackingPointer(event.pointer);
-      _reset();
-    } else if (event is PointerCancelEvent) {
-      onCancel();
-      stopTrackingPointer(event.pointer);
-      _reset();
-    }
-  }
-
-  void _reset() {
-    _primaryPointer = null;
-    _accepted = false;
-    _downLocal = null;
-  }
-
-  @override
-  String get debugDescription => 'oneFingerDraw';
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {}
-}
-
 extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildMarkerWidgetsForPage({
     required Size size,
@@ -314,7 +216,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required ImageProvider imageProvider,
     required Key pageContentKey,
   }) {
-    const bool createDotOnTap = true;
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
     final bool enablePageLocalDrawing = _isFreeDrawMode;
     final Size overlaySize = renderSize;
@@ -331,7 +232,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
         ? 0
         : destSize.width / pageSize.width;
 
-    bool isInsidePageOverlay(Offset overlayPos) => destRect.contains(overlayPos);
+    Offset overlayToPage(Offset overlayLocal) {
+      if (scale == 0) {
+        return Offset.zero;
+      }
+      return (overlayLocal - destRect.topLeft) / scale;
+    }
 
     Offset destLocalToPage(Offset destLocal) {
       if (scale == 0) {
@@ -340,18 +246,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return destLocal / scale;
     }
 
-    Offset overlayToPage(Offset p) {
-      if (scale == 0) {
-        return Offset.zero;
-      }
-      return (p - destRect.topLeft) / scale;
-    }
-
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) {
-        if (!isInsidePageOverlay(details.localPosition)) {
+        if (!destRect.contains(details.localPosition)) {
           return;
         }
         _handlePdfTapAt(
@@ -361,7 +260,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         );
       },
       onLongPressStart: (details) {
-        if (!isInsidePageOverlay(details.localPosition)) {
+        if (!destRect.contains(details.localPosition)) {
           return;
         }
         _handlePdfLongPressAt(
@@ -442,88 +341,56 @@ extension _DrawingScreenUi on _DrawingScreenState {
               child: IgnorePointer(
                 ignoring:
                     !enablePageLocalDrawing || _activePointerIds.length >= 2,
-                child: RawGestureDetector(
+                child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  gestures: {
-                    _OneFingerDrawGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          _OneFingerDrawGestureRecognizer
-                        >(
-                          () => _OneFingerDrawGestureRecognizer(
-                            isTwoFingerNow: () =>
-                                _activePointerIds.length >= 2,
-                            createDotOnTap: createDotOnTap,
-                            onStart: (destLocal) {
-                              if (_activePointerIds.length >= 2) {
-                                return;
-                              }
-                              if (kDebugMode) {
-                                debugPrint(
-                                  '[FreeDraw] panStart local=$destLocal '
-                                  'pointers: ${_activePointerIds.length}',
-                                );
-                              }
-                              final pageP = destLocalToPage(destLocal);
-                              final normalized = _overlayToNormalizedPoint(
-                                overlayLocal: pageP,
-                                destSize: pageSize,
-                              );
-                              if (normalized == null) {
-                                return;
-                              }
-                              _debugLastPageLocal = pageP;
-                              _handleFreeDrawPointerStart(
-                                normalized,
-                                pageNumber,
-                              );
-                            },
-                            onUpdate: (destLocal) {
-                              if (_activePointerIds.length >= 2) {
-                                return;
-                              }
-                              if (kDebugMode) {
-                                debugPrint(
-                                  '[FreeDraw] panUpdate local=$destLocal '
-                                  'pointers: ${_activePointerIds.length}',
-                                );
-                              }
-                              final pageP = destLocalToPage(destLocal);
-                              final normalized = _overlayToNormalizedPoint(
-                                overlayLocal: pageP,
-                                destSize: pageSize,
-                              );
-                              if (normalized == null) {
-                                return;
-                              }
-                              _debugLastPageLocal = pageP;
-                              _handleFreeDrawPointerUpdate(
-                                normalized,
-                                pageNumber,
-                                pageSize,
-                              );
-                            },
-                            onEnd: () {
-                              if (kDebugMode) {
-                                debugPrint(
-                                  '[FreeDraw] onPointerUp, pointers: '
-                                  '${_activePointerIds.length}',
-                                );
-                              }
-                              _handleFreeDrawPointerEnd(pageNumber);
-                            },
-                            onCancel: () {
-                              if (kDebugMode) {
-                                debugPrint(
-                                  '[FreeDraw] onPointerCancel, pointers: '
-                                  '${_activePointerIds.length}',
-                                );
-                              }
-                              _handleFreeDrawPanCancel();
-                            },
-                          ),
-                          (instance) {},
-                        ),
+                  onPanStart: (details) {
+                    if (_activePointerIds.length >= 2) {
+                      return;
+                    }
+                    final pageLocal = destLocalToPage(details.localPosition);
+                    final normalized = _overlayToNormalizedPoint(
+                      overlayLocal: pageLocal,
+                      destSize: pageSize,
+                    );
+                    if (normalized == null) {
+                      return;
+                    }
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[FreeDraw] panStart local=${details.localPosition} '
+                        'pageLocal=$pageLocal pointers: ${_activePointerIds.length}',
+                      );
+                    }
+                    _debugLastPageLocal = pageLocal;
+                    _handleFreeDrawPointerStart(normalized, pageNumber);
                   },
+                  onPanUpdate: (details) {
+                    if (_activePointerIds.length >= 2) {
+                      return;
+                    }
+                    final pageLocal = destLocalToPage(details.localPosition);
+                    final normalized = _overlayToNormalizedPoint(
+                      overlayLocal: pageLocal,
+                      destSize: pageSize,
+                    );
+                    if (normalized == null) {
+                      return;
+                    }
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[FreeDraw] panUpdate local=${details.localPosition} '
+                        'pageLocal=$pageLocal pointers: ${_activePointerIds.length}',
+                      );
+                    }
+                    _debugLastPageLocal = pageLocal;
+                    _handleFreeDrawPointerUpdate(
+                      normalized,
+                      pageNumber,
+                      pageSize,
+                    );
+                  },
+                  onPanEnd: (_) => _handleFreeDrawPointerEnd(pageNumber),
+                  onPanCancel: _handleFreeDrawPanCancel,
                   child: const SizedBox.expand(),
                 ),
               ),
