@@ -138,11 +138,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    // PhotoView cannot reliably start pinch if gestures are disabled at first
-    // pointer-down. Keep gestures enabled so the first down is delivered;
-    // the drawing layer already ignores input when 2 pointers exist.
-    final bool enablePdfPanGestures = true;
-    final bool enablePdfScaleGestures = true;
+    final bool allowPdfGestures =
+        !_isFreeDrawMode || isTwoFinger || !_isFreeDrawConsumingOneFinger;
+    final bool enablePdfPanGestures = allowPdfGestures;
+    final bool enablePdfScaleGestures = allowPdfGestures;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
@@ -347,25 +346,53 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     if (_activePointerIds.length >= 2) {
                       return;
                     }
-                    final pageLocal = destLocalToPage(details.localPosition);
-                    final normalized = _overlayToNormalizedPoint(
-                      overlayLocal: pageLocal,
-                      destSize: pageSize,
-                    );
-                    if (normalized == null) {
-                      return;
-                    }
-                    if (kDebugMode) {
-                      debugPrint(
-                        '[FreeDraw] panStart local=${details.localPosition} '
-                        'pageLocal=$pageLocal pointers: ${_activePointerIds.length}',
-                      );
-                    }
-                    _debugLastPageLocal = pageLocal;
-                    _handleFreeDrawPointerStart(normalized, pageNumber);
+                    _safeSetState(() {
+                      _pendingDraw = true;
+                      _pendingDrawDownDestLocal = details.localPosition;
+                    });
                   },
                   onPanUpdate: (details) {
                     if (_activePointerIds.length >= 2) {
+                      _safeSetState(() {
+                        _pendingDraw = false;
+                        _pendingDrawDownDestLocal = null;
+                      });
+                      return;
+                    }
+                    final pendingDown = _pendingDrawDownDestLocal;
+                    if (pendingDown == null) {
+                      _safeSetState(() {
+                        _pendingDraw = true;
+                        _pendingDrawDownDestLocal = details.localPosition;
+                      });
+                      return;
+                    }
+                    if (!_isFreeDrawConsumingOneFinger && _pendingDraw) {
+                      final distance =
+                          (details.localPosition - pendingDown).distance;
+                      if (distance < _kDrawStartSlopPx) {
+                        return;
+                      }
+                      final pendingPageLocal = destLocalToPage(pendingDown);
+                      final pendingNormalized = _overlayToNormalizedPoint(
+                        overlayLocal: pendingPageLocal,
+                        destSize: pageSize,
+                      );
+                      if (pendingNormalized == null) {
+                        _safeSetState(() {
+                          _pendingDraw = false;
+                          _pendingDrawDownDestLocal = null;
+                        });
+                        return;
+                      }
+                      _safeSetState(() {
+                        _isFreeDrawConsumingOneFinger = true;
+                        _pendingDraw = false;
+                      });
+                      _debugLastPageLocal = pendingPageLocal;
+                      _handleFreeDrawPointerStart(pendingNormalized, pageNumber);
+                    }
+                    if (!_isFreeDrawConsumingOneFinger) {
                       return;
                     }
                     final pageLocal = destLocalToPage(details.localPosition);
@@ -389,8 +416,24 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       pageSize,
                     );
                   },
-                  onPanEnd: (_) => _handleFreeDrawPointerEnd(pageNumber),
-                  onPanCancel: _handleFreeDrawPanCancel,
+                  onPanEnd: (_) {
+                    if (_isFreeDrawConsumingOneFinger) {
+                      _handleFreeDrawPointerEnd(pageNumber);
+                    }
+                    _safeSetState(() {
+                      _isFreeDrawConsumingOneFinger = false;
+                      _pendingDraw = false;
+                      _pendingDrawDownDestLocal = null;
+                    });
+                  },
+                  onPanCancel: () {
+                    _handleFreeDrawPanCancel();
+                    _safeSetState(() {
+                      _isFreeDrawConsumingOneFinger = false;
+                      _pendingDraw = false;
+                      _pendingDrawDownDestLocal = null;
+                    });
+                  },
                   child: const SizedBox.expand(),
                 ),
               ),
