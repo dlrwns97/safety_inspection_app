@@ -105,6 +105,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isFreeDrawMode = false;
   DrawingTool _activeTool = DrawingTool.pen;
   final Set<int> _activePointerIds = <int>{};
+  final Map<int, PointerDeviceKind> _activePointerKinds =
+      <int, PointerDeviceKind>{};
+  int? _activeStylusPointerId;
   bool _isFreeDrawConsumingOneFinger = false;
   Offset? _pendingDrawDownViewportLocal;
   bool _pendingDraw = false;

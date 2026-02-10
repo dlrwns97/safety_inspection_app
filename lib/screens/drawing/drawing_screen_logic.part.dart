@@ -2,9 +2,20 @@ part of 'drawing_screen.dart';
 
 const double _kMinValidPdfPageSide = 200.0;
 
-typedef ViewportToPageLocal = Offset? Function(Offset viewportLocal);
+typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  bool _isStylusKind(PointerDeviceKind kind) {
+    return kind == PointerDeviceKind.stylus ||
+        kind == PointerDeviceKind.invertedStylus;
+  }
+
+  bool _hasAnyTouchPointer() {
+    return _activePointerKinds.values.any(
+      (kind) => kind == PointerDeviceKind.touch,
+    );
+  }
+
   Matrix4 _buildPhotoViewChildMatrix({
     required PhotoViewControllerValue value,
     required Size viewportSize,
@@ -821,6 +832,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleOverlayPointerDown(PointerDownEvent event) {
     final previousCount = _activePointerIds.length;
     _activePointerIds.add(event.pointer);
+    _activePointerKinds[event.pointer] = event.kind;
     if (!_isFreeDrawMode) {
       if (previousCount != _activePointerIds.length) {
         _safeSetState(() {});
@@ -843,18 +855,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {});
   }
 
-  void _handleOverlayPointerDownWithDrawing(
+  void _handleOverlayPointerDownWithStylusDrawing(
     PointerDownEvent event, {
     required int pageNumber,
     required Size pageSize,
-    required ViewportToPageLocal viewportLocalToPageLocal,
+    required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
     _handleOverlayPointerDown(event);
 
     if (!_isFreeDrawMode) return;
-    // Only consider the first finger
-    if (_activePointerIds.length != 1) return;
+    if (!_isStylusKind(event.kind)) return;
+    if (_hasAnyTouchPointer()) return;
+
+    _activeStylusPointerId = event.pointer;
 
     _safeSetState(() {
       _pendingDraw = true;
@@ -862,17 +876,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  void _handleOverlayPointerMoveWithDrawing(
+  void _handleOverlayPointerMoveWithStylusDrawing(
     PointerMoveEvent event, {
     required int pageNumber,
     required Size pageSize,
-    required ViewportToPageLocal viewportLocalToPageLocal,
+    required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
     if (!_isFreeDrawMode) return;
 
-    // If 2+ pointers, never draw (let PhotoView pinch/pan)
-    if (_activePointerIds.length >= 2) {
+    if (_activeStylusPointerId == null ||
+        event.pointer != _activeStylusPointerId) {
+      return;
+    }
+
+    if (_hasAnyTouchPointer()) {
       if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
         _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
       }
@@ -880,11 +898,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
         _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
       });
       return;
     }
-
-    if (_activePointerIds.length != 1) return;
 
     final pendingDown = _pendingDrawDownViewportLocal;
     if (pendingDown == null) {
@@ -900,11 +917,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final distance = (event.localPosition - pendingDown).distance;
       if (distance < _DrawingScreenState._kDrawStartSlopPx) return;
 
-      final downPageLocal = viewportLocalToPageLocal(pendingDown);
+      final downPageLocal = drawingLocalToPageLocal(pendingDown);
       if (downPageLocal == null) {
         _safeSetState(() {
           _pendingDraw = false;
           _pendingDrawDownViewportLocal = null;
+          _activeStylusPointerId = null;
         });
         return;
       }
@@ -917,6 +935,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _safeSetState(() {
           _pendingDraw = false;
           _pendingDrawDownViewportLocal = null;
+          _activeStylusPointerId = null;
         });
         return;
       }
@@ -931,7 +950,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!_isFreeDrawConsumingOneFinger) return;
 
-    final pageLocal = viewportLocalToPageLocal(event.localPosition);
+    final pageLocal = drawingLocalToPageLocal(event.localPosition);
     if (pageLocal == null) return;
 
     final norm = _overlayToNormalizedPoint(
@@ -949,16 +968,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
-  void _handleOverlayPointerUpOrCancelWithDrawing(
+  void _handleOverlayPointerUpOrCancelWithStylusDrawing(
     PointerEvent event, {
     required int pageNumber,
   }) {
+    final wasStylus = _activeStylusPointerId == event.pointer;
+
     _handleOverlayPointerUpOrCancel(event);
 
     if (!_isFreeDrawMode) return;
 
-    // When last finger lifted, end stroke
-    if (_activePointerIds.isEmpty) {
+    if (wasStylus) {
       if (_isFreeDrawConsumingOneFinger) {
         _handleFreeDrawPointerEnd(pageNumber);
       }
@@ -966,6 +986,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
         _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
       });
     }
   }
@@ -974,6 +995,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final didRemove = _activePointerIds.remove(event.pointer);
     if (!didRemove) {
       return;
+    }
+    _activePointerKinds.remove(event.pointer);
+    if (_activeStylusPointerId == event.pointer) {
+      _activeStylusPointerId = null;
     }
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgress != null) {
