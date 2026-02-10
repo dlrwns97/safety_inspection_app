@@ -105,6 +105,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildStrokePresetPanel() {
     final theme = Theme.of(context);
+    final filteredEntries = _presets.asMap().entries.where((entry) {
+      return switch (_presetGroup) {
+        PresetGroup.pen => entry.value.kind == StrokeToolKind.pen,
+        PresetGroup.highlighter =>
+          entry.value.kind == StrokeToolKind.highlighter,
+      };
+    }).toList();
+
     return Material(
       color: theme.colorScheme.surface.withOpacity(0.96),
       elevation: 3,
@@ -113,59 +121,111 @@ extension _DrawingScreenUi on _DrawingScreenState {
         padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: List<Widget>.generate(_presets.length, (index) {
-            final style = _presets[index];
-            final selected = _activePresetIndex == index;
-            return Padding(
-              padding: EdgeInsets.only(bottom: index == _presets.length - 1 ? 0 : 6),
-              child: GestureDetector(
-                onLongPress: () => _showPresetEditorSheet(index),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => setState(() => _activePresetIndex = index),
-                  child: Container(
-                    width: 54,
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: selected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                        width: selected ? 2 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        if (style.kind == StrokeToolKind.highlighter)
-                          const Icon(Icons.highlight_alt, size: 16),
-                        Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(style.argbColor).withOpacity(style.opacity),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: style.widthPx.clamp(1, 6).toDouble(),
-                          width: 28,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(100),
-                            color: Color(style.argbColor),
-                          ),
-                        ),
-                      ],
-                    ),
+          children: [
+            SizedBox(
+              width: 150,
+              child: SegmentedButton<PresetGroup>(
+                segments: const [
+                  ButtonSegment<PresetGroup>(
+                    value: PresetGroup.pen,
+                    label: Text('펜'),
                   ),
+                  ButtonSegment<PresetGroup>(
+                    value: PresetGroup.highlighter,
+                    label: Text('형광펜'),
+                  ),
+                ],
+                selected: <PresetGroup>{_presetGroup},
+                onSelectionChanged: (selection) {
+                  if (selection.isEmpty) {
+                    return;
+                  }
+                  setState(() => _presetGroup = selection.first);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 68,
+              height: 304,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: filteredEntries.map((entry) {
+                    final index = entry.key;
+                    final style = entry.value;
+                    final selected = _activePresetIndex == index;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: GestureDetector(
+                        onLongPress: () => _showPresetEditorSheet(index),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => setState(() => _activePresetIndex = index),
+                          child: Container(
+                            width: 60,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outlineVariant,
+                                width: selected ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(_iconForVariant(style.variant), size: 16),
+                                const SizedBox(height: 4),
+                                Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(style.argbColor).withOpacity(
+                                      style.opacity,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  height: style.widthPx.clamp(1, 6).toDouble(),
+                                  width: 28,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    color: Color(style.argbColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-            );
-          }),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  IconData _iconForVariant(PenVariant variant) {
+    return switch (variant) {
+      PenVariant.ballpoint => Icons.edit,
+      PenVariant.fountain => Icons.create,
+      PenVariant.pencil => Icons.draw,
+      PenVariant.marker => Icons.brush,
+      PenVariant.calligraphy => Icons.gesture,
+      PenVariant.highlighterSoft => Icons.highlight,
+      PenVariant.highlighterChisel => Icons.highlight_alt,
+    };
   }
 
   Future<void> _showPresetEditorSheet(int index) async {

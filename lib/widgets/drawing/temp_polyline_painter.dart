@@ -41,17 +41,50 @@ class TempPolylinePainter extends CustomPainter {
     }
 
     final style = stroke.style;
+    var resolvedOpacity = style.opacity;
+    var resolvedStrokeWidth = style.widthPx;
+    var resolvedStrokeCap = StrokeCap.round;
+    var resolvedStrokeJoin = StrokeJoin.round;
+    var resolvedBlendMode = switch (style.kind) {
+      StrokeToolKind.highlighter => BlendMode.multiply,
+      StrokeToolKind.eraser => BlendMode.clear,
+      StrokeToolKind.pen => BlendMode.srcOver,
+    };
+
+    switch (style.variant) {
+      case PenVariant.pencil:
+        resolvedOpacity *= 0.8;
+        break;
+      case PenVariant.fountain:
+        resolvedStrokeWidth *= 1.15;
+        break;
+      case PenVariant.marker:
+        resolvedStrokeWidth *= 1.10;
+        resolvedOpacity *= 0.98;
+        break;
+      case PenVariant.calligraphy:
+        resolvedStrokeCap = StrokeCap.square;
+        resolvedStrokeJoin = StrokeJoin.bevel;
+        break;
+      case PenVariant.highlighterSoft:
+        resolvedBlendMode = BlendMode.multiply;
+        break;
+      case PenVariant.highlighterChisel:
+        resolvedStrokeCap = StrokeCap.square;
+        resolvedStrokeJoin = StrokeJoin.bevel;
+        resolvedBlendMode = BlendMode.multiply;
+        break;
+      case PenVariant.ballpoint:
+        break;
+    }
+
     final paint = Paint()
-      ..color = Color(style.argbColor).withOpacity(style.opacity)
-      ..strokeWidth = style.widthPx
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
+      ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
+      ..strokeWidth = resolvedStrokeWidth
+      ..strokeCap = resolvedStrokeCap
+      ..strokeJoin = resolvedStrokeJoin
       ..style = PaintingStyle.stroke
-      ..blendMode = switch (style.kind) {
-        StrokeToolKind.highlighter => BlendMode.multiply,
-        StrokeToolKind.eraser => BlendMode.clear,
-        StrokeToolKind.pen => BlendMode.srcOver,
-      };
+      ..blendMode = resolvedBlendMode;
 
     Offset toPageLocal(Offset normPoint) {
       return Offset(normPoint.dx * pageSize.width, normPoint.dy * pageSize.height);

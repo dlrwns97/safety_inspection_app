@@ -49,6 +49,8 @@ part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
+enum PresetGroup { pen, highlighter }
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -117,30 +119,98 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
   int _activePresetIndex = 0;
+  PresetGroup _presetGroup = PresetGroup.pen;
   late final List<StrokeStyle> _presets = <StrokeStyle>[
     const StrokeStyle(
       kind: StrokeToolKind.pen,
+      variant: PenVariant.ballpoint,
       widthPx: 3.0,
       argbColor: 0xFF000000,
       opacity: 1.0,
     ),
     const StrokeStyle(
       kind: StrokeToolKind.pen,
-      widthPx: 6.0,
+      variant: PenVariant.fountain,
+      widthPx: 4.0,
+      argbColor: 0xFF000000,
+      opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.pencil,
+      widthPx: 3.0,
+      argbColor: 0xFF424242,
+      opacity: 0.75,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.marker,
+      widthPx: 7.0,
+      argbColor: 0xFF000000,
+      opacity: 0.95,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.calligraphy,
+      widthPx: 3.0,
+      argbColor: 0xFF00796B,
+      opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.ballpoint,
+      widthPx: 3.0,
+      argbColor: 0xFF1E88E5,
+      opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.ballpoint,
+      widthPx: 3.0,
       argbColor: 0xFFE53935,
       opacity: 1.0,
     ),
     const StrokeStyle(
       kind: StrokeToolKind.highlighter,
+      variant: PenVariant.highlighterSoft,
       widthPx: 14.0,
       argbColor: 0xFFFFEB3B,
       opacity: 0.35,
     ),
     const StrokeStyle(
+      kind: StrokeToolKind.highlighter,
+      variant: PenVariant.highlighterSoft,
+      widthPx: 14.0,
+      argbColor: 0xFF66BB6A,
+      opacity: 0.3,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.highlighter,
+      variant: PenVariant.highlighterChisel,
+      widthPx: 16.0,
+      argbColor: 0xFFFFC107,
+      opacity: 0.28,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.highlighter,
+      variant: PenVariant.highlighterChisel,
+      widthPx: 18.0,
+      argbColor: 0xFFF06292,
+      opacity: 0.28,
+    ),
+    const StrokeStyle(
       kind: StrokeToolKind.pen,
-      widthPx: 3.0,
-      argbColor: 0xFF1E88E5,
+      variant: PenVariant.fountain,
+      widthPx: 5.0,
+      argbColor: 0xFF5E35B1,
       opacity: 1.0,
+    ),
+    const StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: PenVariant.pencil,
+      widthPx: 5.0,
+      argbColor: 0xFF6D4C41,
+      opacity: 0.7,
     ),
   ];
   Offset? _debugLastPageLocal;
