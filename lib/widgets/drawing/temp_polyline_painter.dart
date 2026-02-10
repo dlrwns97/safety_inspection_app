@@ -57,38 +57,15 @@ class TempPolylinePainter extends CustomPainter {
   }
 
   void _drawPenStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {
+    final resolvedOpacity = _resolvedPenOpacity(style);
+
     if (points.length == 1) {
       final paint = Paint()
         ..style = PaintingStyle.fill
-        ..color = Color(style.argbColor).withOpacity(style.opacity.clamp(0.0, 1.0))
+        ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
         ..blendMode = BlendMode.srcOver;
       canvas.drawCircle(points.first, style.widthPx / 2, paint);
       return;
-    }
-
-    var resolvedOpacity = style.opacity;
-    var resolvedStrokeWidth = style.widthPx;
-    switch (style.variant) {
-      case PenVariant.pen:
-        break;
-      case PenVariant.fountainPen:
-        resolvedStrokeWidth *= 1.15;
-        break;
-      case PenVariant.calligraphyPen:
-        resolvedStrokeWidth *= 1.1;
-        break;
-      case PenVariant.pencil:
-        resolvedOpacity *= 0.75;
-        resolvedStrokeWidth *= 0.9;
-        break;
-      case PenVariant.brush:
-        resolvedStrokeWidth *= 1.25;
-        break;
-      case PenVariant.highlighter:
-      case PenVariant.highlighterChisel:
-      case PenVariant.marker:
-      case PenVariant.markerChisel:
-        break;
     }
 
     final strokeInput = points
@@ -97,15 +74,7 @@ class TempPolylinePainter extends CustomPainter {
 
     final outline = getStroke(
       strokeInput,
-      options: StrokeOptions(
-        size: resolvedStrokeWidth,
-        thinning: 0.7,
-        smoothing: 0.5,
-        streamline: 0.5,
-        simulatePressure: true,
-        start: StrokeEndOptions.start(cap: true),
-        end: StrokeEndOptions.end(cap: true),
-      ),
+      options: _optionsForPen(style),
     );
 
     if (outline.isEmpty) {
@@ -119,6 +88,73 @@ class TempPolylinePainter extends CustomPainter {
       ..blendMode = BlendMode.srcOver;
 
     canvas.drawPath(fillPath, paint);
+  }
+
+  StrokeOptions _optionsForPen(StrokeStyle style) {
+    final size = style.widthPx;
+
+    switch (style.variant) {
+      case PenVariant.fountainPen:
+        return StrokeOptions(
+          size: size,
+          thinning: 0.55,
+          smoothing: 0.75,
+          streamline: 0.70,
+          simulatePressure: true,
+          start: StrokeEndOptions.start(cap: true),
+          end: StrokeEndOptions.end(cap: true),
+        );
+      case PenVariant.calligraphyPen:
+        return StrokeOptions(
+          size: size,
+          thinning: 0.75,
+          smoothing: 0.55,
+          streamline: 0.60,
+          simulatePressure: true,
+          start: StrokeEndOptions.start(cap: true),
+          end: StrokeEndOptions.end(cap: true),
+        );
+      case PenVariant.pencil:
+        return StrokeOptions(
+          size: size * 0.95,
+          thinning: 0.35,
+          smoothing: 0.40,
+          streamline: 0.35,
+          simulatePressure: true,
+          start: StrokeEndOptions.start(cap: true),
+          end: StrokeEndOptions.end(cap: true),
+        );
+      case PenVariant.brush:
+        return StrokeOptions(
+          size: size * 1.15,
+          thinning: 0.85,
+          smoothing: 0.85,
+          streamline: 0.80,
+          simulatePressure: true,
+          start: StrokeEndOptions.start(cap: true),
+          end: StrokeEndOptions.end(cap: true),
+        );
+      case PenVariant.pen:
+      default:
+        return StrokeOptions(
+          size: size,
+          thinning: 0.60,
+          smoothing: 0.65,
+          streamline: 0.60,
+          simulatePressure: true,
+          start: StrokeEndOptions.start(cap: true),
+          end: StrokeEndOptions.end(cap: true),
+        );
+    }
+  }
+
+  double _resolvedPenOpacity(StrokeStyle style) {
+    var resolvedOpacity = style.opacity;
+    if (style.variant == PenVariant.pencil) {
+      resolvedOpacity *= 0.75;
+      resolvedOpacity *= 0.70;
+    }
+    return resolvedOpacity;
   }
 
   Path _outlineToPath(List<Offset> outline) {
