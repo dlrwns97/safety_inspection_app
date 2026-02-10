@@ -116,6 +116,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildStrokePresetPanel() {
     final theme = Theme.of(context);
+    final screenW = MediaQuery.of(context).size.width;
+    final panelMaxW = screenW * 0.52;
+    final panelMinW = screenW * 0.34;
     final toolIndexes = <int>[0, 1, 4, 5];
 
     Widget panelButton({
@@ -158,46 +161,57 @@ extension _DrawingScreenUi on _DrawingScreenState {
       );
     }
 
-    final style = _activeStrokeStyle;
+    final style = _activeStrokeStyleOrFallback;
+    final hasActiveTool = _activeStrokeStyle != null;
     final showOpacity = style.kind == StrokeToolKind.highlighter;
     final colorRow = <int>[
       ..._standardPaletteArgb.take(8),
       ..._recentArgb.take(2),
     ];
 
-    return Material(
-      elevation: 4,
-      color: theme.colorScheme.surface.withOpacity(0.98),
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                for (final index in toolIndexes) ...[
-                  panelButton(
-                    icon: _iconForVariant(_presets[index].variant),
-                    selected: _activePresetIndex == index,
-                    tooltip: _labelForVariant(_presets[index].variant),
-                    onTap: () => _safeSetState(() => _activePresetIndex = index),
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: panelMaxW, minWidth: panelMinW),
+      child: Material(
+        elevation: 4,
+        color: theme.colorScheme.surface.withOpacity(0.98),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final index in toolIndexes) ...[
+                            panelButton(
+                              icon: _iconForVariant(_presets[index].variant),
+                              selected: _activePresetIndex == index,
+                              tooltip: _labelForVariant(_presets[index].variant),
+                              onTap: () => _toggleActivePreset(index),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _setToolPanelOpen(false),
+                    icon: const Icon(Icons.close),
+                    tooltip: '닫기',
+                  ),
                 ],
-                const Spacer(),
-                IconButton(
-                  onPressed: () => _setToolPanelOpen(false),
-                  icon: const Icon(Icons.close),
-                  tooltip: '닫기',
-                ),
-              ],
-            ),
+              ),
             const SizedBox(height: 8),
             Row(
               children: [
                 IconButton(
-                  onPressed: style.widthPx <= 1
+                  onPressed: !hasActiveTool || style.widthPx <= 1
                       ? null
                       : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx - 1).clamp(1, 48).toDouble())),
                   icon: const Icon(Icons.remove),
@@ -209,11 +223,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     max: 48,
                     divisions: 47,
                     label: style.widthPx.round().toString(),
-                    onChanged: (v) => _updateActivePreset(style.copyWith(widthPx: v)),
+                    onChanged: hasActiveTool
+                        ? (v) => _updateActivePreset(style.copyWith(widthPx: v))
+                        : null,
                   ),
                 ),
                 IconButton(
-                  onPressed: style.widthPx >= 48
+                  onPressed: !hasActiveTool || style.widthPx >= 48
                       ? null
                       : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx + 1).clamp(1, 48).toDouble())),
                   icon: const Icon(Icons.add),
@@ -230,7 +246,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       value: style.opacity.clamp(0.05, 1.0),
                       min: 0.05,
                       max: 1.0,
-                      onChanged: (v) => _updateActivePreset(style.copyWith(opacity: v)),
+                      onChanged: hasActiveTool
+                          ? (v) =>
+                              _updateActivePreset(style.copyWith(opacity: v))
+                          : null,
                     ),
                   ),
                   SizedBox(
@@ -242,27 +261,40 @@ extension _DrawingScreenUi on _DrawingScreenState {
             const SizedBox(height: 8),
             Row(
               children: [
-                for (final argb in colorRow)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _colorCircle(
-                      argb,
-                      selected: style.argbColor == argb,
-                      onTap: () {
-                        _updateActivePreset(style.copyWith(argbColor: argb));
-                        _pushRecentColor(argb);
-                      },
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final argb in colorRow)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _colorCircle(
+                              argb,
+                              selected: style.argbColor == argb,
+                              onTap: !hasActiveTool
+                                  ? () {}
+                                  : () {
+                                      _updateActivePreset(
+                                        style.copyWith(argbColor: argb),
+                                      );
+                                      _pushRecentColor(argb);
+                                    },
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                const Spacer(),
+                ),
                 IconButton(
-                  onPressed: _openColorDialog,
+                  onPressed: hasActiveTool ? _openColorDialog : null,
                   icon: const Icon(Icons.colorize),
                   tooltip: '색상 선택',
                 ),
               ],
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -313,7 +345,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }
 
   Future<void> _openColorDialog() async {
-    final style = _activeStrokeStyle;
+    final style = _activeStrokeStyleOrFallback;
     Color selected = Color(style.argbColor);
     double opacity = style.opacity;
     HSVColor hsv = HSVColor.fromColor(selected.withOpacity(1));
@@ -449,7 +481,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           child: FilledButton(
                             onPressed: () {
                               final argb = selected.value;
-                              final base = _activeStrokeStyle;
+                              final base = _activeStrokeStyleOrFallback;
                               var next = base.copyWith(argbColor: argb);
                               if (base.kind == StrokeToolKind.highlighter) {
                                 next = next.copyWith(opacity: opacity);
