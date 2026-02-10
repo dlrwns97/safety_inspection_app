@@ -138,14 +138,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool isOneFingerDrawingPhase =
-        _isFreeDrawMode &&
-        !isTwoFinger &&
-        (_pendingDraw || _isFreeDrawConsumingOneFinger);
-    final bool allowPdfGestures =
-        !_isFreeDrawMode || isTwoFinger || !isOneFingerDrawingPhase;
-    final bool enablePdfPanGestures = allowPdfGestures;
-    final bool enablePdfScaleGestures = allowPdfGestures;
+    final bool enablePdfPanGestures = true;
+    final bool enablePdfScaleGestures = true;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
@@ -253,11 +247,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return (s == null || s <= 0) ? 1.0 : s;
     }
 
-    final bool isOneFingerDrawingPhase =
-        _isFreeDrawMode &&
-        _activePointerIds.length == 1 &&
-        (_pendingDraw || _isFreeDrawConsumingOneFinger);
-
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
@@ -348,29 +337,35 @@ extension _DrawingScreenUi on _DrawingScreenState {
             ),
             Positioned.fill(
               child: Listener(
-                behavior: isOneFingerDrawingPhase
+                behavior: (_isFreeDrawMode &&
+                        _activeStylusPointerId != null &&
+                        !_hasAnyTouchPointer() &&
+                        (_pendingDraw || _isFreeDrawConsumingOneFinger))
                     ? HitTestBehavior.opaque
                     : HitTestBehavior.translucent,
-                onPointerDown: (e) => _handleOverlayPointerDownWithDrawing(
+                onPointerDown:
+                    (e) => _handleOverlayPointerDownWithStylusDrawing(
                   e,
                   pageNumber: pageNumber,
                   pageSize: pageSize,
-                  viewportLocalToPageLocal: drawingLocalToPageLocal,
+                  drawingLocalToPageLocal: drawingLocalToPageLocal,
                   photoScale: currentPhotoScale(),
                 ),
-                onPointerMove: (e) => _handleOverlayPointerMoveWithDrawing(
+                onPointerMove:
+                    (e) => _handleOverlayPointerMoveWithStylusDrawing(
                   e,
                   pageNumber: pageNumber,
                   pageSize: pageSize,
-                  viewportLocalToPageLocal: drawingLocalToPageLocal,
+                  drawingLocalToPageLocal: drawingLocalToPageLocal,
                   photoScale: currentPhotoScale(),
                 ),
-                onPointerUp: (e) => _handleOverlayPointerUpOrCancelWithDrawing(
+                onPointerUp:
+                    (e) => _handleOverlayPointerUpOrCancelWithStylusDrawing(
                   e,
                   pageNumber: pageNumber,
                 ),
                 onPointerCancel: (e) =>
-                    _handleOverlayPointerUpOrCancelWithDrawing(
+                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
                       e,
                       pageNumber: pageNumber,
                     ),
