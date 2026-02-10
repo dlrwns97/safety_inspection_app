@@ -48,8 +48,8 @@ class MarkerSidePanel extends StatelessWidget {
   final int currentPage;
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
-  final DefectCategory selectedDefectCategory;
-  final EquipmentCategory selectedEquipmentCategory;
+  final DefectCategory? selectedDefectCategory;
+  final EquipmentCategory? selectedEquipmentCategory;
   final Defect? selectedDefect;
   final EquipmentMarker? selectedEquipment;
   final ValueChanged<Defect> onSelectDefect;
@@ -122,23 +122,29 @@ class MarkerSidePanel extends StatelessWidget {
       ),
     );
     final isDefectVisible =
+        selectedDefectCategory != null &&
         visibleDefectCategories.contains(selectedDefectCategory);
     final filteredDefects = defects
         .where(
           (defect) =>
               defect.pageIndex == currentPage &&
+              selectedDefectCategory != null &&
               defect.category == selectedDefectCategory &&
               visibleDefectCategories.contains(defect.category),
         )
         .toList();
     final isEquipmentVisible =
+        selectedEquipmentCategory != null &&
         visibleEquipmentCategories.contains(selectedEquipmentCategory);
     final selectedEquipmentLabel =
-        equipmentChipLabel(selectedEquipmentCategory);
+        selectedEquipmentCategory == null
+            ? null
+            : equipmentChipLabel(selectedEquipmentCategory);
     final filteredEquipment = equipmentMarkers
         .where(
           (marker) =>
               marker.pageIndex == currentPage &&
+              selectedEquipmentCategory != null &&
               marker.category == selectedEquipmentCategory &&
               visibleEquipmentCategories.contains(marker.category),
         )
@@ -183,10 +189,10 @@ class MarkerSidePanel extends StatelessWidget {
                 onSelected: onDefectCategorySelected,
               ),
               defectInfoBanner:
-                  !isDefectVisible
+                  selectedDefectCategory != null && !isDefectVisible
                       ? MarkerInfoBanner(
                         message:
-                            "보기 탭에서 '${selectedDefectCategory.label}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+                            "보기 탭에서 '${selectedDefectCategory?.label ?? '결함'}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
                       )
                       : null,
               defectItems: filteredDefects,
@@ -205,10 +211,10 @@ class MarkerSidePanel extends StatelessWidget {
                 onSelected: onEquipmentCategorySelected,
               ),
               equipmentInfoBanner:
-                  !isEquipmentVisible
+                  selectedEquipmentCategory != null && !isEquipmentVisible
                       ? MarkerInfoBanner(
                         message:
-                            "보기 탭에서 '$selectedEquipmentLabel' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+                            "보기 탭에서 '${selectedEquipmentLabel ?? '장비'}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
                       )
                       : null,
               equipmentItems: filteredEquipment,

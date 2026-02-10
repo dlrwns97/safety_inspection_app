@@ -1160,12 +1160,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _toggleMode(DrawMode nextMode) {
+    final previousMode = _mode;
     final toggledMode = _controller.toggleMode(_mode, nextMode);
     final enableFreeDraw =
         toggledMode == DrawMode.freeDraw || toggledMode == DrawMode.eraser;
     _safeSetState(() {
       _mode = toggledMode;
       _isFreeDrawMode = enableFreeDraw;
+      if (previousMode == DrawMode.defect && toggledMode == DrawMode.hand) {
+        _activeCategory = null;
+        _sidePanelDefectCategory = null;
+      }
+      if (previousMode == DrawMode.equipment && toggledMode == DrawMode.hand) {
+        _activeEquipmentCategory = null;
+        _sidePanelEquipmentCategory = null;
+      }
       if (_isFreeDrawMode) {
         _activeTool = toggledMode == DrawMode.eraser
             ? DrawingTool.eraser
