@@ -155,10 +155,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     final index = entry.key;
                     final style = entry.value;
                     final selected = _activePresetIndex == index;
+                    final editing = _editingPresetIndex == index;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: GestureDetector(
-                        onLongPress: () => _showPresetEditorSheet(index),
+                        onLongPress: () => _openPresetEditor(context, index),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),
                           onTap: () => setState(() => _activePresetIndex = index),
@@ -173,8 +174,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               border: Border.all(
                                 color: selected
                                     ? theme.colorScheme.primary
+                                    : editing
+                                    ? theme.colorScheme.secondary
                                     : theme.colorScheme.outlineVariant,
-                                width: selected ? 2 : 1,
+                                width: selected || editing ? 2 : 1,
                               ),
                             ),
                             child: Column(
@@ -244,93 +247,108 @@ extension _DrawingScreenUi on _DrawingScreenState {
     };
   }
 
-  Future<void> _showPresetEditorSheet(int index) async {
-    StrokeStyle draft = _presets[index];
-    final selected = await showModalBottomSheet<StrokeStyle>(
+  void _openPresetEditor(BuildContext context, int presetIndex) {
+    _safeSetState(() => _editingPresetIndex = presetIndex);
+    showModalBottomSheet<void>(
       context: context,
+      showDragHandle: true,
       isScrollControlled: true,
-      builder: (sheetContext) {
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            const palette = <int>[
-              0xFF000000,
-              0xFFE53935,
-              0xFF1E88E5,
-              0xFF43A047,
-              0xFFFFEB3B,
-              0xFFFB8C00,
-            ];
+          builder: (ctx, setSheetState) {
+            final style = _presets[presetIndex];
+
+            void apply(StrokeStyle next) {
+              _updatePreset(presetIndex, next);
+              setSheetState(() {});
+            }
+
             return SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                  bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  20 + MediaQuery.of(ctx).viewInsets.bottom,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _labelForVariant(draft.variant),
-                      style: Theme.of(context).textTheme.titleMedium,
+                      _labelForVariant(style.variant),
+                      style: Theme.of(ctx).textTheme.titleMedium,
                     ),
+                    const SizedBox(height: 12),
+                    Text('굵기', style: Theme.of(ctx).textTheme.labelLarge),
                     Slider(
-                      min: 1,
-                      max: 24,
-                      value: draft.widthPx.clamp(1, 24).toDouble(),
-                      label: '두께 ${draft.widthPx.toStringAsFixed(1)}',
-                      onChanged: (v) => setModalState(() => draft = draft.copyWith(widthPx: v)),
+                      value: style.widthPx.clamp(1.0, 48.0),
+                      min: 1.0,
+                      max: 48.0,
+                      divisions: 47,
+                      label: style.widthPx.toStringAsFixed(0),
+                      onChanged: (v) => apply(style.copyWith(widthPx: v)),
                     ),
-                    Slider(
-                      min: 0.1,
-                      max: 1.0,
-                      value: draft.opacity.clamp(0.1, 1.0).toDouble(),
-                      label: '불투명도 ${draft.opacity.toStringAsFixed(2)}',
-                      onChanged: (v) => setModalState(() => draft = draft.copyWith(opacity: v)),
-                    ),
+                    if (style.kind == StrokeToolKind.highlighter) ...[
+                      const SizedBox(height: 8),
+                      Text('투명도', style: Theme.of(ctx).textTheme.labelLarge),
+                      Slider(
+                        value: style.opacity.clamp(0.05, 1.0),
+                        min: 0.05,
+                        max: 1.0,
+                        divisions: 19,
+                        label: style.opacity.toStringAsFixed(2),
+                        onChanged: (v) => apply(style.copyWith(opacity: v)),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text('색상', style: Theme.of(ctx).textTheme.labelLarge),
+                    const SizedBox(height: 8),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
-                        ...palette.map(
-                          (color) => GestureDetector(
-                            onTap: () => setModalState(() => draft = draft.copyWith(argbColor: color)),
+                        for (final argb in _paletteArgb)
+                          GestureDetector(
+                            onTap: () => apply(style.copyWith(argbColor: argb)),
                             child: Container(
                               width: 28,
                               height: 28,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(color),
+                                color: Color(argb),
                                 border: Border.all(
-                                  color: draft.argbColor == color
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.transparent,
-                                  width: 2,
+                                  width: style.argbColor == argb ? 3 : 1,
+                                  color: Theme.of(ctx).colorScheme.outline,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final color = await _showCustomColorPickerDialog(draft.argbColor);
-                            if (color == null) return;
-                            setModalState(() => draft = draft.copyWith(argbColor: color));
+                        GestureDetector(
+                          onTap: () async {
+                            final color = await _showCustomColorPickerDialog(
+                              style.argbColor,
+                            );
+                            if (color == null) {
+                              return;
+                            }
+                            apply(style.copyWith(argbColor: color));
                           },
-                          child: const Text('커스텀'),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(ctx).colorScheme.outline,
+                              ),
+                            ),
+                            child: const Icon(Icons.colorize, size: 16),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(draft),
-                        child: const Text('적용'),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -338,11 +356,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
           },
         );
       },
-    );
-    if (selected == null) {
-      return;
-    }
-    setState(() => _presets[index] = selected);
+    ).whenComplete(() {
+      _safeSetState(() => _editingPresetIndex = null);
+    });
   }
 
   Future<int?> _showCustomColorPickerDialog(int initialColor) async {
