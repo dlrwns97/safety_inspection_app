@@ -106,7 +106,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   DrawingTool _activeTool = DrawingTool.pen;
   final Set<int> _activePointerIds = <int>{};
   bool _isFreeDrawConsumingOneFinger = false;
-  Offset? _pendingDrawDownDestLocal;
+  Offset? _pendingDrawDownViewportLocal;
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
