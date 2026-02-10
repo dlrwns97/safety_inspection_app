@@ -216,7 +216,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     required Key pageContentKey,
   }) {
     final tapKey = _pdfTapRegionKeyForPage(pageNumber);
-    final bool enablePageLocalDrawing = _isFreeDrawMode;
     final Size overlaySize = renderSize;
     final FittedSizes fitted = applyBoxFit(
       BoxFit.contain,
@@ -348,139 +347,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ),
             ),
             Positioned.fill(
-              child: IgnorePointer(
-                ignoring:
-                    !enablePageLocalDrawing || _activePointerIds.length >= 2,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (details) {
-                    if (_activePointerIds.length >= 2) {
-                      return;
-                    }
-                    _safeSetState(() {
-                      _pendingDraw = true;
-                      _pendingDrawDownViewportLocal = details.localPosition;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    if (_activePointerIds.length >= 2) {
-                      _safeSetState(() {
-                        _pendingDraw = false;
-                        _pendingDrawDownViewportLocal = null;
-                      });
-                      return;
-                    }
-
-                    final pendingDown = _pendingDrawDownViewportLocal;
-                    if (pendingDown == null) {
-                      _safeSetState(() {
-                        _pendingDraw = true;
-                        _pendingDrawDownViewportLocal = details.localPosition;
-                      });
-                      return;
-                    }
-
-                    final slop = _DrawingScreenState._kDrawStartSlopPx;
-                    if (!_isFreeDrawConsumingOneFinger && _pendingDraw) {
-                      final distance =
-                          (details.localPosition - pendingDown).distance;
-                      if (distance < slop) {
-                        return;
-                      }
-
-                      final pendingPageLocal = viewportLocalToPageLocal(
-                        pendingDown,
-                      );
-                      if (pendingPageLocal == null) {
-                        _safeSetState(() {
-                          _pendingDraw = false;
-                          _pendingDrawDownViewportLocal = null;
-                        });
-                        return;
-                      }
-
-                      final pendingNormalized = _overlayToNormalizedPoint(
-                        overlayLocal: pendingPageLocal,
-                        destSize: pageSize,
-                      );
-                      if (pendingNormalized == null) {
-                        _safeSetState(() {
-                          _pendingDraw = false;
-                          _pendingDrawDownViewportLocal = null;
-                        });
-                        return;
-                      }
-
-                      _safeSetState(() {
-                        _isFreeDrawConsumingOneFinger = true;
-                        _pendingDraw = false;
-                      });
-                      _debugLastPageLocal = pendingPageLocal;
-                      _handleFreeDrawPointerStart(pendingNormalized, pageNumber);
-                    }
-
-                    if (!_isFreeDrawConsumingOneFinger) {
-                      return;
-                    }
-
-                    final pageLocal = viewportLocalToPageLocal(
-                      details.localPosition,
-                    );
-                    if (pageLocal == null) {
-                      return;
-                    }
-
-                    final normalized = _overlayToNormalizedPoint(
-                      overlayLocal: pageLocal,
-                      destSize: pageSize,
-                    );
-                    if (normalized == null) {
-                      return;
-                    }
-
-                    if (kDebugMode) {
-                      debugPrint(
-                        '[FreeDraw] panUpdate viewport=${details.localPosition} '
-                        'pageLocal=$pageLocal pointers: ${_activePointerIds.length}',
-                      );
-                    }
-                    _debugLastPageLocal = pageLocal;
-
-                    _handleFreeDrawPointerUpdate(
-                      normalized,
-                      pageNumber,
-                      pageSize,
-                      photoScale: currentPhotoScale(),
-                    );
-                  },
-                  onPanEnd: (_) {
-                    if (_isFreeDrawConsumingOneFinger) {
-                      _handleFreeDrawPointerEnd(pageNumber);
-                    }
-                    _safeSetState(() {
-                      _isFreeDrawConsumingOneFinger = false;
-                      _pendingDraw = false;
-                      _pendingDrawDownViewportLocal = null;
-                    });
-                  },
-                  onPanCancel: () {
-                    _handleFreeDrawPanCancel();
-                    _safeSetState(() {
-                      _isFreeDrawConsumingOneFinger = false;
-                      _pendingDraw = false;
-                      _pendingDrawDownViewportLocal = null;
-                    });
-                  },
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ),
-            Positioned.fill(
               child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _handleOverlayPointerDown,
-                onPointerUp: _handleOverlayPointerUpOrCancel,
-                onPointerCancel: _handleOverlayPointerUpOrCancel,
+                behavior: (_isFreeDrawMode && _activePointerIds.length == 1)
+                    ? HitTestBehavior.opaque
+                    : HitTestBehavior.translucent,
+                onPointerDown: (e) => _handleOverlayPointerDownWithDrawing(
+                  e,
+                  pageNumber: pageNumber,
+                  pageSize: pageSize,
+                  viewportLocalToPageLocal: viewportLocalToPageLocal,
+                  photoScale: currentPhotoScale(),
+                ),
+                onPointerMove: (e) => _handleOverlayPointerMoveWithDrawing(
+                  e,
+                  pageNumber: pageNumber,
+                  pageSize: pageSize,
+                  viewportLocalToPageLocal: viewportLocalToPageLocal,
+                  photoScale: currentPhotoScale(),
+                ),
+                onPointerUp: (e) => _handleOverlayPointerUpOrCancelWithDrawing(
+                  e,
+                  pageNumber: pageNumber,
+                ),
+                onPointerCancel: (e) =>
+                    _handleOverlayPointerUpOrCancelWithDrawing(
+                      e,
+                      pageNumber: pageNumber,
+                    ),
               ),
             ),
           ],

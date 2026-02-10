@@ -2,6 +2,8 @@ part of 'drawing_screen.dart';
 
 const double _kMinValidPdfPageSide = 200.0;
 
+typedef ViewportToPageLocal = Offset? Function(Offset viewportLocal);
+
 extension _DrawingScreenLogic on _DrawingScreenState {
   Matrix4 _buildPhotoViewChildMatrix({
     required PhotoViewControllerValue value,
@@ -841,6 +843,133 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {});
   }
 
+  void _handleOverlayPointerDownWithDrawing(
+    PointerDownEvent event, {
+    required int pageNumber,
+    required Size pageSize,
+    required ViewportToPageLocal viewportLocalToPageLocal,
+    required double photoScale,
+  }) {
+    _handleOverlayPointerDown(event);
+
+    if (!_isFreeDrawMode) return;
+    // Only consider the first finger
+    if (_activePointerIds.length != 1) return;
+
+    _safeSetState(() {
+      _pendingDraw = true;
+      _pendingDrawDownViewportLocal = event.localPosition;
+    });
+  }
+
+  void _handleOverlayPointerMoveWithDrawing(
+    PointerMoveEvent event, {
+    required int pageNumber,
+    required Size pageSize,
+    required ViewportToPageLocal viewportLocalToPageLocal,
+    required double photoScale,
+  }) {
+    if (!_isFreeDrawMode) return;
+
+    // If 2+ pointers, never draw (let PhotoView pinch/pan)
+    if (_activePointerIds.length >= 2) {
+      if (_isFreeDrawConsumingOneFinger && _inProgress != null) {
+        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      }
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+      });
+      return;
+    }
+
+    if (_activePointerIds.length != 1) return;
+
+    final pendingDown = _pendingDrawDownViewportLocal;
+    if (pendingDown == null) {
+      _safeSetState(() {
+        _pendingDraw = true;
+        _pendingDrawDownViewportLocal = event.localPosition;
+      });
+      return;
+    }
+
+    // Start consuming after slop
+    if (!_isFreeDrawConsumingOneFinger && _pendingDraw) {
+      final distance = (event.localPosition - pendingDown).distance;
+      if (distance < _DrawingScreenState._kDrawStartSlopPx) return;
+
+      final downPageLocal = viewportLocalToPageLocal(pendingDown);
+      if (downPageLocal == null) {
+        _safeSetState(() {
+          _pendingDraw = false;
+          _pendingDrawDownViewportLocal = null;
+        });
+        return;
+      }
+
+      final downNorm = _overlayToNormalizedPoint(
+        overlayLocal: downPageLocal,
+        destSize: pageSize,
+      );
+      if (downNorm == null) {
+        _safeSetState(() {
+          _pendingDraw = false;
+          _pendingDrawDownViewportLocal = null;
+        });
+        return;
+      }
+
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = true;
+        _pendingDraw = false;
+      });
+      _debugLastPageLocal = downPageLocal;
+      _handleFreeDrawPointerStart(downNorm, pageNumber);
+    }
+
+    if (!_isFreeDrawConsumingOneFinger) return;
+
+    final pageLocal = viewportLocalToPageLocal(event.localPosition);
+    if (pageLocal == null) return;
+
+    final norm = _overlayToNormalizedPoint(
+      overlayLocal: pageLocal,
+      destSize: pageSize,
+    );
+    if (norm == null) return;
+
+    _debugLastPageLocal = pageLocal;
+    _handleFreeDrawPointerUpdate(
+      norm,
+      pageNumber,
+      pageSize,
+      photoScale: photoScale,
+    );
+  }
+
+  void _handleOverlayPointerUpOrCancelWithDrawing(
+    PointerEvent event, {
+    required int pageNumber,
+  }) {
+    _handleOverlayPointerUpOrCancel(event);
+
+    if (!_isFreeDrawMode) return;
+
+    // When last finger lifted, end stroke
+    if (_activePointerIds.isEmpty) {
+      if (_isFreeDrawConsumingOneFinger) {
+        _handleFreeDrawPointerEnd(pageNumber);
+      }
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+      });
+    }
+  }
+
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
     final didRemove = _activePointerIds.remove(event.pointer);
     if (!didRemove) {
@@ -917,20 +1046,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _debugLastPageLocal = null;
       _inProgress = null;
       _inProgressPage = null;
-    });
-  }
-
-  void _handleFreeDrawPanCancel() {
-    if (_inProgress == null) {
-      return;
-    }
-    _safeSetState(() {
-      _debugLastPageLocal = null;
-      _inProgress = null;
-      _inProgressPage = null;
-      _isFreeDrawConsumingOneFinger = false;
-      _pendingDraw = false;
-      _pendingDrawDownViewportLocal = null;
     });
   }
 
