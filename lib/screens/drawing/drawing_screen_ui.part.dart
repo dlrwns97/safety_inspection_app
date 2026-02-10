@@ -138,12 +138,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool stylusActiveNoTouch =
-        _isFreeDrawMode &&
-        _activeStylusPointerId != null &&
-        !_hasAnyTouchPointer();
-    final bool enablePdfPanGestures = !stylusActiveNoTouch;
-    final bool enablePdfScaleGestures = !stylusActiveNoTouch;
+    const bool enablePdfPanGestures = true;
+    const bool enablePdfScaleGestures = true;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
@@ -282,10 +278,19 @@ extension _DrawingScreenUi on _DrawingScreenState {
         context,
         destRect: destRect,
       ),
-      child: SizedBox.expand(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
+      child: RawGestureDetector(
+        behavior: HitTestBehavior.translucent,
+        gestures: <Type, GestureRecognizerFactory>{
+          _StylusArenaBlocker:
+              GestureRecognizerFactoryWithHandlers<_StylusArenaBlocker>(
+                () => _StylusArenaBlocker(),
+                (_StylusArenaBlocker instance) {},
+              ),
+        },
+        child: SizedBox.expand(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
             KeyedSubtree(
               key: pageContentKey,
               child: SizedBox.expand(
@@ -339,42 +344,43 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 ),
               ),
             ),
-            Positioned.fill(
-              child: Listener(
-                behavior: (_isFreeDrawMode &&
-                        _activeStylusPointerId != null &&
-                        !_hasAnyTouchPointer())
-                    ? HitTestBehavior.opaque
-                    : HitTestBehavior.translucent,
-                onPointerDown:
-                    (e) => _handleOverlayPointerDownWithStylusDrawing(
-                  e,
-                  pageNumber: pageNumber,
-                  pageSize: pageSize,
-                  drawingLocalToPageLocal: drawingLocalToPageLocal,
-                  photoScale: currentPhotoScale(),
+              Positioned.fill(
+                child: Listener(
+                  behavior: (_isFreeDrawMode &&
+                          _activeStylusPointerId != null &&
+                          !_hasAnyTouchPointer())
+                      ? HitTestBehavior.opaque
+                      : HitTestBehavior.translucent,
+                  onPointerDown:
+                      (e) => _handleOverlayPointerDownWithStylusDrawing(
+                    e,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    photoScale: currentPhotoScale(),
+                  ),
+                  onPointerMove:
+                      (e) => _handleOverlayPointerMoveWithStylusDrawing(
+                    e,
+                    pageNumber: pageNumber,
+                    pageSize: pageSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    photoScale: currentPhotoScale(),
+                  ),
+                  onPointerUp:
+                      (e) => _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                    e,
+                    pageNumber: pageNumber,
+                  ),
+                  onPointerCancel: (e) =>
+                      _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                        e,
+                        pageNumber: pageNumber,
+                      ),
                 ),
-                onPointerMove:
-                    (e) => _handleOverlayPointerMoveWithStylusDrawing(
-                  e,
-                  pageNumber: pageNumber,
-                  pageSize: pageSize,
-                  drawingLocalToPageLocal: drawingLocalToPageLocal,
-                  photoScale: currentPhotoScale(),
-                ),
-                onPointerUp:
-                    (e) => _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                  e,
-                  pageNumber: pageNumber,
-                ),
-                onPointerCancel: (e) =>
-                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                      e,
-                      pageNumber: pageNumber,
-                    ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -475,4 +481,35 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ),
     );
   }
+}
+
+class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
+  @override
+  String get debugDescription => 'stylusArenaBlocker';
+
+  bool _isStylus(PointerDeviceKind kind) {
+    return kind == PointerDeviceKind.stylus ||
+        kind == PointerDeviceKind.invertedStylus;
+  }
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) {
+    return _isStylus(event.kind);
+  }
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    startTrackingPointer(event.pointer);
+    resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      stopTrackingPointer(event.pointer);
+    }
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
 }
