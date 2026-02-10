@@ -370,7 +370,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     if (!_isFreeDrawConsumingOneFinger && _pendingDraw) {
                       final distance =
                           (details.localPosition - pendingDown).distance;
-                      if (distance < _kDrawStartSlopPx) {
+                      if (distance < _DrawingScreenState._kDrawStartSlopPx) {
                         return;
                       }
                       final pendingPageLocal = destLocalToPage(pendingDown);
