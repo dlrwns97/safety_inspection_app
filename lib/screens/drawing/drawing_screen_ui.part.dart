@@ -94,125 +94,173 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPanCancel: _handleMovePanCancel,
           ),
         ),
-      if (_isFreeDrawMode)
+      if (_isFreeDrawMode && _isToolPanelOpen)
         Positioned(
           left: 12,
+          right: 12,
           top: 12,
           child: _buildStrokePresetPanel(),
+        ),
+      if (_isFreeDrawMode && !_isToolPanelOpen)
+        Positioned(
+          top: 12,
+          right: 12,
+          child: FloatingActionButton.small(
+            heroTag: 'tool-panel-open',
+            onPressed: () => _setToolPanelOpen(true),
+            child: const Icon(Icons.edit),
+          ),
         ),
     ];
   }
 
   Widget _buildStrokePresetPanel() {
     final theme = Theme.of(context);
-    final filteredEntries = _presets.asMap().entries.where((entry) {
-      return switch (_presetGroup) {
-        PresetGroup.pen => entry.value.kind == StrokeToolKind.pen,
-        PresetGroup.highlighter =>
-          entry.value.kind == StrokeToolKind.highlighter,
-      };
-    }).toList();
+    final toolIndexes = <int>[0, 1, 4, 5];
+
+    Widget panelButton({
+      required IconData icon,
+      required bool selected,
+      required VoidCallback onTap,
+      String? tooltip,
+    }) {
+      return Tooltip(
+        message: tooltip ?? '',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          onLongPress: () {
+            if (tooltip == null || tooltip.isEmpty) {
+              return;
+            }
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(tooltip), duration: const Duration(milliseconds: 800)));
+          },
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: selected
+                  ? theme.colorScheme.primaryContainer
+                  : theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: selected
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final style = _activeStrokeStyle;
+    final showOpacity = style.kind == StrokeToolKind.highlighter;
+    final colorRow = <int>[
+      ..._standardPaletteArgb.take(8),
+      ..._recentArgb.take(2),
+    ];
 
     return Material(
-      color: theme.colorScheme.surface.withOpacity(0.96),
-      elevation: 3,
-      borderRadius: BorderRadius.circular(12),
+      elevation: 4,
+      color: theme.colorScheme.surface.withOpacity(0.98),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 150,
-              child: SegmentedButton<PresetGroup>(
-                segments: const [
-                  ButtonSegment<PresetGroup>(
-                    value: PresetGroup.pen,
-                    label: Text('펜'),
+            Row(
+              children: [
+                for (final index in toolIndexes) ...[
+                  panelButton(
+                    icon: _iconForVariant(_presets[index].variant),
+                    selected: _activePresetIndex == index,
+                    tooltip: _labelForVariant(_presets[index].variant),
+                    onTap: () => _safeSetState(() => _activePresetIndex = index),
                   ),
-                  ButtonSegment<PresetGroup>(
-                    value: PresetGroup.highlighter,
-                    label: Text('형광펜'),
-                  ),
+                  const SizedBox(width: 8),
                 ],
-                selected: <PresetGroup>{_presetGroup},
-                onSelectionChanged: (selection) {
-                  if (selection.isEmpty) {
-                    return;
-                  }
-                  _safeSetState(() => _presetGroup = selection.first);
-                },
-              ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => _setToolPanelOpen(false),
+                  icon: const Icon(Icons.close),
+                  tooltip: '닫기',
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              width: 68,
-              height: 304,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: filteredEntries.map((entry) {
-                    final index = entry.key;
-                    final style = entry.value;
-                    final selected = _activePresetIndex == index;
-                    final editing = _editingPresetIndex == index;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: GestureDetector(
-                        onLongPress: () => _openPresetEditor(context, index),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: () =>
-                              _safeSetState(() => _activePresetIndex = index),
-                          child: Container(
-                            width: 60,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: selected
-                                    ? theme.colorScheme.primary
-                                    : editing
-                                    ? theme.colorScheme.secondary
-                                    : theme.colorScheme.outlineVariant,
-                                width: selected || editing ? 2 : 1,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(_iconForVariant(style.variant), size: 16),
-                                const SizedBox(height: 4),
-                                Container(
-                                  width: 14,
-                                  height: 14,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(style.argbColor).withOpacity(
-                                      style.opacity,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  height: style.widthPx.clamp(1, 6).toDouble(),
-                                  width: 28,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(100),
-                                    color: Color(style.argbColor),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: style.widthPx <= 1
+                      ? null
+                      : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx - 1).clamp(1, 48).toDouble())),
+                  icon: const Icon(Icons.remove),
                 ),
+                Expanded(
+                  child: Slider(
+                    value: style.widthPx.clamp(1.0, 48.0),
+                    min: 1,
+                    max: 48,
+                    divisions: 47,
+                    label: style.widthPx.round().toString(),
+                    onChanged: (v) => _updateActivePreset(style.copyWith(widthPx: v)),
+                  ),
+                ),
+                IconButton(
+                  onPressed: style.widthPx >= 48
+                      ? null
+                      : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx + 1).clamp(1, 48).toDouble())),
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            if (showOpacity)
+              Row(
+                children: [
+                  const SizedBox(width: 8),
+                  const Text('투명도'),
+                  Expanded(
+                    child: Slider(
+                      value: style.opacity.clamp(0.05, 1.0),
+                      min: 0.05,
+                      max: 1.0,
+                      onChanged: (v) => _updateActivePreset(style.copyWith(opacity: v)),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 44,
+                    child: Text('${(style.opacity * 100).round()}%'),
+                  ),
+                ],
               ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (final argb in colorRow)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _colorCircle(
+                      argb,
+                      selected: style.argbColor == argb,
+                      onTap: () {
+                        _updateActivePreset(style.copyWith(argbColor: argb));
+                        _pushRecentColor(argb);
+                      },
+                    ),
+                  ),
+                const Spacer(),
+                IconButton(
+                  onPressed: _openColorDialog,
+                  icon: const Icon(Icons.colorize),
+                  tooltip: '색상 선택',
+                ),
+              ],
             ),
           ],
         ),
@@ -235,189 +283,191 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForVariant(PenVariant variant) {
     return switch (variant) {
-      PenVariant.fountainPen => '만년필',
-      PenVariant.calligraphyPen => '캘리그래피 펜',
+      PenVariant.fountainPen => '펜 라운드',
+      PenVariant.calligraphyPen => '펜 치즐',
       PenVariant.pen => '펜',
       PenVariant.pencil => '연필',
-      PenVariant.highlighter => '형광펜',
-      PenVariant.highlighterChisel => '직선 형광펜',
+      PenVariant.highlighter => '형광펜 라운드',
+      PenVariant.highlighterChisel => '형광펜 치즐',
       PenVariant.marker => '마커 펜',
       PenVariant.markerChisel => '직선 마커 펜',
     };
   }
 
-  void _openPresetEditor(BuildContext context, int presetIndex) {
-    _safeSetState(() => _editingPresetIndex = presetIndex);
-    showModalBottomSheet<void>(
+  Widget _colorCircle(int argb, {required bool selected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(argb),
+          border: Border.all(
+            width: selected ? 3 : 1,
+            color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openColorDialog() async {
+    final style = _activeStrokeStyle;
+    Color selected = Color(style.argbColor);
+    double opacity = style.opacity;
+    HSVColor hsv = HSVColor.fromColor(selected.withOpacity(1));
+    bool useStandardTab = true;
+
+    await showDialog<void>(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            final style = _presets[presetIndex];
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: StatefulBuilder(
+            builder: (ctx, setD) {
+              void applyColor(Color c) {
+                selected = c;
+                hsv = HSVColor.fromColor(c.withOpacity(1));
+                setD(() {});
+              }
 
-            void apply(StrokeStyle next) {
-              _updatePreset(presetIndex, next);
-              setSheetState(() {});
-            }
+              void applyOpacity(double v) {
+                opacity = v;
+                setD(() {});
+              }
 
-            final showOpacity =
-                style.kind == StrokeToolKind.highlighter ||
-                style.variant == PenVariant.pencil;
+              Widget tabButton(String text, bool active, VoidCallback onTap) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: onTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: active ? Theme.of(ctx).colorScheme.primaryContainer : Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(text),
+                  ),
+                );
+              }
 
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  12,
-                  16,
-                  20 + MediaQuery.of(ctx).viewInsets.bottom,
-                ),
+              return Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _labelForVariant(style.variant),
-                      style: Theme.of(ctx).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    Text('굵기', style: Theme.of(ctx).textTheme.labelLarge),
-                    Slider(
-                      value: style.widthPx.clamp(1.0, 48.0),
-                      min: 1.0,
-                      max: 48.0,
-                      divisions: 47,
-                      label: style.widthPx.toStringAsFixed(0),
-                      onChanged: (v) => apply(style.copyWith(widthPx: v)),
-                    ),
-                    if (showOpacity) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        style.variant == PenVariant.pencil ? '투명도(연필)' : '투명도',
-                        style: Theme.of(ctx).textTheme.labelLarge,
-                      ),
-                      Slider(
-                        value: style.opacity.clamp(0.05, 1.0),
-                        min: 0.05,
-                        max: 1.0,
-                        divisions: 19,
-                        label: style.opacity.toStringAsFixed(2),
-                        onChanged: (v) => apply(style.copyWith(opacity: v)),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Text('색상', style: Theme.of(ctx).textTheme.labelLarge),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                    Row(
                       children: [
-                        for (final argb in _DrawingScreenState._paletteArgb)
-                          GestureDetector(
-                            onTap: () => apply(style.copyWith(argbColor: argb)),
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(argb),
-                                border: Border.all(
-                                  width: style.argbColor == argb ? 3 : 1,
-                                  color: Theme.of(ctx).colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                          ),
-                        GestureDetector(
-                          onTap: () async {
-                            final color = await _showCustomColorPickerDialog(
-                              style.argbColor,
-                            );
-                            if (color == null) {
-                              return;
-                            }
-                            apply(style.copyWith(argbColor: color));
-                          },
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Theme.of(ctx).colorScheme.outline,
-                              ),
-                            ),
-                            child: const Icon(Icons.colorize, size: 16),
-                          ),
-                        ),
+                        Expanded(child: tabButton('표준', useStandardTab, () => setD(() => useStandardTab = true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: tabButton('사용자 지정', !useStandardTab, () => setD(() => useStandardTab = false))),
                       ],
                     ),
                     const SizedBox(height: 12),
+                    if (useStandardTab) ...[
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final argb in _standardPaletteArgb)
+                            _colorCircle(argb, selected: selected.value == argb, onTap: () => applyColor(Color(argb))),
+                        ],
+                      ),
+                      if (_recentArgb.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Align(alignment: Alignment.centerLeft, child: Text('최근', style: Theme.of(ctx).textTheme.labelLarge)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final argb in _recentArgb)
+                              _colorCircle(argb, selected: selected.value == argb, onTap: () => applyColor(Color(argb))),
+                          ],
+                        ),
+                      ],
+                    ] else ...[
+                      _HsvColorSquare(
+                        hsv: hsv,
+                        onChanged: (next) {
+                          hsv = next;
+                          applyColor(next.toColor());
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Text('Hue'),
+                          Expanded(
+                            child: Slider(
+                              min: 0,
+                              max: 360,
+                              value: hsv.hue,
+                              onChanged: (v) {
+                                hsv = hsv.withHue(v);
+                                applyColor(hsv.toColor());
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Text('투명도'),
+                          Expanded(
+                            child: Slider(
+                              min: 0.05,
+                              max: 1.0,
+                              value: opacity.clamp(0.05, 1.0),
+                              onChanged: applyOpacity,
+                            ),
+                          ),
+                          Text('${(opacity * 100).round()}%'),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '#${selected.value.toRadixString(16).padLeft(8, '0').toUpperCase()}  R ${selected.red}  G ${selected.green}  B ${selected.blue}',
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('취소'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              final argb = selected.value;
+                              final base = _activeStrokeStyle;
+                              var next = base.copyWith(argbColor: argb);
+                              if (base.kind == StrokeToolKind.highlighter) {
+                                next = next.copyWith(opacity: opacity);
+                              }
+                              _updateActivePreset(next);
+                              _pushRecentColor(argb);
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('완료'),
+                          ),
+                        ),
+                      ],
+                    )
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
-      _safeSetState(() => _editingPresetIndex = null);
-    });
-  }
-
-  Future<int?> _showCustomColorPickerDialog(int initialColor) async {
-    int red = (initialColor >> 16) & 0xFF;
-    int green = (initialColor >> 8) & 0xFF;
-    int blue = initialColor & 0xFF;
-    return showDialog<int>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final selected = 0xFF000000 | (red << 16) | (green << 8) | blue;
-            return AlertDialog(
-              title: const Text('색상 선택'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 64, height: 32, color: Color(selected)),
-                  Slider(
-                    min: 0,
-                    max: 255,
-                    value: red.toDouble(),
-                    onChanged: (v) => setDialogState(() => red = v.round()),
-                    activeColor: Colors.red,
-                  ),
-                  Slider(
-                    min: 0,
-                    max: 255,
-                    value: green.toDouble(),
-                    onChanged: (v) => setDialogState(() => green = v.round()),
-                    activeColor: Colors.green,
-                  ),
-                  Slider(
-                    min: 0,
-                    max: 255,
-                    value: blue.toDouble(),
-                    onChanged: (v) => setDialogState(() => blue = v.round()),
-                    activeColor: Colors.blue,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('취소'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(selected),
-                  child: const Text('선택'),
-                ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -808,6 +858,98 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 }
+
+
+class _HsvColorSquare extends StatelessWidget {
+  const _HsvColorSquare({required this.hsv, required this.onChanged});
+
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, 180);
+
+        void update(Offset localPosition) {
+          final s = (localPosition.dx / size.width).clamp(0.0, 1.0);
+          final v = (1 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
+          onChanged(hsv.withSaturation(s).withValue(v));
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          height: size.height,
+          child: GestureDetector(
+            onPanDown: (d) => update(d.localPosition),
+            onPanUpdate: (d) => update(d.localPosition),
+            onTapDown: (d) => update(d.localPosition),
+            child: CustomPaint(
+              painter: _HsvColorSquarePainter(hsv: hsv),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HsvColorSquarePainter extends CustomPainter {
+  const _HsvColorSquarePainter({required this.hsv});
+
+  final HSVColor hsv;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final hueColor = HSVColor.fromAHSV(1, hsv.hue, 1, 1).toColor();
+
+    canvas.drawRect(rect, Paint()..color = hueColor);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Colors.white, Colors.transparent],
+        ).createShader(rect),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black],
+        ).createShader(rect),
+    );
+
+    final dx = hsv.saturation * size.width;
+    final dy = (1 - hsv.value) * size.height;
+    final thumb = Offset(dx, dy);
+    canvas.drawCircle(
+      thumb,
+      8,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white,
+    );
+    canvas.drawCircle(
+      thumb,
+      10,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black54,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HsvColorSquarePainter oldDelegate) {
+    return oldDelegate.hsv != hsv;
+  }
+}
+
 
 class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
   @override
