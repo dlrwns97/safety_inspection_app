@@ -790,7 +790,14 @@ class _DrawingScreenState extends State<DrawingScreen>
     equipmentTabs: kEquipmentCategoryOrder
         .where((category) => _visibleEquipmentCategories.contains(category))
         .toList(),
-    onToggleMode: _toggleMode,
+    onToggleMode: (nextMode) {
+      if (nextMode == DrawMode.freeDraw &&
+          (_mode == DrawMode.freeDraw || _mode == DrawMode.eraser)) {
+        _toggleMode(DrawMode.hand);
+        return;
+      }
+      _toggleMode(nextMode);
+    },
     onBack: _returnToToolSelection,
     onAdd: _handleAddToolAction,
     onDefectSelected: (category) => setState(() {
