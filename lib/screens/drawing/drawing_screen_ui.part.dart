@@ -221,6 +221,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
         ? 0
         : destSize.width / pageSize.width;
 
+    bool isInsidePageOverlay(Offset overlayPos) => destRect.contains(overlayPos);
+
+    Offset destLocalToPage(Offset destLocal) {
+      if (scale == 0) {
+        return Offset.zero;
+      }
+      return destLocal / scale;
+    }
+
     Offset overlayToPage(Offset p) {
       if (scale == 0) {
         return Offset.zero;
@@ -231,16 +240,26 @@ extension _DrawingScreenUi on _DrawingScreenState {
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _handlePdfTapAt(
-        overlayToPage(details.localPosition),
-        pageSize,
-        pageNumber,
-      ),
-      onLongPressStart: (details) => _handlePdfLongPressAt(
-        overlayToPage(details.localPosition),
-        pageSize,
-        pageNumber,
-      ),
+      onTapUp: (details) {
+        if (!isInsidePageOverlay(details.localPosition)) {
+          return;
+        }
+        _handlePdfTapAt(
+          overlayToPage(details.localPosition),
+          pageSize,
+          pageNumber,
+        );
+      },
+      onLongPressStart: (details) {
+        if (!isInsidePageOverlay(details.localPosition)) {
+          return;
+        }
+        _handlePdfLongPressAt(
+          overlayToPage(details.localPosition),
+          pageSize,
+          pageNumber,
+        );
+      },
       onMovePanUpdate: (details) => _handleMovePdfPanUpdate(
         details,
         overlaySize,
@@ -277,7 +296,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   width: pageSize.width,
                   height: pageSize.height,
                   child: Stack(
-                    clipBehavior: Clip.none,
+                    clipBehavior: Clip.hardEdge,
                     children: [
                       ..._buildMarkerWidgetsForPage(
                         size: pageSize,
@@ -305,15 +324,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 ),
               ),
             ),
-            Positioned.fill(
+            Positioned(
+              left: destRect.left,
+              top: destRect.top,
+              width: destRect.width,
+              height: destRect.height,
               child: IgnorePointer(
                 ignoring:
                     !enablePageLocalDrawing || _activePointerIds.length >= 2,
                 child: Listener(
-                  behavior: HitTestBehavior.translucent,
+                  behavior: HitTestBehavior.opaque,
                   onPointerDown: (event) {
-                    final overlayP = event.localPosition;
-                    final pageP = overlayToPage(overlayP);
+                    final pageP = destLocalToPage(event.localPosition);
                     final normalized = _overlayToNormalizedPoint(
                       overlayLocal: pageP,
                       destSize: pageSize,
@@ -322,8 +344,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleFreeDrawPointerStart(normalized, pageNumber);
                   },
                   onPointerMove: (event) {
-                    final overlayP = event.localPosition;
-                    final pageP = overlayToPage(overlayP);
+                    final pageP = destLocalToPage(event.localPosition);
                     final normalized = _overlayToNormalizedPoint(
                       overlayLocal: pageP,
                       destSize: pageSize,
