@@ -91,19 +91,20 @@ class TempPolylinePainter extends CustomPainter {
         break;
     }
 
-    final strokeInput = <PointVector>[
-      for (final point in points) [point.dx, point.dy],
-    ];
+    final strokeInput = points
+        .map((o) => PointVector(o.dx, o.dy))
+        .toList(growable: false);
 
     final outline = getStroke(
       strokeInput,
       options: StrokeOptions(
         size: resolvedStrokeWidth,
-        thinning: 0.45,
-        smoothing: 0.6,
-        streamline: 0.55,
+        thinning: 0.7,
+        smoothing: 0.5,
+        streamline: 0.5,
         simulatePressure: true,
-        isComplete: true,
+        start: const StrokeEndOptions(cap: true),
+        end: const StrokeEndOptions(cap: true),
       ),
     );
 
@@ -111,17 +112,34 @@ class TempPolylinePainter extends CustomPainter {
       return;
     }
 
-    final polygon = <Offset>[
-      for (final point in outline) Offset(point[0], point[1]),
-    ];
-
-    final fillPath = Path()..addPolygon(polygon, true);
+    final fillPath = _outlineToPath(outline);
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
       ..blendMode = BlendMode.srcOver;
 
     canvas.drawPath(fillPath, paint);
+  }
+
+  Path _outlineToPath(List<Offset> outline) {
+    final path = Path();
+    if (outline.isEmpty) {
+      return path;
+    }
+
+    path.moveTo(outline.first.dx, outline.first.dy);
+    for (var i = 0; i < outline.length - 1; ++i) {
+      final p0 = outline[i];
+      final p1 = outline[i + 1];
+      path.quadraticBezierTo(
+        p0.dx,
+        p0.dy,
+        (p0.dx + p1.dx) / 2,
+        (p0.dy + p1.dy) / 2,
+      );
+    }
+    path.close();
+    return path;
   }
 
   void _drawCenterlineStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {
