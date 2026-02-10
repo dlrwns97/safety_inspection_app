@@ -138,8 +138,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
+    final bool isOneFingerDrawingPhase =
+        _isFreeDrawMode &&
+        !isTwoFinger &&
+        (_pendingDraw || _isFreeDrawConsumingOneFinger);
     final bool allowPdfGestures =
-        !_isFreeDrawMode || isTwoFinger || !_isFreeDrawConsumingOneFinger;
+        !_isFreeDrawMode || isTwoFinger || !isOneFingerDrawingPhase;
     final bool enablePdfPanGestures = allowPdfGestures;
     final bool enablePdfScaleGestures = allowPdfGestures;
     // Keep page swipe disabled while drawing with 1 finger to prevent
@@ -237,26 +241,22 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return (overlayLocal - destRect.topLeft) / scale;
     }
 
-    Offset? viewportLocalToPageLocal(Offset viewportLocal) {
-      final untransformedViewportLocal = _mapPdfViewportPointToPageLocal(
-        viewportLocal: viewportLocal,
-        pageIndex: pageNumber,
-        viewportSize: overlaySize,
-        childSize: overlaySize,
-      );
-      if (untransformedViewportLocal == null) {
+    Offset? drawingLocalToPageLocal(Offset overlayLocal) {
+      if (!destRect.contains(overlayLocal)) {
         return null;
       }
-      if (!destRect.contains(untransformedViewportLocal)) {
-        return null;
-      }
-      return overlayToPage(untransformedViewportLocal);
+      return overlayToPage(overlayLocal);
     }
 
     double currentPhotoScale() {
       final s = _photoControllerForPage(pageNumber).value.scale;
       return (s == null || s <= 0) ? 1.0 : s;
     }
+
+    final bool isOneFingerDrawingPhase =
+        _isFreeDrawMode &&
+        _activePointerIds.length == 1 &&
+        (_pendingDraw || _isFreeDrawConsumingOneFinger);
 
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
@@ -348,21 +348,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
             ),
             Positioned.fill(
               child: Listener(
-                behavior: (_isFreeDrawMode && _activePointerIds.length == 1)
+                behavior: isOneFingerDrawingPhase
                     ? HitTestBehavior.opaque
                     : HitTestBehavior.translucent,
                 onPointerDown: (e) => _handleOverlayPointerDownWithDrawing(
                   e,
                   pageNumber: pageNumber,
                   pageSize: pageSize,
-                  viewportLocalToPageLocal: viewportLocalToPageLocal,
+                  viewportLocalToPageLocal: drawingLocalToPageLocal,
                   photoScale: currentPhotoScale(),
                 ),
                 onPointerMove: (e) => _handleOverlayPointerMoveWithDrawing(
                   e,
                   pageNumber: pageNumber,
                   pageSize: pageSize,
-                  viewportLocalToPageLocal: viewportLocalToPageLocal,
+                  viewportLocalToPageLocal: drawingLocalToPageLocal,
                   photoScale: currentPhotoScale(),
                 ),
                 onPointerUp: (e) => _handleOverlayPointerUpOrCancelWithDrawing(
