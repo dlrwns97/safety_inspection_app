@@ -49,8 +49,6 @@ part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
-enum PresetGroup { pen, highlighter }
-
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -106,6 +104,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
   bool _isFreeDrawMode = false;
+  bool _isToolPanelOpen = true;
   DrawingTool _activeTool = DrawingTool.pen;
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
@@ -119,16 +118,18 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
   int _activePresetIndex = 0;
-  int? _editingPresetIndex;
-  PresetGroup _presetGroup = PresetGroup.pen;
-  static const List<int> _paletteArgb = <int>[
+  final List<int> _recentArgb = <int>[];
+  static const List<int> _standardPaletteArgb = <int>[
     0xFF000000,
     0xFFFFFFFF,
+    0xFFBDBDBD,
     0xFFE53935,
-    0xFF1E88E5,
-    0xFF43A047,
-    0xFFFFEB3B,
     0xFFFF9800,
+    0xFFFFEB3B,
+    0xFF43A047,
+    0xFF00BCD4,
+    0xFF1E88E5,
+    0xFF3F51B5,
     0xFF8E24AA,
     0xFF6D4C41,
   ];
@@ -225,21 +226,24 @@ class _DrawingScreenState extends State<DrawingScreen>
           ? null
           : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
-  StrokeStyle get _activeStrokeStyle {
-    if (_activeTool == DrawingTool.eraser || _mode == DrawMode.eraser) {
-      return const StrokeStyle(
-        kind: StrokeToolKind.eraser,
-        widthPx: 18.0,
-        argbColor: 0xFFFFFFFF,
-        opacity: 1.0,
-      );
-    }
-    return _presets[_activePresetIndex];
+  StrokeStyle get _activeStrokeStyle => _presets[_activePresetIndex];
+
+  void _setToolPanelOpen(bool value) =>
+      _safeSetState(() => _isToolPanelOpen = value);
+
+  void _pushRecentColor(int argb) {
+    _safeSetState(() {
+      _recentArgb.remove(argb);
+      _recentArgb.insert(0, argb);
+      if (_recentArgb.length > 10) {
+        _recentArgb.removeRange(10, _recentArgb.length);
+      }
+    });
   }
 
-  void _updatePreset(int index, StrokeStyle next) {
+  void _updateActivePreset(StrokeStyle next) {
     _safeSetState(() {
-      _presets[index] = next;
+      _presets[_activePresetIndex] = next;
     });
   }
 
