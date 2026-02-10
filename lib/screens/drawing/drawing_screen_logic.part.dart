@@ -834,7 +834,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
-        _pendingDrawDownDestLocal = null;
+        _pendingDrawDownViewportLocal = null;
       });
       return;
     }
@@ -876,8 +876,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleFreeDrawPointerUpdate(
     Offset normalized,
     int pageNumber,
-    Size destSize,
-  ) {
+    Size destSize, {
+    required double photoScale,
+  }) {
     final inProgress = _inProgress;
     if (!_isFreeDrawMode ||
         _activePointerIds.length >= 2 ||
@@ -886,8 +887,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    const double thresholdPx = 2.5;
-    final double thresholdNorm = thresholdPx / destSize.shortestSide;
+    const double thresholdScreenPx = 2.5;
+    final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
+    final double thresholdNorm =
+        (thresholdScreenPx / effectiveScale) / destSize.shortestSide;
     if ((normalized - inProgress.last).distance < thresholdNorm) {
       return;
     }
@@ -927,7 +930,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _inProgressPage = null;
       _isFreeDrawConsumingOneFinger = false;
       _pendingDraw = false;
-      _pendingDrawDownDestLocal = null;
+      _pendingDrawDownViewportLocal = null;
     });
   }
 
@@ -968,7 +971,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage = null;
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
-        _pendingDrawDownDestLocal = null;
+        _pendingDrawDownViewportLocal = null;
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
