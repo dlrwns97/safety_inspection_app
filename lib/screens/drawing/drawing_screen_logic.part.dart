@@ -869,9 +869,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_hasAnyTouchPointer()) return;
 
     _activeStylusPointerId = event.pointer;
-    _lastStylusMoveTime = null;
-    _lastStylusNormalized = null;
-    _dynamicThresholdScreenPx = 2.0;
 
     _safeSetState(() {
       _pendingDraw = true;
@@ -898,9 +895,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
-      _lastStylusMoveTime = null;
-      _lastStylusNormalized = null;
-      _dynamicThresholdScreenPx = 2.0;
       return;
     }
 
@@ -956,80 +950,39 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!_isFreeDrawConsumingOneFinger) return;
 
-    for (final e in _expandMoveEvents(event)) {
-      final pos = (e is PointerMoveEvent) ? e.localPosition : event.localPosition;
-      final pageLocal = drawingLocalToPageLocal(pos);
-      if (pageLocal == null) {
-        continue;
-      }
+    final inProgress = _inProgress;
+    if (inProgress == null || inProgress.isEmpty) return;
 
-      final norm = _overlayToNormalizedPoint(
-        overlayLocal: pageLocal,
-        destSize: pageSize,
-      );
-      if (norm == null) {
-        continue;
-      }
+    final pageLocal = drawingLocalToPageLocal(event.localPosition);
+    if (pageLocal == null) {
+      return;
+    }
 
-      _updateStylusDynamicThreshold(
-        normalized: norm,
-        timestamp: e.timeStamp,
-      );
-      _debugLastPageLocal = pageLocal;
+    final norm = _overlayToNormalizedPoint(
+      overlayLocal: pageLocal,
+      destSize: pageSize,
+    );
+    if (norm == null) {
+      return;
+    }
+
+    final last = inProgress.last;
+    final points = _interpolateNormalizedPoints(
+      from: last,
+      to: norm,
+      pageSize: pageSize,
+      photoScale: photoScale,
+    );
+
+    _debugLastPageLocal = pageLocal;
+    for (final p in points) {
       _handleFreeDrawPointerUpdate(
-        norm,
+        p,
         pageNumber,
         pageSize,
         photoScale: photoScale,
       );
     }
-  }
-
-  List<PointerEvent> _expandMoveEvents(PointerMoveEvent event) {
-    final List<PointerEvent> out = <PointerEvent>[];
-    final List<PointerEvent> coalesced =
-        (event.coalescedEvents ?? const <PointerEvent>[]).cast<PointerEvent>();
-    if (coalesced.isNotEmpty) {
-      out.addAll(coalesced);
-    }
-    if (_includePredictedStylusEvents) {
-      final List<PointerEvent> predicted =
-          (event.predictedEvents ?? const <PointerEvent>[]).cast<PointerEvent>();
-      if (predicted.isNotEmpty) {
-        out.addAll(predicted);
-      }
-    }
-    out.add(event);
-    return out;
-  }
-
-  void _updateStylusDynamicThreshold({
-    required Offset normalized,
-    required Duration timestamp,
-  }) {
-    const double minPx = 0.8;
-    const double maxPx = 2.2;
-    const double speedToPxGain = 1.4;
-
-    final lastTime = _lastStylusMoveTime;
-    final lastNorm = _lastStylusNormalized;
-
-    double thresholdPx = maxPx;
-    if (lastTime != null && lastNorm != null) {
-      final dtMicros = timestamp.inMicroseconds - lastTime.inMicroseconds;
-      if (dtMicros > 0) {
-        final dtSeconds = dtMicros / Duration.microsecondsPerSecond;
-        final speedNormPerSec = (normalized - lastNorm).distance / dtSeconds;
-        thresholdPx = (maxPx - (speedNormPerSec * speedToPxGain)).clamp(
-          minPx,
-          maxPx,
-        );
-      }
-    }
-
-    _dynamicThresholdScreenPx = thresholdPx;
-    _lastStylusMoveTime = timestamp;
-    _lastStylusNormalized = normalized;
   }
 
   void _handleOverlayPointerUpOrCancelWithStylusDrawing(
@@ -1052,10 +1005,36 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
-      _lastStylusMoveTime = null;
-      _lastStylusNormalized = null;
-      _dynamicThresholdScreenPx = 2.0;
     }
+  }
+
+  List<Offset> _interpolateNormalizedPoints({
+    required Offset from,
+    required Offset to,
+    required Size pageSize,
+    required double photoScale,
+  }) {
+    const double targetSpacingPx = 1.2;
+
+    final s = (photoScale <= 0) ? 1.0 : photoScale;
+    final double spacingNorm = (targetSpacingPx / s) / pageSize.shortestSide;
+
+    final double dist = (to - from).distance;
+    if (dist <= spacingNorm) return <Offset>[to];
+
+    final int steps = (dist / spacingNorm).ceil().clamp(1, 24);
+
+    final List<Offset> out = <Offset>[];
+    for (int i = 1; i <= steps; i++) {
+      final double t = i / steps;
+      out.add(
+        Offset(
+          from.dx + (to.dx - from.dx) * t,
+          from.dy + (to.dy - from.dy) * t,
+        ),
+      );
+    }
+    return out;
   }
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
@@ -1108,7 +1087,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    final thresholdScreenPx = _dynamicThresholdScreenPx;
+    const double thresholdScreenPx = 1.2;
     final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
     final double thresholdNorm =
         (thresholdScreenPx / effectiveScale) / destSize.shortestSide;
