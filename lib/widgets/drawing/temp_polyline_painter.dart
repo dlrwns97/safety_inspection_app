@@ -103,8 +103,8 @@ class TempPolylinePainter extends CustomPainter {
         smoothing: 0.5,
         streamline: 0.5,
         simulatePressure: true,
-        start: StrokeEndOptions(cap: true),
-        end: StrokeEndOptions(cap: true),
+        start: StrokeEndOptions.start(cap: true),
+        end: StrokeEndOptions.end(cap: true),
       ),
     );
 
