@@ -140,7 +140,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   if (selection.isEmpty) {
                     return;
                   }
-                  setState(() => _presetGroup = selection.first);
+                  _safeSetState(() => _presetGroup = selection.first);
                 },
               ),
             ),
@@ -162,7 +162,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         onLongPress: () => _openPresetEditor(context, index),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),
-                          onTap: () => setState(() => _activePresetIndex = index),
+                          onTap: () =>
+                              _safeSetState(() => _activePresetIndex = index),
                           child: Container(
                             width: 60,
                             padding: const EdgeInsets.symmetric(
