@@ -69,6 +69,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (destSize.isEmpty) {
       return null;
     }
+    if (overlayLocal.dx < 0 ||
+        overlayLocal.dx > destSize.width ||
+        overlayLocal.dy < 0 ||
+        overlayLocal.dy > destSize.height) {
+      return null;
+    }
     return Offset(
       overlayLocal.dx / destSize.width,
       overlayLocal.dy / destSize.height,
@@ -835,6 +841,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (_isFreeDrawMode) {
+      if (_activePointerIds.isEmpty && _inProgress != null) {
+        _handleFreeDrawPointerEnd(_inProgressPage ?? _currentPage);
+      }
       _safeSetState(() {});
       return;
     }
