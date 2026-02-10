@@ -135,7 +135,7 @@ class MarkerSidePanel extends StatelessWidget {
         .toList();
     final isEquipmentVisible =
         selectedEquipmentCategory != null &&
-        visibleEquipmentCategories.contains(selectedEquipmentCategory);
+        visibleEquipmentCategories.contains(selectedEquipmentCategory!);
     final selectedEquipmentLabel =
         selectedEquipmentCategory == null
             ? null
