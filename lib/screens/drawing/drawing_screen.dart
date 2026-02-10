@@ -119,7 +119,19 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
   int _activePresetIndex = 0;
+  int? _editingPresetIndex;
   PresetGroup _presetGroup = PresetGroup.pen;
+  static const List<int> _paletteArgb = <int>[
+    0xFF000000,
+    0xFFFFFFFF,
+    0xFFE53935,
+    0xFF1E88E5,
+    0xFF43A047,
+    0xFFFFEB3B,
+    0xFFFF9800,
+    0xFF8E24AA,
+    0xFF6D4C41,
+  ];
   late final List<StrokeStyle> _presets = <StrokeStyle>[
     // Pens (5)
     const StrokeStyle(
@@ -230,6 +242,12 @@ class _DrawingScreenState extends State<DrawingScreen>
       );
     }
     return _presets[_activePresetIndex];
+  }
+
+  void _updatePreset(int index, StrokeStyle next) {
+    _safeSetState(() {
+      _presets[index] = next;
+    });
   }
 
   PhotoViewController _photoControllerForPage(int pageNumber) {
