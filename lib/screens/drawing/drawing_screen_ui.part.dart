@@ -218,13 +218,29 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   IconData _iconForVariant(PenVariant variant) {
     return switch (variant) {
-      PenVariant.ballpoint => Icons.edit,
-      PenVariant.fountain => Icons.create,
-      PenVariant.pencil => Icons.draw,
-      PenVariant.marker => Icons.brush,
-      PenVariant.calligraphy => Icons.gesture,
-      PenVariant.highlighterSoft => Icons.highlight,
+      PenVariant.fountainPen => Icons.edit,
+      PenVariant.calligraphyPen => Icons.brush,
+      PenVariant.pen => Icons.edit_outlined,
+      PenVariant.pencil => Icons.create_outlined,
+      PenVariant.brush => Icons.format_paint,
+      PenVariant.highlighter => Icons.highlight,
       PenVariant.highlighterChisel => Icons.highlight_alt,
+      PenVariant.marker => Icons.border_color,
+      PenVariant.markerChisel => Icons.draw,
+    };
+  }
+
+  String _labelForVariant(PenVariant variant) {
+    return switch (variant) {
+      PenVariant.fountainPen => '만년필',
+      PenVariant.calligraphyPen => '캘리그래피 펜',
+      PenVariant.pen => '펜',
+      PenVariant.pencil => '연필',
+      PenVariant.brush => '서예 붓',
+      PenVariant.highlighter => '형광펜',
+      PenVariant.highlighterChisel => '직선 형광펜',
+      PenVariant.marker => '마커 펜',
+      PenVariant.markerChisel => '직선 마커 펜',
     };
   }
 
@@ -256,7 +272,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('프리셋 ${index + 1} 편집', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      _labelForVariant(draft.variant),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     Slider(
                       min: 1,
                       max: 24,
