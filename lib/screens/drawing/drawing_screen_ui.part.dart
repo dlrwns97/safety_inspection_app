@@ -424,7 +424,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
               width: destRect.width,
               height: destRect.height,
               child: IgnorePointer(
-                ignoring: !enablePageLocalDrawing,
+                ignoring:
+                    !enablePageLocalDrawing || _activePointerIds.length >= 2,
                 child: RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
                   gestures: {
@@ -441,7 +442,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               }
                               if (kDebugMode) {
                                 debugPrint(
-                                  '[FreeDraw] onPointerDown: $destLocal, '
+                                  '[FreeDraw] panStart local=$destLocal '
                                   'pointers: ${_activePointerIds.length}',
                                 );
                               }
@@ -465,7 +466,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               }
                               if (kDebugMode) {
                                 debugPrint(
-                                  '[FreeDraw] onPointerMove: $destLocal, '
+                                  '[FreeDraw] panUpdate local=$destLocal '
                                   'pointers: ${_activePointerIds.length}',
                                 );
                               }
