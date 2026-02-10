@@ -111,6 +111,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isFreeDrawConsumingOneFinger = false;
   Offset? _pendingDrawDownViewportLocal;
   bool _pendingDraw = false;
+  bool _includePredictedStylusEvents = false;
+  Duration? _lastStylusMoveTime;
+  Offset? _lastStylusNormalized;
+  double _dynamicThresholdScreenPx = 2.0;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<List<Offset>>> _strokesByPage = <int, List<List<Offset>>>{};

@@ -869,6 +869,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_hasAnyTouchPointer()) return;
 
     _activeStylusPointerId = event.pointer;
+    _lastStylusMoveTime = null;
+    _lastStylusNormalized = null;
+    _dynamicThresholdScreenPx = 2.0;
 
     _safeSetState(() {
       _pendingDraw = true;
@@ -895,6 +898,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
+      _lastStylusMoveTime = null;
+      _lastStylusNormalized = null;
+      _dynamicThresholdScreenPx = 2.0;
       return;
     }
 
@@ -950,22 +956,80 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!_isFreeDrawConsumingOneFinger) return;
 
-    final pageLocal = drawingLocalToPageLocal(event.localPosition);
-    if (pageLocal == null) return;
+    for (final e in _expandMoveEvents(event)) {
+      final pos = (e is PointerMoveEvent) ? e.localPosition : event.localPosition;
+      final pageLocal = drawingLocalToPageLocal(pos);
+      if (pageLocal == null) {
+        continue;
+      }
 
-    final norm = _overlayToNormalizedPoint(
-      overlayLocal: pageLocal,
-      destSize: pageSize,
-    );
-    if (norm == null) return;
+      final norm = _overlayToNormalizedPoint(
+        overlayLocal: pageLocal,
+        destSize: pageSize,
+      );
+      if (norm == null) {
+        continue;
+      }
 
-    _debugLastPageLocal = pageLocal;
-    _handleFreeDrawPointerUpdate(
-      norm,
-      pageNumber,
-      pageSize,
-      photoScale: photoScale,
-    );
+      _updateStylusDynamicThreshold(
+        normalized: norm,
+        timestamp: e.timeStamp,
+      );
+      _debugLastPageLocal = pageLocal;
+      _handleFreeDrawPointerUpdate(
+        norm,
+        pageNumber,
+        pageSize,
+        photoScale: photoScale,
+      );
+    }
+  }
+
+  List<PointerEvent> _expandMoveEvents(PointerMoveEvent event) {
+    final List<PointerEvent> out = <PointerEvent>[];
+    final List<PointerEvent> coalesced =
+        (event.coalescedEvents ?? const <PointerEvent>[]).cast<PointerEvent>();
+    if (coalesced.isNotEmpty) {
+      out.addAll(coalesced);
+    }
+    if (_includePredictedStylusEvents) {
+      final List<PointerEvent> predicted =
+          (event.predictedEvents ?? const <PointerEvent>[]).cast<PointerEvent>();
+      if (predicted.isNotEmpty) {
+        out.addAll(predicted);
+      }
+    }
+    out.add(event);
+    return out;
+  }
+
+  void _updateStylusDynamicThreshold({
+    required Offset normalized,
+    required Duration timestamp,
+  }) {
+    const double minPx = 0.8;
+    const double maxPx = 2.2;
+    const double speedToPxGain = 1.4;
+
+    final lastTime = _lastStylusMoveTime;
+    final lastNorm = _lastStylusNormalized;
+
+    double thresholdPx = maxPx;
+    if (lastTime != null && lastNorm != null) {
+      final dtMicros = timestamp.inMicroseconds - lastTime.inMicroseconds;
+      if (dtMicros > 0) {
+        final dtSeconds = dtMicros / Duration.microsecondsPerSecond;
+        final speedNormPerSec = (normalized - lastNorm).distance / dtSeconds;
+        thresholdPx = (maxPx - (speedNormPerSec * speedToPxGain)).clamp(
+          minPx,
+          maxPx,
+        );
+      }
+    }
+
+    _dynamicThresholdScreenPx = thresholdPx;
+    _lastStylusMoveTime = timestamp;
+    _lastStylusNormalized = normalized;
   }
 
   void _handleOverlayPointerUpOrCancelWithStylusDrawing(
@@ -988,6 +1052,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
+      _lastStylusMoveTime = null;
+      _lastStylusNormalized = null;
+      _dynamicThresholdScreenPx = 2.0;
     }
   }
 
@@ -1041,7 +1108,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _inProgressPage != pageNumber) {
       return;
     }
-    const double thresholdScreenPx = 2.5;
+    final thresholdScreenPx = _dynamicThresholdScreenPx;
     final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
     final double thresholdNorm =
         (thresholdScreenPx / effectiveScale) / destSize.shortestSide;
