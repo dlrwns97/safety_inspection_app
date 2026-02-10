@@ -226,7 +226,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
       PenVariant.calligraphyPen => Icons.brush,
       PenVariant.pen => Icons.edit_outlined,
       PenVariant.pencil => Icons.create_outlined,
-      PenVariant.brush => Icons.format_paint,
       PenVariant.highlighter => Icons.highlight,
       PenVariant.highlighterChisel => Icons.highlight_alt,
       PenVariant.marker => Icons.border_color,
@@ -240,7 +239,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
       PenVariant.calligraphyPen => '캘리그래피 펜',
       PenVariant.pen => '펜',
       PenVariant.pencil => '연필',
-      PenVariant.brush => '서예 붓',
       PenVariant.highlighter => '형광펜',
       PenVariant.highlighterChisel => '직선 형광펜',
       PenVariant.marker => '마커 펜',
@@ -263,6 +261,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
               _updatePreset(presetIndex, next);
               setSheetState(() {});
             }
+
+            final showOpacity =
+                style.kind == StrokeToolKind.highlighter ||
+                style.variant == PenVariant.pencil;
 
             return SafeArea(
               child: Padding(
@@ -290,9 +292,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       label: style.widthPx.toStringAsFixed(0),
                       onChanged: (v) => apply(style.copyWith(widthPx: v)),
                     ),
-                    if (style.kind == StrokeToolKind.highlighter) ...[
+                    if (showOpacity) ...[
                       const SizedBox(height: 8),
-                      Text('투명도', style: Theme.of(ctx).textTheme.labelLarge),
+                      Text(
+                        style.variant == PenVariant.pencil ? '투명도(연필)' : '투명도',
+                        style: Theme.of(ctx).textTheme.labelLarge,
+                      ),
                       Slider(
                         value: style.opacity.clamp(0.05, 1.0),
                         min: 0.05,

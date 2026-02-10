@@ -133,7 +133,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     0xFF6D4C41,
   ];
   late final List<StrokeStyle> _presets = <StrokeStyle>[
-    // Pens (5)
+    // Pens (4)
     const StrokeStyle(
       kind: StrokeToolKind.pen,
       variant: PenVariant.fountainPen,
@@ -160,14 +160,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       widthPx: 3.0,
       variant: PenVariant.pencil,
       argbColor: 0xFF424242,
-      opacity: 0.75,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.pen,
-      variant: PenVariant.brush,
-      widthPx: 7.0,
-      argbColor: 0xFF000000,
-      opacity: 0.95,
+      opacity: 0.65,
     ),
 
     // Highlighters (4)
