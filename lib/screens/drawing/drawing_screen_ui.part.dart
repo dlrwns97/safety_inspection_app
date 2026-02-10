@@ -262,19 +262,26 @@ extension _DrawingScreenUi on _DrawingScreenState {
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
+      // Marker tap mapping must remain overlayToPage(details.localPosition) to keep marker under finger. Do not change.
       onTapUp: (details) {
-        final pageLocal = viewportLocalToPageLocal(details.localPosition);
-        if (pageLocal == null) {
+        if (!destRect.contains(details.localPosition)) {
           return;
         }
-        _handlePdfTapAt(pageLocal, pageSize, pageNumber);
+        _handlePdfTapAt(
+          overlayToPage(details.localPosition),
+          pageSize,
+          pageNumber,
+        );
       },
       onLongPressStart: (details) {
-        final pageLocal = viewportLocalToPageLocal(details.localPosition);
-        if (pageLocal == null) {
+        if (!destRect.contains(details.localPosition)) {
           return;
         }
-        _handlePdfLongPressAt(pageLocal, pageSize, pageNumber);
+        _handlePdfLongPressAt(
+          overlayToPage(details.localPosition),
+          pageSize,
+          pageNumber,
+        );
       },
       onMovePanUpdate: (details) => _handleMovePdfPanUpdate(
         details,
