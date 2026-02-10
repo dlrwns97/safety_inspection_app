@@ -793,17 +793,29 @@ class _DrawingScreenState extends State<DrawingScreen>
     onToggleMode: _toggleMode,
     onBack: _returnToToolSelection,
     onAdd: _handleAddToolAction,
-    onDefectSelected: (category) => setState(
-      () => _activeCategory = _controller
+    onDefectSelected: (category) => setState(() {
+      if (_activeCategory == category) {
+        _activeCategory = null;
+        _sidePanelDefectCategory = null;
+        return;
+      }
+      _activeCategory = _controller
           .selectDefectCategory(tabs: _defectTabs, category: category)
-          .activeCategory,
-    ),
+          .activeCategory;
+      _sidePanelDefectCategory = category;
+    }),
     onDefectLongPress: _showDeleteDefectTabDialog,
-    onEquipmentSelected: (item) => setState(
-      () => _activeEquipmentCategory = _controller
+    onEquipmentSelected: (item) => setState(() {
+      if (_activeEquipmentCategory == item) {
+        _activeEquipmentCategory = null;
+        _sidePanelEquipmentCategory = null;
+        return;
+      }
+      _activeEquipmentCategory = _controller
           .selectEquipmentCategory(item)
-          .activeCategory,
-    ),
+          .activeCategory;
+      _sidePanelEquipmentCategory = item;
+    }),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
     activeDrawingTool: _activeTool,
     canUndoDrawing: _canUndoDrawing,
@@ -867,14 +879,9 @@ class _DrawingScreenState extends State<DrawingScreen>
           final panelWidth = (constraints.maxWidth * sidePanelWidthRatio)
               .clamp(sidePanelMinWidth, sidePanelMaxWidth)
               .toDouble();
-          final defectFilter =
-              _sidePanelDefectCategory ??
-              _activeCategory ??
-              DefectCategory.values.first;
+          final defectFilter = _sidePanelDefectCategory ?? _activeCategory;
           final equipmentFilter =
-              _sidePanelEquipmentCategory ??
-              _activeEquipmentCategory ??
-              kEquipmentCategoryOrder.first;
+              _sidePanelEquipmentCategory ?? _activeEquipmentCategory;
           return Stack(
             clipBehavior: Clip.none,
             children: [
@@ -901,43 +908,25 @@ class _DrawingScreenState extends State<DrawingScreen>
                               onSelectEquipment: _selectEquipmentFromPanel,
                               onDefectCategorySelected: (category) => setState(
                                 () {
-                                  if (_sidePanelDefectCategory == category) {
+                                  if (_activeCategory == category) {
+                                    _activeCategory = null;
                                     _sidePanelDefectCategory = null;
-                                    _visibleDefectCategories
-                                      ..clear()
-                                      ..addAll(DefectCategory.values);
                                   } else {
+                                    _activeCategory = category;
                                     _sidePanelDefectCategory = category;
-                                    _visibleDefectCategories
-                                      ..clear()
-                                      ..add(category);
                                   }
                                 },
                               ),
                               onEquipmentCategorySelected:
                                   (category) => setState(
                                     () {
-                                      if (_sidePanelEquipmentCategory ==
+                                      if (_activeEquipmentCategory ==
                                           category) {
+                                        _activeEquipmentCategory = null;
                                         _sidePanelEquipmentCategory = null;
-                                        final allVisibleNames =
-                                            _site.visibleEquipmentCategoryNames
-                                                .toSet();
-                                        final allCategories =
-                                            kEquipmentCategoryOrder
-                                                .where(
-                                                  (c) => allVisibleNames
-                                                      .contains(c.name),
-                                                )
-                                                .toSet();
-                                        _visibleEquipmentCategories
-                                          ..clear()
-                                          ..addAll(allCategories);
                                       } else {
+                                        _activeEquipmentCategory = category;
                                         _sidePanelEquipmentCategory = category;
-                                        _visibleEquipmentCategories
-                                          ..clear()
-                                          ..add(category);
                                       }
                                     },
                                   ),

@@ -10,7 +10,7 @@ class MarkerFilterChips<T> extends StatelessWidget {
   });
 
   final List<T> options;
-  final T selected;
+  final T? selected;
   final String Function(T item) labelBuilder;
   final ValueChanged<T> onSelected;
 

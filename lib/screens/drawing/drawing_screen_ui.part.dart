@@ -117,8 +117,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildStrokePresetPanel() {
     final theme = Theme.of(context);
     final screenW = MediaQuery.of(context).size.width;
-    final panelMaxW = screenW * 0.52;
-    final panelMinW = screenW * 0.34;
+    final panelMaxW = math.min(400.0, screenW * 0.45);
+    final panelMinW = math.min(panelMaxW, screenW * 0.24);
     final toolIndexes = <int>[0, 1, 4, 5];
 
     Widget panelButton({
