@@ -119,7 +119,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   DrawingStroke? _inProgressStroke;
   int _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
-  static const List<int> _standardPaletteArgb = <int>[
+  final List<int> _standardPaletteArgb = const <int>[
     0xFF000000,
     0xFFFFFFFF,
     0xFFBDBDBD,
