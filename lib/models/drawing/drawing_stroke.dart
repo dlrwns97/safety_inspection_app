@@ -97,7 +97,7 @@ class DrawingStroke {
     required this.pageNumber,
     required this.style,
     required List<Offset> pointsNorm,
-  }) : pointsNorm = List<Offset>.unmodifiable(List<Offset>.from(pointsNorm));
+  }) : pointsNorm = List<Offset>.from(pointsNorm);
 
   static int _idCounter = 0;
 
