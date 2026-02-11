@@ -1549,7 +1549,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageSize: pending.pageSize,
       strokes: strokes,
     );
-    _recordAreaEraserUpdateSessionDebug();
 
     final removedIds = updatedSession.removedById.keys.toSet();
     final addedIds = updatedSession.addedById.keys.toSet();
@@ -1577,38 +1576,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     _activeAreaEraserSession = updatedSession;
+    _eraserEngine.recordUiMutation();
     _safeSetState(() {
       _eraserCursorPageNumber = pending.pageNumber;
       _eraserCursorPageLocal = pending.pageLocal;
     });
   }
 
-  void _recordAreaEraserUpdateSessionDebug() {
-    if (!kDebugMode) {
-      return;
-    }
-    final now = DateTime.now();
-    final windowStart = _debugAreaEraserWindowStart;
-    if (windowStart == null || now.difference(windowStart) >= const Duration(seconds: 1)) {
-      if (windowStart != null) {
-        debugPrint(
-          '[AreaEraser] updateSession/sec=$_debugAreaEraserUpdatesInWindow',
-        );
-      }
-      _debugAreaEraserWindowStart = now;
-      _debugAreaEraserUpdatesInWindow = 0;
-    }
-    _debugAreaEraserUpdatesInWindow += 1;
-  }
-
   void _resetAreaEraserMoveCoalescing() {
     _pendingAreaEraserMove = null;
     _isAreaEraserFrameScheduled = false;
-    if (!kDebugMode) {
-      return;
-    }
-    _debugAreaEraserWindowStart = null;
-    _debugAreaEraserUpdatesInWindow = 0;
   }
 
   void _commitAreaEraserSession() {
