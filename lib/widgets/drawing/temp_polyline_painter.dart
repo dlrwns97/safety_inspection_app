@@ -1,4 +1,8 @@
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
@@ -17,21 +21,39 @@ class TempPolylinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (pageSize.width <= 0 || pageSize.height <= 0) {
-      return;
+    _DrawingUiPerfProbe.instance.ensureInitialized();
+    final Stopwatch? stopwatch = kReleaseMode ? null : Stopwatch()..start();
+    if (!kReleaseMode) {
+      developer.Timeline.startSync('DrawingCanvas.paint');
     }
 
-    for (final stroke in strokes) {
-      _drawStroke(canvas, stroke);
-    }
-    if (inProgress != null) {
-      _drawStroke(canvas, inProgress!);
-    }
-    if (debugLastPageLocal != null) {
-      final debugPaint = Paint()
-        ..color = Colors.blueAccent
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(debugLastPageLocal!, 4, debugPaint);
+    try {
+      if (pageSize.width <= 0 || pageSize.height <= 0) {
+        return;
+      }
+
+      for (final stroke in strokes) {
+        _drawStroke(canvas, stroke);
+      }
+      if (inProgress != null) {
+        _drawStroke(canvas, inProgress!);
+      }
+      if (debugLastPageLocal != null) {
+        final debugPaint = Paint()
+          ..color = Colors.blueAccent
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(debugLastPageLocal!, 4, debugPaint);
+      }
+    } finally {
+      if (!kReleaseMode) {
+        developer.Timeline.finishSync();
+      }
+      if (stopwatch != null) {
+        _DrawingUiPerfProbe.instance.recordPaint(
+          elapsedMicros: stopwatch.elapsedMicroseconds,
+          strokeCount: strokes.length + (inProgress == null ? 0 : 1),
+        );
+      }
     }
   }
 
@@ -238,5 +260,89 @@ class TempPolylinePainter extends CustomPainter {
         oldDelegate.inProgress != inProgress ||
         oldDelegate.pageSize != pageSize ||
         oldDelegate.debugLastPageLocal != debugLastPageLocal;
+  }
+}
+
+class _DrawingUiPerfProbe {
+  _DrawingUiPerfProbe._();
+
+  static final _DrawingUiPerfProbe instance = _DrawingUiPerfProbe._();
+
+  bool _initialized = false;
+  DateTime? _windowStart;
+  int _paintCalls = 0;
+  int _paintTotalMicros = 0;
+  int _paintMaxMicros = 0;
+  int _buildCalls = 0;
+  int _buildTotalMicros = 0;
+  int _buildMaxMicros = 0;
+  int _latestStrokeCount = 0;
+
+  void ensureInitialized() {
+    if (kReleaseMode || _initialized) {
+      return;
+    }
+    _initialized = true;
+    SchedulerBinding.instance.addTimingsCallback(_onFrameTimings);
+  }
+
+  void recordPaint({required int elapsedMicros, required int strokeCount}) {
+    if (kReleaseMode) {
+      return;
+    }
+    _rolloverWindowIfNeeded();
+    _latestStrokeCount = strokeCount;
+    _paintCalls += 1;
+    _paintTotalMicros += elapsedMicros;
+    if (elapsedMicros > _paintMaxMicros) {
+      _paintMaxMicros = elapsedMicros;
+    }
+  }
+
+  void _onFrameTimings(List<FrameTiming> timings) {
+    if (kReleaseMode) {
+      return;
+    }
+    for (final timing in timings) {
+      _rolloverWindowIfNeeded();
+      final buildMicros = timing.buildDuration.inMicroseconds;
+      _buildCalls += 1;
+      _buildTotalMicros += buildMicros;
+      if (buildMicros > _buildMaxMicros) {
+        _buildMaxMicros = buildMicros;
+      }
+    }
+  }
+
+  void _rolloverWindowIfNeeded() {
+    final now = DateTime.now();
+    final windowStart = _windowStart;
+    if (windowStart == null) {
+      _windowStart = now;
+      return;
+    }
+    if (now.difference(windowStart) < const Duration(seconds: 1)) {
+      return;
+    }
+
+    if (_paintCalls > 0 || _buildCalls > 0) {
+      final paintAvgMs = _paintCalls == 0 ? 0.0 : (_paintTotalMicros / _paintCalls) / 1000;
+      final buildAvgMs = _buildCalls == 0 ? 0.0 : (_buildTotalMicros / _buildCalls) / 1000;
+      debugPrint(
+        '[PerfUI] paint: avgMs=${paintAvgMs.toStringAsFixed(1)} '
+        'maxMs=${(_paintMaxMicros / 1000).toStringAsFixed(1)} '
+        'build: avgMs=${buildAvgMs.toStringAsFixed(1)} '
+        'maxMs=${(_buildMaxMicros / 1000).toStringAsFixed(1)} '
+        'strokes=$_latestStrokeCount',
+      );
+    }
+
+    _windowStart = now;
+    _paintCalls = 0;
+    _paintTotalMicros = 0;
+    _paintMaxMicros = 0;
+    _buildCalls = 0;
+    _buildTotalMicros = 0;
+    _buildMaxMicros = 0;
   }
 }
