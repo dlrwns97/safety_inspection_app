@@ -11,6 +11,7 @@ class EraserSession {
     required this.removedOriginalIds,
     required this.removedById,
     required this.addedById,
+    required this.boundsByIdPagePx,
   });
 
   final EraserMode mode;
@@ -18,6 +19,7 @@ class EraserSession {
   final Set<String> removedOriginalIds;
   final Map<String, DrawingStroke> removedById;
   final Map<String, DrawingStroke> addedById;
+  final Map<String, Rect> boundsByIdPagePx;
 
   EraserSession copyWith({
     EraserMode? mode,
@@ -25,6 +27,7 @@ class EraserSession {
     Set<String>? removedOriginalIds,
     Map<String, DrawingStroke>? removedById,
     Map<String, DrawingStroke>? addedById,
+    Map<String, Rect>? boundsByIdPagePx,
   }) {
     return EraserSession(
       mode: mode ?? this.mode,
@@ -32,6 +35,7 @@ class EraserSession {
       removedOriginalIds: removedOriginalIds ?? this.removedOriginalIds,
       removedById: removedById ?? this.removedById,
       addedById: addedById ?? this.addedById,
+      boundsByIdPagePx: boundsByIdPagePx ?? this.boundsByIdPagePx,
     );
   }
 }
@@ -53,6 +57,7 @@ class EraserEngine {
       removedOriginalIds: <String>{},
       removedById: <String, DrawingStroke>{},
       addedById: <String, DrawingStroke>{},
+      boundsByIdPagePx: <String, Rect>{},
     );
   }
 
@@ -69,12 +74,20 @@ class EraserEngine {
     final removedById = Map<String, DrawingStroke>.from(session.removedById);
     final addedById = Map<String, DrawingStroke>.from(session.addedById);
     final removedOriginalIds = Set<String>.from(session.removedOriginalIds);
+    final boundsByIdPagePx = Map<String, Rect>.from(session.boundsByIdPagePx);
+    final eraserBounds = Rect.fromCircle(center: center, radius: session.radius);
     final virtualStrokes = <DrawingStroke>[
       ...strokes.where((stroke) => !removedOriginalIds.contains(stroke.id)),
       ...addedById.values,
     ];
 
     for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
+      final strokeBounds = boundsByIdPagePx[stroke.id] ??
+          (boundsByIdPagePx[stroke.id] = computeStrokeBoundsPagePx(stroke, pageSize));
+      if (!strokeBounds.overlaps(eraserBounds)) {
+        continue;
+      }
+
       final splitStrokes = _splitStrokeByEraserCircle(
         stroke: stroke,
         center: center,
@@ -92,8 +105,10 @@ class EraserEngine {
         removedById.putIfAbsent(stroke.id, () => stroke);
         removedOriginalIds.add(stroke.id);
       }
+      boundsByIdPagePx.remove(stroke.id);
       for (final split in splitStrokes) {
         addedById[split.id] = split;
+        boundsByIdPagePx[split.id] = computeStrokeBoundsPagePx(split, pageSize);
       }
     }
 
@@ -101,7 +116,30 @@ class EraserEngine {
       removedOriginalIds: removedOriginalIds,
       removedById: removedById,
       addedById: addedById,
+      boundsByIdPagePx: boundsByIdPagePx,
     );
+  }
+
+  Rect computeStrokeBoundsPagePx(DrawingStroke stroke, Size pageSize) {
+    final points = stroke.pointsNorm;
+    if (points.isEmpty) {
+      return Rect.zero;
+    }
+
+    var minX = points.first.dx * pageSize.width;
+    var minY = points.first.dy * pageSize.height;
+    var maxX = minX;
+    var maxY = minY;
+    for (var i = 1; i < points.length; i++) {
+      final point = points[i];
+      final x = point.dx * pageSize.width;
+      final y = point.dy * pageSize.height;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 
   EraserResult commit(EraserSession session) {
@@ -120,7 +158,7 @@ class EraserEngine {
     final radiusSq = radiusPagePx * radiusPagePx;
     final points = stroke.pointsNorm;
     if (points.length < 2) {
-      return const <DrawingStroke>[];
+      return <DrawingStroke>[stroke];
     }
 
     final outsideSegments = <List<Offset>>[];
