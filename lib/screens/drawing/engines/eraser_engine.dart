@@ -8,24 +8,28 @@ class EraserSession {
   const EraserSession({
     required this.mode,
     required this.radius,
+    required this.removedOriginalIds,
     required this.removedById,
     required this.addedById,
   });
 
   final EraserMode mode;
   final double radius;
+  final Set<String> removedOriginalIds;
   final Map<String, DrawingStroke> removedById;
   final Map<String, DrawingStroke> addedById;
 
   EraserSession copyWith({
     EraserMode? mode,
     double? radius,
+    Set<String>? removedOriginalIds,
     Map<String, DrawingStroke>? removedById,
     Map<String, DrawingStroke>? addedById,
   }) {
     return EraserSession(
       mode: mode ?? this.mode,
       radius: radius ?? this.radius,
+      removedOriginalIds: removedOriginalIds ?? this.removedOriginalIds,
       removedById: removedById ?? this.removedById,
       addedById: addedById ?? this.addedById,
     );
@@ -46,6 +50,7 @@ class EraserEngine {
     return EraserSession(
       mode: mode,
       radius: radius,
+      removedOriginalIds: <String>{},
       removedById: <String, DrawingStroke>{},
       addedById: <String, DrawingStroke>{},
     );
@@ -63,8 +68,13 @@ class EraserEngine {
 
     final removedById = Map<String, DrawingStroke>.from(session.removedById);
     final addedById = Map<String, DrawingStroke>.from(session.addedById);
+    final removedOriginalIds = Set<String>.from(session.removedOriginalIds);
+    final virtualStrokes = <DrawingStroke>[
+      ...strokes.where((stroke) => !removedOriginalIds.contains(stroke.id)),
+      ...addedById.values,
+    ];
 
-    for (final stroke in strokes) {
+    for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
       final splitStrokes = _splitStrokeByEraserCircle(
         stroke: stroke,
         center: center,
@@ -76,16 +86,22 @@ class EraserEngine {
         continue;
       }
 
-      final wasAddedThisSession = addedById.remove(stroke.id) != null;
-      if (!wasAddedThisSession) {
+      if (addedById.containsKey(stroke.id)) {
+        addedById.remove(stroke.id);
+      } else {
         removedById.putIfAbsent(stroke.id, () => stroke);
+        removedOriginalIds.add(stroke.id);
       }
       for (final split in splitStrokes) {
         addedById[split.id] = split;
       }
     }
 
-    return session.copyWith(removedById: removedById, addedById: addedById);
+    return session.copyWith(
+      removedOriginalIds: removedOriginalIds,
+      removedById: removedById,
+      addedById: addedById,
+    );
   }
 
   EraserResult commit(EraserSession session) {
