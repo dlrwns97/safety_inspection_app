@@ -351,10 +351,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _requestPersistDrawing() {
     _persistPending = true;
-    if (_persistInFlight) {
-      return;
-    }
-    unawaited(_runPersistLoop());
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) {
+        return;
+      }
+      if (_persistInFlight) {
+        return;
+      }
+      unawaited(_runPersistLoop());
+    });
   }
 
   Future<void> _runPersistLoop() async {
