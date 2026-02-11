@@ -22,6 +22,7 @@ import 'package:safety_inspection_app/models/site_storage.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/eraser_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
@@ -115,10 +116,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   Offset? _eraserCursorPageLocal;
   int? _eraserCursorPageNumber;
   int? _activeAreaEraserPointerId;
-  final Map<String, DrawingStroke> _areaEraserSessionRemovedById =
-      <String, DrawingStroke>{};
-  final Map<String, DrawingStroke> _areaEraserSessionAddedById =
-      <String, DrawingStroke>{};
+  final EraserEngine _eraserEngine = EraserEngine();
+  EraserSession? _activeAreaEraserSession;
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};
