@@ -332,6 +332,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     for (final stroke in _site.drawingStrokes) {
       loaded.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
         DrawingStroke(
+          id: stroke.id,
           pageNumber: stroke.pageNumber,
           style: stroke.style,
           pointsNorm: List<Offset>.from(stroke.pointsNorm),
@@ -341,7 +342,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _strokesByPage
       ..clear()
       ..addAll(loaded);
+    _undo.clear();
+    _redo.clear();
     _inProgressStroke = null;
+    _syncDrawingHistoryAvailability();
   }
 
   Future<void> _persistDrawing() async {
@@ -349,6 +353,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         .expand((entry) => entry.value)
         .map(
           (stroke) => DrawingStroke(
+            id: stroke.id,
             pageNumber: stroke.pageNumber,
             style: stroke.style,
             pointsNorm: List<Offset>.from(stroke.pointsNorm),
@@ -1154,6 +1159,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       _inProgressStroke = DrawingStroke(
+        id: DrawingStroke.generateId(),
         pageNumber: pageNumber,
         style: style,
         pointsNorm: <Offset>[normalized],
@@ -1200,15 +1206,102 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
-      _strokesByPage.putIfAbsent(pageNumber, () => <DrawingStroke>[]).add(
-        DrawingStroke(
-          pageNumber: pageNumber,
-          style: inProgressStroke.style,
-          pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
-        ),
+      final committedStroke = DrawingStroke(
+        id: inProgressStroke.id,
+        pageNumber: pageNumber,
+        style: inProgressStroke.style,
+        pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
       );
+      _strokesByPage.putIfAbsent(pageNumber, () => <DrawingStroke>[]).add(
+        committedStroke,
+      );
+      _recordUndoAction(
+        DrawingHistoryAction(stroke: committedStroke, wasAdd: true),
+      );
+      _redo.clear();
+      _syncDrawingHistoryAvailability();
       _debugLastPageLocal = null;
       _inProgressStroke = null;
+    });
+    unawaited(_persistDrawing());
+  }
+
+
+  void _recordUndoAction(DrawingHistoryAction action) {
+    _undo.add(action);
+    if (_undo.length > kMaxHistory) {
+      _undo.removeAt(0);
+    }
+  }
+
+  void _recordRedoAction(DrawingHistoryAction action) {
+    _redo.add(action);
+    if (_redo.length > kMaxHistory) {
+      _redo.removeAt(0);
+    }
+  }
+
+  void _syncDrawingHistoryAvailability() {
+    _canUndoDrawing = _undo.isNotEmpty;
+    _canRedoDrawing = _redo.isNotEmpty;
+  }
+
+  bool _removeStrokeById(DrawingStroke stroke) {
+    final strokes = _strokesByPage[stroke.pageNumber];
+    if (strokes == null || strokes.isEmpty) {
+      return false;
+    }
+    final index = strokes.lastIndexWhere((entry) => entry.id == stroke.id);
+    if (index < 0) {
+      return false;
+    }
+    strokes.removeAt(index);
+    if (strokes.isEmpty) {
+      _strokesByPage.remove(stroke.pageNumber);
+    }
+    return true;
+  }
+
+  void _addStrokeToMemory(DrawingStroke stroke) {
+    _strokesByPage.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
+      stroke,
+    );
+  }
+
+  void _handleUndoDrawing() {
+    if (_undo.isEmpty) {
+      return;
+    }
+    _safeSetState(() {
+      final action = _undo.removeLast();
+      if (action.wasAdd) {
+        _removeStrokeById(action.stroke);
+      } else {
+        _addStrokeToMemory(action.stroke);
+      }
+      _recordRedoAction(
+        DrawingHistoryAction(stroke: action.stroke, wasAdd: action.wasAdd),
+      );
+      _syncDrawingHistoryAvailability();
+    });
+    unawaited(_persistDrawing());
+  }
+
+  void _handleRedoDrawing() {
+    if (_redo.isEmpty) {
+      return;
+    }
+    _safeSetState(() {
+      final action = _redo.removeLast();
+      if (action.wasAdd) {
+        _addStrokeToMemory(action.stroke);
+      } else {
+        _removeStrokeById(action.stroke);
+      }
+      _recordUndoAction(
+        DrawingHistoryAction(stroke: action.stroke, wasAdd: action.wasAdd),
+      );
+      _syncDrawingHistoryAvailability();
     });
     unawaited(_persistDrawing());
   }
