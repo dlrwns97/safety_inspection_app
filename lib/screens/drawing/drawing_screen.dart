@@ -130,6 +130,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
   bool _hasUnsavedChanges = false;
+  Timer? _persistDebounce;
   bool _persistInFlight = false;
   bool _persistPending = false;
   int _persistEpoch = 0;
@@ -579,6 +580,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
   @override
   void dispose() {
+    _persistDebounce?.cancel();
     _pdfController?.dispose();
     _resetPdfViewControllers();
     _transformationController.dispose();
