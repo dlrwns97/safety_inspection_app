@@ -1229,14 +1229,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _recordUndoAction(DrawingHistoryAction action) {
     _undo.add(action);
-    if (_undo.length > kMaxHistory) {
+    if (_undo.length > _DrawingScreenState.kMaxHistory) {
       _undo.removeAt(0);
     }
   }
 
   void _recordRedoAction(DrawingHistoryAction action) {
     _redo.add(action);
-    if (_redo.length > kMaxHistory) {
+    if (_redo.length > _DrawingScreenState.kMaxHistory) {
       _redo.removeAt(0);
     }
   }
