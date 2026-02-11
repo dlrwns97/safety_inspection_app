@@ -13,6 +13,7 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
@@ -133,67 +134,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     0xFF8E24AA,
     0xFF6D4C41,
   ];
-  late final List<StrokeStyle> _presets = <StrokeStyle>[
-    // Pens (4)
-    const StrokeStyle(
-      kind: StrokeToolKind.pen,
-      variant: PenVariant.fountainPen,
-      widthPx: 4.0,
-      argbColor: 0xFF000000,
-      opacity: 1.0,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.pen,
-      variant: PenVariant.calligraphyPen,
-      widthPx: 6.0,
-      argbColor: 0xFF000000,
-      opacity: 1.0,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.pen,
-      variant: PenVariant.pen,
-      widthPx: 3.0,
-      argbColor: 0xFF000000,
-      opacity: 1.0,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.pen,
-      widthPx: 3.0,
-      variant: PenVariant.pencil,
-      argbColor: 0xFF424242,
-      opacity: 0.65,
-    ),
-
-    // Highlighters (4)
-    const StrokeStyle(
-      kind: StrokeToolKind.highlighter,
-      variant: PenVariant.highlighter,
-      widthPx: 14.0,
-      argbColor: 0xFFFFEB3B,
-      opacity: 0.35,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.highlighter,
-      variant: PenVariant.highlighterChisel,
-      widthPx: 16.0,
-      argbColor: 0xFFFFEB3B,
-      opacity: 0.30,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.highlighter,
-      variant: PenVariant.marker,
-      widthPx: 12.0,
-      argbColor: 0xFF66BB6A,
-      opacity: 0.28,
-    ),
-    const StrokeStyle(
-      kind: StrokeToolKind.highlighter,
-      variant: PenVariant.markerChisel,
-      widthPx: 14.0,
-      argbColor: 0xFF66BB6A,
-      opacity: 0.26,
-    ),
-  ];
+  late final List<StrokeStyle> _presets = StrokePresets.defaults();
   Offset? _debugLastPageLocal;
   Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
@@ -226,8 +167,17 @@ class _DrawingScreenState extends State<DrawingScreen>
           ? null
           : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
-  StrokeStyle? get _activeStrokeStyle =>
-      _activePresetIndex == null ? null : _presets[_activePresetIndex!];
+  int _clampPresetIndex(int index) {
+    return index.clamp(0, _presets.length - 1).toInt();
+  }
+
+  StrokeStyle? get _activeStrokeStyle {
+    final index = _activePresetIndex;
+    if (index == null) {
+      return null;
+    }
+    return _presets[_clampPresetIndex(index)];
+  }
 
   StrokeStyle get _activeStrokeStyleOrFallback =>
       _activeStrokeStyle ?? _presets.first;
@@ -236,12 +186,13 @@ class _DrawingScreenState extends State<DrawingScreen>
       _safeSetState(() => _isToolPanelOpen = value);
 
   void _toggleActivePreset(int index) {
-    final shouldUnselect = _activePresetIndex == index;
+    final normalizedIndex = _clampPresetIndex(index);
+    final shouldUnselect = _activePresetIndex == normalizedIndex;
     if (shouldUnselect && _inProgressStroke != null) {
       _handleFreeDrawEnd(_inProgressStroke?.pageNumber ?? _currentPage);
     }
     _safeSetState(() {
-      _activePresetIndex = shouldUnselect ? null : index;
+      _activePresetIndex = shouldUnselect ? null : normalizedIndex;
       if (_activePresetIndex == null) {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
@@ -266,8 +217,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (index == null) {
       return;
     }
+    final normalizedIndex = _clampPresetIndex(index);
     _safeSetState(() {
-      _presets[index] = next;
+      _presets[normalizedIndex] = next;
     });
   }
 
