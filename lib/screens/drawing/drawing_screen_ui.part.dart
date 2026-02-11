@@ -163,6 +163,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
     final style = _activeStrokeStyleOrFallback;
     final hasActiveTool = _activeStrokeStyle != null;
+    final isStrokeEraserSelected = _isStrokeEraserActive;
+    final isAreaEraserSelected = _isAreaEraserActive;
+    final isPenSelected = !isStrokeEraserSelected && !isAreaEraserSelected;
+    final canAdjustStrokeStyle = hasActiveTool && isPenSelected;
     final showOpacity = style.kind == StrokeToolKind.highlighter;
     final colorRow = <int>[
       ..._standardPaletteArgb.take(8),
@@ -180,6 +184,49 @@ extension _DrawingScreenUi on _DrawingScreenState {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                children: [
+                  panelButton(
+                    icon: Icons.edit,
+                    selected: isPenSelected,
+                    tooltip: '그리기',
+                    onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
+                  ),
+                  const SizedBox(width: 8),
+                  panelButton(
+                    icon: Icons.remove,
+                    selected: isStrokeEraserSelected,
+                    tooltip: '선 지우개',
+                    onTap: () => _handleDrawingToolChanged(DrawingTool.strokeEraser),
+                  ),
+                  const SizedBox(width: 8),
+                  panelButton(
+                    icon: Icons.circle_outlined,
+                    selected: isAreaEraserSelected,
+                    tooltip: '범위 지우개',
+                    onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
+                  ),
+                ],
+              ),
+              if (isAreaEraserSelected) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('지우개 크기'),
+                    Expanded(
+                      child: Slider(
+                        value: _areaEraserRadiusPx.clamp(6.0, 60.0),
+                        min: 6,
+                        max: 60,
+                        divisions: 54,
+                        label: _areaEraserRadiusPx.round().toString(),
+                        onChanged: _handleAreaEraserRadiusChanged,
+                      ),
+                    ),
+                    Text(_areaEraserRadiusPx.round().toString()),
+                  ],
+                ),
+              ],
               Row(
                 children: [
                   Expanded(
@@ -212,6 +259,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               children: [
                 IconButton(
                   onPressed: !hasActiveTool || style.widthPx <= 1
+                      || !canAdjustStrokeStyle
                       ? null
                       : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx - 1).clamp(1, 48).toDouble())),
                   icon: const Icon(Icons.remove),
@@ -223,13 +271,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     max: 48,
                     divisions: 47,
                     label: style.widthPx.round().toString(),
-                    onChanged: hasActiveTool
+                    onChanged: canAdjustStrokeStyle
                         ? (v) => _updateActivePreset(style.copyWith(widthPx: v))
                         : null,
                   ),
                 ),
                 IconButton(
-                  onPressed: !hasActiveTool || style.widthPx >= 48
+                  onPressed: !canAdjustStrokeStyle || style.widthPx >= 48
                       ? null
                       : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx + 1).clamp(1, 48).toDouble())),
                   icon: const Icon(Icons.add),
@@ -246,7 +294,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       value: style.opacity.clamp(0.05, 1.0),
                       min: 0.05,
                       max: 1.0,
-                      onChanged: hasActiveTool
+                      onChanged: canAdjustStrokeStyle
                           ? (v) =>
                               _updateActivePreset(style.copyWith(opacity: v))
                           : null,
@@ -272,7 +320,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             child: _colorCircle(
                               argb,
                               selected: style.argbColor == argb,
-                              onTap: !hasActiveTool
+                              onTap: !canAdjustStrokeStyle
                                   ? () {}
                                   : () {
                                       _updateActivePreset(
@@ -287,7 +335,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
                 IconButton(
-                  onPressed: hasActiveTool ? _openColorDialog : null,
+                  onPressed: canAdjustStrokeStyle ? _openColorDialog : null,
                   icon: const Icon(Icons.colorize),
                   tooltip: '색상 선택',
                 ),

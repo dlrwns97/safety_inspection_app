@@ -19,12 +19,9 @@ class ToolDetailRow extends StatelessWidget {
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
     required this.activeDrawingTool,
-    required this.areaEraserRadiusPx,
-    required this.showAreaEraserSizeControl,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
-    required this.onAreaEraserRadiusChanged,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
   });
@@ -41,12 +38,9 @@ class ToolDetailRow extends StatelessWidget {
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
   final DrawingTool activeDrawingTool;
-  final double areaEraserRadiusPx;
-  final bool showAreaEraserSizeControl;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<DrawingTool> onDrawingToolSelected;
-  final ValueChanged<double> onAreaEraserRadiusChanged;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
@@ -65,12 +59,9 @@ class ToolDetailRow extends StatelessWidget {
       onEquipmentSelected: onEquipmentSelected,
       onEquipmentLongPress: onEquipmentLongPress,
       activeDrawingTool: activeDrawingTool,
-      areaEraserRadiusPx: areaEraserRadiusPx,
-      showAreaEraserSizeControl: showAreaEraserSizeControl,
       canUndoDrawing: canUndoDrawing,
       canRedoDrawing: canRedoDrawing,
       onDrawingToolSelected: onDrawingToolSelected,
-      onAreaEraserRadiusChanged: onAreaEraserRadiusChanged,
       onUndoDrawing: onUndoDrawing,
       onRedoDrawing: onRedoDrawing,
     );

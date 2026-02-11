@@ -21,12 +21,9 @@ class ToolHeaderRow extends StatelessWidget {
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
     required this.activeDrawingTool,
-    required this.areaEraserRadiusPx,
-    required this.showAreaEraserSizeControl,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
-    required this.onAreaEraserRadiusChanged,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
   });
@@ -43,12 +40,9 @@ class ToolHeaderRow extends StatelessWidget {
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
   final DrawingTool activeDrawingTool;
-  final double areaEraserRadiusPx;
-  final bool showAreaEraserSizeControl;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<DrawingTool> onDrawingToolSelected;
-  final ValueChanged<double> onAreaEraserRadiusChanged;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
@@ -132,24 +126,6 @@ class ToolHeaderRow extends StatelessWidget {
             ),
           ],
         ),
-        if (showAreaEraserSizeControl) ...[
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const SizedBox(width: 12),
-              const Text('지우개 크기'),
-              Expanded(
-                child: Slider(
-                  min: 6,
-                  max: 60,
-                  value: areaEraserRadiusPx.clamp(6, 60),
-                  onChanged: onAreaEraserRadiusChanged,
-                ),
-              ),
-              Text(areaEraserRadiusPx.round().toString()),
-            ],
-          ),
-        ],
       ],
     );
   }
@@ -198,18 +174,6 @@ class _FreeDrawActionTabs extends StatelessWidget {
             label: const Text('자유선'),
             selected: activeTool == DrawingTool.pen,
             onSelected: (_) => onToolSelected(DrawingTool.pen),
-          ),
-          const SizedBox(width: 8),
-          ChoiceChip(
-            label: const Text('선 지우개'),
-            selected: activeTool == DrawingTool.strokeEraser,
-            onSelected: (_) => onToolSelected(DrawingTool.strokeEraser),
-          ),
-          const SizedBox(width: 8),
-          ChoiceChip(
-            label: const Text('영역 지우개'),
-            selected: activeTool == DrawingTool.areaEraser,
-            onSelected: (_) => onToolSelected(DrawingTool.areaEraser),
           ),
           const SizedBox(width: 8),
           ActionChip(

@@ -223,6 +223,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     _safeSetState(() {
       _activePresetIndex = shouldUnselect ? null : normalizedIndex;
+      if (!shouldUnselect) {
+        _activeTool = DrawingTool.pen;
+      }
       if (_activePresetIndex == null) {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
@@ -809,12 +812,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     }),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
     activeDrawingTool: _activeTool,
-    areaEraserRadiusPx: _areaEraserRadiusPx,
-    showAreaEraserSizeControl: _mode == DrawMode.eraser && _activeTool == DrawingTool.areaEraser,
     canUndoDrawing: _canUndoDrawing,
     canRedoDrawing: _canRedoDrawing,
     onDrawingToolSelected: _handleDrawingToolChanged,
-    onAreaEraserRadiusChanged: _handleAreaEraserRadiusChanged,
     onUndoDrawing: _handleUndoDrawing,
     onRedoDrawing: _handleRedoDrawing,
   );

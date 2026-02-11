@@ -1056,7 +1056,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isAreaEraserActive) {
+    final activeTool = _activeTool;
+
+    if (_isFreeDrawMode && activeTool == DrawingTool.strokeEraser) {
+      _activeStylusPointerId = event.pointer;
+      _safeSetState(() {
+        _pendingDraw = true;
+        _pendingDrawDownViewportLocal = event.localPosition;
+      });
+      return;
+    }
+
+    if (_isFreeDrawMode && activeTool == DrawingTool.areaEraser) {
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
         return;
@@ -1065,15 +1076,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageNumber = pageNumber;
         _eraserCursorPageLocal = pageLocal;
         _startAreaEraserSession(event.pointer);
-      });
-      return;
-    }
-
-    if (_isStrokeEraserActive) {
-      _activeStylusPointerId = event.pointer;
-      _safeSetState(() {
-        _pendingDraw = true;
-        _pendingDrawDownViewportLocal = event.localPosition;
       });
       return;
     }
@@ -1095,7 +1097,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
-    if (!_isFreeDrawMode) return;
+    if (!_isFreeDrawMode) {
+      return;
+    }
+
+    final activeTool = _activeTool;
 
     if (_hasAnyTouchPointer()) {
       _safeSetState(() {
@@ -1108,7 +1114,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isAreaEraserActive) {
+    if (activeTool == DrawingTool.areaEraser) {
       if (_activeAreaEraserPointerId != event.pointer || !_isStylusKind(event.kind)) {
         return;
       }
@@ -1156,7 +1162,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isStrokeEraserActive) {
+    if (activeTool == DrawingTool.strokeEraser) {
       return;
     }
 
@@ -1271,9 +1277,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     _handleOverlayPointerUpOrCancel(event);
 
-    if (!_isFreeDrawMode) return;
+    if (!_isFreeDrawMode) {
+      return;
+    }
 
-    if (wasAreaSession) {
+    final activeTool = _activeTool;
+
+    if (activeTool == DrawingTool.areaEraser && wasAreaSession) {
       _safeSetState(() {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
@@ -1282,7 +1292,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isStrokeEraserActive && wasStylus) {
+    if (activeTool == DrawingTool.strokeEraser && wasStylus) {
       final down = _pendingDrawDownViewportLocal;
       if (down != null && event is PointerUpEvent) {
         final movedEnough = (event.localPosition - down).distance >= _DrawingScreenState._kDrawStartSlopPx;
@@ -1303,6 +1313,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           }
         }
       }
+      _safeSetState(() {
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
+      });
+      return;
     }
 
     if (wasStylus) {
@@ -1387,10 +1403,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   bool get _isAreaEraserActive =>
-      _mode == DrawMode.eraser && _activeTool == DrawingTool.areaEraser;
+      _isFreeDrawMode && _activeTool == DrawingTool.areaEraser;
 
   bool get _isStrokeEraserActive =>
-      _mode == DrawMode.eraser && _activeTool == DrawingTool.strokeEraser;
+      _isFreeDrawMode && _activeTool == DrawingTool.strokeEraser;
 
   DrawingStroke? _findClosestStrokeAtPageLocal({
     required int pageNumber,

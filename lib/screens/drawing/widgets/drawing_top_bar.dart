@@ -21,18 +21,14 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
     required this.activeDrawingTool,
-    required this.areaEraserRadiusPx,
-    required this.showAreaEraserSizeControl,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
-    required this.onAreaEraserRadiusChanged,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
   });
 
   static const double _toolBarHeight = 56.0;
-  static const double _expandedToolBarHeight = 104.0;
 
   final DrawMode mode;
   final bool isToolSelectionMode;
@@ -48,17 +44,14 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
   final DrawingTool activeDrawingTool;
-  final double areaEraserRadiusPx;
-  final bool showAreaEraserSizeControl;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<DrawingTool> onDrawingToolSelected;
-  final ValueChanged<double> onAreaEraserRadiusChanged;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
   @override
-  Size get preferredSize => Size.fromHeight(showAreaEraserSizeControl ? _expandedToolBarHeight : _toolBarHeight);
+  Size get preferredSize => const Size.fromHeight(_toolBarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -84,12 +77,9 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onEquipmentSelected: onEquipmentSelected,
                 onEquipmentLongPress: onEquipmentLongPress,
                 activeDrawingTool: activeDrawingTool,
-                areaEraserRadiusPx: areaEraserRadiusPx,
-                showAreaEraserSizeControl: showAreaEraserSizeControl,
                 canUndoDrawing: canUndoDrawing,
                 canRedoDrawing: canRedoDrawing,
                 onDrawingToolSelected: onDrawingToolSelected,
-                onAreaEraserRadiusChanged: onAreaEraserRadiusChanged,
                 onUndoDrawing: onUndoDrawing,
                 onRedoDrawing: onRedoDrawing,
               ),
