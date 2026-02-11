@@ -22,7 +22,8 @@ class TempPolylinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     _DrawingUiPerfProbe.instance.ensureInitialized();
-    final Stopwatch? stopwatch = kReleaseMode ? null : Stopwatch()..start();
+    final Stopwatch? stopwatch = kReleaseMode ? null : Stopwatch();
+    stopwatch?.start();
     if (!kReleaseMode) {
       developer.Timeline.startSync('DrawingCanvas.paint');
     }
