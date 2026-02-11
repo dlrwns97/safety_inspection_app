@@ -327,26 +327,39 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
 
-  void _loadStrokesFromSite() {
+  Future<void> _loadStrokesFromSite() async {
+    final targetSiteId = _site.id;
+    await _cleanupLegacyDrawingPrefsForSite(targetSiteId);
+
+    final payload = await _drawingPersistenceStore.loadSiteDrawing(siteId: targetSiteId);
     final Map<int, List<DrawingStroke>> loaded = <int, List<DrawingStroke>>{};
-    for (final stroke in _site.drawingStrokes) {
-      final copied = DrawingStroke(
-        id: stroke.id,
-        pageNumber: stroke.pageNumber,
-        style: stroke.style,
-        pointsNorm: List<Offset>.from(stroke.pointsNorm),
-      );
-      loaded.putIfAbsent(copied.pageNumber, () => <DrawingStroke>[]).add(copied);
+
+    final drawingStrokesJson = payload?['drawingStrokes'];
+    if (drawingStrokesJson is List) {
+      for (final rawStroke in drawingStrokesJson.whereType<Map>()) {
+        final stroke = DrawingStroke.fromJson(rawStroke.cast<String, dynamic>());
+        loaded.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(stroke);
+      }
     }
 
-    _strokesByPage
-      ..clear()
-      ..addAll(loaded);
+    if (!mounted || _site.id != targetSiteId) {
+      return;
+    }
+
+    _safeSetState(() {
+      _strokesByPage
+        ..clear()
+        ..addAll(loaded);
+      _inProgressStroke = null;
+      _canUndoDrawing = false;
+      _canRedoDrawing = false;
+    });
+    _undo.clear();
+    _redo.clear();
     _drawingHistoryManager.loadPersisted(
-      _site.drawingUndoHistory,
-      _site.drawingRedoHistory,
+      const <DrawingHistoryActionPersisted>[],
+      const <DrawingHistoryActionPersisted>[],
     );
-    _inProgressStroke = null;
   }
 
   void _requestPersistDrawing() {
@@ -385,11 +398,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           ),
         )
         .toList();
-    final persistedStacks = _drawingHistoryManager.toPersistedStacks();
+    await _drawingPersistenceStore.saveSiteDrawing(
+      siteId: _site.id,
+      payloadJson: <String, dynamic>{
+        'drawingStrokes': flatList.map((stroke) => stroke.toJson()).toList(),
+      },
+    );
     final updatedSite = _site.copyWith(
-      drawingStrokes: flatList,
-      drawingUndoHistory: persistedStacks.undoPersisted,
-      drawingRedoHistory: persistedStacks.redoPersisted,
+      drawingStrokes: const <DrawingStroke>[],
+      drawingUndoHistory: const <DrawingHistoryActionPersisted>[],
+      drawingRedoHistory: const <DrawingHistoryActionPersisted>[],
     );
     try {
       final sites = await SiteStorage.loadSites();
@@ -419,6 +437,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('저장에 실패했습니다')));
+    }
+  }
+
+  Future<void> _cleanupLegacyDrawingPrefsForSite(String siteId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = <String>{
+      'drawing_$siteId',
+      'undo_$siteId',
+      'redo_$siteId',
+      'drawing_json',
+      'undo_redo_json',
+      'site_json',
+    };
+    for (final key in keys) {
+      if (prefs.containsKey(key)) {
+        await prefs.remove(key);
+      }
     }
   }
 
