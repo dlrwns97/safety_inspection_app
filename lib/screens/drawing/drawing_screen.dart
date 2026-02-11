@@ -130,6 +130,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
   bool _hasUnsavedChanges = false;
+  bool _persistInFlight = false;
+  bool _persistPending = false;
+  int _persistEpoch = 0;
   bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
@@ -160,7 +163,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     redoStack: _redo,
     maxHistory: kMaxHistory,
     onHistoryChanged: _updateDrawingHistoryAvailabilityState,
-    persistDrawing: () => unawaited(_persistDrawing()),
+    persistDrawing: _requestPersistDrawing,
     addStroke: _addStrokeToMemory,
     removeStroke: _removeStrokeById,
     replaceStrokes: _replaceStrokesInMemory,

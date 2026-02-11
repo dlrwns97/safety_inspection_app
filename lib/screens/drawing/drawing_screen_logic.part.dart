@@ -349,7 +349,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _inProgressStroke = null;
   }
 
-  Future<void> _persistDrawing() async {
+  void _requestPersistDrawing() {
+    _persistPending = true;
+    if (_persistInFlight) {
+      return;
+    }
+    unawaited(_runPersistLoop());
+  }
+
+  Future<void> _runPersistLoop() async {
+    _persistInFlight = true;
+    while (_persistPending && mounted) {
+      _persistPending = false;
+      final int epoch = ++_persistEpoch;
+      await _persistDrawingEpoch(epoch);
+    }
+    _persistInFlight = false;
+  }
+
+  Future<void> _persistDrawingEpoch(int epoch) async {
     final flatList = _strokesByPage.entries
         .expand((entry) => entry.value)
         .map(
@@ -377,6 +395,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         updatedSites.add(updatedSite);
       }
       await SiteStorage.saveSites(updatedSites);
+      if (!mounted || epoch != _persistEpoch) {
+        return;
+      }
       _safeSetState(() {
         _site = updatedSite;
         _hasUnsavedChanges = false;
@@ -1451,7 +1472,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _recordUndoAction(DrawingHistoryAction.single(stroke: stroke, wasAdd: false));
     _redo.clear();
     _syncDrawingHistoryAvailability();
-    unawaited(_persistDrawing());
+    _requestPersistDrawing();
   }
 
   void _startAreaEraserSession(int pointer) {
@@ -1468,7 +1489,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final result = _eraserEngine.commit(session);
       if (result.hasChanges) {
         _drawingHistoryManager.recordReplace(result.removed, result.added);
-        unawaited(_persistDrawing());
+        _requestPersistDrawing();
       }
     }
     _activeAreaEraserPointerId = null;
@@ -1546,7 +1567,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _debugLastPageLocal = null;
       _inProgressStroke = null;
     });
-    unawaited(_persistDrawing());
+    _requestPersistDrawing();
   }
 
 
