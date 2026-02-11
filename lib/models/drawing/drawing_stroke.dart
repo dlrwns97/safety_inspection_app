@@ -92,12 +92,12 @@ class StrokeStyle {
 }
 
 class DrawingStroke {
-  const DrawingStroke({
+  DrawingStroke({
     required this.id,
     required this.pageNumber,
     required this.style,
-    required this.pointsNorm,
-  });
+    required List<Offset> pointsNorm,
+  }) : pointsNorm = List<Offset>.unmodifiable(List<Offset>.from(pointsNorm));
 
   static int _idCounter = 0;
 
@@ -110,6 +110,15 @@ class DrawingStroke {
   final int pageNumber;
   final StrokeStyle style;
   final List<Offset> pointsNorm;
+
+  DrawingStroke deepCopy() {
+    return DrawingStroke(
+      id: id,
+      pageNumber: pageNumber,
+      style: style,
+      pointsNorm: List<Offset>.from(pointsNorm),
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{

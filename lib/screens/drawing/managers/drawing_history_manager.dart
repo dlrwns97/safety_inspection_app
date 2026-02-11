@@ -36,6 +36,28 @@ class DrawingHistoryAction {
   final List<DrawingStroke> addedStrokes;
 
   DrawingStroke get stroke => strokes.first;
+
+  DrawingHistoryAction deepCopySnapshot() {
+    switch (op) {
+      case DrawingHistoryOp.replace:
+        return DrawingHistoryAction.replace(
+          removedStrokes: removedStrokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+          addedStrokes: addedStrokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+        );
+      case DrawingHistoryOp.add:
+      case DrawingHistoryOp.remove:
+        return DrawingHistoryAction(
+          op: op,
+          strokes: strokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+        );
+    }
+  }
 }
 
 class DrawingHistoryManager {
@@ -123,7 +145,7 @@ class DrawingHistoryManager {
         replaceStrokes(action.addedStrokes, action.removedStrokes);
         break;
     }
-    _recordRedoAction(_copyHistoryAction(action));
+    _recordRedoAction(action);
     _syncDrawingHistoryAvailability();
     persistDrawing();
   }
@@ -148,7 +170,7 @@ class DrawingHistoryManager {
         replaceStrokes(action.removedStrokes, action.addedStrokes);
         break;
     }
-    _recordUndoAction(_copyHistoryAction(action));
+    _recordUndoAction(action);
     _syncDrawingHistoryAvailability();
     persistDrawing();
   }
@@ -195,14 +217,14 @@ class DrawingHistoryManager {
   }
 
   void _recordUndoAction(DrawingHistoryAction action) {
-    _undoStack.add(action);
+    _undoStack.add(action.deepCopySnapshot());
     if (_undoStack.length > maxHistory) {
       _undoStack.removeAt(0);
     }
   }
 
   void _recordRedoAction(DrawingHistoryAction action) {
-    _redoStack.add(action);
+    _redoStack.add(action.deepCopySnapshot());
     if (_redoStack.length > maxHistory) {
       _redoStack.removeAt(0);
     }
@@ -292,19 +314,6 @@ class DrawingHistoryManager {
       op: action.op,
       strokeId: stroke.id,
       strokeJson: stroke.toJson(),
-    );
-  }
-
-  DrawingHistoryAction _copyHistoryAction(DrawingHistoryAction action) {
-    if (action.op == DrawingHistoryOp.replace) {
-      return DrawingHistoryAction.replace(
-        removedStrokes: List<DrawingStroke>.from(action.removedStrokes),
-        addedStrokes: List<DrawingStroke>.from(action.addedStrokes),
-      );
-    }
-    return DrawingHistoryAction(
-      op: action.op,
-      strokes: List<DrawingStroke>.from(action.strokes),
     );
   }
 }
