@@ -53,9 +53,17 @@ part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
 class DrawingHistoryAction {
-  const DrawingHistoryAction({required this.stroke, required this.wasAdd});
+  const DrawingHistoryAction({required this.strokes, required this.wasAdd});
 
-  final DrawingStroke stroke;
+  factory DrawingHistoryAction.single({
+    required DrawingStroke stroke,
+    required bool wasAdd,
+  }) {
+    return DrawingHistoryAction(strokes: <DrawingStroke>[stroke], wasAdd: wasAdd);
+  }
+
+  final List<DrawingStroke> strokes;
+  DrawingStroke get stroke => strokes.first;
   final bool wasAdd;
 }
 
@@ -116,6 +124,14 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isFreeDrawMode = false;
   bool _isToolPanelOpen = true;
   DrawingTool _activeTool = DrawingTool.pen;
+  static const double _kMinAreaEraserRadiusPx = 6.0;
+  static const double _kMaxAreaEraserRadiusPx = 60.0;
+  double _areaEraserRadiusPx = 24.0;
+  Offset? _eraserCursorPageLocal;
+  int? _eraserCursorPageNumber;
+  int? _activeAreaEraserPointerId;
+  final List<DrawingStroke> _areaEraserSessionDeleted = <DrawingStroke>[];
+  final Set<String> _areaEraserSessionDeletedIds = <String>{};
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};
@@ -793,9 +809,12 @@ class _DrawingScreenState extends State<DrawingScreen>
     }),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
     activeDrawingTool: _activeTool,
+    areaEraserRadiusPx: _areaEraserRadiusPx,
+    showAreaEraserSizeControl: _mode == DrawMode.eraser && _activeTool == DrawingTool.areaEraser,
     canUndoDrawing: _canUndoDrawing,
     canRedoDrawing: _canRedoDrawing,
     onDrawingToolSelected: _handleDrawingToolChanged,
+    onAreaEraserRadiusChanged: _handleAreaEraserRadiusChanged,
     onUndoDrawing: _handleUndoDrawing,
     onRedoDrawing: _handleRedoDrawing,
   );

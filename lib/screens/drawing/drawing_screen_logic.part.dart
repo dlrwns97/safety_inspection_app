@@ -389,6 +389,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     DrawingHistoryActionPersisted action,
     Map<String, DrawingStroke> strokesById,
   ) {
+    final snapshots = action.strokesJson;
+    if (snapshots != null && snapshots.isNotEmpty) {
+      final strokes = snapshots
+          .map(DrawingStroke.fromJson)
+          .whereType<DrawingStroke>()
+          .toList(growable: false);
+      if (strokes.isEmpty) {
+        return null;
+      }
+      return DrawingHistoryAction(strokes: strokes, wasAdd: action.op == DrawingHistoryOp.add);
+    }
     final snapshot = action.strokeJson;
     final stroke =
         snapshot == null
@@ -397,7 +408,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (stroke == null) {
       return null;
     }
-    return DrawingHistoryAction(
+    return DrawingHistoryAction.single(
       stroke: stroke,
       wasAdd: action.op == DrawingHistoryOp.add,
     );
@@ -408,12 +419,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Set<String> currentStrokeIds,
   ) {
     final op = action.wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove;
+    if (action.strokes.length > 1) {
+      return DrawingHistoryActionPersisted(
+        op: op,
+        strokeId: action.strokes.first.id,
+        strokesJson: action.strokes.map((stroke) => stroke.toJson()).toList(growable: false),
+      );
+    }
+    final stroke = action.stroke;
     final shouldIncludeSnapshot =
-        op == DrawingHistoryOp.remove || !currentStrokeIds.contains(action.stroke.id);
+        op == DrawingHistoryOp.remove || !currentStrokeIds.contains(stroke.id);
     return DrawingHistoryActionPersisted(
       op: op,
-      strokeId: action.stroke.id,
-      strokeJson: shouldIncludeSnapshot ? action.stroke.toJson() : null,
+      strokeId: stroke.id,
+      strokeJson: shouldIncludeSnapshot ? stroke.toJson() : null,
     );
   }
 
@@ -729,7 +748,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size pageSize,
     int pageIndex,
   ) async {
-    if (_isMoveMode) {
+    if (_isMoveMode || _isStrokeEraserActive || _isAreaEraserActive) {
       return;
     }
     if (kDebugMode) {
@@ -1033,9 +1052,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     _handleOverlayPointerDown(event);
 
+    if (!_isStylusKind(event.kind) || _hasAnyTouchPointer()) {
+      return;
+    }
+
+    if (_isAreaEraserActive) {
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      _safeSetState(() {
+        _eraserCursorPageNumber = pageNumber;
+        _eraserCursorPageLocal = pageLocal;
+        _startAreaEraserSession(event.pointer);
+      });
+      return;
+    }
+
+    if (_isStrokeEraserActive) {
+      _activeStylusPointerId = event.pointer;
+      _safeSetState(() {
+        _pendingDraw = true;
+        _pendingDrawDownViewportLocal = event.localPosition;
+      });
+      return;
+    }
+
     if (!_isFreeDrawMode || _activeStrokeStyle == null) return;
-    if (!_isStylusKind(event.kind)) return;
-    if (_hasAnyTouchPointer()) return;
 
     _activeStylusPointerId = event.pointer;
 
@@ -1053,6 +1096,70 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required double photoScale,
   }) {
     if (!_isFreeDrawMode) return;
+
+    if (_hasAnyTouchPointer()) {
+      _safeSetState(() {
+        _isFreeDrawConsumingOneFinger = false;
+        _pendingDraw = false;
+        _pendingDrawDownViewportLocal = null;
+        _activeStylusPointerId = null;
+        _eraserCursorPageLocal = null;
+      });
+      return;
+    }
+
+    if (_isAreaEraserActive) {
+      if (_activeAreaEraserPointerId != event.pointer || !_isStylusKind(event.kind)) {
+        return;
+      }
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final rightOffset = drawingLocalToPageLocal(
+        event.localPosition + Offset(_areaEraserRadiusPx, 0),
+      );
+      final leftOffset = drawingLocalToPageLocal(
+        event.localPosition - Offset(_areaEraserRadiusPx, 0),
+      );
+      final radiusPagePx = (rightOffset != null)
+          ? (rightOffset - pageLocal).distance
+          : (leftOffset != null)
+              ? (leftOffset - pageLocal).distance
+              : _areaEraserRadiusPx;
+      final strokes = List<DrawingStroke>.from(_strokesByPage[pageNumber] ?? const <DrawingStroke>[]);
+      var changed = false;
+      for (final stroke in strokes) {
+        if (_areaEraserSessionDeletedIds.contains(stroke.id)) {
+          continue;
+        }
+        if (_doesStrokeIntersectCircle(
+          stroke: stroke,
+          center: pageLocal,
+          pageSize: pageSize,
+          radiusPagePx: radiusPagePx,
+        )) {
+          if (_removeStrokeById(stroke)) {
+            _areaEraserSessionDeleted.add(stroke);
+            _areaEraserSessionDeletedIds.add(stroke.id);
+            changed = true;
+          }
+        }
+      }
+      _safeSetState(() {
+        _eraserCursorPageNumber = pageNumber;
+        _eraserCursorPageLocal = pageLocal;
+      });
+      if (changed) {
+        _safeSetState(() {});
+      }
+      return;
+    }
+
+    if (_isStrokeEraserActive) {
+      return;
+    }
+
     if (_activeStrokeStyle == null) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
@@ -1066,21 +1173,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_hasAnyTouchPointer()) {
-      if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
-        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
-      }
-      _safeSetState(() {
-        _isFreeDrawConsumingOneFinger = false;
-        _pendingDraw = false;
-        _pendingDrawDownViewportLocal = null;
-        _activeStylusPointerId = null;
-      });
-      return;
-    }
-
     if (_activeStylusPointerId == null ||
-        event.pointer != _activeStylusPointerId) {
+        event.pointer != _activeStylusPointerId ||
+        !_isStylusKind(event.kind)) {
       return;
     }
 
@@ -1093,7 +1188,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    // Start consuming after slop
     if (!_isFreeDrawConsumingOneFinger && _pendingDraw) {
       final distance = (event.localPosition - pendingDown).distance;
       if (distance < _DrawingScreenState._kDrawStartSlopPx) return;
@@ -1169,12 +1263,47 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleOverlayPointerUpOrCancelWithStylusDrawing(
     PointerEvent event, {
     required int pageNumber,
+    required Size pageSize,
+    required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
     final wasStylus = _activeStylusPointerId == event.pointer;
+    final wasAreaSession = _activeAreaEraserPointerId == event.pointer;
 
     _handleOverlayPointerUpOrCancel(event);
 
     if (!_isFreeDrawMode) return;
+
+    if (wasAreaSession) {
+      _safeSetState(() {
+        _eraserCursorPageLocal = null;
+        _eraserCursorPageNumber = null;
+      });
+      _commitAreaEraserSession();
+      return;
+    }
+
+    if (_isStrokeEraserActive && wasStylus) {
+      final down = _pendingDrawDownViewportLocal;
+      if (down != null && event is PointerUpEvent) {
+        final movedEnough = (event.localPosition - down).distance >= _DrawingScreenState._kDrawStartSlopPx;
+        if (!movedEnough) {
+          final pageLocal = drawingLocalToPageLocal(event.localPosition);
+          if (pageLocal != null) {
+            final closest = _findClosestStrokeAtPageLocal(
+              pageNumber: pageNumber,
+              pageLocal: pageLocal,
+              pageSize: pageSize,
+              thresholdPx: math.max(8.0, _areaEraserRadiusPx * 0.5),
+            );
+            if (closest != null) {
+              _safeSetState(() {
+                _removeStrokeWithUndoSnapshot(closest);
+              });
+            }
+          }
+        }
+      }
+    }
 
     if (wasStylus) {
       if (_isFreeDrawConsumingOneFinger) {
@@ -1241,7 +1370,105 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeTool == tool) {
       return;
     }
-    _safeSetState(() => _activeTool = tool);
+    _safeSetState(() {
+      _activeTool = tool;
+      _eraserCursorPageLocal = null;
+      _eraserCursorPageNumber = null;
+    });
+  }
+
+  void _handleAreaEraserRadiusChanged(double value) {
+    _safeSetState(() {
+      _areaEraserRadiusPx = value.clamp(
+        _DrawingScreenState._kMinAreaEraserRadiusPx,
+        _DrawingScreenState._kMaxAreaEraserRadiusPx,
+      );
+    });
+  }
+
+  bool get _isAreaEraserActive =>
+      _mode == DrawMode.eraser && _activeTool == DrawingTool.areaEraser;
+
+  bool get _isStrokeEraserActive =>
+      _mode == DrawMode.eraser && _activeTool == DrawingTool.strokeEraser;
+
+  DrawingStroke? _findClosestStrokeAtPageLocal({
+    required int pageNumber,
+    required Offset pageLocal,
+    required Size pageSize,
+    required double thresholdPx,
+  }) {
+    final strokes = _strokesByPage[pageNumber];
+    if (strokes == null || strokes.isEmpty) {
+      return null;
+    }
+    DrawingStroke? closest;
+    double minDistance = double.infinity;
+    for (final stroke in strokes) {
+      for (final pointNorm in stroke.pointsNorm) {
+        final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
+        final distance = (point - pageLocal).distance;
+        if (distance < minDistance) {
+          minDistance = distance;
+          closest = stroke;
+        }
+      }
+    }
+    if (minDistance > thresholdPx) {
+      return null;
+    }
+    return closest;
+  }
+
+  bool _doesStrokeIntersectCircle({
+    required DrawingStroke stroke,
+    required Offset center,
+    required Size pageSize,
+    required double radiusPagePx,
+  }) {
+    final radiusSq = radiusPagePx * radiusPagePx;
+    for (final pointNorm in stroke.pointsNorm) {
+      final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
+      final delta = point - center;
+      if ((delta.dx * delta.dx) + (delta.dy * delta.dy) <= radiusSq) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _removeStrokeWithUndoSnapshot(DrawingStroke stroke) {
+    final removed = _removeStrokeById(stroke);
+    if (!removed) {
+      return;
+    }
+    _recordUndoAction(DrawingHistoryAction.single(stroke: stroke, wasAdd: false));
+    _redo.clear();
+    _syncDrawingHistoryAvailability();
+    unawaited(_persistDrawing());
+  }
+
+  void _startAreaEraserSession(int pointer) {
+    _activeAreaEraserPointerId = pointer;
+    _areaEraserSessionDeleted.clear();
+    _areaEraserSessionDeletedIds.clear();
+  }
+
+  void _commitAreaEraserSession() {
+    if (_areaEraserSessionDeleted.isNotEmpty) {
+      _recordUndoAction(
+        DrawingHistoryAction(
+          strokes: List<DrawingStroke>.from(_areaEraserSessionDeleted),
+          wasAdd: false,
+        ),
+      );
+      _redo.clear();
+      _syncDrawingHistoryAvailability();
+      unawaited(_persistDrawing());
+    }
+    _activeAreaEraserPointerId = null;
+    _areaEraserSessionDeleted.clear();
+    _areaEraserSessionDeletedIds.clear();
   }
 
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
@@ -1308,7 +1535,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         committedStroke,
       );
       _recordUndoAction(
-        DrawingHistoryAction(stroke: committedStroke, wasAdd: true),
+        DrawingHistoryAction.single(stroke: committedStroke, wasAdd: true),
       );
       _redo.clear();
       _syncDrawingHistoryAvailability();
@@ -1367,12 +1594,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       final action = _undo.removeLast();
       if (action.wasAdd) {
-        _removeStrokeById(action.stroke);
+        for (final stroke in action.strokes) {
+          _removeStrokeById(stroke);
+        }
       } else {
-        _addStrokeToMemory(action.stroke);
+        for (final stroke in action.strokes) {
+          _addStrokeToMemory(stroke);
+        }
       }
       _recordRedoAction(
-        DrawingHistoryAction(stroke: action.stroke, wasAdd: action.wasAdd),
+        DrawingHistoryAction(strokes: List<DrawingStroke>.from(action.strokes), wasAdd: action.wasAdd),
       );
       _syncDrawingHistoryAvailability();
     });
@@ -1386,12 +1617,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       final action = _redo.removeLast();
       if (action.wasAdd) {
-        _addStrokeToMemory(action.stroke);
+        for (final stroke in action.strokes) {
+          _addStrokeToMemory(stroke);
+        }
       } else {
-        _removeStrokeById(action.stroke);
+        for (final stroke in action.strokes) {
+          _removeStrokeById(stroke);
+        }
       }
       _recordUndoAction(
-        DrawingHistoryAction(stroke: action.stroke, wasAdd: action.wasAdd),
+        DrawingHistoryAction(strokes: List<DrawingStroke>.from(action.strokes), wasAdd: action.wasAdd),
       );
       _syncDrawingHistoryAvailability();
     });
@@ -1435,7 +1670,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       if (_isFreeDrawMode) {
         _activeTool = toggledMode == DrawMode.eraser
-            ? DrawingTool.eraser
+            ? DrawingTool.strokeEraser
             : DrawingTool.pen;
       } else {
         _activePointerIds.clear();
@@ -1444,6 +1679,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
         _pendingDrawDownViewportLocal = null;
+        _eraserCursorPageLocal = null;
+        _eraserCursorPageNumber = null;
+        _activeAreaEraserPointerId = null;
+        _areaEraserSessionDeleted.clear();
+        _areaEraserSessionDeletedIds.clear();
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
