@@ -32,6 +32,29 @@ class StrokeStyle {
   final int argbColor;
   final double opacity;
 
+  StrokeStyle copyWith({
+    StrokeToolKind? kind,
+    PenVariant? variant,
+    double? widthPx,
+    int? argbColor,
+    double? opacity,
+  }) {
+    final nextKind = kind ?? this.kind;
+    return StrokeStyle(
+      kind: nextKind,
+      variant:
+          variant ??
+          (kind == null
+              ? this.variant
+              : nextKind == StrokeToolKind.highlighter
+              ? PenVariant.highlighter
+              : PenVariant.pen),
+      widthPx: widthPx ?? this.widthPx,
+      argbColor: argbColor ?? this.argbColor,
+      opacity: opacity ?? this.opacity,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'kind': kind.name,
