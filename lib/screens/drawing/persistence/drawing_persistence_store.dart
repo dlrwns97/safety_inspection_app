@@ -4,6 +4,18 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+Map<String, dynamic> _encodeDrawingPayloadForSave(Map<String, dynamic> params) {
+  final payload = params['payload'] as Map<String, dynamic>;
+  final maxBytes = params['maxBytes'] as int;
+  final encoded = jsonEncode(payload);
+  final encodedBytes = utf8.encode(encoded).length;
+
+  return <String, dynamic>{
+    'encoded': encodedBytes > maxBytes ? null : encoded,
+    'byteLength': encodedBytes,
+  };
+}
+
 class DrawingPersistenceStore {
   static const int _maxSaveBytes = 5 * 1024 * 1024;
   static const int _maxLoadBytes = 20 * 1024 * 1024;
@@ -13,9 +25,13 @@ class DrawingPersistenceStore {
     required Map<String, dynamic> payloadJson,
   }) async {
     try {
-      final encoded = jsonEncode(payloadJson);
-      final encodedBytes = utf8.encode(encoded).length;
-      if (encodedBytes > _maxSaveBytes) {
+      final encodeResult = await compute(_encodeDrawingPayloadForSave, <String, dynamic>{
+        'payload': payloadJson,
+        'maxBytes': _maxSaveBytes,
+      });
+      final encoded = encodeResult['encoded'] as String?;
+      final encodedBytes = encodeResult['byteLength'] as int;
+      if (encoded == null) {
         debugPrint(
           'Skip drawing save for site=$siteId. payload bytes=$encodedBytes exceeds $_maxSaveBytes.',
         );
