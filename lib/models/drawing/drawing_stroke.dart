@@ -93,17 +93,27 @@ class StrokeStyle {
 
 class DrawingStroke {
   const DrawingStroke({
+    required this.id,
     required this.pageNumber,
     required this.style,
     required this.pointsNorm,
   });
 
+  static int _idCounter = 0;
+
+  static String generateId() {
+    _idCounter += 1;
+    return '${DateTime.now().microsecondsSinceEpoch}-$_idCounter';
+  }
+
+  final String id;
   final int pageNumber;
   final StrokeStyle style;
   final List<Offset> pointsNorm;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'id': id,
       'pageNumber': pageNumber,
       'style': style.toJson(),
       'pointsNorm': pointsNorm
@@ -115,6 +125,7 @@ class DrawingStroke {
   factory DrawingStroke.fromJson(Map<String, dynamic> json) {
     final rawPoints = (json['pointsNorm'] as List?) ?? const [];
     return DrawingStroke(
+      id: json['id']?.toString() ?? DrawingStroke.generateId(),
       pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
       style: StrokeStyle.fromJson(
         (json['style'] as Map?)?.cast<String, dynamic>() ??

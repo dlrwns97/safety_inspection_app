@@ -51,6 +51,13 @@ part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
+class DrawingHistoryAction {
+  const DrawingHistoryAction({required this.stroke, required this.wasAdd});
+
+  final DrawingStroke stroke;
+  final bool wasAdd;
+}
+
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
     super.key,
@@ -142,6 +149,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
+  static const int kMaxHistory = 500;
+  final List<DrawingHistoryAction> _undo = <DrawingHistoryAction>[];
+  final List<DrawingHistoryAction> _redo = <DrawingHistoryAction>[];
   String? _moveTargetDefectId;
   String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;
@@ -785,8 +795,8 @@ class _DrawingScreenState extends State<DrawingScreen>
     canUndoDrawing: _canUndoDrawing,
     canRedoDrawing: _canRedoDrawing,
     onDrawingToolSelected: _handleDrawingToolChanged,
-    onUndoDrawing: () {},
-    onRedoDrawing: () {},
+    onUndoDrawing: _handleUndoDrawing,
+    onRedoDrawing: _handleRedoDrawing,
   );
   CanvasMarkerLayer _buildMarkerLayer({
     required Widget child,
