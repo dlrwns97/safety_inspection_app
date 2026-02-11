@@ -1,6 +1,7 @@
 import 'defect.dart';
 import 'drawing_enums.dart';
 import 'equipment_marker.dart';
+import 'drawing/drawing_stroke.dart';
 
 class Site {
   Site({
@@ -17,10 +18,12 @@ class Site {
     this.deletedAt,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
+    List<DrawingStroke>? drawingStrokes,
     List<String>? visibleDefectCategoryNames,
     List<String>? visibleEquipmentCategoryNames,
   })  : defects = defects ?? [],
         equipmentMarkers = equipmentMarkers ?? [],
+        drawingStrokes = drawingStrokes ?? [],
         visibleDefectCategoryNames =
             visibleDefectCategoryNames ??
             DefectCategory.values.map((category) => category.name).toList(),
@@ -43,6 +46,7 @@ class Site {
   final DateTime? deletedAt;
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
+  final List<DrawingStroke> drawingStrokes;
   final List<String> visibleDefectCategoryNames;
   final List<String> visibleEquipmentCategoryNames;
 
@@ -62,6 +66,7 @@ class Site {
     Object? deletedAt = _deletedAtSentinel,
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
+    List<DrawingStroke>? drawingStrokes,
     List<String>? visibleDefectCategoryNames,
     List<String>? visibleEquipmentCategoryNames,
   }) {
@@ -83,6 +88,8 @@ class Site {
       defects: defects ?? List<Defect>.from(this.defects),
       equipmentMarkers:
           equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),
+      drawingStrokes:
+          drawingStrokes ?? List<DrawingStroke>.from(this.drawingStrokes),
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           List<String>.from(this.visibleDefectCategoryNames),
@@ -107,6 +114,7 @@ class Site {
     'defects': defects.map((defect) => defect.toJson()).toList(),
     'equipmentMarkers':
         equipmentMarkers.map((marker) => marker.toJson()).toList(),
+    'drawingStrokes': drawingStrokes.map((stroke) => stroke.toJson()).toList(),
     'visibleDefectCategoryNames': visibleDefectCategoryNames,
     'visibleEquipmentCategoryNames': visibleEquipmentCategoryNames,
   };
@@ -136,6 +144,19 @@ class Site {
                 ?.whereType<String>()
                 .toList()
             : null;
+
+    final drawingStrokesJson = json['drawingStrokes'];
+    final drawingStrokes =
+        drawingStrokesJson is List
+            ? drawingStrokesJson
+                .whereType<Map>()
+                .map(
+                  (item) => DrawingStroke.fromJson(
+                    item.cast<String, dynamic>(),
+                  ),
+                )
+                .toList()
+            : <DrawingStroke>[];
     return Site(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -158,6 +179,7 @@ class Site {
       equipmentMarkers: (json['equipmentMarkers'] as List<dynamic>? ?? [])
           .map((item) => EquipmentMarker.fromJson(item as Map<String, dynamic>))
           .toList(),
+      drawingStrokes: drawingStrokes,
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           DefectCategory.values.map((category) => category.name).toList(),
