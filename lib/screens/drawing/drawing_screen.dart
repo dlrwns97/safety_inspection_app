@@ -12,9 +12,9 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
-import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart';
+import 'package:safety_inspection_app/screens/drawing/managers/drawing_history_manager.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
@@ -51,43 +51,6 @@ import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dar
 part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
-
-class DrawingHistoryAction {
-  const DrawingHistoryAction({
-    required this.op,
-    this.strokes = const <DrawingStroke>[],
-    this.removedStrokes = const <DrawingStroke>[],
-    this.addedStrokes = const <DrawingStroke>[],
-  });
-
-  factory DrawingHistoryAction.single({
-    required DrawingStroke stroke,
-    required bool wasAdd,
-  }) {
-    return DrawingHistoryAction(
-      op: wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove,
-      strokes: <DrawingStroke>[stroke],
-    );
-  }
-
-  factory DrawingHistoryAction.replace({
-    required List<DrawingStroke> removedStrokes,
-    required List<DrawingStroke> addedStrokes,
-  }) {
-    return DrawingHistoryAction(
-      op: DrawingHistoryOp.replace,
-      removedStrokes: removedStrokes,
-      addedStrokes: addedStrokes,
-    );
-  }
-
-  final DrawingHistoryOp op;
-  final List<DrawingStroke> strokes;
-  final List<DrawingStroke> removedStrokes;
-  final List<DrawingStroke> addedStrokes;
-
-  DrawingStroke get stroke => strokes.first;
-}
 
 class DrawingScreen extends StatefulWidget {
   const DrawingScreen({
@@ -193,6 +156,17 @@ class _DrawingScreenState extends State<DrawingScreen>
   static const int kMaxHistory = 200;
   final List<DrawingHistoryAction> _undo = <DrawingHistoryAction>[];
   final List<DrawingHistoryAction> _redo = <DrawingHistoryAction>[];
+  late final DrawingHistoryManager _drawingHistoryManager = DrawingHistoryManager(
+    undoStack: _undo,
+    redoStack: _redo,
+    maxHistory: kMaxHistory,
+    onHistoryChanged: _updateDrawingHistoryAvailabilityState,
+    persistDrawing: () => unawaited(_persistDrawing()),
+    addStroke: _addStrokeToMemory,
+    removeStroke: _removeStrokeById,
+    replaceStrokes: _replaceStrokesInMemory,
+    findStrokeById: _findStrokeById,
+  );
   String? _moveTargetDefectId;
   String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;
