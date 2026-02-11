@@ -389,7 +389,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     DrawingHistoryActionPersisted action,
     Map<String, DrawingStroke> strokesById,
   ) {
-    final stroke = strokesById[action.strokeId];
+    final snapshot = action.strokeJson;
+    final stroke =
+        snapshot == null
+            ? strokesById[action.strokeId]
+            : DrawingStroke.fromJson(snapshot);
     if (stroke == null) {
       return null;
     }
@@ -401,10 +405,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   DrawingHistoryActionPersisted _persistedHistoryActionFromRuntime(
     DrawingHistoryAction action,
+    Set<String> currentStrokeIds,
   ) {
+    final op = action.wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove;
+    final shouldIncludeSnapshot =
+        op == DrawingHistoryOp.remove || !currentStrokeIds.contains(action.stroke.id);
     return DrawingHistoryActionPersisted(
-      op: action.wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove,
+      op: op,
       strokeId: action.stroke.id,
+      strokeJson: shouldIncludeSnapshot ? action.stroke.toJson() : null,
     );
   }
 
@@ -420,11 +429,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           ),
         )
         .toList();
+    final currentStrokeIds = flatList
+        .map((stroke) => stroke.id)
+        .toSet();
     final persistedUndo = _undo
-        .map(_persistedHistoryActionFromRuntime)
+        .map(
+          (action) => _persistedHistoryActionFromRuntime(
+            action,
+            currentStrokeIds,
+          ),
+        )
         .toList(growable: false);
     final persistedRedo = _redo
-        .map(_persistedHistoryActionFromRuntime)
+        .map(
+          (action) => _persistedHistoryActionFromRuntime(
+            action,
+            currentStrokeIds,
+          ),
+        )
         .toList(growable: false);
     final updatedSite = _site.copyWith(
       drawingStrokes: flatList,
