@@ -329,23 +329,83 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _loadStrokesFromSite() {
     final Map<int, List<DrawingStroke>> loaded = <int, List<DrawingStroke>>{};
+    final Map<String, DrawingStroke> strokesById = <String, DrawingStroke>{};
     for (final stroke in _site.drawingStrokes) {
-      loaded.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
-        DrawingStroke(
-          id: stroke.id,
-          pageNumber: stroke.pageNumber,
-          style: stroke.style,
-          pointsNorm: List<Offset>.from(stroke.pointsNorm),
-        ),
+      final copied = DrawingStroke(
+        id: stroke.id,
+        pageNumber: stroke.pageNumber,
+        style: stroke.style,
+        pointsNorm: List<Offset>.from(stroke.pointsNorm),
+      );
+      loaded.putIfAbsent(copied.pageNumber, () => <DrawingStroke>[]).add(copied);
+      strokesById[copied.id] = copied;
+    }
+
+    final loadedUndo = _site.drawingUndoHistory
+        .map(
+          (action) => _runtimeHistoryActionFromPersisted(
+            action,
+            strokesById,
+          ),
+        )
+        .whereType<DrawingHistoryAction>()
+        .toList();
+    if (loadedUndo.length > _DrawingScreenState.kMaxHistory) {
+      loadedUndo.removeRange(
+        0,
+        loadedUndo.length - _DrawingScreenState.kMaxHistory,
       );
     }
+    final loadedRedo = _site.drawingRedoHistory
+        .map(
+          (action) => _runtimeHistoryActionFromPersisted(
+            action,
+            strokesById,
+          ),
+        )
+        .whereType<DrawingHistoryAction>()
+        .toList();
+    if (loadedRedo.length > _DrawingScreenState.kMaxHistory) {
+      loadedRedo.removeRange(
+        0,
+        loadedRedo.length - _DrawingScreenState.kMaxHistory,
+      );
+    }
+
     _strokesByPage
       ..clear()
       ..addAll(loaded);
-    _undo.clear();
-    _redo.clear();
+    _undo
+      ..clear()
+      ..addAll(loadedUndo);
+    _redo
+      ..clear()
+      ..addAll(loadedRedo);
     _inProgressStroke = null;
     _syncDrawingHistoryAvailability();
+  }
+
+  DrawingHistoryAction? _runtimeHistoryActionFromPersisted(
+    DrawingHistoryActionPersisted action,
+    Map<String, DrawingStroke> strokesById,
+  ) {
+    final stroke = strokesById[action.strokeId];
+    if (stroke == null) {
+      return null;
+    }
+    return DrawingHistoryAction(
+      stroke: stroke,
+      wasAdd: action.op == DrawingHistoryOp.add,
+    );
+  }
+
+  DrawingHistoryActionPersisted _persistedHistoryActionFromRuntime(
+    DrawingHistoryAction action,
+  ) {
+    return DrawingHistoryActionPersisted(
+      op: action.wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove,
+      strokeId: action.stroke.id,
+    );
   }
 
   Future<void> _persistDrawing() async {
@@ -360,7 +420,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           ),
         )
         .toList();
-    final updatedSite = _site.copyWith(drawingStrokes: flatList);
+    final persistedUndo = _undo
+        .map(_persistedHistoryActionFromRuntime)
+        .toList(growable: false);
+    final persistedRedo = _redo
+        .map(_persistedHistoryActionFromRuntime)
+        .toList(growable: false);
+    final updatedSite = _site.copyWith(
+      drawingStrokes: flatList,
+      drawingUndoHistory: persistedUndo,
+      drawingRedoHistory: persistedRedo,
+    );
     try {
       final sites = await SiteStorage.loadSites();
       final existingIndex = sites.indexWhere((s) => s.id == updatedSite.id);
