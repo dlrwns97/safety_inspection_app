@@ -326,6 +326,78 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     await widget.onSiteUpdated(_site);
   }
 
+
+  void _loadStrokesFromSite() {
+    final Map<int, List<DrawingStroke>> loaded = <int, List<DrawingStroke>>{};
+    for (final stroke in _site.drawingStrokes) {
+      loaded.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
+        DrawingStroke(
+          pageNumber: stroke.pageNumber,
+          style: stroke.style,
+          pointsNorm: List<Offset>.from(stroke.pointsNorm),
+        ),
+      );
+    }
+    _strokesByPage
+      ..clear()
+      ..addAll(loaded);
+    _inProgressStroke = null;
+  }
+
+  Future<void> _persistDrawing() async {
+    final flatList = _strokesByPage.entries
+        .expand((entry) => entry.value)
+        .map(
+          (stroke) => DrawingStroke(
+            pageNumber: stroke.pageNumber,
+            style: stroke.style,
+            pointsNorm: List<Offset>.from(stroke.pointsNorm),
+          ),
+        )
+        .toList();
+    final updatedSite = _site.copyWith(drawingStrokes: flatList);
+    try {
+      final sites = await SiteStorage.loadSites();
+      final existingIndex = sites.indexWhere((s) => s.id == updatedSite.id);
+      final updatedSites = List<Site>.from(sites);
+      if (existingIndex >= 0) {
+        updatedSites[existingIndex] = updatedSite;
+      } else {
+        updatedSites.add(updatedSite);
+      }
+      await SiteStorage.saveSites(updatedSites);
+      _safeSetState(() {
+        _site = updatedSite;
+        _hasUnsavedChanges = false;
+      });
+      await widget.onSiteUpdated(updatedSite);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _safeSetState(() {
+        _hasUnsavedChanges = true;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('저장에 실패했습니다')));
+    }
+  }
+
+  Future<void> _handleExit() async {
+    if (_hasUnsavedChanges && !_didWarnUnsavedOnExit && mounted) {
+      _didWarnUnsavedOnExit = true;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('저장 실패로 일부 내용이 저장되지 않았을 수 있습니다')),
+        );
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _setPdfState(VoidCallback callback) {
     if (!mounted) {
       return;
@@ -1138,6 +1210,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _debugLastPageLocal = null;
       _inProgressStroke = null;
     });
+    unawaited(_persistDrawing());
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(

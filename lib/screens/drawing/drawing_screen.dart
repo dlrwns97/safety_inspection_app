@@ -17,6 +17,7 @@ import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:safety_inspection_app/models/site_storage.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
@@ -118,6 +119,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   DrawingStroke? _inProgressStroke;
+  bool _hasUnsavedChanges = false;
+  bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
   final List<int> _standardPaletteArgb = const <int>[
@@ -498,6 +501,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   void initState() {
     super.initState();
     _site = widget.site;
+    _loadStrokesFromSite();
     _initializeDefectTabs();
     _initializeEquipmentTabs();
     _sidePanelController = TabController(length: 4, vsync: this);
@@ -515,6 +519,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     final didChangeDrawing =
         _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
+    _loadStrokesFromSite();
     _initializeDefectTabs();
     _initializeEquipmentTabs();
     if (didChangeDrawing) {
@@ -821,11 +826,19 @@ class _DrawingScreenState extends State<DrawingScreen>
     const double sidePanelWidthRatio = 0.20;
     const double sidePanelMinWidth = 260;
     const double sidePanelMaxWidth = 320;
-    return Scaffold(
-      appBar: _buildAppBar(),
-      bottomNavigationBar:
-          _isMoveMode ? _buildMoveModeBottomBar() : null,
-      body: LayoutBuilder(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          return;
+        }
+        await _handleExit();
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(),
+        bottomNavigationBar:
+            _isMoveMode ? _buildMoveModeBottomBar() : null,
+        body: LayoutBuilder(
         builder: (context, constraints) {
           final showSidePanel = constraints.maxWidth >= 900;
           final drawingStack = SizedBox.expand(
@@ -933,6 +946,7 @@ class _DrawingScreenState extends State<DrawingScreen>
             ],
           );
         },
+        ),
       ),
     );
   }
