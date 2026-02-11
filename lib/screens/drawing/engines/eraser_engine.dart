@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 enum EraserMode { area, stroke }
@@ -50,7 +51,22 @@ class EraserResult {
 }
 
 class EraserEngine {
+  static const int _kVirtualStrokeThreshold = 1500;
+  static const int _kStrokeThreshold = 800;
+  static const int _kPointThreshold = 200000;
+  static const int _kMaxUpdateMicrosThreshold = 20000;
+
+  DateTime? _perfWindowStart;
+  int _perfCallsInWindow = 0;
+  int _perfTotalMicrosInWindow = 0;
+  int _perfMaxMicrosInWindow = 0;
+  int _perfUiMutationsInWindow = 0;
+  bool _isGuardTriggeredForSession = false;
+  bool _isGuardLogPrintedForSession = false;
+
   EraserSession startSession({required EraserMode mode, required double radius}) {
+    _isGuardTriggeredForSession = false;
+    _isGuardLogPrintedForSession = false;
     return EraserSession(
       mode: mode,
       radius: radius,
@@ -67,6 +83,7 @@ class EraserEngine {
     required Size pageSize,
     required List<DrawingStroke> strokes,
   }) {
+    final int startedMicros = DateTime.now().microsecondsSinceEpoch;
     if (session.mode != EraserMode.area) {
       return session;
     }
@@ -79,6 +96,33 @@ class EraserEngine {
       ...strokes.where((stroke) => !removedOriginalIds.contains(stroke.id)),
       ...addedById.values,
     ];
+
+    int virtualStrokeCount = virtualStrokes.length;
+    int totalPointCount = _countPoints(virtualStrokes);
+
+    if (_isGuardTriggeredForSession ||
+        _isOverComplexityThreshold(
+          virtualStrokeCount: virtualStrokeCount,
+          strokeCount: virtualStrokeCount,
+          pointCount: totalPointCount,
+          maxUpdateMicros: _perfMaxMicrosInWindow,
+        )) {
+      _isGuardTriggeredForSession = true;
+      _logGuardOnce(
+        virtualStrokeCount: virtualStrokeCount,
+        strokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        maxUpdateMicros: _perfMaxMicrosInWindow,
+      );
+      _recordPerf(
+        elapsedMicros: DateTime.now().microsecondsSinceEpoch - startedMicros,
+        strokeCount: virtualStrokeCount,
+        virtualStrokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        addedByIdCount: addedById.length,
+      );
+      return session;
+    }
 
     for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
       final isOriginalStroke = !addedById.containsKey(stroke.id);
@@ -105,10 +149,48 @@ class EraserEngine {
         removedOriginalIds.add(stroke.id);
         processedStrokeIds.add(stroke.id);
       }
+      virtualStrokeCount += splitStrokes.length - 1;
+      totalPointCount -= stroke.pointsNorm.length;
       for (final split in splitStrokes) {
         addedById[split.id] = split;
+        totalPointCount += split.pointsNorm.length;
+      }
+
+      if (_isOverComplexityThreshold(
+        virtualStrokeCount: virtualStrokeCount,
+        strokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        maxUpdateMicros: _perfMaxMicrosInWindow,
+      )) {
+        _isGuardTriggeredForSession = true;
+        _logGuardOnce(
+          virtualStrokeCount: virtualStrokeCount,
+          strokeCount: virtualStrokeCount,
+          pointCount: totalPointCount,
+          maxUpdateMicros: _perfMaxMicrosInWindow,
+        );
+        break;
       }
     }
+
+    final elapsedMicros = DateTime.now().microsecondsSinceEpoch - startedMicros;
+    if (elapsedMicros > _kMaxUpdateMicrosThreshold) {
+      _isGuardTriggeredForSession = true;
+      _logGuardOnce(
+        virtualStrokeCount: virtualStrokeCount,
+        strokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        maxUpdateMicros: elapsedMicros,
+      );
+    }
+
+    _recordPerf(
+      elapsedMicros: elapsedMicros,
+      strokeCount: virtualStrokeCount,
+      virtualStrokeCount: virtualStrokeCount,
+      pointCount: totalPointCount,
+      addedByIdCount: addedById.length,
+    );
 
     return session.copyWith(
       removedOriginalIds: removedOriginalIds,
@@ -122,6 +204,89 @@ class EraserEngine {
     return EraserResult(
       removed: session.removedById.values.toList(growable: false),
       added: session.addedById.values.toList(growable: false),
+    );
+  }
+
+  void recordUiMutation() {
+    if (kReleaseMode) {
+      return;
+    }
+    _perfUiMutationsInWindow += 1;
+  }
+
+  bool _isOverComplexityThreshold({
+    required int virtualStrokeCount,
+    required int strokeCount,
+    required int pointCount,
+    required int maxUpdateMicros,
+  }) {
+    return virtualStrokeCount > _kVirtualStrokeThreshold ||
+        strokeCount > _kStrokeThreshold ||
+        pointCount > _kPointThreshold ||
+        maxUpdateMicros > _kMaxUpdateMicrosThreshold;
+  }
+
+  int _countPoints(List<DrawingStroke> strokes) {
+    int total = 0;
+    for (final stroke in strokes) {
+      total += stroke.pointsNorm.length;
+    }
+    return total;
+  }
+
+  void _recordPerf({
+    required int elapsedMicros,
+    required int strokeCount,
+    required int virtualStrokeCount,
+    required int pointCount,
+    required int addedByIdCount,
+  }) {
+    if (kReleaseMode) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final windowStart = _perfWindowStart;
+    if (windowStart == null || now.difference(windowStart) >= const Duration(seconds: 1)) {
+      if (windowStart != null && _perfCallsInWindow > 0) {
+        final avgMicros = _perfTotalMicrosInWindow / _perfCallsInWindow;
+        debugPrint(
+          '[Perf] eraser: calls/s=$_perfCallsInWindow '
+          'avgMs=${(avgMicros / 1000).toStringAsFixed(1)} '
+          'maxMs=${(_perfMaxMicrosInWindow / 1000).toStringAsFixed(1)} '
+          'strokes=$strokeCount virtual=$virtualStrokeCount points=$pointCount '
+          'addedById=$addedByIdCount uiMutations/s=$_perfUiMutationsInWindow',
+        );
+      }
+      _perfWindowStart = now;
+      _perfCallsInWindow = 0;
+      _perfTotalMicrosInWindow = 0;
+      _perfMaxMicrosInWindow = 0;
+      _perfUiMutationsInWindow = 0;
+    }
+
+    _perfCallsInWindow += 1;
+    _perfTotalMicrosInWindow += elapsedMicros;
+    if (elapsedMicros > _perfMaxMicrosInWindow) {
+      _perfMaxMicrosInWindow = elapsedMicros;
+    }
+  }
+
+  void _logGuardOnce({
+    required int virtualStrokeCount,
+    required int strokeCount,
+    required int pointCount,
+    required int maxUpdateMicros,
+  }) {
+    if (kReleaseMode || _isGuardLogPrintedForSession) {
+      return;
+    }
+    _isGuardLogPrintedForSession = true;
+    debugPrint(
+      '[PerfGuard] triggered: '
+      'points=$pointCount virtual=$virtualStrokeCount strokes=$strokeCount '
+      'maxMs=${(maxUpdateMicros / 1000).toStringAsFixed(1)} '
+      '-> skipping split this frame',
     );
   }
 
