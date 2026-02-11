@@ -119,7 +119,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final screenW = MediaQuery.of(context).size.width;
     final panelMaxW = math.min(400.0, screenW * 0.45);
     final panelMinW = math.min(panelMaxW, screenW * 0.24);
-    final toolIndexes = <int>[0, 1, 4, 5];
+    final toolIndexes = <int>[0, 1, 2, 3];
 
     Widget panelButton({
       required IconData icon,
@@ -187,7 +187,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          for (final index in toolIndexes) ...[
+                          for (final index in toolIndexes.where((i) => i < _presets.length)) ...[
                             panelButton(
                               icon: _iconForVariant(_presets[index].variant),
                               selected: _activePresetIndex == index,
