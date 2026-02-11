@@ -53,18 +53,40 @@ part 'drawing_screen_logic.part.dart';
 part 'drawing_screen_ui.part.dart';
 
 class DrawingHistoryAction {
-  const DrawingHistoryAction({required this.strokes, required this.wasAdd});
+  const DrawingHistoryAction({
+    required this.op,
+    this.strokes = const <DrawingStroke>[],
+    this.removedStrokes = const <DrawingStroke>[],
+    this.addedStrokes = const <DrawingStroke>[],
+  });
 
   factory DrawingHistoryAction.single({
     required DrawingStroke stroke,
     required bool wasAdd,
   }) {
-    return DrawingHistoryAction(strokes: <DrawingStroke>[stroke], wasAdd: wasAdd);
+    return DrawingHistoryAction(
+      op: wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove,
+      strokes: <DrawingStroke>[stroke],
+    );
   }
 
+  factory DrawingHistoryAction.replace({
+    required List<DrawingStroke> removedStrokes,
+    required List<DrawingStroke> addedStrokes,
+  }) {
+    return DrawingHistoryAction(
+      op: DrawingHistoryOp.replace,
+      removedStrokes: removedStrokes,
+      addedStrokes: addedStrokes,
+    );
+  }
+
+  final DrawingHistoryOp op;
   final List<DrawingStroke> strokes;
+  final List<DrawingStroke> removedStrokes;
+  final List<DrawingStroke> addedStrokes;
+
   DrawingStroke get stroke => strokes.first;
-  final bool wasAdd;
 }
 
 class DrawingScreen extends StatefulWidget {
@@ -130,8 +152,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   Offset? _eraserCursorPageLocal;
   int? _eraserCursorPageNumber;
   int? _activeAreaEraserPointerId;
-  final List<DrawingStroke> _areaEraserSessionDeleted = <DrawingStroke>[];
-  final Set<String> _areaEraserSessionDeletedIds = <String>{};
+  final Map<String, DrawingStroke> _areaEraserSessionRemovedById =
+      <String, DrawingStroke>{};
+  final Map<String, DrawingStroke> _areaEraserSessionAddedById =
+      <String, DrawingStroke>{};
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};

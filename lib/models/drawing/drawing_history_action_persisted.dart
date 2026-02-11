@@ -1,4 +1,4 @@
-enum DrawingHistoryOp { add, remove }
+enum DrawingHistoryOp { add, remove, replace }
 
 class DrawingHistoryActionPersisted {
   const DrawingHistoryActionPersisted({
@@ -6,12 +6,16 @@ class DrawingHistoryActionPersisted {
     required this.strokeId,
     this.strokeJson,
     this.strokesJson,
+    this.removedStrokesJson,
+    this.addedStrokesJson,
   });
 
   final DrawingHistoryOp op;
   final String strokeId;
   final Map<String, dynamic>? strokeJson;
   final List<Map<String, dynamic>>? strokesJson;
+  final List<Map<String, dynamic>>? removedStrokesJson;
+  final List<Map<String, dynamic>>? addedStrokesJson;
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{'op': op.name, 'strokeId': strokeId};
@@ -20,6 +24,12 @@ class DrawingHistoryActionPersisted {
     }
     if (strokesJson != null) {
       json['strokes'] = strokesJson;
+    }
+    if (removedStrokesJson != null) {
+      json['removed'] = removedStrokesJson;
+    }
+    if (addedStrokesJson != null) {
+      json['added'] = addedStrokesJson;
     }
     return json;
   }
@@ -35,6 +45,14 @@ class DrawingHistoryActionPersisted {
         ?.whereType<Map>()
         .map((item) => item.cast<String, dynamic>())
         .toList(growable: false);
+    final removedStrokesJson = (json['removed'] as List?)
+        ?.whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList(growable: false);
+    final addedStrokesJson = (json['added'] as List?)
+        ?.whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList(growable: false);
     final strokeId =
         json['strokeId']?.toString() ?? strokeJson?['id']?.toString() ?? '';
     return DrawingHistoryActionPersisted(
@@ -42,6 +60,8 @@ class DrawingHistoryActionPersisted {
       strokeId: strokeId,
       strokeJson: strokeJson,
       strokesJson: strokesJson,
+      removedStrokesJson: removedStrokesJson,
+      addedStrokesJson: addedStrokesJson,
     );
   }
 }

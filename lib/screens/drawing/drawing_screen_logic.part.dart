@@ -389,6 +389,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     DrawingHistoryActionPersisted action,
     Map<String, DrawingStroke> strokesById,
   ) {
+    if (action.op == DrawingHistoryOp.replace) {
+      final removed = (action.removedStrokesJson ?? const <Map<String, dynamic>>[])
+          .map(DrawingStroke.fromJson)
+          .whereType<DrawingStroke>()
+          .toList(growable: false);
+      final added = (action.addedStrokesJson ?? const <Map<String, dynamic>>[])
+          .map(DrawingStroke.fromJson)
+          .whereType<DrawingStroke>()
+          .toList(growable: false);
+      if (removed.isEmpty && added.isEmpty) {
+        return null;
+      }
+      return DrawingHistoryAction.replace(
+        removedStrokes: removed,
+        addedStrokes: added,
+      );
+    }
     final snapshots = action.strokesJson;
     if (snapshots != null && snapshots.isNotEmpty) {
       final strokes = snapshots
@@ -398,7 +415,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (strokes.isEmpty) {
         return null;
       }
-      return DrawingHistoryAction(strokes: strokes, wasAdd: action.op == DrawingHistoryOp.add);
+      return DrawingHistoryAction(op: action.op, strokes: strokes);
     }
     final snapshot = action.strokeJson;
     final stroke =
@@ -418,7 +435,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     DrawingHistoryAction action,
     Set<String> currentStrokeIds,
   ) {
-    final op = action.wasAdd ? DrawingHistoryOp.add : DrawingHistoryOp.remove;
+    if (action.op == DrawingHistoryOp.replace) {
+      final removed = action.removedStrokes
+          .map((stroke) => stroke.toJson())
+          .toList(growable: false);
+      final added = action.addedStrokes
+          .map((stroke) => stroke.toJson())
+          .toList(growable: false);
+      return DrawingHistoryActionPersisted(
+        op: DrawingHistoryOp.replace,
+        strokeId: action.removedStrokes.isNotEmpty
+            ? action.removedStrokes.first.id
+            : action.addedStrokes.isNotEmpty
+                ? action.addedStrokes.first.id
+                : '',
+        removedStrokesJson: removed,
+        addedStrokesJson: added,
+      );
+    }
+    final op = action.op;
     if (action.strokes.length > 1) {
       return DrawingHistoryActionPersisted(
         op: op,
@@ -1136,20 +1171,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final strokes = List<DrawingStroke>.from(_strokesByPage[pageNumber] ?? const <DrawingStroke>[]);
       var changed = false;
       for (final stroke in strokes) {
-        if (_areaEraserSessionDeletedIds.contains(stroke.id)) {
-          continue;
-        }
-        if (_doesStrokeIntersectCircle(
+        final splitStrokes = _splitStrokeByEraserCircle(
           stroke: stroke,
           center: pageLocal,
           pageSize: pageSize,
           radiusPagePx: radiusPagePx,
-        )) {
-          if (_removeStrokeById(stroke)) {
-            _areaEraserSessionDeleted.add(stroke);
-            _areaEraserSessionDeletedIds.add(stroke.id);
-            changed = true;
-          }
+        );
+        if (splitStrokes.length == 1 &&
+            splitStrokes.first.pointsNorm.length == stroke.pointsNorm.length) {
+          continue;
+        }
+        if (!_removeStrokeById(stroke)) {
+          continue;
+        }
+        changed = true;
+        final wasAddedThisSession = _areaEraserSessionAddedById.remove(stroke.id) != null;
+        if (!wasAddedThisSession) {
+          _areaEraserSessionRemovedById.putIfAbsent(stroke.id, () => stroke);
+        }
+        for (final split in splitStrokes) {
+          _addStrokeToMemory(split);
+          _areaEraserSessionAddedById[split.id] = split;
         }
       }
       _safeSetState(() {
@@ -1298,12 +1340,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         final movedEnough = (event.localPosition - down).distance >= _DrawingScreenState._kDrawStartSlopPx;
         if (!movedEnough) {
           final pageLocal = drawingLocalToPageLocal(event.localPosition);
+          final radiusPagePx = _viewportDistanceToPageDistance(
+            viewportLocal: event.localPosition,
+            viewportDistancePx: _areaEraserRadiusPx,
+            drawingLocalToPageLocal: drawingLocalToPageLocal,
+          );
           if (pageLocal != null) {
             final closest = _findClosestStrokeAtPageLocal(
               pageNumber: pageNumber,
               pageLocal: pageLocal,
               pageSize: pageSize,
-              thresholdPx: math.max(8.0, _areaEraserRadiusPx * 0.5),
+              thresholdPx: math.max(
+                radiusPagePx,
+                _strokeEraserBaseThresholdForPage(strokes: _strokesByPage[pageNumber], pageSize: pageSize),
+              ),
             );
             if (closest != null) {
               _safeSetState(() {
@@ -1408,6 +1458,46 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   bool get _isStrokeEraserActive =>
       _isFreeDrawMode && _activeTool == DrawingTool.strokeEraser;
 
+  double _strokeEraserBaseThresholdForPage({
+    required List<DrawingStroke>? strokes,
+    required Size pageSize,
+  }) {
+    final pageShortest = pageSize.shortestSide <= 0 ? 1.0 : pageSize.shortestSide;
+    var maxStrokeWidthNorm = 0.0;
+    for (final stroke in strokes ?? const <DrawingStroke>[]) {
+      final widthNorm = stroke.style.widthPx / pageShortest;
+      if (widthNorm > maxStrokeWidthNorm) {
+        maxStrokeWidthNorm = widthNorm;
+      }
+    }
+    const widthFactor = 1.6;
+    return math.max(6.0, maxStrokeWidthNorm * pageShortest * widthFactor);
+  }
+
+  double _viewportDistanceToPageDistance({
+    required Offset viewportLocal,
+    required double viewportDistancePx,
+    required OverlayToPageLocal drawingLocalToPageLocal,
+  }) {
+    final center = drawingLocalToPageLocal(viewportLocal);
+    if (center == null) {
+      return viewportDistancePx;
+    }
+    final right = drawingLocalToPageLocal(
+      viewportLocal + Offset(viewportDistancePx, 0),
+    );
+    if (right != null) {
+      return (right - center).distance;
+    }
+    final left = drawingLocalToPageLocal(
+      viewportLocal - Offset(viewportDistancePx, 0),
+    );
+    if (left != null) {
+      return (left - center).distance;
+    }
+    return viewportDistancePx;
+  }
+
   DrawingStroke? _findClosestStrokeAtPageLocal({
     required int pageNumber,
     required Offset pageLocal,
@@ -1421,13 +1511,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     DrawingStroke? closest;
     double minDistance = double.infinity;
     for (final stroke in strokes) {
-      for (final pointNorm in stroke.pointsNorm) {
-        final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
-        final distance = (point - pageLocal).distance;
-        if (distance < minDistance) {
-          minDistance = distance;
-          closest = stroke;
-        }
+      final distance = _distanceToStrokePolyline(
+        stroke: stroke,
+        point: pageLocal,
+        pageSize: pageSize,
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = stroke;
       }
     }
     if (minDistance > thresholdPx) {
@@ -1436,21 +1527,98 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return closest;
   }
 
-  bool _doesStrokeIntersectCircle({
+  double _distanceToStrokePolyline({
+    required DrawingStroke stroke,
+    required Offset point,
+    required Size pageSize,
+  }) {
+    final points = stroke.pointsNorm;
+    if (points.isEmpty) {
+      return double.infinity;
+    }
+    if (points.length == 1) {
+      final single = Offset(points.first.dx * pageSize.width, points.first.dy * pageSize.height);
+      return (single - point).distance;
+    }
+
+    var minDistanceSquared = double.infinity;
+    for (var i = 0; i < points.length - 1; i += 1) {
+      final p1 = Offset(points[i].dx * pageSize.width, points[i].dy * pageSize.height);
+      final p2 = Offset(
+        points[i + 1].dx * pageSize.width,
+        points[i + 1].dy * pageSize.height,
+      );
+      final distanceSquared = _distanceSquaredToSegment(point, p1, p2);
+      if (distanceSquared < minDistanceSquared) {
+        minDistanceSquared = distanceSquared;
+      }
+    }
+    return math.sqrt(minDistanceSquared);
+  }
+
+  double _distanceSquaredToSegment(Offset point, Offset start, Offset end) {
+    final segment = end - start;
+    final segmentLengthSquared =
+        (segment.dx * segment.dx) + (segment.dy * segment.dy);
+    if (segmentLengthSquared <= 0) {
+      final delta = point - start;
+      return (delta.dx * delta.dx) + (delta.dy * delta.dy);
+    }
+    final projection =
+        ((point.dx - start.dx) * segment.dx + (point.dy - start.dy) * segment.dy) /
+        segmentLengthSquared;
+    final t = projection.clamp(0.0, 1.0);
+    final nearest = Offset(start.dx + segment.dx * t, start.dy + segment.dy * t);
+    final delta = point - nearest;
+    return (delta.dx * delta.dx) + (delta.dy * delta.dy);
+  }
+
+  List<DrawingStroke> _splitStrokeByEraserCircle({
     required DrawingStroke stroke,
     required Offset center,
     required Size pageSize,
     required double radiusPagePx,
   }) {
     final radiusSq = radiusPagePx * radiusPagePx;
-    for (final pointNorm in stroke.pointsNorm) {
+    final points = stroke.pointsNorm;
+    if (points.length < 2) {
+      return const <DrawingStroke>[];
+    }
+
+    final outsideSegments = <List<Offset>>[];
+    List<Offset>? currentSegment;
+
+    for (final pointNorm in points) {
       final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
       final delta = point - center;
-      if ((delta.dx * delta.dx) + (delta.dy * delta.dy) <= radiusSq) {
-        return true;
+      final isInside = (delta.dx * delta.dx) + (delta.dy * delta.dy) <= radiusSq;
+      if (!isInside) {
+        currentSegment ??= <Offset>[];
+        currentSegment.add(pointNorm);
+      } else if (currentSegment != null && currentSegment.isNotEmpty) {
+        outsideSegments.add(currentSegment);
+        currentSegment = null;
       }
     }
-    return false;
+    if (currentSegment != null && currentSegment.isNotEmpty) {
+      outsideSegments.add(currentSegment);
+    }
+
+    final splitStrokes = <DrawingStroke>[];
+    for (final segment in outsideSegments) {
+      if (segment.length < 2) {
+        continue;
+      }
+      splitStrokes.add(
+        DrawingStroke(
+          id: DrawingStroke.generateId(),
+          pageNumber: stroke.pageNumber,
+          style: stroke.style,
+          pointsNorm: List<Offset>.from(segment),
+        ),
+      );
+    }
+    return splitStrokes;
   }
 
   void _removeStrokeWithUndoSnapshot(DrawingStroke stroke) {
@@ -1466,16 +1634,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _startAreaEraserSession(int pointer) {
     _activeAreaEraserPointerId = pointer;
-    _areaEraserSessionDeleted.clear();
-    _areaEraserSessionDeletedIds.clear();
+    _areaEraserSessionRemovedById.clear();
+    _areaEraserSessionAddedById.clear();
   }
 
   void _commitAreaEraserSession() {
-    if (_areaEraserSessionDeleted.isNotEmpty) {
+    if (_areaEraserSessionRemovedById.isNotEmpty ||
+        _areaEraserSessionAddedById.isNotEmpty) {
       _recordUndoAction(
-        DrawingHistoryAction(
-          strokes: List<DrawingStroke>.from(_areaEraserSessionDeleted),
-          wasAdd: false,
+        DrawingHistoryAction.replace(
+          removedStrokes: _areaEraserSessionRemovedById.values.toList(growable: false),
+          addedStrokes: _areaEraserSessionAddedById.values.toList(growable: false),
         ),
       );
       _redo.clear();
@@ -1483,8 +1652,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       unawaited(_persistDrawing());
     }
     _activeAreaEraserPointerId = null;
-    _areaEraserSessionDeleted.clear();
-    _areaEraserSessionDeletedIds.clear();
+    _areaEraserSessionRemovedById.clear();
+    _areaEraserSessionAddedById.clear();
   }
 
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
@@ -1609,18 +1778,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       final action = _undo.removeLast();
-      if (action.wasAdd) {
-        for (final stroke in action.strokes) {
-          _removeStrokeById(stroke);
-        }
-      } else {
-        for (final stroke in action.strokes) {
-          _addStrokeToMemory(stroke);
-        }
+      switch (action.op) {
+        case DrawingHistoryOp.add:
+          for (final stroke in action.strokes) {
+            _removeStrokeById(stroke);
+          }
+          break;
+        case DrawingHistoryOp.remove:
+          for (final stroke in action.strokes) {
+            _addStrokeToMemory(stroke);
+          }
+          break;
+        case DrawingHistoryOp.replace:
+          for (final stroke in action.addedStrokes) {
+            _removeStrokeById(stroke);
+          }
+          for (final stroke in action.removedStrokes) {
+            _addStrokeToMemory(stroke);
+          }
+          break;
       }
-      _recordRedoAction(
-        DrawingHistoryAction(strokes: List<DrawingStroke>.from(action.strokes), wasAdd: action.wasAdd),
-      );
+      _recordRedoAction(_copyHistoryAction(action));
       _syncDrawingHistoryAvailability();
     });
     unawaited(_persistDrawing());
@@ -1632,21 +1810,43 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       final action = _redo.removeLast();
-      if (action.wasAdd) {
-        for (final stroke in action.strokes) {
-          _addStrokeToMemory(stroke);
-        }
-      } else {
-        for (final stroke in action.strokes) {
-          _removeStrokeById(stroke);
-        }
+      switch (action.op) {
+        case DrawingHistoryOp.add:
+          for (final stroke in action.strokes) {
+            _addStrokeToMemory(stroke);
+          }
+          break;
+        case DrawingHistoryOp.remove:
+          for (final stroke in action.strokes) {
+            _removeStrokeById(stroke);
+          }
+          break;
+        case DrawingHistoryOp.replace:
+          for (final stroke in action.removedStrokes) {
+            _removeStrokeById(stroke);
+          }
+          for (final stroke in action.addedStrokes) {
+            _addStrokeToMemory(stroke);
+          }
+          break;
       }
-      _recordUndoAction(
-        DrawingHistoryAction(strokes: List<DrawingStroke>.from(action.strokes), wasAdd: action.wasAdd),
-      );
+      _recordUndoAction(_copyHistoryAction(action));
       _syncDrawingHistoryAvailability();
     });
     unawaited(_persistDrawing());
+  }
+
+  DrawingHistoryAction _copyHistoryAction(DrawingHistoryAction action) {
+    if (action.op == DrawingHistoryOp.replace) {
+      return DrawingHistoryAction.replace(
+        removedStrokes: List<DrawingStroke>.from(action.removedStrokes),
+        addedStrokes: List<DrawingStroke>.from(action.addedStrokes),
+      );
+    }
+    return DrawingHistoryAction(
+      op: action.op,
+      strokes: List<DrawingStroke>.from(action.strokes),
+    );
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(
@@ -1698,8 +1898,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
         _activeAreaEraserPointerId = null;
-        _areaEraserSessionDeleted.clear();
-        _areaEraserSessionDeletedIds.clear();
+        _areaEraserSessionRemovedById.clear();
+        _areaEraserSessionAddedById.clear();
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
