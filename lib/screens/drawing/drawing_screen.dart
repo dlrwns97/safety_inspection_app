@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
@@ -120,6 +121,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   int? _activeAreaEraserPointerId;
   final EraserEngine _eraserEngine = EraserEngine();
   EraserSession? _activeAreaEraserSession;
+  _PendingAreaEraserMove? _pendingAreaEraserMove;
+  bool _isAreaEraserFrameScheduled = false;
+  int _debugAreaEraserUpdatesInWindow = 0;
+  DateTime? _debugAreaEraserWindowStart;
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};

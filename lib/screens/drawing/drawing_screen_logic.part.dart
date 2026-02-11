@@ -1,5 +1,19 @@
 part of 'drawing_screen.dart';
 
+class _PendingAreaEraserMove {
+  const _PendingAreaEraserMove({
+    required this.pageNumber,
+    required this.pageSize,
+    required this.pageLocal,
+    required this.radiusPagePx,
+  });
+
+  final int pageNumber;
+  final Size pageSize;
+  final Offset pageLocal;
+  final double radiusPagePx;
+}
+
 const double _kMinValidPdfPageSide = 200.0;
 
 typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
@@ -1061,6 +1075,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final activeTool = _activeTool;
 
     if (_hasAnyTouchPointer()) {
+      _resetAreaEraserMoveCoalescing();
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
@@ -1090,49 +1105,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           : (leftOffset != null)
               ? (leftOffset - pageLocal).distance
               : _areaEraserRadiusPx;
-      final strokes = List<DrawingStroke>.from(_strokesByPage[pageNumber] ?? const <DrawingStroke>[]);
-      final previousSession = _activeAreaEraserSession;
-      if (previousSession == null) {
-        return;
-      }
-      final updatedSession = _eraserEngine.updateSession(
-        previousSession.copyWith(radius: radiusPagePx),
-        center: pageLocal,
+      _queueAreaEraserMove(
+        pageNumber: pageNumber,
         pageSize: pageSize,
-        strokes: strokes,
+        pageLocal: pageLocal,
+        radiusPagePx: radiusPagePx,
       );
-      final removedIds = updatedSession.removedById.keys.toSet();
-      final addedIds = updatedSession.addedById.keys.toSet();
-      final prevRemovedIds = previousSession.removedById.keys.toSet();
-      final prevAddedIds = previousSession.addedById.keys.toSet();
-      final changed = removedIds.length != prevRemovedIds.length ||
-          addedIds.length != prevAddedIds.length;
-      if (changed) {
-        final removeTargets = <DrawingStroke>[];
-        for (final stroke in strokes) {
-          final shouldRemove = removedIds.contains(stroke.id) ||
-              (prevAddedIds.contains(stroke.id) && !addedIds.contains(stroke.id));
-          if (shouldRemove) {
-            removeTargets.add(stroke);
-          }
-        }
-        for (final stroke in removeTargets) {
-          _removeStrokeById(stroke);
-        }
-        for (final stroke in updatedSession.addedById.values) {
-          if (!prevAddedIds.contains(stroke.id)) {
-            _addStrokeToMemory(stroke);
-          }
-        }
-      }
-      _activeAreaEraserSession = updatedSession;
-      _safeSetState(() {
-        _eraserCursorPageNumber = pageNumber;
-        _eraserCursorPageLocal = pageLocal;
-      });
-      if (changed) {
-        _safeSetState(() {});
-      }
       return;
     }
 
@@ -1258,6 +1236,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final activeTool = _activeTool;
 
     if (activeTool == DrawingTool.areaEraser && wasAreaSession) {
+      _flushPendingAreaEraserMove();
       _safeSetState(() {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
@@ -1367,6 +1346,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleDrawingToolChanged(DrawingTool tool) {
     if (_activeTool == tool) {
       return;
+    }
+    if (_activeTool == DrawingTool.areaEraser) {
+      _resetAreaEraserMoveCoalescing();
     }
     _safeSetState(() {
       _activeTool = tool;
@@ -1522,6 +1504,111 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       mode: EraserMode.area,
       radius: _areaEraserRadiusPx,
     );
+    _resetAreaEraserMoveCoalescing();
+  }
+
+  void _queueAreaEraserMove({
+    required int pageNumber,
+    required Size pageSize,
+    required Offset pageLocal,
+    required double radiusPagePx,
+  }) {
+    _pendingAreaEraserMove = _PendingAreaEraserMove(
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      pageLocal: pageLocal,
+      radiusPagePx: radiusPagePx,
+    );
+    if (_isAreaEraserFrameScheduled) {
+      return;
+    }
+    _isAreaEraserFrameScheduled = true;
+    SchedulerBinding.instance.scheduleFrameCallback((_) {
+      _isAreaEraserFrameScheduled = false;
+      _flushPendingAreaEraserMove();
+    });
+  }
+
+  void _flushPendingAreaEraserMove() {
+    final pending = _pendingAreaEraserMove;
+    if (pending == null) {
+      return;
+    }
+    _pendingAreaEraserMove = null;
+
+    final previousSession = _activeAreaEraserSession;
+    if (previousSession == null) {
+      return;
+    }
+    final strokes = List<DrawingStroke>.from(
+      _strokesByPage[pending.pageNumber] ?? const <DrawingStroke>[],
+    );
+    final updatedSession = _eraserEngine.updateSession(
+      previousSession.copyWith(radius: pending.radiusPagePx),
+      center: pending.pageLocal,
+      pageSize: pending.pageSize,
+      strokes: strokes,
+    );
+    _recordAreaEraserUpdateSessionDebug();
+
+    final removedIds = updatedSession.removedById.keys.toSet();
+    final addedIds = updatedSession.addedById.keys.toSet();
+    final prevRemovedIds = previousSession.removedById.keys.toSet();
+    final prevAddedIds = previousSession.addedById.keys.toSet();
+    final changed = removedIds.length != prevRemovedIds.length ||
+        addedIds.length != prevAddedIds.length;
+    if (changed) {
+      final removeTargets = <DrawingStroke>[];
+      for (final stroke in strokes) {
+        final shouldRemove = removedIds.contains(stroke.id) ||
+            (prevAddedIds.contains(stroke.id) && !addedIds.contains(stroke.id));
+        if (shouldRemove) {
+          removeTargets.add(stroke);
+        }
+      }
+      for (final stroke in removeTargets) {
+        _removeStrokeById(stroke);
+      }
+      for (final stroke in updatedSession.addedById.values) {
+        if (!prevAddedIds.contains(stroke.id)) {
+          _addStrokeToMemory(stroke);
+        }
+      }
+    }
+
+    _activeAreaEraserSession = updatedSession;
+    _safeSetState(() {
+      _eraserCursorPageNumber = pending.pageNumber;
+      _eraserCursorPageLocal = pending.pageLocal;
+    });
+  }
+
+  void _recordAreaEraserUpdateSessionDebug() {
+    if (!kDebugMode) {
+      return;
+    }
+    final now = DateTime.now();
+    final windowStart = _debugAreaEraserWindowStart;
+    if (windowStart == null || now.difference(windowStart) >= const Duration(seconds: 1)) {
+      if (windowStart != null) {
+        debugPrint(
+          '[AreaEraser] updateSession/sec=$_debugAreaEraserUpdatesInWindow',
+        );
+      }
+      _debugAreaEraserWindowStart = now;
+      _debugAreaEraserUpdatesInWindow = 0;
+    }
+    _debugAreaEraserUpdatesInWindow += 1;
+  }
+
+  void _resetAreaEraserMoveCoalescing() {
+    _pendingAreaEraserMove = null;
+    _isAreaEraserFrameScheduled = false;
+    if (!kDebugMode) {
+      return;
+    }
+    _debugAreaEraserWindowStart = null;
+    _debugAreaEraserUpdatesInWindow = 0;
   }
 
   void _commitAreaEraserSession() {
@@ -1535,6 +1622,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _activeAreaEraserPointerId = null;
     _activeAreaEraserSession = null;
+    _resetAreaEraserMoveCoalescing();
   }
 
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
@@ -1713,6 +1801,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final toggledMode = _controller.toggleMode(_mode, nextMode);
     final enableFreeDraw =
         toggledMode == DrawMode.freeDraw || toggledMode == DrawMode.eraser;
+    if (!enableFreeDraw) {
+      _resetAreaEraserMoveCoalescing();
+    }
     _safeSetState(() {
       _mode = toggledMode;
       _isFreeDrawMode = enableFreeDraw;
