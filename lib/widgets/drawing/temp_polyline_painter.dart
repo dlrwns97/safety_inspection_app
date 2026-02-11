@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
-import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({

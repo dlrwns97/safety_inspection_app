@@ -1,4 +1,4 @@
-import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 class StrokePresets {
   const StrokePresets._();
