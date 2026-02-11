@@ -1,6 +1,7 @@
 import 'defect.dart';
 import 'drawing_enums.dart';
 import 'equipment_marker.dart';
+import 'drawing/drawing_history_action_persisted.dart';
 import 'drawing/drawing_stroke.dart';
 
 class Site {
@@ -19,11 +20,15 @@ class Site {
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
     List<DrawingStroke>? drawingStrokes,
+    List<DrawingHistoryActionPersisted>? drawingUndoHistory,
+    List<DrawingHistoryActionPersisted>? drawingRedoHistory,
     List<String>? visibleDefectCategoryNames,
     List<String>? visibleEquipmentCategoryNames,
   })  : defects = defects ?? [],
         equipmentMarkers = equipmentMarkers ?? [],
         drawingStrokes = drawingStrokes ?? [],
+        drawingUndoHistory = drawingUndoHistory ?? [],
+        drawingRedoHistory = drawingRedoHistory ?? [],
         visibleDefectCategoryNames =
             visibleDefectCategoryNames ??
             DefectCategory.values.map((category) => category.name).toList(),
@@ -47,6 +52,8 @@ class Site {
   final List<Defect> defects;
   final List<EquipmentMarker> equipmentMarkers;
   final List<DrawingStroke> drawingStrokes;
+  final List<DrawingHistoryActionPersisted> drawingUndoHistory;
+  final List<DrawingHistoryActionPersisted> drawingRedoHistory;
   final List<String> visibleDefectCategoryNames;
   final List<String> visibleEquipmentCategoryNames;
 
@@ -67,6 +74,8 @@ class Site {
     List<Defect>? defects,
     List<EquipmentMarker>? equipmentMarkers,
     List<DrawingStroke>? drawingStrokes,
+    List<DrawingHistoryActionPersisted>? drawingUndoHistory,
+    List<DrawingHistoryActionPersisted>? drawingRedoHistory,
     List<String>? visibleDefectCategoryNames,
     List<String>? visibleEquipmentCategoryNames,
   }) {
@@ -90,6 +99,12 @@ class Site {
           equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),
       drawingStrokes:
           drawingStrokes ?? List<DrawingStroke>.from(this.drawingStrokes),
+      drawingUndoHistory:
+          drawingUndoHistory ??
+          List<DrawingHistoryActionPersisted>.from(this.drawingUndoHistory),
+      drawingRedoHistory:
+          drawingRedoHistory ??
+          List<DrawingHistoryActionPersisted>.from(this.drawingRedoHistory),
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           List<String>.from(this.visibleDefectCategoryNames),
@@ -115,6 +130,10 @@ class Site {
     'equipmentMarkers':
         equipmentMarkers.map((marker) => marker.toJson()).toList(),
     'drawingStrokes': drawingStrokes.map((stroke) => stroke.toJson()).toList(),
+    'drawingUndoHistory':
+        drawingUndoHistory.map((action) => action.toJson()).toList(),
+    'drawingRedoHistory':
+        drawingRedoHistory.map((action) => action.toJson()).toList(),
     'visibleDefectCategoryNames': visibleDefectCategoryNames,
     'visibleEquipmentCategoryNames': visibleEquipmentCategoryNames,
   };
@@ -157,6 +176,32 @@ class Site {
                 )
                 .toList()
             : <DrawingStroke>[];
+    final drawingUndoHistoryJson = json['drawingUndoHistory'];
+    final drawingUndoHistory =
+        drawingUndoHistoryJson is List
+            ? drawingUndoHistoryJson
+                .whereType<Map>()
+                .map(
+                  (item) => DrawingHistoryActionPersisted.fromJson(
+                    item.cast<String, dynamic>(),
+                  ),
+                )
+                .where((action) => action.strokeId.isNotEmpty)
+                .toList()
+            : <DrawingHistoryActionPersisted>[];
+    final drawingRedoHistoryJson = json['drawingRedoHistory'];
+    final drawingRedoHistory =
+        drawingRedoHistoryJson is List
+            ? drawingRedoHistoryJson
+                .whereType<Map>()
+                .map(
+                  (item) => DrawingHistoryActionPersisted.fromJson(
+                    item.cast<String, dynamic>(),
+                  ),
+                )
+                .where((action) => action.strokeId.isNotEmpty)
+                .toList()
+            : <DrawingHistoryActionPersisted>[];
     return Site(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -180,6 +225,8 @@ class Site {
           .map((item) => EquipmentMarker.fromJson(item as Map<String, dynamic>))
           .toList(),
       drawingStrokes: drawingStrokes,
+      drawingUndoHistory: drawingUndoHistory,
+      drawingRedoHistory: drawingRedoHistory,
       visibleDefectCategoryNames:
           visibleDefectCategoryNames ??
           DefectCategory.values.map((category) => category.name).toList(),

@@ -12,6 +12,7 @@ import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
@@ -149,7 +150,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
-  static const int kMaxHistory = 500;
+  static const int kMaxHistory = 200;
   final List<DrawingHistoryAction> _undo = <DrawingHistoryAction>[];
   final List<DrawingHistoryAction> _redo = <DrawingHistoryAction>[];
   String? _moveTargetDefectId;
