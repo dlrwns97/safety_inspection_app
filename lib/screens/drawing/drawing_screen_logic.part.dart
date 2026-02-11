@@ -1029,31 +1029,41 @@ extension _DrawingScreenLogic on _DrawingScreenState {
               ? (leftOffset - pageLocal).distance
               : _areaEraserRadiusPx;
       final strokes = List<DrawingStroke>.from(_strokesByPage[pageNumber] ?? const <DrawingStroke>[]);
-      var changed = false;
-      for (final stroke in strokes) {
-        final splitStrokes = _splitStrokeByEraserCircle(
-          stroke: stroke,
-          center: pageLocal,
-          pageSize: pageSize,
-          radiusPagePx: radiusPagePx,
-        );
-        if (splitStrokes.length == 1 &&
-            splitStrokes.first.pointsNorm.length == stroke.pointsNorm.length) {
-          continue;
+      final previousSession = _activeAreaEraserSession;
+      if (previousSession == null) {
+        return;
+      }
+      final updatedSession = _eraserEngine.updateSession(
+        previousSession.copyWith(radius: radiusPagePx),
+        center: pageLocal,
+        pageSize: pageSize,
+        strokes: strokes,
+      );
+      final removedIds = updatedSession.removedById.keys.toSet();
+      final addedIds = updatedSession.addedById.keys.toSet();
+      final prevRemovedIds = previousSession.removedById.keys.toSet();
+      final prevAddedIds = previousSession.addedById.keys.toSet();
+      final changed = removedIds.length != prevRemovedIds.length ||
+          addedIds.length != prevAddedIds.length;
+      if (changed) {
+        final removeTargets = <DrawingStroke>[];
+        for (final stroke in strokes) {
+          final shouldRemove = removedIds.contains(stroke.id) ||
+              (prevAddedIds.contains(stroke.id) && !addedIds.contains(stroke.id));
+          if (shouldRemove) {
+            removeTargets.add(stroke);
+          }
         }
-        if (!_removeStrokeById(stroke)) {
-          continue;
+        for (final stroke in removeTargets) {
+          _removeStrokeById(stroke);
         }
-        changed = true;
-        final wasAddedThisSession = _areaEraserSessionAddedById.remove(stroke.id) != null;
-        if (!wasAddedThisSession) {
-          _areaEraserSessionRemovedById.putIfAbsent(stroke.id, () => stroke);
-        }
-        for (final split in splitStrokes) {
-          _addStrokeToMemory(split);
-          _areaEraserSessionAddedById[split.id] = split;
+        for (final stroke in updatedSession.addedById.values) {
+          if (!prevAddedIds.contains(stroke.id)) {
+            _addStrokeToMemory(stroke);
+          }
         }
       }
+      _activeAreaEraserSession = updatedSession;
       _safeSetState(() {
         _eraserCursorPageNumber = pageNumber;
         _eraserCursorPageLocal = pageLocal;
@@ -1433,54 +1443,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return (delta.dx * delta.dx) + (delta.dy * delta.dy);
   }
 
-  List<DrawingStroke> _splitStrokeByEraserCircle({
-    required DrawingStroke stroke,
-    required Offset center,
-    required Size pageSize,
-    required double radiusPagePx,
-  }) {
-    final radiusSq = radiusPagePx * radiusPagePx;
-    final points = stroke.pointsNorm;
-    if (points.length < 2) {
-      return const <DrawingStroke>[];
-    }
-
-    final outsideSegments = <List<Offset>>[];
-    List<Offset>? currentSegment;
-
-    for (final pointNorm in points) {
-      final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
-      final delta = point - center;
-      final isInside = (delta.dx * delta.dx) + (delta.dy * delta.dy) <= radiusSq;
-      if (!isInside) {
-        currentSegment ??= <Offset>[];
-        currentSegment.add(pointNorm);
-      } else if (currentSegment != null && currentSegment.isNotEmpty) {
-        outsideSegments.add(currentSegment);
-        currentSegment = null;
-      }
-    }
-    if (currentSegment != null && currentSegment.isNotEmpty) {
-      outsideSegments.add(currentSegment);
-    }
-
-    final splitStrokes = <DrawingStroke>[];
-    for (final segment in outsideSegments) {
-      if (segment.length < 2) {
-        continue;
-      }
-      splitStrokes.add(
-        DrawingStroke(
-          id: DrawingStroke.generateId(),
-          pageNumber: stroke.pageNumber,
-          style: stroke.style,
-          pointsNorm: List<Offset>.from(segment),
-        ),
-      );
-    }
-    return splitStrokes;
-  }
-
   void _removeStrokeWithUndoSnapshot(DrawingStroke stroke) {
     final removed = _removeStrokeById(stroke);
     if (!removed) {
@@ -1494,26 +1456,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _startAreaEraserSession(int pointer) {
     _activeAreaEraserPointerId = pointer;
-    _areaEraserSessionRemovedById.clear();
-    _areaEraserSessionAddedById.clear();
+    _activeAreaEraserSession = _eraserEngine.startSession(
+      mode: EraserMode.area,
+      radius: _areaEraserRadiusPx,
+    );
   }
 
   void _commitAreaEraserSession() {
-    if (_areaEraserSessionRemovedById.isNotEmpty ||
-        _areaEraserSessionAddedById.isNotEmpty) {
-      _recordUndoAction(
-        DrawingHistoryAction.replace(
-          removedStrokes: _areaEraserSessionRemovedById.values.toList(growable: false),
-          addedStrokes: _areaEraserSessionAddedById.values.toList(growable: false),
-        ),
-      );
-      _redo.clear();
-      _syncDrawingHistoryAvailability();
-      unawaited(_persistDrawing());
+    final session = _activeAreaEraserSession;
+    if (session != null) {
+      final result = _eraserEngine.commit(session);
+      if (result.hasChanges) {
+        _drawingHistoryManager.recordReplace(result.removed, result.added);
+        unawaited(_persistDrawing());
+      }
     }
     _activeAreaEraserPointerId = null;
-    _areaEraserSessionRemovedById.clear();
-    _areaEraserSessionAddedById.clear();
+    _activeAreaEraserSession = null;
   }
 
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
@@ -1717,8 +1676,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
         _activeAreaEraserPointerId = null;
-        _areaEraserSessionRemovedById.clear();
-        _areaEraserSessionAddedById.clear();
+        _activeAreaEraserSession = null;
       }
     });
     if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
