@@ -52,7 +52,7 @@ class EraserResult {
 
 class EraserEngine {
   static const int _kVirtualStrokeThreshold = 1500;
-  static const int _kStrokeThreshold = 800;
+  static const int _kStrokeThreshold = 1600;
   static const int _kPointThreshold = 200000;
   static const int _kMaxUpdateMicrosThreshold = 20000;
 
@@ -63,10 +63,12 @@ class EraserEngine {
   int _perfUiMutationsInWindow = 0;
   bool _isGuardTriggeredForSession = false;
   bool _isGuardLogPrintedForSession = false;
+  DateTime? _lastFallbackLogAt;
 
   EraserSession startSession({required EraserMode mode, required double radius}) {
     _isGuardTriggeredForSession = false;
     _isGuardLogPrintedForSession = false;
+    _lastFallbackLogAt = null;
     return EraserSession(
       mode: mode,
       radius: radius,
@@ -114,14 +116,32 @@ class EraserEngine {
         pointCount: totalPointCount,
         maxUpdateMicros: _perfMaxMicrosInWindow,
       );
+      _applyFallbackDeleteWholeStroke(
+        center: center,
+        pageSize: pageSize,
+        virtualStrokes: virtualStrokes,
+        removedById: removedById,
+        addedById: addedById,
+        removedOriginalIds: removedOriginalIds,
+        processedStrokeIds: processedStrokeIds,
+        strokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        radiusPagePx: session.radius,
+      );
+      final elapsedMicros = DateTime.now().microsecondsSinceEpoch - startedMicros;
       _recordPerf(
-        elapsedMicros: DateTime.now().microsecondsSinceEpoch - startedMicros,
+        elapsedMicros: elapsedMicros,
         strokeCount: virtualStrokeCount,
         virtualStrokeCount: virtualStrokeCount,
         pointCount: totalPointCount,
         addedByIdCount: addedById.length,
       );
-      return session;
+      return session.copyWith(
+        removedOriginalIds: removedOriginalIds,
+        processedStrokeIds: processedStrokeIds,
+        removedById: removedById,
+        addedById: addedById,
+      );
     }
 
     for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
@@ -169,6 +189,18 @@ class EraserEngine {
           pointCount: totalPointCount,
           maxUpdateMicros: _perfMaxMicrosInWindow,
         );
+        _applyFallbackDeleteWholeStroke(
+          center: center,
+          pageSize: pageSize,
+          virtualStrokes: virtualStrokes,
+          removedById: removedById,
+          addedById: addedById,
+          removedOriginalIds: removedOriginalIds,
+          processedStrokeIds: processedStrokeIds,
+          strokeCount: virtualStrokeCount,
+          pointCount: totalPointCount,
+          radiusPagePx: session.radius,
+        );
         break;
       }
     }
@@ -181,6 +213,18 @@ class EraserEngine {
         strokeCount: virtualStrokeCount,
         pointCount: totalPointCount,
         maxUpdateMicros: elapsedMicros,
+      );
+      _applyFallbackDeleteWholeStroke(
+        center: center,
+        pageSize: pageSize,
+        virtualStrokes: virtualStrokes,
+        removedById: removedById,
+        addedById: addedById,
+        removedOriginalIds: removedOriginalIds,
+        processedStrokeIds: processedStrokeIds,
+        strokeCount: virtualStrokeCount,
+        pointCount: totalPointCount,
+        radiusPagePx: session.radius,
       );
     }
 
@@ -197,6 +241,83 @@ class EraserEngine {
       processedStrokeIds: processedStrokeIds,
       removedById: removedById,
       addedById: addedById,
+    );
+  }
+
+  void _applyFallbackDeleteWholeStroke({
+    required Offset center,
+    required Size pageSize,
+    required List<DrawingStroke> virtualStrokes,
+    required Map<String, DrawingStroke> removedById,
+    required Map<String, DrawingStroke> addedById,
+    required Set<String> removedOriginalIds,
+    required Set<String> processedStrokeIds,
+    required int strokeCount,
+    required int pointCount,
+    required double radiusPagePx,
+  }) {
+    bool triggered = false;
+    for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
+      if (!_doesStrokeIntersectEraserCircle(
+        stroke: stroke,
+        center: center,
+        pageSize: pageSize,
+        radiusPagePx: radiusPagePx,
+      )) {
+        continue;
+      }
+      triggered = true;
+      if (addedById.containsKey(stroke.id)) {
+        addedById.remove(stroke.id);
+        continue;
+      }
+      removedById.putIfAbsent(stroke.id, () => stroke);
+      removedOriginalIds.add(stroke.id);
+      processedStrokeIds.add(stroke.id);
+    }
+    if (triggered) {
+      _logFallback(
+        strokeCount: strokeCount,
+        pointCount: pointCount,
+      );
+    }
+  }
+
+  bool _doesStrokeIntersectEraserCircle({
+    required DrawingStroke stroke,
+    required Offset center,
+    required Size pageSize,
+    required double radiusPagePx,
+  }) {
+    final effectiveRadius = radiusPagePx + (stroke.style.widthPx / 2);
+    final radiusSq = effectiveRadius * effectiveRadius;
+    for (final pointNorm in stroke.pointsNorm) {
+      final point = Offset(pointNorm.dx * pageSize.width, pointNorm.dy * pageSize.height);
+      final delta = point - center;
+      final distanceSq = (delta.dx * delta.dx) + (delta.dy * delta.dy);
+      if (distanceSq <= radiusSq) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _logFallback({
+    required int strokeCount,
+    required int pointCount,
+  }) {
+    if (kReleaseMode) {
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastFallbackLogAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastFallbackLogAt = now;
+    debugPrint(
+      '[PerfGuard] fallback=deleteWholeStroke triggered: '
+      'strokes=$strokeCount points=$pointCount',
     );
   }
 
