@@ -660,6 +660,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
       behavior: HitTestBehavior.opaque,
       // Marker tap mapping must remain overlayToPage(details.localPosition) to keep marker under finger. Do not change.
       onTapUp: (details) {
+        if (_isStrokeEraserActive || _isAreaEraserActive) {
+          return;
+        }
         if (!destRect.contains(details.localPosition)) {
           return;
         }
@@ -747,6 +750,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ),
+                      if (_isAreaEraserActive &&
+                          _eraserCursorPageNumber == pageNumber &&
+                          _eraserCursorPageLocal != null)
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _EraserCursorPainter(
+                              center: _eraserCursorPageLocal!,
+                              radiusPx: _areaEraserRadiusPx,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -779,11 +794,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       (e) => _handleOverlayPointerUpOrCancelWithStylusDrawing(
                     e,
                     pageNumber: pageNumber,
+                    pageSize: pageSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
                   ),
                   onPointerCancel: (e) =>
                       _handleOverlayPointerUpOrCancelWithStylusDrawing(
                         e,
                         pageNumber: pageNumber,
+                        pageSize: pageSize,
+                        drawingLocalToPageLocal: drawingLocalToPageLocal,
                       ),
                 ),
               ),
@@ -982,6 +1001,38 @@ class _HsvColorSquarePainter extends CustomPainter {
   }
 }
 
+
+
+class _EraserCursorPainter extends CustomPainter {
+  const _EraserCursorPainter({
+    required this.center,
+    required this.radiusPx,
+    required this.color,
+  });
+
+  final Offset center;
+  final double radiusPx;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawCircle(
+      center,
+      radiusPx,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _EraserCursorPainter oldDelegate) {
+    return oldDelegate.center != center ||
+        oldDelegate.radiusPx != radiusPx ||
+        oldDelegate.color != color;
+  }
+}
 
 class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
   @override
