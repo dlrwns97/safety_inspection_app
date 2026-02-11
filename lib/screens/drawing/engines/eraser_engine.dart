@@ -9,6 +9,7 @@ class EraserSession {
     required this.mode,
     required this.radius,
     required this.removedOriginalIds,
+    required this.processedStrokeIds,
     required this.removedById,
     required this.addedById,
   });
@@ -16,6 +17,7 @@ class EraserSession {
   final EraserMode mode;
   final double radius;
   final Set<String> removedOriginalIds;
+  final Set<String> processedStrokeIds;
   final Map<String, DrawingStroke> removedById;
   final Map<String, DrawingStroke> addedById;
 
@@ -23,6 +25,7 @@ class EraserSession {
     EraserMode? mode,
     double? radius,
     Set<String>? removedOriginalIds,
+    Set<String>? processedStrokeIds,
     Map<String, DrawingStroke>? removedById,
     Map<String, DrawingStroke>? addedById,
   }) {
@@ -30,6 +33,7 @@ class EraserSession {
       mode: mode ?? this.mode,
       radius: radius ?? this.radius,
       removedOriginalIds: removedOriginalIds ?? this.removedOriginalIds,
+      processedStrokeIds: processedStrokeIds ?? this.processedStrokeIds,
       removedById: removedById ?? this.removedById,
       addedById: addedById ?? this.addedById,
     );
@@ -51,6 +55,7 @@ class EraserEngine {
       mode: mode,
       radius: radius,
       removedOriginalIds: <String>{},
+      processedStrokeIds: <String>{},
       removedById: <String, DrawingStroke>{},
       addedById: <String, DrawingStroke>{},
     );
@@ -69,12 +74,19 @@ class EraserEngine {
     final removedById = Map<String, DrawingStroke>.from(session.removedById);
     final addedById = Map<String, DrawingStroke>.from(session.addedById);
     final removedOriginalIds = Set<String>.from(session.removedOriginalIds);
+    final processedStrokeIds = Set<String>.from(session.processedStrokeIds);
     final virtualStrokes = <DrawingStroke>[
       ...strokes.where((stroke) => !removedOriginalIds.contains(stroke.id)),
       ...addedById.values,
     ];
 
     for (final stroke in List<DrawingStroke>.from(virtualStrokes)) {
+      final isOriginalStroke = !addedById.containsKey(stroke.id);
+      if (isOriginalStroke && processedStrokeIds.contains(stroke.id)) {
+        // Avoid re-splitting the same original stroke within one eraser session.
+        continue;
+      }
+
       final splitStrokes = _splitStrokeByEraserCircle(
         stroke: stroke,
         center: center,
@@ -91,6 +103,7 @@ class EraserEngine {
       } else {
         removedById.putIfAbsent(stroke.id, () => stroke);
         removedOriginalIds.add(stroke.id);
+        processedStrokeIds.add(stroke.id);
       }
       for (final split in splitStrokes) {
         addedById[split.id] = split;
@@ -99,6 +112,7 @@ class EraserEngine {
 
     return session.copyWith(
       removedOriginalIds: removedOriginalIds,
+      processedStrokeIds: processedStrokeIds,
       removedById: removedById,
       addedById: addedById,
     );
