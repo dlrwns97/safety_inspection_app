@@ -217,16 +217,39 @@ class DrawingHistoryManager {
   }
 
   void _recordUndoAction(DrawingHistoryAction action) {
-    _undoStack.add(action.deepCopySnapshot());
+    _undoStack.add(_copyHistoryAction(action));
     if (_undoStack.length > maxHistory) {
       _undoStack.removeAt(0);
     }
   }
 
   void _recordRedoAction(DrawingHistoryAction action) {
-    _redoStack.add(action.deepCopySnapshot());
+    _redoStack.add(_copyHistoryAction(action));
     if (_redoStack.length > maxHistory) {
       _redoStack.removeAt(0);
+    }
+  }
+
+
+  DrawingHistoryAction _copyHistoryAction(DrawingHistoryAction action) {
+    switch (action.op) {
+      case DrawingHistoryOp.replace:
+        return DrawingHistoryAction.replace(
+          removedStrokes: action.removedStrokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+          addedStrokes: action.addedStrokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+        );
+      case DrawingHistoryOp.add:
+      case DrawingHistoryOp.remove:
+        return DrawingHistoryAction(
+          op: action.op,
+          strokes: action.strokes
+              .map((stroke) => stroke.deepCopy())
+              .toList(growable: false),
+        );
     }
   }
 
