@@ -28,8 +28,8 @@ class _PendingFreeDrawMove {
   final double photoScale;
 }
 
-final Expando<_PendingFreeDrawMove?> _pendingFreeDrawMoveByState =
-    Expando<_PendingFreeDrawMove?>('pendingFreeDrawMoveByState');
+final Expando<_PendingFreeDrawMove> _pendingFreeDrawMoveByState =
+    Expando<_PendingFreeDrawMove>('pendingFreeDrawMoveByState');
 final Expando<bool> _isFreeDrawMoveScheduledByState =
     Expando<bool>('isFreeDrawMoveScheduledByState');
 final Expando<int> _freeDrawCallsInWindowByState =
