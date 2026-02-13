@@ -14,11 +14,87 @@ class _PendingAreaEraserMove {
   final double radiusPagePx;
 }
 
+class _PendingFreeDrawMove {
+  const _PendingFreeDrawMove({
+    required this.pageNumber,
+    required this.pageSize,
+    required this.normalized,
+    required this.photoScale,
+  });
+
+  final int pageNumber;
+  final Size pageSize;
+  final Offset normalized;
+  final double photoScale;
+}
+
+final Expando<_PendingFreeDrawMove?> _pendingFreeDrawMoveByState =
+    Expando<_PendingFreeDrawMove?>('pendingFreeDrawMoveByState');
+final Expando<bool> _isFreeDrawMoveScheduledByState =
+    Expando<bool>('isFreeDrawMoveScheduledByState');
+final Expando<int> _freeDrawCallsInWindowByState =
+    Expando<int>('freeDrawCallsInWindowByState');
+final Expando<int> _freeDrawUiMutationsInWindowByState =
+    Expando<int>('freeDrawUiMutationsInWindowByState');
+final Expando<DateTime> _freeDrawWindowStartByState =
+    Expando<DateTime>('freeDrawWindowStartByState');
+
 const double _kMinValidPdfPageSide = 200.0;
 
 typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  _PendingFreeDrawMove? get _pendingFreeDrawMove =>
+      _pendingFreeDrawMoveByState[this];
+
+  set _pendingFreeDrawMove(_PendingFreeDrawMove? value) {
+    _pendingFreeDrawMoveByState[this] = value;
+  }
+
+  bool get _isFreeDrawMoveScheduled =>
+      _isFreeDrawMoveScheduledByState[this] ?? false;
+
+  set _isFreeDrawMoveScheduled(bool value) {
+    _isFreeDrawMoveScheduledByState[this] = value;
+  }
+
+  void _recordFreeDrawPerfCall() {
+    if (!kDebugMode) {
+      return;
+    }
+    final now = DateTime.now();
+    final windowStart = _freeDrawWindowStartByState[this];
+    if (windowStart == null) {
+      _freeDrawWindowStartByState[this] = now;
+      _freeDrawCallsInWindowByState[this] = 1;
+      _freeDrawUiMutationsInWindowByState[this] = 0;
+      return;
+    }
+
+    _freeDrawCallsInWindowByState[this] =
+        (_freeDrawCallsInWindowByState[this] ?? 0) + 1;
+    final elapsedMs = now.difference(windowStart).inMilliseconds;
+    if (elapsedMs < 1000) {
+      return;
+    }
+
+    debugPrint(
+      '[Perf] freeDraw: calls/s=${_freeDrawCallsInWindowByState[this] ?? 0} '
+      'uiMutations/s=${_freeDrawUiMutationsInWindowByState[this] ?? 0}',
+    );
+    _freeDrawWindowStartByState[this] = now;
+    _freeDrawCallsInWindowByState[this] = 0;
+    _freeDrawUiMutationsInWindowByState[this] = 0;
+  }
+
+  void _recordFreeDrawPerfUiMutation() {
+    if (!kDebugMode) {
+      return;
+    }
+    _freeDrawUiMutationsInWindowByState[this] =
+        (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
+  }
+
   bool _isStylusKind(PointerDeviceKind kind) {
     return kind == PointerDeviceKind.stylus ||
         kind == PointerDeviceKind.invertedStylus;
@@ -1075,6 +1151,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final activeTool = _activeTool;
 
     if (_hasAnyTouchPointer()) {
+      _resetFreeDrawMoveCoalescing();
       _resetAreaEraserMoveCoalescing();
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -1199,23 +1276,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final last = inProgressStroke.pointsNorm.last;
-    final points = _interpolateNormalizedPoints(
-      from: last,
-      to: norm,
+    _debugLastPageLocal = pageLocal;
+    _queueFreeDrawMove(
+      pageNumber: pageNumber,
       pageSize: pageSize,
+      normalized: norm,
       photoScale: photoScale,
     );
-
-    _debugLastPageLocal = pageLocal;
-    for (final p in points) {
-      _handleFreeDrawPointerUpdate(
-        p,
-        pageNumber,
-        pageSize,
-        photoScale: photoScale,
-      );
-    }
   }
 
   void _handleOverlayPointerUpOrCancelWithStylusDrawing(
@@ -1226,6 +1293,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     final wasStylus = _activeStylusPointerId == event.pointer;
     final wasAreaSession = _activeAreaEraserPointerId == event.pointer;
+    if (wasStylus) {
+      _flushPendingFreeDrawMove();
+    }
 
     _handleOverlayPointerUpOrCancel(event);
 
@@ -1283,6 +1353,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (wasStylus) {
+      _flushPendingFreeDrawMove();
       if (_isFreeDrawConsumingOneFinger) {
         _handleFreeDrawPointerEnd(pageNumber);
       }
@@ -1292,6 +1363,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
+      _resetFreeDrawMoveCoalescing();
     }
   }
 
@@ -1349,6 +1421,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     if (_activeTool == DrawingTool.areaEraser) {
       _resetAreaEraserMoveCoalescing();
+    }
+    if (_activeTool == DrawingTool.pen) {
+      _resetFreeDrawMoveCoalescing();
     }
     _safeSetState(() {
       _activeTool = tool;
@@ -1602,6 +1677,56 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _resetAreaEraserMoveCoalescing();
   }
 
+  void _queueFreeDrawMove({
+    required int pageNumber,
+    required Size pageSize,
+    required Offset normalized,
+    required double photoScale,
+  }) {
+    _pendingFreeDrawMove = _PendingFreeDrawMove(
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      normalized: normalized,
+      photoScale: photoScale,
+    );
+    if (_isFreeDrawMoveScheduled) {
+      return;
+    }
+    _isFreeDrawMoveScheduled = true;
+    SchedulerBinding.instance.scheduleFrameCallback((_) {
+      _isFreeDrawMoveScheduled = false;
+      _flushPendingFreeDrawMove();
+      if (_pendingFreeDrawMove != null && !_isFreeDrawMoveScheduled) {
+        _isFreeDrawMoveScheduled = true;
+        SchedulerBinding.instance.scheduleFrameCallback((_) {
+          _isFreeDrawMoveScheduled = false;
+          _flushPendingFreeDrawMove();
+        });
+      }
+    });
+  }
+
+  void _flushPendingFreeDrawMove() {
+    final pending = _pendingFreeDrawMove;
+    if (pending == null) {
+      return;
+    }
+    _pendingFreeDrawMove = null;
+    _recordFreeDrawPerfCall();
+    _handleFreeDrawPointerUpdate(
+      pending.normalized,
+      pending.pageNumber,
+      pending.pageSize,
+      photoScale: pending.photoScale,
+      shouldInterpolateFromLastPoint: true,
+    );
+  }
+
+  void _resetFreeDrawMoveCoalescing() {
+    _pendingFreeDrawMove = null;
+    _isFreeDrawMoveScheduled = false;
+  }
+
   void _handleFreeDrawPointerStart(Offset normalized, int pageNumber) {
     final style = _activeStrokeStyle;
     if (!_isFreeDrawMode || _activePointerIds.length >= 2 || style == null) {
@@ -1622,6 +1747,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     int pageNumber,
     Size destSize, {
     required double photoScale,
+    bool shouldInterpolateFromLastPoint = false,
   }) {
     final inProgressStroke = _inProgressStroke;
     if (!_isFreeDrawMode ||
@@ -1631,16 +1757,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         inProgressStroke.pageNumber != pageNumber) {
       return;
     }
+    final candidates = shouldInterpolateFromLastPoint
+        ? _interpolateNormalizedPoints(
+            from: inProgressStroke.pointsNorm.last,
+            to: normalized,
+            pageSize: destSize,
+            photoScale: photoScale,
+          )
+        : <Offset>[normalized];
+
     const double thresholdScreenPx = 1.2;
     final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
     final double thresholdNorm =
         (thresholdScreenPx / effectiveScale) / destSize.shortestSide;
-    if ((normalized - inProgressStroke.pointsNorm.last).distance <
-        thresholdNorm) {
+    final additions = <Offset>[];
+    var last = inProgressStroke.pointsNorm.last;
+    for (final candidate in candidates) {
+      if ((candidate - last).distance < thresholdNorm) {
+        continue;
+      }
+      additions.add(candidate);
+      last = candidate;
+    }
+    if (additions.isEmpty) {
       return;
     }
+    _recordFreeDrawPerfUiMutation();
     _safeSetState(() {
-      inProgressStroke.pointsNorm.add(normalized);
+      inProgressStroke.pointsNorm.addAll(additions);
     });
   }
 
