@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,11 @@ class TempPolylinePainter extends CustomPainter {
   final Size pageSize;
   final Offset? debugLastPageLocal;
 
+  static ui.Picture? _cachedBasePicture;
+  static int _cachedBaseHash = 0;
+  static int _cacheHit = 0;
+  static int _cacheMiss = 0;
+
   @override
   void paint(Canvas canvas, Size size) {
     _DrawingUiPerfProbe.instance.ensureInitialized();
@@ -33,9 +39,7 @@ class TempPolylinePainter extends CustomPainter {
         return;
       }
 
-      for (final stroke in strokes) {
-        _drawStroke(canvas, stroke);
-      }
+      _drawCachedBase(canvas, size);
       if (inProgress != null) {
         _drawStroke(canvas, inProgress!);
       }
@@ -55,7 +59,47 @@ class TempPolylinePainter extends CustomPainter {
           strokeCount: strokes.length + (inProgress == null ? 0 : 1),
         );
       }
+      _DrawingUiPerfProbe.instance.recordCache(
+        hit: _cacheHit,
+        miss: _cacheMiss,
+        strokeCount: strokes.length,
+      );
     }
+  }
+
+  void _drawCachedBase(Canvas canvas, Size size) {
+    final baseHash = _computeBaseHash();
+    if (_cachedBasePicture != null && _cachedBaseHash == baseHash) {
+      _cacheHit += 1;
+      canvas.drawPicture(_cachedBasePicture!);
+      return;
+    }
+
+    _cacheMiss += 1;
+    final recorder = ui.PictureRecorder();
+    final recordedCanvas = Canvas(recorder, Offset.zero & size);
+    for (final stroke in strokes) {
+      _drawStroke(recordedCanvas, stroke);
+    }
+
+    _cachedBasePicture?.dispose();
+    _cachedBasePicture = recorder.endRecording();
+    _cachedBaseHash = baseHash;
+    canvas.drawPicture(_cachedBasePicture!);
+  }
+
+  int _computeBaseHash() {
+    var strokeIdsHash = 0;
+    for (final stroke in strokes) {
+      strokeIdsHash = 0x1fffffff & (strokeIdsHash ^ stroke.id.hashCode);
+    }
+    return Object.hash(
+      identityHashCode(strokes),
+      strokes.length,
+      strokeIdsHash,
+      pageSize.width,
+      pageSize.height,
+    );
   }
 
   void _drawStroke(Canvas canvas, DrawingStroke stroke) {
@@ -278,6 +322,8 @@ class _DrawingUiPerfProbe {
   int _buildTotalMicros = 0;
   int _buildMaxMicros = 0;
   int _latestStrokeCount = 0;
+  int _cacheHit = 0;
+  int _cacheMiss = 0;
 
   void ensureInitialized() {
     if (kReleaseMode || _initialized) {
@@ -315,6 +361,16 @@ class _DrawingUiPerfProbe {
     }
   }
 
+  void recordCache({required int hit, required int miss, required int strokeCount}) {
+    if (kReleaseMode) {
+      return;
+    }
+    _rolloverWindowIfNeeded();
+    _cacheHit = hit;
+    _cacheMiss = miss;
+    _latestStrokeCount = strokeCount;
+  }
+
   void _rolloverWindowIfNeeded() {
     final now = DateTime.now();
     final windowStart = _windowStart;
@@ -334,6 +390,10 @@ class _DrawingUiPerfProbe {
         'maxMs=${(_paintMaxMicros / 1000).toStringAsFixed(1)} '
         'build: avgMs=${buildAvgMs.toStringAsFixed(1)} '
         'maxMs=${(_buildMaxMicros / 1000).toStringAsFixed(1)} '
+        'strokes=$_latestStrokeCount',
+      );
+      debugPrint(
+        '[PerfCache] basePicture hit=$_cacheHit miss=$_cacheMiss '
         'strokes=$_latestStrokeCount',
       );
     }
