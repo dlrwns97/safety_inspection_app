@@ -14,9 +14,30 @@ class _PendingAreaEraserMove {
   final double radiusPagePx;
 }
 
+class _PendingFreeDrawMove {
+  const _PendingFreeDrawMove({
+    required this.pageNumber,
+    required this.pageSize,
+    required this.photoScale,
+    required this.normalized,
+  });
+
+  final int pageNumber;
+  final Size pageSize;
+  final double photoScale;
+  final Offset normalized;
+}
+
 const double _kMinValidPdfPageSide = 200.0;
 
 typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
+
+final Expando<_PendingFreeDrawMove> _latestFreeDrawMoveByState =
+    Expando<_PendingFreeDrawMove>();
+final Expando<bool> _isFreeDrawMoveFrameScheduledByState = Expando<bool>();
+final Expando<DateTime> _freeDrawPerfWindowStartByState = Expando<DateTime>();
+final Expando<int> _freeDrawCallsInWindowByState = Expando<int>();
+final Expando<int> _freeDrawUiMutationsInWindowByState = Expando<int>();
 
 extension _DrawingScreenLogic on _DrawingScreenState {
   bool _isStylusKind(PointerDeviceKind kind) {
@@ -1076,6 +1097,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (_hasAnyTouchPointer()) {
       _resetAreaEraserMoveCoalescing();
+      _resetFreeDrawMoveCoalescing();
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
@@ -1119,6 +1141,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (_activeStrokeStyle == null) {
+      _resetFreeDrawMoveCoalescing();
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
       }
@@ -1199,23 +1222,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final last = inProgressStroke.pointsNorm.last;
-    final points = _interpolateNormalizedPoints(
-      from: last,
-      to: norm,
+    _debugLastPageLocal = pageLocal;
+    _queueFreeDrawMove(
+      pageNumber: pageNumber,
       pageSize: pageSize,
       photoScale: photoScale,
+      normalized: norm,
     );
-
-    _debugLastPageLocal = pageLocal;
-    for (final p in points) {
-      _handleFreeDrawPointerUpdate(
-        p,
-        pageNumber,
-        pageSize,
-        photoScale: photoScale,
-      );
-    }
   }
 
   void _handleOverlayPointerUpOrCancelWithStylusDrawing(
@@ -1246,6 +1259,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (activeTool == DrawingTool.strokeEraser && wasStylus) {
+      _resetFreeDrawMoveCoalescing();
       final down = _pendingDrawDownViewportLocal;
       if (down != null && event is PointerUpEvent) {
         final movedEnough = (event.localPosition - down).distance >= _DrawingScreenState._kDrawStartSlopPx;
@@ -1283,6 +1297,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (wasStylus) {
+      _flushPendingFreeDrawMove();
       if (_isFreeDrawConsumingOneFinger) {
         _handleFreeDrawPointerEnd(pageNumber);
       }
@@ -1292,6 +1307,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
       });
+      _resetFreeDrawMoveCoalescing();
     }
   }
 
@@ -1350,6 +1366,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeTool == DrawingTool.areaEraser) {
       _resetAreaEraserMoveCoalescing();
     }
+    _resetFreeDrawMoveCoalescing();
     _safeSetState(() {
       _activeTool = tool;
       _eraserCursorPageLocal = null;
@@ -1505,6 +1522,126 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       radius: _areaEraserRadiusPx,
     );
     _resetAreaEraserMoveCoalescing();
+  }
+
+  void _queueFreeDrawMove({
+    required int pageNumber,
+    required Size pageSize,
+    required double photoScale,
+    required Offset normalized,
+  }) {
+    _latestFreeDrawMoveByState[this] = _PendingFreeDrawMove(
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      photoScale: photoScale,
+      normalized: normalized,
+    );
+    if (_isFreeDrawMoveFrameScheduledByState[this] ?? false) {
+      return;
+    }
+    _scheduleFreeDrawMoveFrame();
+  }
+
+  void _scheduleFreeDrawMoveFrame() {
+    _isFreeDrawMoveFrameScheduledByState[this] = true;
+    SchedulerBinding.instance.scheduleFrameCallback((_) {
+      _isFreeDrawMoveFrameScheduledByState[this] = false;
+      _flushPendingFreeDrawMove();
+      if (_latestFreeDrawMoveByState[this] != null) {
+        _scheduleFreeDrawMoveFrame();
+      }
+    });
+  }
+
+  void _flushPendingFreeDrawMove() {
+    final pending = _latestFreeDrawMoveByState[this];
+    if (pending == null) {
+      return;
+    }
+    _latestFreeDrawMoveByState[this] = null;
+
+    final inProgressStroke = _inProgressStroke;
+    if (!_isFreeDrawMode ||
+        _activePointerIds.length >= 2 ||
+        inProgressStroke == null ||
+        inProgressStroke.pointsNorm.isEmpty ||
+        inProgressStroke.pageNumber != pending.pageNumber) {
+      return;
+    }
+
+    final points = _interpolateNormalizedPoints(
+      from: inProgressStroke.pointsNorm.last,
+      to: pending.normalized,
+      pageSize: pending.pageSize,
+      photoScale: pending.photoScale,
+    );
+    const double thresholdScreenPx = 1.2;
+    final effectiveScale = (pending.photoScale <= 0) ? 1.0 : pending.photoScale;
+    final double thresholdNorm =
+        (thresholdScreenPx / effectiveScale) / pending.pageSize.shortestSide;
+    var previous = inProgressStroke.pointsNorm.last;
+    final accepted = <Offset>[];
+    for (final point in points) {
+      if ((point - previous).distance < thresholdNorm) {
+        continue;
+      }
+      accepted.add(point);
+      previous = point;
+    }
+
+    _recordFreeDrawPerfCall();
+    if (accepted.isEmpty) {
+      return;
+    }
+
+    _safeSetState(() {
+      inProgressStroke.pointsNorm.addAll(accepted);
+    });
+    _recordFreeDrawPerfUiMutation();
+  }
+
+  void _resetFreeDrawMoveCoalescing() {
+    _latestFreeDrawMoveByState[this] = null;
+    _isFreeDrawMoveFrameScheduledByState[this] = false;
+  }
+
+  void _recordFreeDrawPerfCall() {
+    if (kReleaseMode) {
+      return;
+    }
+    _recordFreeDrawPerf(uiMutated: false);
+  }
+
+  void _recordFreeDrawPerfUiMutation() {
+    if (kReleaseMode) {
+      return;
+    }
+    _recordFreeDrawPerf(uiMutated: true);
+  }
+
+  void _recordFreeDrawPerf({required bool uiMutated}) {
+    final now = DateTime.now();
+    final windowStart = _freeDrawPerfWindowStartByState[this];
+    if (windowStart == null ||
+        now.difference(windowStart) >= const Duration(seconds: 1)) {
+      final callsInWindow = _freeDrawCallsInWindowByState[this] ?? 0;
+      if (windowStart != null && callsInWindow > 0) {
+        debugPrint(
+          '[Perf] freeDraw: calls/s=$callsInWindow '
+          'uiMutations/s=${_freeDrawUiMutationsInWindowByState[this] ?? 0}',
+        );
+      }
+      _freeDrawPerfWindowStartByState[this] = now;
+      _freeDrawCallsInWindowByState[this] = 0;
+      _freeDrawUiMutationsInWindowByState[this] = 0;
+    }
+    if (uiMutated) {
+      _freeDrawUiMutationsInWindowByState[this] =
+          (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
+      return;
+    }
+    _freeDrawCallsInWindowByState[this] =
+        (_freeDrawCallsInWindowByState[this] ?? 0) + 1;
   }
 
   void _queueAreaEraserMove({
