@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
@@ -120,10 +119,9 @@ class StrokeCacheManager extends ChangeNotifier {
         .toList(growable: false);
 
     final style = stroke.style;
+    final alpha = (stroke.opacity * style.opacity).clamp(0.0, 1.0);
     final paint = Paint()
-      ..color = Color(style.argbColor).withOpacity(
-        (stroke.opacity * style.opacity).clamp(0.0, 1.0),
-      )
+      ..color = Color(style.argbColor).withValues(alpha: alpha)
       ..strokeWidth = style.widthPx
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
