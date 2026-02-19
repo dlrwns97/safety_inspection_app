@@ -1,2 +1,2 @@
-/// Phase 0 single source of truth draft for drawing tool types.
-enum DrawingTool { pen, highlighter, strokeEraser, areaEraser, shape, text }
+// TODO(phase1): Remove this shim after all imports are unified to drawing_types.dart.
+export '../drawing_types.dart';
