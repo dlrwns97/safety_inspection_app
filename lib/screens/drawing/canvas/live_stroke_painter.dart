@@ -1,4 +1,6 @@
-import 'package:flutter/painting.dart';
+import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
@@ -33,7 +35,7 @@ class LiveStrokePainter extends CustomPainter {
     final paint = _buildPaint(stroke);
 
     if (points.length == 1) {
-      canvas.drawPoints(PointMode.points, points, paint);
+      canvas.drawPoints(ui.PointMode.points, points, paint);
       return;
     }
 
