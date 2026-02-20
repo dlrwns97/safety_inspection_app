@@ -25,6 +25,7 @@ import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/models/site_storage.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/spatial_index.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_widget.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/stroke_cache_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
@@ -143,6 +144,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
+  final Map<int, SpatialIndex> _strokeSpatialIndexByPage = <int, SpatialIndex>{};
+  final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
+  final Set<int> _strokeSpatialIndexDirtyPages = <int>{};
   final DrawingPersistenceStore _drawingPersistenceStore =
       DrawingPersistenceStore();
   DrawingStroke? _inProgressStroke;

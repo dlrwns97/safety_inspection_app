@@ -133,21 +133,25 @@ class SpatialIndex {
   }
 
   Rect? _computeStrokeBounds(DrawingStroke stroke) {
-    if (stroke.pointsNorm.isEmpty) {
+    if (stroke.pointsNorm.isEmpty || _pageSize == null) {
       return null;
     }
 
-    var minX = stroke.pointsNorm.first.dx;
-    var maxX = stroke.pointsNorm.first.dx;
-    var minY = stroke.pointsNorm.first.dy;
-    var maxY = stroke.pointsNorm.first.dy;
+    final width = _pageSize!.width;
+    final height = _pageSize!.height;
+    var minX = stroke.pointsNorm.first.dx * width;
+    var maxX = stroke.pointsNorm.first.dx * width;
+    var minY = stroke.pointsNorm.first.dy * height;
+    var maxY = stroke.pointsNorm.first.dy * height;
 
     for (var i = 1; i < stroke.pointsNorm.length; i += 1) {
       final point = stroke.pointsNorm[i];
-      if (point.dx < minX) minX = point.dx;
-      if (point.dx > maxX) maxX = point.dx;
-      if (point.dy < minY) minY = point.dy;
-      if (point.dy > maxY) maxY = point.dy;
+      final pointX = point.dx * width;
+      final pointY = point.dy * height;
+      if (pointX < minX) minX = pointX;
+      if (pointX > maxX) maxX = pointX;
+      if (pointY < minY) minY = pointY;
+      if (pointY > maxY) maxY = pointY;
     }
 
     return Rect.fromLTRB(minX, minY, maxX, maxY);
