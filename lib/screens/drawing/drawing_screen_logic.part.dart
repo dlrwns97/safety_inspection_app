@@ -147,18 +147,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isFreeDrawMode) {
       return true;
     }
-    if (_activePointerIds.length >= 2) {
-      return true;
-    }
-    if (_isFreeDrawConsumingOneFinger ||
+    if (_isStylusActive ||
+        _pendingDraw ||
         _inProgressStroke != null ||
-        _pendingDraw) {
+        _isFreeDrawConsumingOneFinger) {
       return false;
     }
-    if (_activePointerIds.length == 1) {
-      return false;
-    }
-    return !_isSinglePointerDrawingActive;
+    return _activeTouchPointerCount >= 1;
   }
 
   bool _isStylusKind(PointerDeviceKind kind) {
@@ -171,6 +166,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       (kind) => kind == PointerDeviceKind.touch,
     );
   }
+
+  int get _activeTouchPointerCount =>
+      _activePointerKinds.values
+          .where((kind) => kind == PointerDeviceKind.touch)
+          .length;
+
+  bool get _isStylusActive => _activeStylusPointerId != null;
 
   Matrix4 _buildPhotoViewChildMatrix({
     required PhotoViewControllerValue value,
@@ -1133,6 +1135,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
     final previousCount = _activePointerIds.length;
+    final previousTouchCount = _activeTouchPointerCount;
     _activePointerIds.add(event.pointer);
     _activePointerKinds[event.pointer] = event.kind;
     if (!_isFreeDrawMode) {
@@ -1141,9 +1144,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       return;
     }
-    final bool becameTwoFinger =
-        previousCount < 2 && _activePointerIds.length >= 2;
-    if (becameTwoFinger) {
+    final touchCount = _activeTouchPointerCount;
+    final bool becameTwoFingerTouch =
+        previousTouchCount < 2 && touchCount >= 2;
+    if (becameTwoFingerTouch) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
       }
@@ -1166,7 +1170,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     _handleOverlayPointerDown(event);
 
-    if (!_isStylusKind(event.kind) || _hasAnyTouchPointer()) {
+    if (!_isStylusKind(event.kind)) {
       return;
     }
 
@@ -1218,22 +1222,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final activeTool = _activeTool;
-
-    if (_hasAnyTouchPointer()) {
-      _resetFreeDrawMoveCoalescing();
-      _resetAreaEraserMoveCoalescing();
-      _safeSetState(() {
-        _isFreeDrawConsumingOneFinger = false;
-        _pendingDraw = false;
-        _pendingDrawDownViewportLocal = null;
-        _activeStylusPointerId = null;
-        _eraserCursorPageLocal = null;
-        _canvasController.setEraserCursor(null);
-        _canvasController.setEraserPreview(null);
-      });
+    if (!_isStylusKind(event.kind)) {
       return;
     }
+
+    final activeTool = _activeTool;
 
     if (activeTool == DrawingTool.areaEraser) {
       if (_activeAreaEraserPointerId != event.pointer || !_isStylusKind(event.kind)) {
