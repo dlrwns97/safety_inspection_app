@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 /// Manages per-page drawing strokes and cache invalidation signals.
@@ -16,6 +17,10 @@ class DrawingCanvasController extends ChangeNotifier {
 
   /// Holds the current eraser cursor position.
   final ValueNotifier<Offset?> eraserCursor = ValueNotifier<Offset?>(null);
+
+  /// Holds live eraser preview state without mutating committed strokes.
+  final ValueNotifier<EraserPreview?> eraserPreview =
+      ValueNotifier<EraserPreview?>(null);
 
   /// Emits the page index whose cache should be rebuilt.
   final ValueNotifier<int?> cacheInvalidatedPage = ValueNotifier<int?>(null);
@@ -97,6 +102,11 @@ class DrawingCanvasController extends ChangeNotifier {
     eraserCursor.value = position;
   }
 
+  /// Sets or clears the current eraser preview.
+  void setEraserPreview(EraserPreview? preview) {
+    eraserPreview.value = preview;
+  }
+
   /// Marks [page] dirty and emits a single cache rebuild signal.
   void invalidateCache(int page, {String reason = 'unknown'}) {
     _dirtyPages.add(page);
@@ -124,6 +134,7 @@ class DrawingCanvasController extends ChangeNotifier {
   void dispose() {
     liveStroke.dispose();
     eraserCursor.dispose();
+    eraserPreview.dispose();
     cacheInvalidatedPage.dispose();
     cacheRebuildTick.dispose();
     super.dispose();
