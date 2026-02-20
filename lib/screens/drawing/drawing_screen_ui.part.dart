@@ -700,25 +700,35 @@ extension _DrawingScreenUi on _DrawingScreenState {
         'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
       );
     }
-    return GestureDetector(
+    return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
-      onScaleStart: (details) {
-        if (_activeStylusPointerId != null ||
-            _inProgressStroke != null ||
-            _pendingDraw) {
-          return;
-        }
-        _handlePdfNavigationScaleStart(details);
+      gestures: <Type, GestureRecognizerFactory>{
+        _TouchOnlyPanGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<
+              _TouchOnlyPanGestureRecognizer
+            >(
+              _TouchOnlyPanGestureRecognizer.new,
+              (_TouchOnlyPanGestureRecognizer instance) {
+                instance
+                  ..onStart = _handlePdfNavigationPanStart
+                  ..onUpdate = _handlePdfNavigationPanUpdate
+                  ..onEnd = _handlePdfNavigationPanEnd
+                  ..onCancel = _handlePdfNavigationPanCancel;
+              },
+            ),
+        _TouchOnlyScaleGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<
+              _TouchOnlyScaleGestureRecognizer
+            >(
+              _TouchOnlyScaleGestureRecognizer.new,
+              (_TouchOnlyScaleGestureRecognizer instance) {
+                instance
+                  ..onStart = _handlePdfNavigationScaleStart
+                  ..onUpdate = _handlePdfNavigationScaleUpdate
+                  ..onEnd = _handlePdfNavigationScaleEnd;
+              },
+            ),
       },
-      onScaleUpdate: (details) {
-        if (_activeStylusPointerId != null ||
-            _inProgressStroke != null ||
-            _pendingDraw) {
-          return;
-        }
-        _handlePdfNavigationScaleUpdate(details);
-      },
-      onScaleEnd: _handlePdfNavigationScaleEnd,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return PdfDrawingView(
@@ -1173,4 +1183,24 @@ class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
 
   @override
   void didStopTrackingLastPointer(int pointer) {}
+}
+
+class _TouchOnlyPanGestureRecognizer extends PanGestureRecognizer {
+  @override
+  bool isPointerAllowed(PointerDownEvent event) {
+    if (event.kind != PointerDeviceKind.touch) {
+      return false;
+    }
+    return super.isPointerAllowed(event);
+  }
+}
+
+class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
+  @override
+  bool isPointerAllowed(PointerDownEvent event) {
+    if (event.kind != PointerDeviceKind.touch) {
+      return false;
+    }
+    return super.isPointerAllowed(event);
+  }
 }
