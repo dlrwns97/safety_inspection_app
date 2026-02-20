@@ -131,6 +131,28 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
   }
 
+  bool get _isSinglePointerDrawingActive {
+    if (!_isFreeDrawMode) {
+      return false;
+    }
+    if (_activePointerIds.length != 1) {
+      return false;
+    }
+    return _isFreeDrawConsumingOneFinger ||
+        _inProgressStroke != null ||
+        _pendingDraw;
+  }
+
+  bool get _isPanScaleAllowedDuringDraw {
+    if (!_isFreeDrawMode) {
+      return true;
+    }
+    if (_activePointerIds.length >= 2) {
+      return true;
+    }
+    return !_isSinglePointerDrawingActive;
+  }
+
   bool _isStylusKind(PointerDeviceKind kind) {
     return kind == PointerDeviceKind.stylus ||
         kind == PointerDeviceKind.invertedStylus;

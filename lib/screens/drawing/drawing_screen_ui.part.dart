@@ -594,13 +594,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool hasActiveSinglePointerStroke =
-        _activePointerIds.length == 1 &&
-        (_isFreeDrawConsumingOneFinger || _inProgressStroke != null || _pendingDraw);
-    final bool enablePdfPanGestures =
-        !_isFreeDrawMode || isTwoFinger || !hasActiveSinglePointerStroke;
-    final bool enablePdfScaleGestures =
-        !_isFreeDrawMode || isTwoFinger || !hasActiveSinglePointerStroke;
+    final bool hasActiveSinglePointerStroke = _isSinglePointerDrawingActive;
+    final bool enablePdfPanGestures = _isPanScaleAllowedDuringDraw;
+    final bool enablePdfScaleGestures = _isPanScaleAllowedDuringDraw;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
@@ -852,8 +848,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       transformationController: _transformationController,
       minScale: DrawingCanvasMinScale,
       maxScale: DrawingCanvasMaxScale,
-      panEnabled: !_isMoveMode,
-      scaleEnabled: !_isMoveMode,
+      panEnabled: !_isMoveMode && _isPanScaleAllowedDuringDraw,
+      scaleEnabled: !_isMoveMode && _isPanScaleAllowedDuringDraw,
       constrained: false,
       child: SizedBox(
         key: _canvasKey,
