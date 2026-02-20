@@ -150,6 +150,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activePointerIds.length >= 2) {
       return true;
     }
+    if (_activePointerIds.length == 1) {
+      return false;
+    }
     return !_isSinglePointerDrawingActive;
   }
 
@@ -1222,6 +1225,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activeStylusPointerId = null;
         _eraserCursorPageLocal = null;
         _canvasController.setEraserCursor(null);
+        _canvasController.setEraserPreview(null);
       });
       return;
     }
@@ -1374,6 +1378,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
         _canvasController.setEraserCursor(null);
+        _canvasController.setEraserPreview(null);
       });
       _commitAreaEraserSession();
       return;
@@ -1494,6 +1499,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _eraserCursorPageLocal = null;
       _eraserCursorPageNumber = null;
       _canvasController.setEraserCursor(null);
+      _canvasController.setEraserPreview(null);
     });
   }
 
@@ -1649,6 +1655,28 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _requestPersistDrawing();
   }
 
+  void _publishAreaEraserPreview({
+    required int pageNumber,
+    required Offset pageLocal,
+    required double radiusPagePx,
+    required EraserSession session,
+  }) {
+    _canvasController.setEraserPreview(
+      EraserPreview(
+        page: pageNumber,
+        virtualStrokesToRender: session.addedById.values
+            .map((stroke) => stroke.deepCopy())
+            .toList(growable: false),
+        hiddenStrokeIds: Set<String>.from(session.removedOriginalIds),
+        strokesToMask: session.removedById.values
+            .map((stroke) => stroke.deepCopy())
+            .toList(growable: false),
+        cursor: _currentPage == pageNumber ? pageLocal : null,
+        radius: radiusPagePx,
+      ),
+    );
+  }
+
   void _startAreaEraserSession(int pointer) {
     _activeAreaEraserPointerId = pointer;
     _activeAreaEraserSession = _eraserEngine.startSession(
@@ -1656,6 +1684,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       radius: _areaEraserRadiusPx,
     );
     _areaEraserPath.clear();
+    _canvasController.setEraserPreview(null);
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -1688,9 +1717,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _pendingAreaEraserMove = null;
 
-    if (_activeAreaEraserSession == null) {
+    final session = _activeAreaEraserSession;
+    if (session == null) {
       return;
     }
+
+    final strokes = _canvasController.getStrokes(pending.pageNumber);
+    final updatedSession = _eraserEngine.updateSession(
+      session.copyWith(radius: pending.radiusPagePx),
+      center: pending.pageLocal,
+      pageSize: pending.pageSize,
+      strokes: strokes,
+    );
+    _activeAreaEraserSession = updatedSession;
 
     _areaEraserPath.add(pending);
     _eraserEngine.recordUiMutation();
@@ -1699,6 +1738,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _eraserCursorPageLocal = pending.pageLocal;
       _canvasController.setEraserCursor(
         _currentPage == pending.pageNumber ? pending.pageLocal : null,
+      );
+      _publishAreaEraserPreview(
+        pageNumber: pending.pageNumber,
+        pageLocal: pending.pageLocal,
+        radiusPagePx: pending.radiusPagePx,
+        session: updatedSession,
       );
     });
   }
@@ -1711,25 +1756,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _commitAreaEraserSession() {
     final session = _activeAreaEraserSession;
     if (session != null) {
-      EraserSession working = session;
-      final points = List<_PendingAreaEraserMove>.from(_areaEraserPath);
-      _areaEraserPath.clear();
-      if (points.isNotEmpty) {
-        for (final point in points) {
-          final strokes = _canvasController.getStrokes(point.pageNumber);
-          if (strokes.isEmpty) {
-            continue;
-          }
-          working = _eraserEngine.updateSession(
-            working.copyWith(radius: point.radiusPagePx),
-            center: point.pageLocal,
-            pageSize: point.pageSize,
-            strokes: strokes,
-          );
-        }
-      }
-
-      final result = _eraserEngine.commit(working);
+      final result = _eraserEngine.commit(session);
       if (result.hasChanges) {
         final fallbackPage = _currentPage;
         final groupedRemoved = <int, List<DrawingStroke>>{};
@@ -1791,6 +1818,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _activeAreaEraserPointerId = null;
     _activeAreaEraserSession = null;
     _areaEraserPath.clear();
+    _canvasController.setEraserPreview(null);
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -2061,6 +2089,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageNumber = null;
         _canvasController.setLiveStroke(null);
         _canvasController.setEraserCursor(null);
+        _canvasController.setEraserPreview(null);
         _activeAreaEraserPointerId = null;
         _activeAreaEraserSession = null;
       }

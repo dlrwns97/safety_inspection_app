@@ -77,11 +77,10 @@ class StrokeCacheManager extends ChangeNotifier {
     }
   }
 
-  /// Deletes the cached image for [page] and marks any in-flight build as stale.
+  /// Marks any in-flight build for [page] as stale while keeping the last
+  /// stable cache image until a replacement is ready.
   void invalidate(int page) {
     _buildTokens[page] = (_buildTokens[page] ?? 0) + 1;
-    final stale = _cacheByPage.remove(page);
-    stale?.dispose();
     _buildingPages.remove(page);
     notifyListeners();
   }

@@ -14,6 +14,7 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_commands.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_manager.dart';
