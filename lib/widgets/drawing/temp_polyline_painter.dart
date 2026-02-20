@@ -39,9 +39,18 @@ class TempPolylinePainter extends CustomPainter {
         return;
       }
 
-      _drawCachedBase(canvas, size);
-      if (inProgress != null) {
-        _drawStroke(canvas, inProgress!);
+      final inProgressStroke = inProgress;
+      if (inProgressStroke == null) {
+        _drawCachedBase(canvas, size);
+      } else if (inProgressStroke.style.kind != StrokeToolKind.eraser) {
+        _drawCachedBase(canvas, size);
+        _drawStroke(canvas, inProgressStroke);
+      } else {
+        final layerRect = Offset.zero & size;
+        canvas.saveLayer(layerRect, Paint());
+        _drawCachedBase(canvas, size);
+        _drawStroke(canvas, inProgressStroke);
+        canvas.restore();
       }
       if (debugLastPageLocal != null) {
         final debugPaint = Paint()
