@@ -1168,7 +1168,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final Offset delta = details.localFocalPoint - _navGestureStartFocal!;
     final Offset newPos = start.position + delta;
     final double newScaleClamped = newScale.clamp(0.5, 5.0).toDouble();
-    controller.value = start.copyWith(scale: newScaleClamped, position: newPos);
+    controller.value = PhotoViewControllerValue(
+      position: newPos,
+      rotation: start.rotation,
+      scale: newScaleClamped,
+      rotationFocusPoint: start.rotationFocusPoint,
+    );
   }
 
   void _handlePdfNavigationScaleEnd(ScaleEndDetails details) {
