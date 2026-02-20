@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -25,7 +24,6 @@ class DrawingCanvasController extends ChangeNotifier {
   final ValueNotifier<int> cacheRebuildTick = ValueNotifier<int>(0);
 
   final Set<int> _dirtyPages = <int>{};
-  final Map<int, Timer> _cacheDebounceTimers = <int, Timer>{};
 
   /// Snapshot of pages currently waiting for cache rebuild.
   List<int> getDirtyPagesSnapshot() => List<int>.from(_dirtyPages);
@@ -99,11 +97,12 @@ class DrawingCanvasController extends ChangeNotifier {
     eraserCursor.value = position;
   }
 
-  /// Marks [page] dirty, notifies listeners immediately, and debounces rebuild signal.
+  /// Marks [page] dirty and emits a single cache rebuild signal.
   void invalidateCache(int page, {String reason = 'unknown'}) {
     _dirtyPages.add(page);
     notifyListeners();
 
+    cacheInvalidatedPage.value = page;
     cacheRebuildTick.value++;
     if (kDebugMode) {
       debugPrint(
@@ -111,18 +110,6 @@ class DrawingCanvasController extends ChangeNotifier {
         'tick=${cacheRebuildTick.value})',
       );
     }
-
-    _cacheDebounceTimers[page]?.cancel();
-    _cacheDebounceTimers[page] = Timer(const Duration(milliseconds: 100), () {
-      cacheInvalidatedPage.value = page;
-      cacheRebuildTick.value++;
-      if (kDebugMode) {
-        debugPrint(
-          '[Drawing] invalidateCache(page=$page, reason=$reason, '
-          'tick=${cacheRebuildTick.value})',
-        );
-      }
-    });
   }
 
   /// Returns whether cache for [page] is currently marked dirty.
@@ -135,10 +122,6 @@ class DrawingCanvasController extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final timer in _cacheDebounceTimers.values) {
-      timer.cancel();
-    }
-    _cacheDebounceTimers.clear();
     liveStroke.dispose();
     eraserCursor.dispose();
     cacheInvalidatedPage.dispose();

@@ -59,21 +59,29 @@ class DrawingCanvasWidget extends StatelessWidget {
           ValueListenableBuilder<DrawingStroke?>(
             valueListenable: controller.liveStroke,
             builder: (context, liveStroke, child) {
-              return CustomPaint(
-                painter: LiveStrokePainter(
-                  liveStroke: liveStroke,
-                  devicePixelRatio: devicePixelRatio,
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: LiveStrokePainter(
+                    liveStroke: liveStroke,
+                    devicePixelRatio: devicePixelRatio,
+                    repaint: controller.liveStroke,
+                  ),
+                  size: canvasSize,
                 ),
-                size: canvasSize,
               );
             },
           ),
           ValueListenableBuilder(
             valueListenable: controller.eraserCursor,
             builder: (context, cursor, child) {
-              return CustomPaint(
-                painter: EraserCursorPainter(cursor: cursor, radius: eraserRadius),
-                size: canvasSize,
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: EraserCursorPainter(
+                    cursor: cursor,
+                    radius: eraserRadius,
+                  ),
+                  size: canvasSize,
+                ),
               );
             },
           ),

@@ -10,7 +10,8 @@ class LiveStrokePainter extends CustomPainter {
   const LiveStrokePainter({
     required this.liveStroke,
     required this.devicePixelRatio,
-  });
+    Listenable? repaint,
+  }) : super(repaint: repaint);
 
   final DrawingStroke? liveStroke;
   final double devicePixelRatio;
@@ -31,11 +32,16 @@ class LiveStrokePainter extends CustomPainter {
       return;
     }
 
-    final path = _buildPath(points);
+    final path = _buildPath(points, size);
     final paint = _buildPaint(stroke);
+    final scaledPoints = points
+        .map(
+          (point) => Offset(point.dx * size.width, point.dy * size.height),
+        )
+        .toList(growable: false);
 
     if (points.length == 1) {
-      canvas.drawPoints(ui.PointMode.points, points, paint);
+      canvas.drawPoints(ui.PointMode.points, scaledPoints, paint);
       return;
     }
 
@@ -74,10 +80,14 @@ class LiveStrokePainter extends CustomPainter {
     return tool == DrawingTool.strokeEraser || tool == DrawingTool.areaEraser;
   }
 
-  Path _buildPath(List<Offset> points) {
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
+  Path _buildPath(List<Offset> points, Size size) {
+    final first = Offset(
+      points.first.dx * size.width,
+      points.first.dy * size.height,
+    );
+    final path = Path()..moveTo(first.dx, first.dy);
     for (var i = 1; i < points.length; i += 1) {
-      path.lineTo(points[i].dx, points[i].dy);
+      path.lineTo(points[i].dx * size.width, points[i].dy * size.height);
     }
     return path;
   }
