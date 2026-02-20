@@ -15,8 +15,9 @@ import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
+import 'package:safety_inspection_app/screens/drawing/history/history_commands.dart';
+import 'package:safety_inspection_app/screens/drawing/history/history_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart';
-import 'package:safety_inspection_app/screens/drawing/managers/drawing_history_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/persistence/drawing_persistence_store.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
@@ -170,19 +171,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 200;
-  final List<DrawingHistoryAction> _undo = <DrawingHistoryAction>[];
-  final List<DrawingHistoryAction> _redo = <DrawingHistoryAction>[];
-  late final DrawingHistoryManager _drawingHistoryManager = DrawingHistoryManager(
-    undoStack: _undo,
-    redoStack: _redo,
-    maxHistory: kMaxHistory,
-    onHistoryChanged: _updateDrawingHistoryAvailabilityState,
-    persistDrawing: _requestPersistDrawing,
-    addStroke: _addStrokeToMemory,
-    removeStroke: _removeStrokeById,
-    replaceStrokes: _replaceStrokesInMemory,
-    findStrokeById: _findStrokeById,
-  );
+  late final HistoryManager _historyManager =
+      HistoryManager(maxHistory: kMaxHistory);
   String? _moveTargetDefectId;
   String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;

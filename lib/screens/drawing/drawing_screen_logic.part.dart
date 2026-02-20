@@ -88,13 +88,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _canvasController.markCacheClean(page);
   }
 
-  void _syncCanvasStrokesForPage(int page) {
-    _canvasController.setStrokes(
-      page,
-      _strokesByPage[page] ?? const <DrawingStroke>[],
-    );
-  }
-
   void _invalidateCanvasCacheForPage(int page, String reason) {
     _canvasController.invalidateCache(page, reason: reason);
   }
@@ -478,25 +471,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     _canvasController.strokesByPage.clear();
+    for (final entry in loaded.entries) {
+      _canvasController.setStrokes(entry.key, entry.value);
+    }
     _safeSetState(() {
-      _strokesByPage
-        ..clear()
-        ..addAll(loaded);
+      _syncAllStrokesByPageFromController();
       _inProgressStroke = null;
-      _canUndoDrawing = false;
-      _canRedoDrawing = false;
+      _historyManager.clear();
+      _canUndoDrawing = _historyManager.canUndo;
+      _canRedoDrawing = _historyManager.canRedo;
     });
-    for (final entry in _strokesByPage.entries) {
-      _syncCanvasStrokesForPage(entry.key);
-      _invalidateCanvasCacheForPage(entry.key, 'restore');
+    for (final page in loaded.keys) {
+      _invalidateCanvasCacheForPage(page, 'restore');
     }
     _canvasController.setLiveStroke(null);
-    _undo.clear();
-    _redo.clear();
-    _drawingHistoryManager.loadPersisted(
-      const <DrawingHistoryActionPersisted>[],
-      const <DrawingHistoryActionPersisted>[],
-    );
   }
 
   void _requestPersistDrawing() {
@@ -1616,28 +1604,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _removeStrokeWithUndoSnapshot(DrawingStroke stroke) {
-    DrawingStroke? existing = _canvasController.findStrokeById(
+    final existing = _canvasController.findStrokeById(
       stroke.pageNumber,
       stroke.id,
     );
-    existing ??= _findStrokeById(stroke.id);
     if (existing == null) {
       return;
     }
     final deletedStrokeSnapshot = existing.deepCopy();
-    final removed = _removeStrokeById(existing);
-    if (!removed) {
-      return;
-    }
-    _recordUndoAction(
-      DrawingHistoryAction.single(
-        stroke: deletedStrokeSnapshot,
-        wasAdd: false,
+    _historyManager.execute(
+      DeleteStrokeCommand(
+        page: existing.pageNumber,
+        deletedStroke: deletedStrokeSnapshot,
       ),
+      _canvasController,
+      reason: 'eraserCommit',
     );
-    _redo.clear();
-    _syncDrawingHistoryAvailability();
-    _invalidateCanvasCacheForPage(stroke.pageNumber, 'eraserCommit');
+    _syncStrokesByPageFromControllerPage(existing.pageNumber);
+    _updateDrawingHistoryAvailabilityState();
     _requestPersistDrawing();
   }
 
@@ -1684,7 +1668,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final strokes = List<DrawingStroke>.from(
-      _strokesByPage[pending.pageNumber] ?? const <DrawingStroke>[],
+      _canvasController.getStrokes(pending.pageNumber),
     );
     final updatedSession = _eraserEngine.updateSession(
       previousSession.copyWith(radius: pending.radiusPagePx),
@@ -1692,31 +1676,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageSize: pending.pageSize,
       strokes: strokes,
     );
-
-    final removedIds = updatedSession.removedById.keys.toSet();
-    final addedIds = updatedSession.addedById.keys.toSet();
-    final prevRemovedIds = previousSession.removedById.keys.toSet();
-    final prevAddedIds = previousSession.addedById.keys.toSet();
-    final changed = removedIds.length != prevRemovedIds.length ||
-        addedIds.length != prevAddedIds.length;
-    if (changed) {
-      final removeTargets = <DrawingStroke>[];
-      for (final stroke in strokes) {
-        final shouldRemove = removedIds.contains(stroke.id) ||
-            (prevAddedIds.contains(stroke.id) && !addedIds.contains(stroke.id));
-        if (shouldRemove) {
-          removeTargets.add(stroke);
-        }
-      }
-      for (final stroke in removeTargets) {
-        _removeStrokeById(stroke);
-      }
-      for (final stroke in updatedSession.addedById.values) {
-        if (!prevAddedIds.contains(stroke.id)) {
-          _addStrokeToMemory(stroke);
-        }
-      }
-    }
 
     _activeAreaEraserSession = updatedSession;
     _eraserEngine.recordUiMutation();
@@ -1769,12 +1728,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         }());
 
         for (final page in pageKeys) {
-          _drawingHistoryManager.recordReplace(
-            groupedRemoved[page] ?? const <DrawingStroke>[],
-            groupedAdded[page] ?? const <DrawingStroke>[],
+          _historyManager.execute(
+            ReplaceStrokesCommand(
+              page: page,
+              removedStrokes: (groupedRemoved[page] ?? const <DrawingStroke>[])
+                  .map((stroke) => stroke.deepCopy())
+                  .toList(growable: false),
+              addedStrokes: (groupedAdded[page] ?? const <DrawingStroke>[])
+                  .map((stroke) => stroke.deepCopy())
+                  .toList(growable: false),
+            ),
+            _canvasController,
+            reason: 'eraserCommit',
           );
-          _invalidateCanvasCacheForPage(page, 'eraserCommit');
+          _syncStrokesByPageFromControllerPage(page);
         }
+        _updateDrawingHistoryAvailabilityState();
         _requestPersistDrawing();
       }
     }
@@ -1919,16 +1888,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         style: inProgressStroke.style,
         pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
       );
-      _strokesByPage.putIfAbsent(pageNumber, () => <DrawingStroke>[]).add(
-        committedStroke,
+      _historyManager.execute(
+        AddStrokeCommand(
+          page: pageNumber,
+          stroke: committedStroke.deepCopy(),
+        ),
+        _canvasController,
+        reason: 'commit',
       );
-      _syncCanvasStrokesForPage(pageNumber);
-      _recordUndoAction(
-        DrawingHistoryAction.single(stroke: committedStroke, wasAdd: true),
-      );
-      _redo.clear();
-      _syncDrawingHistoryAvailability();
-      _invalidateCanvasCacheForPage(pageNumber, 'commit');
+      _syncStrokesByPageFromControllerPage(pageNumber);
+      _updateDrawingHistoryAvailabilityState();
       _debugLastPageLocal = null;
       _inProgressStroke = null;
       _canvasController.setLiveStroke(null);
@@ -1937,126 +1906,36 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
 
-  void _recordUndoAction(DrawingHistoryAction action) {
-    _drawingHistoryManager.recordUndoAction(action);
-  }
-
-  // ignore: unused_element
-  void _recordRedoAction(DrawingHistoryAction action) {
-    _drawingHistoryManager.recordRedoAction(action);
-  }
-
-  void _syncDrawingHistoryAvailability() {
-    _drawingHistoryManager.syncHistoryAvailability();
-  }
-
   void _updateDrawingHistoryAvailabilityState() {
-    _canUndoDrawing = _drawingHistoryManager.canUndo;
-    _canRedoDrawing = _drawingHistoryManager.canRedo;
-  }
-
-  bool _removeStrokeById(DrawingStroke stroke) {
-    final strokes = _strokesByPage[stroke.pageNumber];
-    if (strokes == null || strokes.isEmpty) {
-      return false;
-    }
-    final index = strokes.lastIndexWhere((entry) => entry.id == stroke.id);
-    if (index < 0) {
-      return false;
-    }
-    strokes.removeAt(index);
-    if (strokes.isEmpty) {
-      _strokesByPage.remove(stroke.pageNumber);
-    }
-    _syncCanvasStrokesForPage(stroke.pageNumber);
-    return true;
-  }
-
-  void _addStrokeToMemory(DrawingStroke stroke) {
-    _strokesByPage.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
-      stroke,
-    );
-    _syncCanvasStrokesForPage(stroke.pageNumber);
-  }
-
-  DrawingStroke? _findStrokeById(String id) {
-    for (final pageStrokes in _strokesByPage.values) {
-      for (final stroke in pageStrokes) {
-        if (stroke.id == id) {
-          return stroke;
-        }
-      }
-    }
-    return null;
-  }
-
-  void _replaceStrokesInMemory(
-    List<DrawingStroke> removed,
-    List<DrawingStroke> added,
-  ) {
-    final touchedPages = <int>{};
-
-    for (final stroke in removed) {
-      final pageStrokes = _strokesByPage[stroke.pageNumber];
-      if (pageStrokes == null || pageStrokes.isEmpty) {
-        continue;
-      }
-      final index = pageStrokes.lastIndexWhere((entry) => entry.id == stroke.id);
-      if (index < 0) {
-        continue;
-      }
-      pageStrokes.removeAt(index);
-      touchedPages.add(stroke.pageNumber);
-      if (pageStrokes.isEmpty) {
-        _strokesByPage.remove(stroke.pageNumber);
-      }
-    }
-
-    for (final stroke in added) {
-      _strokesByPage.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
-        stroke,
-      );
-      touchedPages.add(stroke.pageNumber);
-    }
-
-    for (final page in touchedPages) {
-      _syncCanvasStrokesForPage(page);
-    }
+    _canUndoDrawing = _historyManager.canUndo;
+    _canRedoDrawing = _historyManager.canRedo;
   }
 
   void _handleUndoDrawing() {
-    if (!_drawingHistoryManager.canUndo) {
+    if (!_historyManager.canUndo) {
       return;
     }
     _safeSetState(() {
-      final affectedPage = _drawingHistoryManager.undo();
+      final affectedPage = _historyManager.undo(_canvasController);
       if (affectedPage == null) {
         _syncAllStrokesByPageFromController();
-        for (final page in _canvasController.strokesByPage.keys) {
-          _invalidateCanvasCacheForPage(page, 'undo');
-        }
       } else {
         _syncStrokesByPageFromControllerPage(affectedPage);
-        _invalidateCanvasCacheForPage(affectedPage, 'undo');
       }
       _updateDrawingHistoryAvailabilityState();
     });
   }
 
   void _handleRedoDrawing() {
-    if (!_drawingHistoryManager.canRedo) {
+    if (!_historyManager.canRedo) {
       return;
     }
     _safeSetState(() {
-      final affectedPage = _drawingHistoryManager.redo();
+      final affectedPage = _historyManager.redo(_canvasController);
       if (affectedPage == null) {
         _syncAllStrokesByPageFromController();
-        for (final page in _canvasController.strokesByPage.keys) {
-          _invalidateCanvasCacheForPage(page, 'redo');
-        }
       } else {
         _syncStrokesByPageFromControllerPage(affectedPage);
-        _invalidateCanvasCacheForPage(affectedPage, 'redo');
       }
       _updateDrawingHistoryAvailabilityState();
     });
