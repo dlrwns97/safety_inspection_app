@@ -150,6 +150,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activePointerIds.length >= 2) {
       return true;
     }
+    if (_isFreeDrawConsumingOneFinger ||
+        _inProgressStroke != null ||
+        _pendingDraw) {
+      return false;
+    }
     if (_activePointerIds.length == 1) {
       return false;
     }
@@ -1661,9 +1666,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required double radiusPagePx,
     required EraserSession session,
   }) {
+    final baseStrokes = _canvasController.getStrokes(pageNumber);
+    final previewStrokes = <DrawingStroke>[
+      ...baseStrokes.where(
+        (stroke) => !session.removedOriginalIds.contains(stroke.id),
+      ),
+      ...session.addedById.values,
+    ];
+
     _canvasController.setEraserPreview(
       EraserPreview(
         page: pageNumber,
+        previewStrokes: previewStrokes,
         virtualStrokesToRender: session.addedById.values
             .map((stroke) => stroke.deepCopy())
             .toList(growable: false),
