@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/cached_image_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/eraser_cursor_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/eraser_preview_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/live_stroke_painter.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/preview_strokes_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/stroke_cache_manager.dart';
 
 class DrawingCanvasWidget extends StatefulWidget {
@@ -34,16 +36,6 @@ class DrawingCanvasWidget extends StatefulWidget {
 }
 
 class _DrawingCanvasWidgetState extends State<DrawingCanvasWidget> {
-  ui.Image? _lastStableCacheImage;
-
-  @override
-  void didUpdateWidget(covariant DrawingCanvasWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.page != widget.page) {
-      _lastStableCacheImage = widget.cacheManager.getCachedImage(widget.page);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -52,39 +44,28 @@ class _DrawingCanvasWidgetState extends State<DrawingCanvasWidget> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ValueListenableBuilder<int>(
-            valueListenable: widget.controller.cacheRebuildTick,
-            builder: (context, tick, child) {
-              if (kDebugMode) {
-                debugPrint('[Drawing] cached layer build page=${widget.page} tick=$tick');
-              }
-              return AnimatedBuilder(
-                animation: widget.cacheManager,
-                builder: (context, child) {
-                  final latestImage = widget.cacheManager.getCachedImage(widget.page);
-                  if (latestImage != null) {
-                    _lastStableCacheImage = latestImage;
-                  }
-                  return RepaintBoundary(
-                    child: CustomPaint(
-                      painter: CachedImagePainter(
-                        image: latestImage ?? _lastStableCacheImage,
-                        devicePixelRatio: widget.devicePixelRatio,
-                      ),
-                      size: widget.canvasSize,
-                    ),
-                  );
-                },
-              );
+          ValueListenableBuilder<EraserPreview?>(
+            valueListenable: widget.controller.eraserPreview,
+            child: _CachedCanvasLayer(
+              controller: widget.controller,
+              cacheManager: widget.cacheManager,
+              page: widget.page,
+              canvasSize: widget.canvasSize,
+              devicePixelRatio: widget.devicePixelRatio,
+            ),
+            builder: (context, preview, child) {
+              final isPreviewActive = preview?.page == widget.page;
+              return Opacity(opacity: isPreviewActive ? 0 : 1, child: child);
             },
           ),
-          ValueListenableBuilder(
+          ValueListenableBuilder<EraserPreview?>(
             valueListenable: widget.controller.eraserPreview,
             builder: (context, preview, child) {
+              final pagePreview = preview?.page == widget.page ? preview : null;
               return RepaintBoundary(
                 child: CustomPaint(
-                  painter: EraserPreviewPainter(
-                    preview: preview?.page == widget.page ? preview : null,
+                  painter: PreviewStrokesPainter(
+                    strokes: pagePreview?.previewStrokes ?? const <DrawingStroke>[],
                   ),
                   size: widget.canvasSize,
                 ),
@@ -122,6 +103,67 @@ class _DrawingCanvasWidgetState extends State<DrawingCanvasWidget> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CachedCanvasLayer extends StatefulWidget {
+  const _CachedCanvasLayer({
+    required this.controller,
+    required this.cacheManager,
+    required this.page,
+    required this.canvasSize,
+    required this.devicePixelRatio,
+  });
+
+  final DrawingCanvasController controller;
+  final StrokeCacheManager cacheManager;
+  final int page;
+  final Size canvasSize;
+  final double devicePixelRatio;
+
+  @override
+  State<_CachedCanvasLayer> createState() => _CachedCanvasLayerState();
+}
+
+class _CachedCanvasLayerState extends State<_CachedCanvasLayer> {
+  ui.Image? _lastStableCacheImage;
+
+  @override
+  void didUpdateWidget(covariant _CachedCanvasLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.page != widget.page) {
+      _lastStableCacheImage = widget.cacheManager.getCachedImage(widget.page);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: widget.controller.cacheRebuildTick,
+      builder: (context, tick, child) {
+        if (kDebugMode) {
+          debugPrint('[Drawing] cached layer build page=${widget.page} tick=$tick');
+        }
+        return AnimatedBuilder(
+          animation: widget.cacheManager,
+          builder: (context, child) {
+            final latestImage = widget.cacheManager.getCachedImage(widget.page);
+            if (latestImage != null) {
+              _lastStableCacheImage = latestImage;
+            }
+            return RepaintBoundary(
+              child: CustomPaint(
+                painter: CachedImagePainter(
+                  image: latestImage ?? _lastStableCacheImage,
+                  devicePixelRatio: widget.devicePixelRatio,
+                ),
+                size: widget.canvasSize,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
