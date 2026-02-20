@@ -2199,6 +2199,45 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
+  Future<void> _handleClearAllStrokes() async {
+    final page = _currentPage;
+    if (_canvasController.getStrokes(page).isEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('전체 지우기'),
+          content: const Text('현재 페이지의 손글씨를 모두 지울까요?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('지우기'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    _safeSetState(() {
+      _historyManager.execute(ClearAllCommand(page: page), _canvasController);
+      _syncStrokesByPageFromControllerPage(page);
+      _updateDrawingHistoryAvailabilityState();
+      _clearSelectionAndPopup();
+    });
+    _requestPersistDrawing();
+  }
+
   void _syncStrokesByPageFromControllerPage(int page) {
     final controllerPageStrokes = _canvasController.strokesByPage[page];
     if (controllerPageStrokes == null || controllerPageStrokes.isEmpty) {
