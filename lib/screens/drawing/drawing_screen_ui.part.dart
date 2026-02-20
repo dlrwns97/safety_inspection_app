@@ -1187,7 +1187,7 @@ class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
 
 class _TouchOnlyPanGestureRecognizer extends PanGestureRecognizer {
   @override
-  bool isPointerAllowed(PointerDownEvent event) {
+  bool isPointerAllowed(PointerEvent event) {
     if (event.kind != PointerDeviceKind.touch) {
       return false;
     }
