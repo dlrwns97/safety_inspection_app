@@ -38,8 +38,8 @@ class StrokeCacheManager extends ChangeNotifier {
 
     try {
       if (size.width <= 0 || size.height <= 0 || devicePixelRatio <= 0) {
-        final stale = _cacheByPage.remove(page);
-        stale?.dispose();
+        // Keep the last stable cache image instead of clearing it when the
+        // viewport reports a transient invalid size.
         return;
       }
 

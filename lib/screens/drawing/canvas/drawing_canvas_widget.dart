@@ -55,7 +55,13 @@ class _DrawingCanvasWidgetState extends State<DrawingCanvasWidget> {
             ),
             builder: (context, preview, child) {
               final isPreviewActive = preview?.page == widget.page;
-              return Opacity(opacity: isPreviewActive ? 0 : 1, child: child);
+              return Visibility(
+                visible: !isPreviewActive,
+                maintainState: true,
+                maintainAnimation: true,
+                maintainSize: true,
+                child: child!,
+              );
             },
           ),
           ValueListenableBuilder<EraserPreview?>(
@@ -129,12 +135,26 @@ class _CachedCanvasLayer extends StatefulWidget {
 class _CachedCanvasLayerState extends State<_CachedCanvasLayer> {
   ui.Image? _lastStableCacheImage;
 
+  void _pullStableImageFromCache() {
+    final latestImage = widget.cacheManager.getCachedImage(widget.page);
+    if (latestImage != null) {
+      _lastStableCacheImage = latestImage;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pullStableImageFromCache();
+  }
+
   @override
   void didUpdateWidget(covariant _CachedCanvasLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.page != widget.page) {
-      _lastStableCacheImage = widget.cacheManager.getCachedImage(widget.page);
+      _lastStableCacheImage = null;
     }
+    _pullStableImageFromCache();
   }
 
   @override
@@ -142,20 +162,18 @@ class _CachedCanvasLayerState extends State<_CachedCanvasLayer> {
     return ValueListenableBuilder<int>(
       valueListenable: widget.controller.cacheRebuildTick,
       builder: (context, tick, child) {
+        _pullStableImageFromCache();
         if (kDebugMode) {
           debugPrint('[Drawing] cached layer build page=${widget.page} tick=$tick');
         }
         return AnimatedBuilder(
           animation: widget.cacheManager,
           builder: (context, child) {
-            final latestImage = widget.cacheManager.getCachedImage(widget.page);
-            if (latestImage != null) {
-              _lastStableCacheImage = latestImage;
-            }
+            _pullStableImageFromCache();
             return RepaintBoundary(
               child: CustomPaint(
                 painter: CachedImagePainter(
-                  image: latestImage ?? _lastStableCacheImage,
+                  image: _lastStableCacheImage,
                   devicePixelRatio: widget.devicePixelRatio,
                 ),
                 size: widget.canvasSize,
