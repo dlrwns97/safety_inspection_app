@@ -32,13 +32,13 @@ class DrawingCanvasController extends ChangeNotifier {
   /// Replaces all committed strokes for [page], typically for restore flows.
   void setStrokes(int page, List<DrawingStroke> strokes) {
     strokesByPage[page] = List<DrawingStroke>.from(strokes);
-    invalidateCache(page);
+    notifyListeners();
   }
 
   /// Adds one committed [stroke] to [page].
   void addStroke(int page, DrawingStroke stroke) {
     getStrokes(page).add(stroke);
-    invalidateCache(page);
+    notifyListeners();
   }
 
   /// Removes a stroke by [strokeId] in [page].
@@ -50,7 +50,7 @@ class DrawingCanvasController extends ChangeNotifier {
     }
 
     strokes.removeAt(index);
-    invalidateCache(page);
+    notifyListeners();
     return true;
   }
 
@@ -74,19 +74,23 @@ class DrawingCanvasController extends ChangeNotifier {
     }
 
     strokes[index] = updated;
-    invalidateCache(page);
+    notifyListeners();
     return true;
   }
 
   /// Clears all committed strokes for [page].
   void clearPage(int page) {
     getStrokes(page).clear();
-    invalidateCache(page);
+    notifyListeners();
   }
 
   /// Sets or clears the temporary in-progress stroke.
-  void setLiveStroke(DrawingStroke? stroke) {
+  void setLiveStroke(DrawingStroke? stroke, {bool forceNotify = false}) {
+    final didChangeReference = liveStroke.value != stroke;
     liveStroke.value = stroke;
+    if (forceNotify && !didChangeReference) {
+      liveStroke.notifyListeners();
+    }
   }
 
   /// Sets or clears the eraser cursor position.
@@ -95,7 +99,10 @@ class DrawingCanvasController extends ChangeNotifier {
   }
 
   /// Marks [page] dirty, notifies listeners immediately, and debounces rebuild signal.
-  void invalidateCache(int page) {
+  void invalidateCache(int page, {String reason = 'unknown'}) {
+    if (kDebugMode) {
+      debugPrint('[Drawing] invalidateCache(page=$page, reason=$reason)');
+    }
     _dirtyPages.add(page);
     notifyListeners();
 

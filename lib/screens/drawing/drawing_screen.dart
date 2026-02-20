@@ -556,7 +556,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       if (!mounted) {
         return;
       }
-      _canvasController.invalidateCache(_currentPage);
+      _canvasController.invalidateCache(_currentPage, reason: 'initial');
     });
     _site = widget.site;
     unawaited(_loadStrokesFromSite());

@@ -95,6 +95,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
+  void _invalidateCanvasCacheForPage(int page, String reason) {
+    _canvasController.invalidateCache(page, reason: reason);
+  }
+
   void _recordFreeDrawPerfCall() {
     if (!kDebugMode) {
       return;
@@ -484,6 +488,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
     for (final entry in _strokesByPage.entries) {
       _syncCanvasStrokesForPage(entry.key);
+      _invalidateCanvasCacheForPage(entry.key, 'restore');
     }
     _canvasController.setLiveStroke(null);
     _undo.clear();
@@ -1632,6 +1637,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     _redo.clear();
     _syncDrawingHistoryAvailability();
+    _invalidateCanvasCacheForPage(stroke.pageNumber, 'eraserCommit');
     _requestPersistDrawing();
   }
 
@@ -1767,6 +1773,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             groupedRemoved[page] ?? const <DrawingStroke>[],
             groupedAdded[page] ?? const <DrawingStroke>[],
           );
+          _invalidateCanvasCacheForPage(page, 'eraserCommit');
         }
         _requestPersistDrawing();
       }
@@ -1885,7 +1892,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _recordFreeDrawPerfUiMutation();
     _safeSetState(() {
       inProgressStroke.pointsNorm.addAll(additions);
-      _canvasController.setLiveStroke(inProgressStroke);
+      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
+        );
+      }
     });
   }
 
@@ -1916,6 +1928,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       );
       _redo.clear();
       _syncDrawingHistoryAvailability();
+      _invalidateCanvasCacheForPage(pageNumber, 'commit');
       _debugLastPageLocal = null;
       _inProgressStroke = null;
       _canvasController.setLiveStroke(null);
@@ -1938,8 +1951,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _updateDrawingHistoryAvailabilityState() {
-    _canUndoDrawing = _undo.isNotEmpty;
-    _canRedoDrawing = _redo.isNotEmpty;
+    _canUndoDrawing = _drawingHistoryManager.canUndo;
+    _canRedoDrawing = _drawingHistoryManager.canRedo;
   }
 
   bool _removeStrokeById(DrawingStroke stroke) {
@@ -2012,26 +2025,40 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleUndoDrawing() {
-    if (_undo.isEmpty) {
+    if (!_drawingHistoryManager.canUndo) {
       return;
     }
     _safeSetState(() {
       final affectedPage = _drawingHistoryManager.undo();
-      if (affectedPage != null) {
+      if (affectedPage == null) {
+        _syncAllStrokesByPageFromController();
+        for (final page in _canvasController.strokesByPage.keys) {
+          _invalidateCanvasCacheForPage(page, 'undo');
+        }
+      } else {
         _syncStrokesByPageFromControllerPage(affectedPage);
+        _invalidateCanvasCacheForPage(affectedPage, 'undo');
       }
+      _updateDrawingHistoryAvailabilityState();
     });
   }
 
   void _handleRedoDrawing() {
-    if (_redo.isEmpty) {
+    if (!_drawingHistoryManager.canRedo) {
       return;
     }
     _safeSetState(() {
       final affectedPage = _drawingHistoryManager.redo();
-      if (affectedPage != null) {
+      if (affectedPage == null) {
+        _syncAllStrokesByPageFromController();
+        for (final page in _canvasController.strokesByPage.keys) {
+          _invalidateCanvasCacheForPage(page, 'redo');
+        }
+      } else {
         _syncStrokesByPageFromControllerPage(affectedPage);
+        _invalidateCanvasCacheForPage(affectedPage, 'redo');
       }
+      _updateDrawingHistoryAvailabilityState();
     });
   }
 
@@ -2042,6 +2069,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _strokesByPage[page] = List<DrawingStroke>.from(controllerPageStrokes);
+  }
+
+  void _syncAllStrokesByPageFromController() {
+    _strokesByPage
+      ..clear()
+      ..addAll(
+        _canvasController.strokesByPage.map(
+          (page, strokes) =>
+              MapEntry(page, List<DrawingStroke>.from(strokes)),
+        ),
+      );
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(
@@ -2830,9 +2868,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
     _persistPdfPageSizeCache();
-    if (_canvasController.getStrokes(pageNumber).isNotEmpty) {
-      _canvasController.invalidateCache(pageNumber);
-    }
   }
 
   void _handlePrevPage() {
