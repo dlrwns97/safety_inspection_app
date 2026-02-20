@@ -127,6 +127,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final EraserEngine _eraserEngine = EraserEngine();
   EraserSession? _activeAreaEraserSession;
   _PendingAreaEraserMove? _pendingAreaEraserMove;
+  final List<_PendingAreaEraserMove> _areaEraserPath =
+      <_PendingAreaEraserMove>[];
   bool _isAreaEraserFrameScheduled = false;
   int _debugAreaEraserUpdatesInWindow = 0;
   DateTime? _debugAreaEraserWindowStart;

@@ -594,8 +594,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
     final bool isTwoFinger = _activePointerIds.length >= 2;
-    const bool enablePdfPanGestures = true;
-    const bool enablePdfScaleGestures = true;
+    final bool hasActiveSinglePointerStroke =
+        _activePointerIds.length == 1 &&
+        (_isFreeDrawConsumingOneFinger || _inProgressStroke != null || _pendingDraw);
+    final bool enablePdfPanGestures =
+        !_isFreeDrawMode || isTwoFinger || !hasActiveSinglePointerStroke;
+    final bool enablePdfScaleGestures =
+        !_isFreeDrawMode || isTwoFinger || !hasActiveSinglePointerStroke;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
