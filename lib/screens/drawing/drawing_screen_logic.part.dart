@@ -59,11 +59,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleCanvasCacheInvalidated() {
-    final page = _canvasController.cacheInvalidatedPage.value;
-    if (page == null) {
+    final dirtyPages = _canvasController.getDirtyPagesSnapshot();
+    if (dirtyPages.isEmpty) {
       return;
     }
-    unawaited(_rebuildStrokeCacheForPage(page));
+    for (final page in dirtyPages) {
+      unawaited(_rebuildStrokeCacheForPage(page));
+    }
   }
 
   Size _canvasSizeForPage(int page) {
@@ -1741,6 +1743,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             _canvasController,
             reason: 'eraserCommit',
           );
+          if (kDebugMode) {
+            debugPrint(
+              '[Drawing] eraserCommit page=$page '
+              'removed=${(groupedRemoved[page] ?? const <DrawingStroke>[]).length} '
+              'added=${(groupedAdded[page] ?? const <DrawingStroke>[]).length} '
+              'tick=${_canvasController.cacheRebuildTick.value}',
+            );
+          }
           _syncStrokesByPageFromControllerPage(page);
         }
         _updateDrawingHistoryAvailabilityState();
@@ -1896,6 +1906,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _canvasController,
         reason: 'commit',
       );
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] commit stroke=${committedStroke.id} '
+          'page=$pageNumber points=${committedStroke.pointsNorm.length} '
+          'tick=${_canvasController.cacheRebuildTick.value}',
+        );
+      }
       _syncStrokesByPageFromControllerPage(pageNumber);
       _updateDrawingHistoryAvailabilityState();
       _debugLastPageLocal = null;

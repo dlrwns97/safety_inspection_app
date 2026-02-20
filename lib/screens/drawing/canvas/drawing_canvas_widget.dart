@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/cached_image_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/eraser_cursor_painter.dart';
@@ -32,21 +34,29 @@ class DrawingCanvasWidget extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: cacheManager,
-            builder: (context, child) {
-              return RepaintBoundary(
-                child: CustomPaint(
-                  painter: CachedImagePainter(
-                    image: cacheManager.getCachedImage(page),
-                    devicePixelRatio: devicePixelRatio,
-                  ),
-                  size: canvasSize,
-                ),
+          ValueListenableBuilder<int>(
+            valueListenable: controller.cacheRebuildTick,
+            builder: (context, tick, child) {
+              if (kDebugMode) {
+                debugPrint('[Drawing] cached layer build page=$page tick=$tick');
+              }
+              return AnimatedBuilder(
+                animation: cacheManager,
+                builder: (context, child) {
+                  return RepaintBoundary(
+                    child: CustomPaint(
+                      painter: CachedImagePainter(
+                        image: cacheManager.getCachedImage(page),
+                        devicePixelRatio: devicePixelRatio,
+                      ),
+                      size: canvasSize,
+                    ),
+                  );
+                },
               );
             },
           ),
-          ValueListenableBuilder(
+          ValueListenableBuilder<DrawingStroke?>(
             valueListenable: controller.liveStroke,
             builder: (context, liveStroke, child) {
               return CustomPaint(
