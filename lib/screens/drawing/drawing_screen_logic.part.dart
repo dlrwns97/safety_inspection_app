@@ -1698,7 +1698,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       radius: _areaEraserRadiusPx,
     );
     _areaEraserPath.clear();
-    _canvasController.setEraserPreview(null);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _canvasController.setEraserPreview(null);
+    });
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -1832,7 +1834,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _activeAreaEraserPointerId = null;
     _activeAreaEraserSession = null;
     _areaEraserPath.clear();
-    _canvasController.setEraserPreview(null);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _canvasController.setEraserPreview(null);
+    });
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -1989,7 +1993,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _updateDrawingHistoryAvailabilityState();
       _debugLastPageLocal = null;
       _inProgressStroke = null;
-      _canvasController.setLiveStroke(null);
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _canvasController.setLiveStroke(null);
+      });
     });
     _requestPersistDrawing();
   }
