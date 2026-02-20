@@ -7,8 +7,17 @@ class SpatialIndex {
   SpatialIndex({int gridSize = 32}) : assert(gridSize > 0), _gridSize = gridSize;
 
   final int _gridSize;
+  Size? _pageSize;
   final Map<int, Set<String>> _cellToStrokeIds = <int, Set<String>>{};
   final Map<String, List<int>> _strokeIdToCellKeys = <String, List<int>>{};
+
+  void setPageSize(Size? pageSize) {
+    _pageSize = pageSize;
+  }
+
+  void updatePageSize(Size? pageSize) {
+    _pageSize = pageSize;
+  }
 
   void clear() {
     _cellToStrokeIds.clear();
@@ -19,6 +28,10 @@ class SpatialIndex {
     final strokeId = stroke.id;
     if (_strokeIdToCellKeys.containsKey(strokeId)) {
       removeStroke(strokeId);
+    }
+
+    if (_pageSize == null) {
+      return;
     }
 
     final bounds = _computeStrokeBounds(stroke);
@@ -69,10 +82,17 @@ class SpatialIndex {
 
   void updateStroke(DrawingStroke stroke) {
     removeStroke(stroke.id);
+    if (_pageSize == null) {
+      return;
+    }
     insertStroke(stroke);
   }
 
   Set<String> queryRect(Rect rect) {
+    if (_pageSize == null) {
+      return <String>{};
+    }
+
     if (rect.isEmpty) {
       return <String>{};
     }
@@ -98,6 +118,10 @@ class SpatialIndex {
   }
 
   Set<String> queryNear(Offset point, double radius) {
+    if (_pageSize == null) {
+      return <String>{};
+    }
+
     final safeRadius = radius < 0 ? 0.0 : radius;
     final rect = Rect.fromLTRB(
       point.dx - safeRadius,
