@@ -43,9 +43,26 @@ class DrawingCanvasController extends ChangeNotifier {
     strokesByPage[page] = List<DrawingStroke>.from(strokes);
   }
 
+  /// Restores all committed strokes for [page] using deep copied snapshots.
+  void restoreStrokes(int page, List<DrawingStroke> strokes) {
+    strokesByPage[page] = strokes
+        .map((stroke) => stroke.deepCopy())
+        .toList(growable: false);
+  }
+
   /// Adds one committed [stroke] to [page].
   void addStroke(int page, DrawingStroke stroke) {
-    getStrokes(page).add(stroke);
+    insertStroke(page, stroke);
+  }
+
+  /// Inserts one committed [stroke] to [page] at [index] if provided.
+  void insertStroke(int page, DrawingStroke stroke, {int? index}) {
+    final strokes = getStrokes(page);
+    if (index == null || index < 0 || index > strokes.length) {
+      strokes.add(stroke);
+      return;
+    }
+    strokes.insert(index, stroke);
   }
 
   /// Removes a stroke by [strokeId] in [page].
@@ -81,6 +98,33 @@ class DrawingCanvasController extends ChangeNotifier {
 
     strokes[index] = updated;
     return true;
+  }
+
+  /// Updates erased mask using bool semantics for history commands.
+  bool setErasedMaskBool(int page, String strokeId, List<bool> mask) {
+    final existing = findStrokeById(page, strokeId);
+    if (existing == null) {
+      return false;
+    }
+
+    final intMask = mask.map((value) => value ? 1 : 0).toList(growable: false);
+    final updated = DrawingStroke(
+      id: existing.id,
+      pageNumber: existing.pageNumber,
+      style: existing.style,
+      pointsNorm: List<Offset>.from(existing.pointsNorm),
+      toolType: existing.toolType,
+      opacity: existing.opacity,
+      isStraightened: existing.isStraightened,
+      penVariant: existing.penVariant,
+      highlighterVariant: existing.highlighterVariant,
+      erasedMaskVersion: (existing.erasedMaskVersion ?? 0) + 1,
+      erasedMask: intMask,
+      erasedSegments: existing.erasedSegments == null
+          ? null
+          : List<dynamic>.from(existing.erasedSegments!),
+    );
+    return updateStroke(page, updated);
   }
 
   /// Clears all committed strokes for [page].

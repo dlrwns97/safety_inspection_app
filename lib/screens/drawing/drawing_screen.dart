@@ -173,7 +173,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
-  static const int kMaxHistory = 200;
+  static const int kMaxHistory = 300;
   late final HistoryManager _historyManager =
       HistoryManager(maxHistory: kMaxHistory);
   String? _moveTargetDefectId;

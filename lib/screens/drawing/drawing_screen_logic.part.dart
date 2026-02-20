@@ -1650,10 +1650,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _historyManager.execute(
       DeleteStrokeCommand(
         page: existing.pageNumber,
-        deletedStroke: deletedStrokeSnapshot,
+        deletedSnapshot: deletedStrokeSnapshot,
       ),
-      _canvasController,
-      reason: 'eraserCommit',
+      _canvasController
     );
     _syncStrokesByPageFromControllerPage(existing.pageNumber);
     _updateDrawingHistoryAvailabilityState();
@@ -1814,8 +1813,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
                   .map((stroke) => stroke.deepCopy())
                   .toList(growable: false),
             ),
-            _canvasController,
-            reason: 'eraserCommit',
+            _canvasController
           );
           if (kDebugMode) {
             debugPrint(
@@ -1977,10 +1975,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _historyManager.execute(
         AddStrokeCommand(
           page: pageNumber,
-          stroke: committedStroke.deepCopy(),
+          strokeSnapshot: committedStroke.deepCopy(),
         ),
-        _canvasController,
-        reason: 'commit',
+        _canvasController
       );
       if (kDebugMode) {
         debugPrint(
