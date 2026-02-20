@@ -43,20 +43,32 @@ class PreviewStrokesPainter extends CustomPainter {
     final scaledPoints = points
         .map((point) => Offset(point.dx * size.width, point.dy * size.height))
         .toList(growable: false);
+    final erasedMask = stroke.ensureErasedMask();
 
-    if (scaledPoints.length == 1) {
-      canvas.drawCircle(
-        scaledPoints.first,
-        math.max(0.5, paint.strokeWidth / 2),
-        paint,
-      );
-      return;
+    for (var i = 0; i < scaledPoints.length; i += 1) {
+      if (erasedMask[i] != 0) {
+        continue;
+      }
+      final start = i;
+      var end = i;
+      while (end + 1 < scaledPoints.length && erasedMask[end + 1] == 0) {
+        end += 1;
+      }
+      if (start == end) {
+        canvas.drawCircle(
+          scaledPoints[start],
+          math.max(0.5, paint.strokeWidth / 2),
+          paint,
+        );
+      } else {
+        final path = Path()
+          ..moveTo(scaledPoints[start].dx, scaledPoints[start].dy);
+        for (var j = start + 1; j <= end; j += 1) {
+          path.lineTo(scaledPoints[j].dx, scaledPoints[j].dy);
+        }
+        canvas.drawPath(path, paint);
+      }
+      i = end;
     }
-
-    final path = Path()..moveTo(scaledPoints.first.dx, scaledPoints.first.dy);
-    for (var i = 1; i < scaledPoints.length; i++) {
-      path.lineTo(scaledPoints[i].dx, scaledPoints[i].dy);
-    }
-    canvas.drawPath(path, paint);
   }
 }

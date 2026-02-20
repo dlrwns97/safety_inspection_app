@@ -33,20 +33,31 @@ class LiveStrokePainter extends CustomPainter {
       return;
     }
 
-    final path = _buildPath(points, size);
     final paint = _buildPaint(stroke);
     final scaledPoints = points
         .map(
           (point) => Offset(point.dx * size.width, point.dy * size.height),
         )
         .toList(growable: false);
+    final erasedMask = stroke.ensureErasedMask();
 
-    if (points.length == 1) {
-      canvas.drawPoints(ui.PointMode.points, scaledPoints, paint);
-      return;
+    for (var i = 0; i < scaledPoints.length; i += 1) {
+      if (erasedMask[i] != 0) {
+        continue;
+      }
+      final start = i;
+      var end = i;
+      while (end + 1 < scaledPoints.length && erasedMask[end + 1] == 0) {
+        end += 1;
+      }
+      if (start == end) {
+        canvas.drawPoints(ui.PointMode.points, <Offset>[scaledPoints[start]], paint);
+      } else {
+        final path = _buildPath(scaledPoints, start: start, end: end);
+        canvas.drawPath(path, paint);
+      }
+      i = end;
     }
-
-    canvas.drawPath(path, paint);
   }
 
   @override
@@ -74,6 +85,8 @@ class LiveStrokePainter extends CustomPainter {
         current.style != previous.style ||
         current.opacity != previous.opacity ||
         current.toolType != previous.toolType ||
+        current.erasedMaskVersion != previous.erasedMaskVersion ||
+        !listEquals(current.erasedMask, previous.erasedMask) ||
         devicePixelRatio != oldDelegate.devicePixelRatio;
   }
 
@@ -81,14 +94,10 @@ class LiveStrokePainter extends CustomPainter {
     return tool == DrawingTool.strokeEraser || tool == DrawingTool.areaEraser;
   }
 
-  Path _buildPath(List<Offset> points, Size size) {
-    final first = Offset(
-      points.first.dx * size.width,
-      points.first.dy * size.height,
-    );
-    final path = Path()..moveTo(first.dx, first.dy);
-    for (var i = 1; i < points.length; i += 1) {
-      path.lineTo(points[i].dx * size.width, points[i].dy * size.height);
+  Path _buildPath(List<Offset> points, {required int start, required int end}) {
+    final path = Path()..moveTo(points[start].dx, points[start].dy);
+    for (var i = start + 1; i <= end; i += 1) {
+      path.lineTo(points[i].dx, points[i].dy);
     }
     return path;
   }

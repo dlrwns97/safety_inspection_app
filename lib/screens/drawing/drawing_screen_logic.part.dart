@@ -1711,12 +1711,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required EraserSession session,
   }) {
     final baseStrokes = _canvasController.getStrokes(pageNumber);
-    final previewStrokes = <DrawingStroke>[
-      ...baseStrokes.where(
-        (stroke) => !session.removedOriginalIds.contains(stroke.id),
-      ),
-      ...session.addedById.values,
-    ];
+    final previewStrokes = baseStrokes
+        .map((stroke) => session.addedById[stroke.id] ?? stroke)
+        .toList(growable: false);
 
     _canvasController.setEraserPreview(
       EraserPreview(
@@ -1725,7 +1722,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         virtualStrokesToRender: session.addedById.values
             .map((stroke) => stroke.deepCopy())
             .toList(growable: false),
-        hiddenStrokeIds: Set<String>.from(session.removedOriginalIds),
+        hiddenStrokeIds: const <String>{},
         strokesToMask: session.removedById.values
             .map((stroke) => stroke.deepCopy())
             .toList(growable: false),
@@ -1782,12 +1779,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final strokes = _canvasController.getStrokes(pending.pageNumber);
-    final updatedSession = _eraserEngine.updateSession(
+    final updatedSession = _applyAreaEraserPointMask(
       session.copyWith(radius: pending.radiusPagePx),
-      center: pending.pageLocal,
+      pageNumber: pending.pageNumber,
       pageSize: pending.pageSize,
-      strokes: strokes,
+      center: pending.pageLocal,
+      radiusPagePx: pending.radiusPagePx,
     );
     _activeAreaEraserSession = updatedSession;
 
@@ -1815,61 +1812,50 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _commitAreaEraserSession() {
     final session = _activeAreaEraserSession;
-    if (session != null) {
-      final result = _eraserEngine.commit(session);
-      if (result.hasChanges) {
-        final fallbackPage = _currentPage;
-        final groupedRemoved = <int, List<DrawingStroke>>{};
-        final groupedAdded = <int, List<DrawingStroke>>{};
-
-        for (final stroke in result.removed) {
-          groupedRemoved
-              .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
-              .add(stroke);
+    if (session != null && session.addedById.isNotEmpty) {
+      final commandsByPage = <int, List<EraseAreaCommand>>{};
+      var totalMaskedDelta = 0;
+      for (final entry in session.addedById.entries) {
+        final updated = entry.value;
+        final previous = session.removedById[entry.key];
+        if (previous == null) {
+          continue;
         }
-        for (final stroke in result.added) {
-          groupedAdded
-              .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
-              .add(stroke);
+        final previousMask = previous.erasedMaskAsBool();
+        final nextMask = updated.erasedMaskAsBool();
+        if (listEquals(previousMask, nextMask)) {
+          continue;
         }
+        final pageCommands = commandsByPage.putIfAbsent(
+          updated.pageNumber,
+          () => <EraseAreaCommand>[],
+        );
+        pageCommands.add(
+          EraseAreaCommand(
+            page: updated.pageNumber,
+            strokeId: updated.id,
+            previousMask: previousMask,
+            newMask: nextMask,
+          ),
+        );
+        totalMaskedDelta +=
+            _countMaskedTrue(nextMask) - _countMaskedTrue(previousMask);
+      }
 
-        final pageKeys = <int>{...groupedRemoved.keys, ...groupedAdded.keys};
-        if (pageKeys.isEmpty) {
-          pageKeys.add(fallbackPage);
+      for (final entry in commandsByPage.entries) {
+        final page = entry.key;
+        for (final command in entry.value) {
+          _historyManager.execute(command, _canvasController);
         }
-        assert(() {
-          if (pageKeys.length > 1) {
-            debugPrint(
-              '[Drawing] Area eraser commit touched multiple pages: '
-              '${pageKeys.toList()}',
-            );
-          }
-          return true;
-        }());
-
-        for (final page in pageKeys) {
-          _historyManager.execute(
-            ReplaceStrokesCommand(
-              page: page,
-              removedStrokes: (groupedRemoved[page] ?? const <DrawingStroke>[])
-                  .map((stroke) => stroke.deepCopy())
-                  .toList(growable: false),
-              addedStrokes: (groupedAdded[page] ?? const <DrawingStroke>[])
-                  .map((stroke) => stroke.deepCopy())
-                  .toList(growable: false),
-            ),
-            _canvasController
+        _syncStrokesByPageFromControllerPage(page);
+        if (kDebugMode) {
+          debugPrint(
+            '[Drawing] eraserCommit page=$page candidates=${entry.value.length} '
+            'maskedDelta=$totalMaskedDelta tick=${_canvasController.cacheRebuildTick.value}',
           );
-          if (kDebugMode) {
-            debugPrint(
-              '[Drawing] eraserCommit page=$page '
-              'removed=${(groupedRemoved[page] ?? const <DrawingStroke>[]).length} '
-              'added=${(groupedAdded[page] ?? const <DrawingStroke>[]).length} '
-              'tick=${_canvasController.cacheRebuildTick.value}',
-            );
-          }
-          _syncStrokesByPageFromControllerPage(page);
         }
+      }
+      if (commandsByPage.isNotEmpty) {
         _updateDrawingHistoryAvailabilityState();
         _requestPersistDrawing();
       }
@@ -1881,6 +1867,134 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _canvasController.setEraserPreview(null);
     });
     _resetAreaEraserMoveCoalescing();
+  }
+
+  int _countMaskedTrue(List<bool> mask) {
+    var count = 0;
+    for (final value in mask) {
+      if (value) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  EraserSession _applyAreaEraserPointMask(
+    EraserSession session, {
+    required int pageNumber,
+    required Size pageSize,
+    required Offset center,
+    required double radiusPagePx,
+  }) {
+    if (pageSize.isEmpty) {
+      return session;
+    }
+
+    final candidateIds = _queryStrokeCandidateIds(
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      pageLocal: center,
+      queryRadiusPx: radiusPagePx,
+    ).toList(growable: false)
+      ..sort();
+    if (candidateIds.isEmpty) {
+      return session;
+    }
+
+    final removedById = Map<String, DrawingStroke>.from(session.removedById);
+    final addedById = Map<String, DrawingStroke>.from(session.addedById);
+    final removedOriginalIds = Set<String>.from(session.removedOriginalIds);
+    final processedStrokeIds = Set<String>.from(session.processedStrokeIds);
+    final radiusSq = radiusPagePx * radiusPagePx;
+
+    for (final candidateId in candidateIds) {
+      final sourceStroke =
+          addedById[candidateId] ??
+          _canvasController.findStrokeById(pageNumber, candidateId);
+      if (sourceStroke == null) {
+        continue;
+      }
+
+      final nextMask = sourceStroke.ensureErasedMask();
+      var changed = false;
+      for (var i = 0; i < sourceStroke.pointsNorm.length; i += 1) {
+        if (nextMask[i] != 0) {
+          continue;
+        }
+        final norm = sourceStroke.pointsNorm[i];
+        final dx = norm.dx * pageSize.width - center.dx;
+        final dy = norm.dy * pageSize.height - center.dy;
+        final distanceSquared = (dx * dx) + (dy * dy);
+        if (distanceSquared <= radiusSq) {
+          nextMask[i] = 1;
+          changed = true;
+        }
+      }
+      if (!changed) {
+        continue;
+      }
+
+      final originalStroke =
+          _canvasController.findStrokeById(pageNumber, candidateId);
+      if (originalStroke != null) {
+        removedById.putIfAbsent(candidateId, originalStroke.deepCopy);
+      }
+      addedById[candidateId] = DrawingStroke(
+        id: sourceStroke.id,
+        pageNumber: sourceStroke.pageNumber,
+        style: sourceStroke.style,
+        pointsNorm: List<Offset>.from(sourceStroke.pointsNorm),
+        toolType: sourceStroke.toolType,
+        opacity: sourceStroke.opacity,
+        isStraightened: sourceStroke.isStraightened,
+        penVariant: sourceStroke.penVariant,
+        highlighterVariant: sourceStroke.highlighterVariant,
+        erasedMaskVersion: (sourceStroke.erasedMaskVersion ?? 0) + 1,
+        erasedMask: nextMask,
+        erasedSegments: sourceStroke.erasedSegments == null
+            ? null
+            : List<dynamic>.from(sourceStroke.erasedSegments!),
+      );
+      removedOriginalIds.add(candidateId);
+      processedStrokeIds.add(candidateId);
+    }
+
+    return session.copyWith(
+      removedOriginalIds: removedOriginalIds,
+      processedStrokeIds: processedStrokeIds,
+      removedById: removedById,
+      addedById: addedById,
+    );
+  }
+
+  Set<String> _queryStrokeCandidateIds({
+    required int pageNumber,
+    required Size pageSize,
+    required Offset pageLocal,
+    required double queryRadiusPx,
+  }) {
+    final strokes = _strokesByPage[pageNumber];
+    if (strokes == null || strokes.isEmpty) {
+      return <String>{};
+    }
+    final spatialIndex = _strokeSpatialIndexByPage.putIfAbsent(
+      pageNumber,
+      () => SpatialIndex(),
+    );
+    final lastPageSize = _strokeSpatialIndexPageSizeByPage[pageNumber];
+    if (_strokeSpatialIndexDirtyPages.contains(pageNumber) ||
+        lastPageSize == null ||
+        lastPageSize != pageSize) {
+      spatialIndex
+        ..setPageSize(pageSize)
+        ..clear();
+      for (final stroke in strokes) {
+        spatialIndex.insertStroke(stroke);
+      }
+      _strokeSpatialIndexPageSizeByPage[pageNumber] = pageSize;
+      _strokeSpatialIndexDirtyPages.remove(pageNumber);
+    }
+    return spatialIndex.queryNear(pageLocal, queryRadiusPx);
   }
 
   void _queueFreeDrawMove({

@@ -107,7 +107,13 @@ class DrawingCanvasController extends ChangeNotifier {
       return false;
     }
 
-    final intMask = mask.map((value) => value ? 1 : 0).toList(growable: false);
+    final pointCount = existing.pointsNorm.length;
+    final intMask = List<int>.generate(pointCount, (index) {
+      if (index >= mask.length) {
+        return 0;
+      }
+      return mask[index] ? 1 : 0;
+    }, growable: false);
     final updated = DrawingStroke(
       id: existing.id,
       pageNumber: existing.pageNumber,
