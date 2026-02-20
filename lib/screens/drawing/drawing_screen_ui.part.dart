@@ -684,16 +684,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
-    final bool isTwoFinger = _activePointerIds.length >= 2;
-    final bool hasActiveSinglePointerStroke = _isSinglePointerDrawingActive;
-    final bool enablePdfPanGestures = _isPanScaleAllowedDuringDraw;
-    final bool enablePdfScaleGestures = _isPanScaleAllowedDuringDraw;
+    final int touchCount = _activeTouchPointerCount;
+    final bool isTwoFingerTouch = touchCount >= 2;
+    final bool isStylusActive = _isStylusActive;
+    final bool enablePdfPanGestures =
+        _isFreeDrawMode ? (!isStylusActive && touchCount >= 1) : true;
+    final bool enablePdfScaleGestures =
+        _isFreeDrawMode ? (!isStylusActive && touchCount >= 2) : true;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
-    final bool disablePageSwipe = _isFreeDrawMode && !isTwoFinger;
+    final bool disablePageSwipe =
+        _isFreeDrawMode && (isStylusActive || !isTwoFingerTouch);
     if (kDebugMode) {
       debugPrint(
-        '[FreeDraw] isTwoFinger: $isTwoFinger, panEnabled: $enablePdfPanGestures, '
+        '[FreeDraw] touchCount: $touchCount, isStylusActive: $isStylusActive, '
+        'isTwoFingerTouch: $isTwoFingerTouch, panEnabled: $enablePdfPanGestures, '
         'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
       );
     }
@@ -891,8 +896,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Positioned.fill(
                 child: Listener(
                   behavior: (_isFreeDrawMode &&
-                          _activeStylusPointerId != null &&
-                          !_hasAnyTouchPointer())
+                          _activeStylusPointerId != null)
                       ? HitTestBehavior.opaque
                       : HitTestBehavior.translucent,
                   onPointerDown:
