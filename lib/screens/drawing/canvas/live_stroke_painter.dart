@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
@@ -10,8 +11,8 @@ class LiveStrokePainter extends CustomPainter {
   const LiveStrokePainter({
     required this.liveStroke,
     required this.devicePixelRatio,
-    Listenable? repaint,
-  }) : super(repaint: repaint);
+    super.repaint,
+  });
 
   final DrawingStroke? liveStroke;
   final double devicePixelRatio;
