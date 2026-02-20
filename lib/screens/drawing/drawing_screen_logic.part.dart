@@ -1401,18 +1401,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             drawingLocalToPageLocal: drawingLocalToPageLocal,
           );
           if (pageLocal != null) {
-            final closest = _findClosestStrokeAtPageLocal(
+            final closestResult = _findClosestStrokeAtPageLocal(
               pageNumber: pageNumber,
               pageLocal: pageLocal,
               pageSize: pageSize,
-              thresholdPx: math.max(
+              queryRadiusPx: math.max(
                 radiusPagePx,
                 _strokeEraserBaseThresholdForPage(strokes: _strokesByPage[pageNumber], pageSize: pageSize),
               ),
             );
-            if (closest != null) {
+            if (closestResult != null &&
+                closestResult.distanceSquared <= radiusPagePx * radiusPagePx) {
               _safeSetState(() {
-                _removeStrokeWithUndoSnapshot(closest);
+                _removeStrokeWithUndoSnapshot(closestResult.stroke);
               });
             }
           }
@@ -1563,62 +1564,106 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return viewportDistancePx;
   }
 
-  DrawingStroke? _findClosestStrokeAtPageLocal({
+  ({DrawingStroke stroke, double distanceSquared})?
+  _findClosestStrokeAtPageLocal({
     required int pageNumber,
     required Offset pageLocal,
     required Size pageSize,
-    required double thresholdPx,
+    required double queryRadiusPx,
   }) {
+    if (pageSize.isEmpty) {
+      return null;
+    }
+
     final strokes = _strokesByPage[pageNumber];
     if (strokes == null || strokes.isEmpty) {
       return null;
     }
-    DrawingStroke? closest;
-    double minDistance = double.infinity;
-    for (final stroke in strokes) {
-      final distance = _distanceToStrokePolyline(
-        stroke: stroke,
-        point: pageLocal,
-        pageSize: pageSize,
-      );
-      if (distance < minDistance) {
-        minDistance = distance;
-        closest = stroke;
+
+    final spatialIndex = _strokeSpatialIndexByPage.putIfAbsent(
+      pageNumber,
+      () => SpatialIndex(),
+    );
+    final lastPageSize = _strokeSpatialIndexPageSizeByPage[pageNumber];
+    if (_strokeSpatialIndexDirtyPages.contains(pageNumber) ||
+        lastPageSize == null ||
+        lastPageSize != pageSize) {
+      spatialIndex
+        ..setPageSize(pageSize)
+        ..clear();
+      for (final stroke in strokes) {
+        spatialIndex.insertStroke(stroke);
       }
+      _strokeSpatialIndexPageSizeByPage[pageNumber] = pageSize;
+      _strokeSpatialIndexDirtyPages.remove(pageNumber);
     }
-    if (minDistance > thresholdPx) {
+
+    final candidateIds = spatialIndex.queryNear(pageLocal, queryRadiusPx);
+    if (candidateIds.isEmpty) {
       return null;
     }
-    return closest;
+
+    DrawingStroke? closest;
+    var minDistanceSquared = double.infinity;
+    for (final candidateId in candidateIds) {
+      final stroke = _canvasController.findStrokeById(pageNumber, candidateId);
+      if (stroke == null) {
+        continue;
+      }
+      final distanceSquared = _minDistanceSquaredToStrokePolylinePx(
+        stroke: stroke,
+        centerPx: pageLocal,
+        pageSize: pageSize,
+      );
+      if (distanceSquared < minDistanceSquared ||
+          (distanceSquared == minDistanceSquared &&
+              closest != null &&
+              stroke.id.compareTo(closest.id) < 0)) {
+        closest = stroke;
+        minDistanceSquared = distanceSquared;
+      }
+    }
+
+    if (closest == null) {
+      return null;
+    }
+    return (stroke: closest, distanceSquared: minDistanceSquared);
   }
 
-  double _distanceToStrokePolyline({
+  double _minDistanceSquaredToStrokePolylinePx({
     required DrawingStroke stroke,
-    required Offset point,
+    required Offset centerPx,
     required Size pageSize,
   }) {
     final points = stroke.pointsNorm;
     if (points.isEmpty) {
       return double.infinity;
     }
+
+    final pageWidth = pageSize.width;
+    final pageHeight = pageSize.height;
     if (points.length == 1) {
-      final single = Offset(points.first.dx * pageSize.width, points.first.dy * pageSize.height);
-      return (single - point).distance;
+      final dx = points.first.dx * pageWidth - centerPx.dx;
+      final dy = points.first.dy * pageHeight - centerPx.dy;
+      return (dx * dx) + (dy * dy);
     }
 
     var minDistanceSquared = double.infinity;
-    for (var i = 0; i < points.length - 1; i += 1) {
-      final p1 = Offset(points[i].dx * pageSize.width, points[i].dy * pageSize.height);
-      final p2 = Offset(
-        points[i + 1].dx * pageSize.width,
-        points[i + 1].dy * pageSize.height,
-      );
-      final distanceSquared = _distanceSquaredToSegment(point, p1, p2);
+    var prevX = points.first.dx * pageWidth;
+    var prevY = points.first.dy * pageHeight;
+    for (var i = 1; i < points.length; i += 1) {
+      final next = points[i];
+      final p1 = Offset(prevX, prevY);
+      final p2 = Offset(next.dx * pageWidth, next.dy * pageHeight);
+      final distanceSquared = _distanceSquaredToSegment(centerPx, p1, p2);
       if (distanceSquared < minDistanceSquared) {
         minDistanceSquared = distanceSquared;
       }
+      prevX = p2.dx;
+      prevY = p2.dy;
     }
-    return math.sqrt(minDistanceSquared);
+
+    return minDistanceSquared;
   }
 
   double _distanceSquaredToSegment(Offset point, Offset start, Offset end) {
@@ -2037,9 +2082,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final controllerPageStrokes = _canvasController.strokesByPage[page];
     if (controllerPageStrokes == null || controllerPageStrokes.isEmpty) {
       _strokesByPage.remove(page);
+      _strokeSpatialIndexByPage.remove(page);
+      _strokeSpatialIndexPageSizeByPage.remove(page);
+      _strokeSpatialIndexDirtyPages.remove(page);
       return;
     }
     _strokesByPage[page] = List<DrawingStroke>.from(controllerPageStrokes);
+    _strokeSpatialIndexDirtyPages.add(page);
   }
 
   void _syncAllStrokesByPageFromController() {
@@ -2051,6 +2100,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
               MapEntry(page, List<DrawingStroke>.from(strokes)),
         ),
       );
+    _strokeSpatialIndexByPage.clear();
+    _strokeSpatialIndexPageSizeByPage.clear();
+    _strokeSpatialIndexDirtyPages
+      ..clear()
+      ..addAll(_strokesByPage.keys);
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(
