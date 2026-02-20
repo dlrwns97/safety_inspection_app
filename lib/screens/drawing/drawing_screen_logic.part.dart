@@ -1633,6 +1633,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       mode: EraserMode.area,
       radius: _areaEraserRadiusPx,
     );
+    _areaEraserPath.clear();
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -1665,21 +1666,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _pendingAreaEraserMove = null;
 
-    final previousSession = _activeAreaEraserSession;
-    if (previousSession == null) {
+    if (_activeAreaEraserSession == null) {
       return;
     }
-    final strokes = List<DrawingStroke>.from(
-      _canvasController.getStrokes(pending.pageNumber),
-    );
-    final updatedSession = _eraserEngine.updateSession(
-      previousSession.copyWith(radius: pending.radiusPagePx),
-      center: pending.pageLocal,
-      pageSize: pending.pageSize,
-      strokes: strokes,
-    );
 
-    _activeAreaEraserSession = updatedSession;
+    _areaEraserPath.add(pending);
     _eraserEngine.recordUiMutation();
     _safeSetState(() {
       _eraserCursorPageNumber = pending.pageNumber;
@@ -1698,7 +1689,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _commitAreaEraserSession() {
     final session = _activeAreaEraserSession;
     if (session != null) {
-      final result = _eraserEngine.commit(session);
+      EraserSession working = session;
+      final points = List<_PendingAreaEraserMove>.from(_areaEraserPath);
+      _areaEraserPath.clear();
+      if (points.isNotEmpty) {
+        for (final point in points) {
+          final strokes = _canvasController.getStrokes(point.pageNumber);
+          if (strokes.isEmpty) {
+            continue;
+          }
+          working = _eraserEngine.updateSession(
+            working.copyWith(radius: point.radiusPagePx),
+            center: point.pageLocal,
+            pageSize: point.pageSize,
+            strokes: strokes,
+          );
+        }
+      }
+
+      final result = _eraserEngine.commit(working);
       if (result.hasChanges) {
         final fallbackPage = _currentPage;
         final groupedRemoved = <int, List<DrawingStroke>>{};
@@ -1759,6 +1768,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _activeAreaEraserPointerId = null;
     _activeAreaEraserSession = null;
+    _areaEraserPath.clear();
     _resetAreaEraserMoveCoalescing();
   }
 
@@ -1781,13 +1791,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     SchedulerBinding.instance.scheduleFrameCallback((_) {
       _isFreeDrawMoveScheduled = false;
       _flushPendingFreeDrawMove();
-      if (_pendingFreeDrawMove != null && !_isFreeDrawMoveScheduled) {
-        _isFreeDrawMoveScheduled = true;
-        SchedulerBinding.instance.scheduleFrameCallback((_) {
-          _isFreeDrawMoveScheduled = false;
-          _flushPendingFreeDrawMove();
-        });
-      }
     });
   }
 
@@ -1805,6 +1808,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       photoScale: pending.photoScale,
       shouldInterpolateFromLastPoint: true,
     );
+    if (_pendingFreeDrawMove != null && !_isFreeDrawMoveScheduled) {
+      _isFreeDrawMoveScheduled = true;
+      SchedulerBinding.instance.scheduleFrameCallback((_) {
+        _isFreeDrawMoveScheduled = false;
+        _flushPendingFreeDrawMove();
+      });
+    }
   }
 
   void _resetFreeDrawMoveCoalescing() {
@@ -1869,15 +1879,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _recordFreeDrawPerfUiMutation();
-    _safeSetState(() {
-      inProgressStroke.pointsNorm.addAll(additions);
-      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
-      if (kDebugMode) {
-        debugPrint(
-          '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
-        );
-      }
-    });
+    inProgressStroke.pointsNorm.addAll(additions);
+    _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
+    if (kDebugMode) {
+      debugPrint(
+        '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
+      );
+    }
   }
 
   void _handleFreeDrawPointerEnd(int pageNumber) {
