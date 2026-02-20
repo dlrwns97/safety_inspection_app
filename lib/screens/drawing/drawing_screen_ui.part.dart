@@ -687,10 +687,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final int touchCount = _activeTouchPointerCount;
     final bool isTwoFingerTouch = touchCount >= 2;
     final bool isStylusActive = _isStylusActive;
-    final bool enablePdfPanGestures =
-        _isFreeDrawMode ? (!isStylusActive && touchCount >= 1) : true;
-    final bool enablePdfScaleGestures =
-        _isFreeDrawMode ? (!isStylusActive && touchCount >= 2) : true;
+    final bool enablePdfPanGestures = !_isFreeDrawMode;
+    final bool enablePdfScaleGestures = !_isFreeDrawMode;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe =
@@ -702,41 +700,47 @@ extension _DrawingScreenUi on _DrawingScreenState {
         'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
       );
     }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return PdfDrawingView(
-          pdfController: _pdfController,
-          pdfLoadError: _pdfLoadError,
-          sitePdfName: _site.pdfName,
-          onPageChanged: _handlePdfPageChanged,
-          onDocumentLoaded: _handlePdfDocumentLoaded,
-          onDocumentError: _handlePdfDocumentError,
-          pageSizes: _pdfPageSizes,
-          pdfViewVersion: _pdfViewVersion,
-          onUpdatePageSize: _handleUpdatePageSize,
-          photoControllerForPage: _photoControllerForPage,
-          scaleStateControllerForPage: _scaleStateControllerForPage,
-          enablePdfPanGestures: enablePdfPanGestures,
-          enablePdfScaleGestures: enablePdfScaleGestures,
-          disablePageSwipe: disablePageSwipe,
-          viewportSize: constraints.biggest,
-          pageContentKeyForPage: _pdfPageContentKeyForPage,
-          buildPageOverlay:
-              ({
-                required pageSize,
-                required renderSize,
-                required pageNumber,
-                required imageProvider,
-                required pageContentKey,
-              }) => _buildPdfPageOverlay(
-                pageSize: pageSize,
-                renderSize: renderSize,
-                pageNumber: pageNumber,
-                imageProvider: imageProvider,
-                pageContentKey: pageContentKey,
-              ),
-        );
-      },
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onScaleStart: _handlePdfNavigationScaleStart,
+      onScaleUpdate: _handlePdfNavigationScaleUpdate,
+      onScaleEnd: _handlePdfNavigationScaleEnd,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return PdfDrawingView(
+            pdfController: _pdfController,
+            pdfLoadError: _pdfLoadError,
+            sitePdfName: _site.pdfName,
+            onPageChanged: _handlePdfPageChanged,
+            onDocumentLoaded: _handlePdfDocumentLoaded,
+            onDocumentError: _handlePdfDocumentError,
+            pageSizes: _pdfPageSizes,
+            pdfViewVersion: _pdfViewVersion,
+            onUpdatePageSize: _handleUpdatePageSize,
+            photoControllerForPage: _photoControllerForPage,
+            scaleStateControllerForPage: _scaleStateControllerForPage,
+            enablePdfPanGestures: enablePdfPanGestures,
+            enablePdfScaleGestures: enablePdfScaleGestures,
+            disablePageSwipe: disablePageSwipe,
+            viewportSize: constraints.biggest,
+            pageContentKeyForPage: _pdfPageContentKeyForPage,
+            buildPageOverlay:
+                ({
+                  required pageSize,
+                  required renderSize,
+                  required pageNumber,
+                  required imageProvider,
+                  required pageContentKey,
+                }) => _buildPdfPageOverlay(
+                  pageSize: pageSize,
+                  renderSize: renderSize,
+                  pageNumber: pageNumber,
+                  imageProvider: imageProvider,
+                  pageContentKey: pageContentKey,
+                ),
+          );
+        },
+      ),
     );
   }
 

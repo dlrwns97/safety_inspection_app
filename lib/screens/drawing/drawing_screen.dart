@@ -139,6 +139,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, PointerDeviceKind>{};
   int? _activeStylusPointerId;
   bool _isFreeDrawConsumingOneFinger = false;
+  PhotoViewControllerValue? _navGestureStartValue;
+  Offset? _navGestureStartFocal;
+  int? _navGestureStartPage;
   Offset? _pendingDrawDownViewportLocal;
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;

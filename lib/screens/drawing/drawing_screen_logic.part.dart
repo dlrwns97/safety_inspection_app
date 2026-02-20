@@ -1133,6 +1133,54 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _tapCanceled = false;
   }
 
+  void _handlePdfNavigationScaleStart(ScaleStartDetails details) {
+    if (!_isFreeDrawMode || _isStylusActive) {
+      _clearPdfNavigationGestureState();
+      return;
+    }
+    if (details.pointerCount < 1) {
+      return;
+    }
+    _navGestureStartPage = _currentPage;
+    final controller = _photoControllerForPage(_navGestureStartPage!);
+    _navGestureStartValue = controller.value;
+    _navGestureStartFocal = details.localFocalPoint;
+  }
+
+  void _handlePdfNavigationScaleUpdate(ScaleUpdateDetails details) {
+    if (!_isFreeDrawMode || _isStylusActive) {
+      return;
+    }
+    if (_navGestureStartPage == null ||
+        _navGestureStartValue == null ||
+        _navGestureStartFocal == null) {
+      return;
+    }
+    if (details.pointerCount < 1) {
+      return;
+    }
+    final page = _navGestureStartPage!;
+    final controller = _photoControllerForPage(page);
+    final start = _navGestureStartValue!;
+    final startScale = start.scale ?? 1.0;
+    final double newScale =
+        details.pointerCount >= 2 ? (startScale * details.scale) : startScale;
+    final Offset delta = details.localFocalPoint - _navGestureStartFocal!;
+    final Offset newPos = start.position + delta;
+    final double newScaleClamped = newScale.clamp(0.5, 5.0).toDouble();
+    controller.value = start.copyWith(scale: newScaleClamped, position: newPos);
+  }
+
+  void _handlePdfNavigationScaleEnd(ScaleEndDetails details) {
+    _clearPdfNavigationGestureState();
+  }
+
+  void _clearPdfNavigationGestureState() {
+    _navGestureStartPage = null;
+    _navGestureStartValue = null;
+    _navGestureStartFocal = null;
+  }
+
   void _handleOverlayPointerDown(PointerDownEvent event) {
     final previousCount = _activePointerIds.length;
     final previousTouchCount = _activeTouchPointerCount;
