@@ -58,6 +58,43 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _isFreeDrawMoveScheduledByState[this] = value;
   }
 
+  void _handleCanvasCacheInvalidated() {
+    final page = _canvasController.cacheInvalidatedPage.value;
+    if (page == null) {
+      return;
+    }
+    unawaited(_rebuildStrokeCacheForPage(page));
+  }
+
+  Size _canvasSizeForPage(int page) {
+    if (_site.drawingType == DrawingType.pdf) {
+      return _pdfPageSizes[page] ?? Size.zero;
+    }
+    return DrawingCanvasSize;
+  }
+
+  Future<void> _rebuildStrokeCacheForPage(int page) async {
+    final canvasSize = _canvasSizeForPage(page);
+    if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+      return;
+    }
+
+    await _strokeCacheManager.rebuildCache(
+      page: page,
+      size: canvasSize,
+      strokes: _canvasController.getStrokes(page),
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+    );
+    _canvasController.markCacheClean(page);
+  }
+
+  void _syncCanvasStrokesForPage(int page) {
+    _canvasController.setStrokes(
+      page,
+      _strokesByPage[page] ?? const <DrawingStroke>[],
+    );
+  }
+
   void _recordFreeDrawPerfCall() {
     if (!kDebugMode) {
       return;
@@ -436,6 +473,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
+    _canvasController.strokesByPage.clear();
     _safeSetState(() {
       _strokesByPage
         ..clear()
@@ -444,6 +482,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _canUndoDrawing = false;
       _canRedoDrawing = false;
     });
+    for (final entry in _strokesByPage.entries) {
+      _syncCanvasStrokesForPage(entry.key);
+    }
+    _canvasController.setLiveStroke(null);
     _undo.clear();
     _redo.clear();
     _drawingHistoryManager.loadPersisted(
@@ -1122,6 +1164,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _safeSetState(() {
         _eraserCursorPageNumber = pageNumber;
         _eraserCursorPageLocal = pageLocal;
+        _canvasController.setEraserCursor(
+          _currentPage == pageNumber ? pageLocal : null,
+        );
         _startAreaEraserSession(event.pointer);
       });
       return;
@@ -1159,6 +1204,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _activeStylusPointerId = null;
         _eraserCursorPageLocal = null;
+        _canvasController.setEraserCursor(null);
       });
       return;
     }
@@ -1310,6 +1356,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _safeSetState(() {
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
+        _canvasController.setEraserCursor(null);
       });
       _commitAreaEraserSession();
       return;
@@ -1429,6 +1476,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeTool = tool;
       _eraserCursorPageLocal = null;
       _eraserCursorPageNumber = null;
+      _canvasController.setEraserCursor(null);
     });
   }
 
@@ -1655,6 +1703,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _eraserCursorPageNumber = pending.pageNumber;
       _eraserCursorPageLocal = pending.pageLocal;
+      _canvasController.setEraserCursor(
+        _currentPage == pending.pageNumber ? pending.pageLocal : null,
+      );
     });
   }
 
@@ -1739,6 +1790,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         style: style,
         pointsNorm: <Offset>[normalized],
       );
+      _canvasController.setLiveStroke(_inProgressStroke);
     });
   }
 
@@ -1785,6 +1837,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _recordFreeDrawPerfUiMutation();
     _safeSetState(() {
       inProgressStroke.pointsNorm.addAll(additions);
+      _canvasController.setLiveStroke(inProgressStroke);
     });
   }
 
@@ -1809,6 +1862,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _strokesByPage.putIfAbsent(pageNumber, () => <DrawingStroke>[]).add(
         committedStroke,
       );
+      _syncCanvasStrokesForPage(pageNumber);
       _recordUndoAction(
         DrawingHistoryAction.single(stroke: committedStroke, wasAdd: true),
       );
@@ -1816,6 +1870,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _syncDrawingHistoryAvailability();
       _debugLastPageLocal = null;
       _inProgressStroke = null;
+      _canvasController.setLiveStroke(null);
     });
     _requestPersistDrawing();
   }
@@ -1852,6 +1907,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (strokes.isEmpty) {
       _strokesByPage.remove(stroke.pageNumber);
     }
+    _syncCanvasStrokesForPage(stroke.pageNumber);
     return true;
   }
 
@@ -1859,6 +1915,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _strokesByPage.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
       stroke,
     );
+    _syncCanvasStrokesForPage(stroke.pageNumber);
   }
 
   DrawingStroke? _findStrokeById(String id) {
@@ -1949,6 +2006,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDrawDownViewportLocal = null;
         _eraserCursorPageLocal = null;
         _eraserCursorPageNumber = null;
+        _canvasController.setLiveStroke(null);
+        _canvasController.setEraserCursor(null);
         _activeAreaEraserPointerId = null;
         _activeAreaEraserSession = null;
       }
@@ -2639,7 +2698,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfPageChanged(int page) =>
-      _setPdfState(() => _currentPage = page);
+      _setPdfState(() {
+        _currentPage = page;
+        _canvasController.setEraserCursor(
+          _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
+        );
+      });
 
   void _handlePdfDocumentLoaded(PdfDocument document) async {
     final pageCount = document.pagesCount;
@@ -2677,6 +2741,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
     _persistPdfPageSizeCache();
+    if (_canvasController.getStrokes(pageNumber).isNotEmpty) {
+      _canvasController.invalidateCache(pageNumber);
+    }
   }
 
   void _handlePrevPage() {

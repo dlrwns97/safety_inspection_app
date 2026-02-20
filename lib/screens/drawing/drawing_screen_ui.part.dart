@@ -782,34 +782,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         pageIndex: pageNumber,
                       ),
                       Positioned.fill(
-                        child: CustomPaint(
-                          painter: TempPolylinePainter(
-                            strokes:
-                                _strokesByPage[pageNumber] ??
-                                const <DrawingStroke>[],
-                            inProgress: _inProgressStroke?.pageNumber == pageNumber
-                                ? _inProgressStroke
-                                : null,
-                            pageSize: pageSize,
-                            debugLastPageLocal:
-                                kDebugMode && _inProgressStroke?.pageNumber == pageNumber
-                                ? _debugLastPageLocal
-                                : null,
-                          ),
+                        child: DrawingCanvasWidget(
+                          controller: _canvasController,
+                          cacheManager: _strokeCacheManager,
+                          page: pageNumber,
+                          canvasSize: pageSize,
+                          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                          eraserRadius: _areaEraserRadiusPx,
                         ),
                       ),
-                      if (_isAreaEraserActive &&
-                          _eraserCursorPageNumber == pageNumber &&
-                          _eraserCursorPageLocal != null)
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _EraserCursorPainter(
-                              center: _eraserCursorPageLocal!,
-                              radiusPx: _areaEraserRadiusPx,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -1046,39 +1027,6 @@ class _HsvColorSquarePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _HsvColorSquarePainter oldDelegate) {
     return oldDelegate.hsv != hsv;
-  }
-}
-
-
-
-class _EraserCursorPainter extends CustomPainter {
-  const _EraserCursorPainter({
-    required this.center,
-    required this.radiusPx,
-    required this.color,
-  });
-
-  final Offset center;
-  final double radiusPx;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(
-      center,
-      radiusPx,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _EraserCursorPainter oldDelegate) {
-    return oldDelegate.center != center ||
-        oldDelegate.radiusPx != radiusPx ||
-        oldDelegate.color != color;
   }
 }
 
