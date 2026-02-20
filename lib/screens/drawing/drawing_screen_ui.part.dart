@@ -702,8 +702,22 @@ extension _DrawingScreenUi on _DrawingScreenState {
     }
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onScaleStart: _handlePdfNavigationScaleStart,
-      onScaleUpdate: _handlePdfNavigationScaleUpdate,
+      onScaleStart: (details) {
+        if (_activeStylusPointerId != null ||
+            _inProgressStroke != null ||
+            _pendingDraw) {
+          return;
+        }
+        _handlePdfNavigationScaleStart(details);
+      },
+      onScaleUpdate: (details) {
+        if (_activeStylusPointerId != null ||
+            _inProgressStroke != null ||
+            _pendingDraw) {
+          return;
+        }
+        _handlePdfNavigationScaleUpdate(details);
+      },
       onScaleEnd: _handlePdfNavigationScaleEnd,
       child: LayoutBuilder(
         builder: (context, constraints) {
