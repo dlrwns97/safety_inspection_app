@@ -1134,8 +1134,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfNavigationScaleStart(ScaleStartDetails details) {
-    if (!_isFreeDrawMode || _isStylusActive) {
-      _clearPdfNavigationGestureState();
+    if (!_isFreeDrawMode ||
+        _isStylusActive ||
+        _activeStylusPointerId != null ||
+        _inProgressStroke != null ||
+        _pendingDraw) {
+      _cancelFreeDrawNavGesture();
       return;
     }
     if (details.pointerCount < 1) {
@@ -1148,7 +1152,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfNavigationScaleUpdate(ScaleUpdateDetails details) {
-    if (!_isFreeDrawMode || _isStylusActive) {
+    if (!_isFreeDrawMode ||
+        _isStylusActive ||
+        _activeStylusPointerId != null ||
+        _inProgressStroke != null ||
+        _pendingDraw) {
       return;
     }
     if (_navGestureStartPage == null ||
@@ -1167,7 +1175,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         details.pointerCount >= 2 ? (startScale * details.scale) : startScale;
     final Offset delta = details.localFocalPoint - _navGestureStartFocal!;
     final Offset newPos = start.position + delta;
-    final double newScaleClamped = newScale.clamp(0.5, 5.0).toDouble();
+    final double newScaleClamped =
+        newScale.clamp(_freeDrawMinScale, _freeDrawMaxScale).toDouble();
     controller.value = PhotoViewControllerValue(
       position: newPos,
       rotation: start.rotation,
@@ -1177,13 +1186,39 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfNavigationScaleEnd(ScaleEndDetails details) {
-    _clearPdfNavigationGestureState();
+    if (_isFreeDrawMode) {
+      _snapFreeDrawScaleBackIfOutOfBounds(
+        _navGestureStartPage ?? _currentPage,
+      );
+    }
+    _cancelFreeDrawNavGesture();
   }
 
-  void _clearPdfNavigationGestureState() {
+  void _cancelFreeDrawNavGesture() {
     _navGestureStartPage = null;
     _navGestureStartValue = null;
     _navGestureStartFocal = null;
+  }
+
+  double get _freeDrawMinScale => 1.0;
+
+  double get _freeDrawMaxScale => math.max(PdfDrawingMaxScaleMultiplier, 5.0);
+
+  double get _freeDrawSnapScale => _freeDrawMinScale;
+
+  void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
+    final controller = _photoControllerForPage(pageNumber);
+    final value = controller.value;
+    final scale = value.scale ?? 1.0;
+    if (scale >= _freeDrawMinScale && scale <= _freeDrawMaxScale) {
+      return;
+    }
+    controller.value = PhotoViewControllerValue(
+      position: Offset.zero,
+      rotation: value.rotation,
+      scale: _freeDrawSnapScale,
+      rotationFocusPoint: value.rotationFocusPoint,
+    );
   }
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
@@ -1230,6 +1265,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final activeTool = _activeTool;
 
     if (_isFreeDrawMode && activeTool == DrawingTool.strokeEraser) {
+      _cancelFreeDrawNavGesture();
       _activeStylusPointerId = event.pointer;
       _safeSetState(() {
         _pendingDraw = true;
@@ -1239,6 +1275,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (_isFreeDrawMode && activeTool == DrawingTool.areaEraser) {
+      _cancelFreeDrawNavGesture();
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
         return;
@@ -1256,6 +1293,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!_isFreeDrawMode || _activeStrokeStyle == null) return;
 
+    _cancelFreeDrawNavGesture();
     _activeStylusPointerId = event.pointer;
 
     _safeSetState(() {
