@@ -125,11 +125,12 @@ class DrawingHistoryManager {
     _syncDrawingHistoryAvailability();
   }
 
-  void undo() {
+  int? undo() {
     if (_undoStack.isEmpty) {
-      return;
+      return null;
     }
     final action = _undoStack.removeLast();
+    final affectedPage = _resolveAffectedPage(action);
     switch (action.op) {
       case DrawingHistoryOp.add:
         for (final stroke in action.strokes) {
@@ -148,13 +149,15 @@ class DrawingHistoryManager {
     _recordRedoAction(action);
     _syncDrawingHistoryAvailability();
     persistDrawing();
+    return affectedPage;
   }
 
-  void redo() {
+  int? redo() {
     if (_redoStack.isEmpty) {
-      return;
+      return null;
     }
     final action = _redoStack.removeLast();
+    final affectedPage = _resolveAffectedPage(action);
     switch (action.op) {
       case DrawingHistoryOp.add:
         for (final stroke in action.strokes) {
@@ -173,6 +176,7 @@ class DrawingHistoryManager {
     _recordUndoAction(action);
     _syncDrawingHistoryAvailability();
     persistDrawing();
+    return affectedPage;
   }
 
   void loadPersisted(
@@ -255,6 +259,21 @@ class DrawingHistoryManager {
 
   void _syncDrawingHistoryAvailability() {
     onHistoryChanged();
+  }
+
+  int? _resolveAffectedPage(DrawingHistoryAction action) {
+    final pages = <int>{
+      ...action.strokes.map((stroke) => stroke.pageNumber),
+      ...action.removedStrokes.map((stroke) => stroke.pageNumber),
+      ...action.addedStrokes.map((stroke) => stroke.pageNumber),
+    };
+    if (pages.isEmpty) {
+      return null;
+    }
+    if (pages.length > 1) {
+      return null;
+    }
+    return pages.first;
   }
 
   DrawingHistoryAction? _runtimeHistoryActionFromPersisted(

@@ -1611,11 +1611,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _removeStrokeWithUndoSnapshot(DrawingStroke stroke) {
-    final removed = _removeStrokeById(stroke);
+    DrawingStroke? existing = _canvasController.findStrokeById(
+      stroke.pageNumber,
+      stroke.id,
+    );
+    existing ??= _findStrokeById(stroke.id);
+    if (existing == null) {
+      return;
+    }
+    final deletedStrokeSnapshot = existing.deepCopy();
+    final removed = _removeStrokeById(existing);
     if (!removed) {
       return;
     }
-    _recordUndoAction(DrawingHistoryAction.single(stroke: stroke, wasAdd: false));
+    _recordUndoAction(
+      DrawingHistoryAction.single(
+        stroke: deletedStrokeSnapshot,
+        wasAdd: false,
+      ),
+    );
     _redo.clear();
     _syncDrawingHistoryAvailability();
     _requestPersistDrawing();
@@ -1719,7 +1733,41 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (session != null) {
       final result = _eraserEngine.commit(session);
       if (result.hasChanges) {
-        _drawingHistoryManager.recordReplace(result.removed, result.added);
+        final fallbackPage = _currentPage;
+        final groupedRemoved = <int, List<DrawingStroke>>{};
+        final groupedAdded = <int, List<DrawingStroke>>{};
+
+        for (final stroke in result.removed) {
+          groupedRemoved
+              .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
+              .add(stroke);
+        }
+        for (final stroke in result.added) {
+          groupedAdded
+              .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
+              .add(stroke);
+        }
+
+        final pageKeys = <int>{...groupedRemoved.keys, ...groupedAdded.keys};
+        if (pageKeys.isEmpty) {
+          pageKeys.add(fallbackPage);
+        }
+        assert(() {
+          if (pageKeys.length > 1) {
+            debugPrint(
+              '[Drawing] Area eraser commit touched multiple pages: '
+              '${pageKeys.toList()}',
+            );
+          }
+          return true;
+        }());
+
+        for (final page in pageKeys) {
+          _drawingHistoryManager.recordReplace(
+            groupedRemoved[page] ?? const <DrawingStroke>[],
+            groupedAdded[page] ?? const <DrawingStroke>[],
+          );
+        }
         _requestPersistDrawing();
       }
     }
@@ -1933,11 +1981,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     List<DrawingStroke> removed,
     List<DrawingStroke> added,
   ) {
+    final touchedPages = <int>{};
+
     for (final stroke in removed) {
-      _removeStrokeById(stroke);
+      final pageStrokes = _strokesByPage[stroke.pageNumber];
+      if (pageStrokes == null || pageStrokes.isEmpty) {
+        continue;
+      }
+      final index = pageStrokes.lastIndexWhere((entry) => entry.id == stroke.id);
+      if (index < 0) {
+        continue;
+      }
+      pageStrokes.removeAt(index);
+      touchedPages.add(stroke.pageNumber);
+      if (pageStrokes.isEmpty) {
+        _strokesByPage.remove(stroke.pageNumber);
+      }
     }
+
     for (final stroke in added) {
-      _addStrokeToMemory(stroke);
+      _strokesByPage.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(
+        stroke,
+      );
+      touchedPages.add(stroke.pageNumber);
+    }
+
+    for (final page in touchedPages) {
+      _syncCanvasStrokesForPage(page);
     }
   }
 
@@ -1945,14 +2015,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_undo.isEmpty) {
       return;
     }
-    _safeSetState(_drawingHistoryManager.undo);
+    _safeSetState(() {
+      final affectedPage = _drawingHistoryManager.undo();
+      if (affectedPage != null) {
+        _syncStrokesByPageFromControllerPage(affectedPage);
+      }
+    });
   }
 
   void _handleRedoDrawing() {
     if (_redo.isEmpty) {
       return;
     }
-    _safeSetState(_drawingHistoryManager.redo);
+    _safeSetState(() {
+      final affectedPage = _drawingHistoryManager.redo();
+      if (affectedPage != null) {
+        _syncStrokesByPageFromControllerPage(affectedPage);
+      }
+    });
+  }
+
+  void _syncStrokesByPageFromControllerPage(int page) {
+    final controllerPageStrokes = _canvasController.strokesByPage[page];
+    if (controllerPageStrokes == null || controllerPageStrokes.isEmpty) {
+      _strokesByPage.remove(page);
+      return;
+    }
+    _strokesByPage[page] = List<DrawingStroke>.from(controllerPageStrokes);
   }
 
   ({Offset localPosition, Size size})? _resolveTapPosition(
