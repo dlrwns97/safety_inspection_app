@@ -1171,16 +1171,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final controller = _photoControllerForPage(page);
     final start = _navGestureStartValue!;
     final startScale = start.scale ?? 1.0;
-    final double newScale =
+    final double scale =
         details.pointerCount >= 2 ? (startScale * details.scale) : startScale;
     final Offset delta = details.localFocalPoint - _navGestureStartFocal!;
     final Offset newPos = start.position + delta;
-    final double newScaleClamped =
-        newScale.clamp(_freeDrawMinScale, _freeDrawMaxScale).toDouble();
+    final double clampedScale =
+        scale.clamp(_freeDrawMinScale, _freeDrawMaxScale).toDouble();
     controller.value = PhotoViewControllerValue(
       position: newPos,
       rotation: start.rotation,
-      scale: newScaleClamped,
+      scale: clampedScale,
       rotationFocusPoint: start.rotationFocusPoint,
     );
   }
@@ -1200,11 +1200,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _navGestureStartFocal = null;
   }
 
-  double get _freeDrawMinScale => 1.0;
+  double _resolveFreeDrawScale(dynamic value, {required double fallback}) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return fallback;
+  }
 
-  double get _freeDrawMaxScale => math.max(PdfDrawingMaxScaleMultiplier, 5.0);
+  double get _freeDrawMinScale =>
+      _resolveFreeDrawScale(PdfDrawingMinScale, fallback: 1.0);
 
-  double get _freeDrawSnapScale => _freeDrawMinScale;
+  double get _freeDrawMaxScale {
+    final minScale = _freeDrawMinScale;
+    final maxScale = minScale * PdfDrawingMaxScaleMultiplier;
+    if (!maxScale.isFinite || maxScale <= minScale) {
+      return 5.0;
+    }
+    return maxScale;
+  }
+
+  double get _freeDrawSnapScale =>
+      _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: 1.0);
 
   void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
     final controller = _photoControllerForPage(pageNumber);
