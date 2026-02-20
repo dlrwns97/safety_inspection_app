@@ -45,9 +45,10 @@ class DrawingCanvasController extends ChangeNotifier {
 
   /// Restores all committed strokes for [page] using deep copied snapshots.
   void restoreStrokes(int page, List<DrawingStroke> strokes) {
+    // Must remain growable because undo/redo and erase commands mutate this list.
     strokesByPage[page] = strokes
         .map((stroke) => stroke.deepCopy())
-        .toList(growable: false);
+        .toList();
   }
 
   /// Adds one committed [stroke] to [page].
