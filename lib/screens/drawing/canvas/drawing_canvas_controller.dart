@@ -32,13 +32,11 @@ class DrawingCanvasController extends ChangeNotifier {
   /// Replaces all committed strokes for [page], typically for restore flows.
   void setStrokes(int page, List<DrawingStroke> strokes) {
     strokesByPage[page] = List<DrawingStroke>.from(strokes);
-    notifyListeners();
   }
 
   /// Adds one committed [stroke] to [page].
   void addStroke(int page, DrawingStroke stroke) {
     getStrokes(page).add(stroke);
-    notifyListeners();
   }
 
   /// Removes a stroke by [strokeId] in [page].
@@ -50,7 +48,6 @@ class DrawingCanvasController extends ChangeNotifier {
     }
 
     strokes.removeAt(index);
-    notifyListeners();
     return true;
   }
 
@@ -74,14 +71,12 @@ class DrawingCanvasController extends ChangeNotifier {
     }
 
     strokes[index] = updated;
-    notifyListeners();
     return true;
   }
 
   /// Clears all committed strokes for [page].
   void clearPage(int page) {
     getStrokes(page).clear();
-    notifyListeners();
   }
 
   /// Sets or clears the temporary in-progress stroke.
