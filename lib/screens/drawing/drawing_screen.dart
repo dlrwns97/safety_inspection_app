@@ -536,7 +536,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     super.initState();
     _canvasController = DrawingCanvasController();
     _strokeCacheManager = StrokeCacheManager();
-    _canvasController.cacheInvalidatedPage.addListener(
+    _canvasController.cacheRebuildTick.addListener(
       _handleCanvasCacheInvalidated,
     );
     if (kDebugMode) {
@@ -598,7 +598,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void dispose() {
     _persistDebounce?.cancel();
-    _canvasController.cacheInvalidatedPage.removeListener(
+    _canvasController.cacheRebuildTick.removeListener(
       _handleCanvasCacheInvalidated,
     );
     _canvasController.dispose();

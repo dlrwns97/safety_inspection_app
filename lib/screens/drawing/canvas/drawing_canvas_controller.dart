@@ -21,8 +21,14 @@ class DrawingCanvasController extends ChangeNotifier {
   /// Emits the page index whose cache should be rebuilt.
   final ValueNotifier<int?> cacheInvalidatedPage = ValueNotifier<int?>(null);
 
+  /// Monotonic tick that signals cache-layer rebuilds, even on same-page updates.
+  final ValueNotifier<int> cacheRebuildTick = ValueNotifier<int>(0);
+
   final Set<int> _dirtyPages = <int>{};
   final Map<int, Timer> _cacheDebounceTimers = <int, Timer>{};
+
+  /// Snapshot of pages currently waiting for cache rebuild.
+  List<int> getDirtyPagesSnapshot() => List<int>.from(_dirtyPages);
 
   /// Returns committed strokes for [page], creating an empty page bucket if absent.
   List<DrawingStroke> getStrokes(int page) {
@@ -95,15 +101,27 @@ class DrawingCanvasController extends ChangeNotifier {
 
   /// Marks [page] dirty, notifies listeners immediately, and debounces rebuild signal.
   void invalidateCache(int page, {String reason = 'unknown'}) {
-    if (kDebugMode) {
-      debugPrint('[Drawing] invalidateCache(page=$page, reason=$reason)');
-    }
     _dirtyPages.add(page);
     notifyListeners();
+
+    cacheRebuildTick.value++;
+    if (kDebugMode) {
+      debugPrint(
+        '[Drawing] invalidateCache(page=$page, reason=$reason, '
+        'tick=${cacheRebuildTick.value})',
+      );
+    }
 
     _cacheDebounceTimers[page]?.cancel();
     _cacheDebounceTimers[page] = Timer(const Duration(milliseconds: 100), () {
       cacheInvalidatedPage.value = page;
+      cacheRebuildTick.value++;
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] invalidateCache(page=$page, reason=$reason, '
+          'tick=${cacheRebuildTick.value})',
+        );
+      }
     });
   }
 
@@ -124,6 +142,7 @@ class DrawingCanvasController extends ChangeNotifier {
     liveStroke.dispose();
     eraserCursor.dispose();
     cacheInvalidatedPage.dispose();
+    cacheRebuildTick.dispose();
     super.dispose();
   }
 }
