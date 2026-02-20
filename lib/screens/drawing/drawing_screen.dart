@@ -22,7 +22,9 @@ import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/models/site_storage.dart';
-import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_widget.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/stroke_cache_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/eraser_engine.dart';
@@ -71,6 +73,8 @@ class DrawingScreen extends StatefulWidget {
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
   final DrawingController _controller = DrawingController();
+  late final DrawingCanvasController _canvasController;
+  late final StrokeCacheManager _strokeCacheManager;
   final TransformationController _transformationController =
       TransformationController();
   final Map<int, PhotoViewController> _pdfPhotoControllers = {};
@@ -540,6 +544,20 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void initState() {
     super.initState();
+    _canvasController = DrawingCanvasController();
+    _strokeCacheManager = StrokeCacheManager();
+    _canvasController.cacheInvalidatedPage.addListener(
+      _handleCanvasCacheInvalidated,
+    );
+    if (kDebugMode) {
+      debugPrint('legacy painter removed / using DrawingCanvasWidget');
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _canvasController.invalidateCache(_currentPage);
+    });
     _site = widget.site;
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
@@ -590,6 +608,11 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void dispose() {
     _persistDebounce?.cancel();
+    _canvasController.cacheInvalidatedPage.removeListener(
+      _handleCanvasCacheInvalidated,
+    );
+    _canvasController.dispose();
+    _strokeCacheManager.dispose();
     _pdfController?.dispose();
     _resetPdfViewControllers();
     _transformationController.dispose();
