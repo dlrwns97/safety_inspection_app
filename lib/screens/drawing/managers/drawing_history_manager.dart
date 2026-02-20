@@ -85,6 +85,9 @@ class DrawingHistoryManager {
   replaceStrokes;
   final DrawingStroke? Function(String id)? findStrokeById;
 
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
+
   void recordUndoAction(DrawingHistoryAction action) {
     _recordUndoAction(action);
   }
