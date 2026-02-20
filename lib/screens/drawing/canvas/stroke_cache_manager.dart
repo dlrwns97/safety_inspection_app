@@ -116,6 +116,7 @@ class StrokeCacheManager extends ChangeNotifier {
           ),
         )
         .toList(growable: false);
+    final erasedMask = stroke.ensureErasedMask();
 
     final style = stroke.style;
     final alpha = (stroke.opacity * style.opacity).clamp(0.0, 1.0);
@@ -130,15 +131,25 @@ class StrokeCacheManager extends ChangeNotifier {
               ? BlendMode.multiply
               : BlendMode.srcOver;
 
-    if (points.length == 1) {
-      canvas.drawCircle(points.first, math.max(0.5, style.widthPx / 2), paint);
-      return;
+    for (var i = 0; i < points.length; i += 1) {
+      if (erasedMask[i] != 0) {
+        continue;
+      }
+      final start = i;
+      var end = i;
+      while (end + 1 < points.length && erasedMask[end + 1] == 0) {
+        end += 1;
+      }
+      if (start == end) {
+        canvas.drawCircle(points[start], math.max(0.5, style.widthPx / 2), paint);
+      } else {
+        final path = Path()..moveTo(points[start].dx, points[start].dy);
+        for (var j = start + 1; j <= end; j += 1) {
+          path.lineTo(points[j].dx, points[j].dy);
+        }
+        canvas.drawPath(path, paint);
+      }
+      i = end;
     }
-
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (var i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
-    }
-    canvas.drawPath(path, paint);
   }
 }

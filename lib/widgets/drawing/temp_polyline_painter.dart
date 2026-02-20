@@ -122,14 +122,26 @@ class TempPolylinePainter extends CustomPainter {
     }
 
     final points = pointsNorm.map(toPageLocal).toList(growable: false);
+    final erasedMask = stroke.ensureErasedMask();
     final style = stroke.style;
 
-    if (style.kind == StrokeToolKind.pen) {
-      _drawPenStroke(canvas, points, style);
-      return;
+    for (var i = 0; i < points.length; i += 1) {
+      if (erasedMask[i] != 0) {
+        continue;
+      }
+      final start = i;
+      var end = i;
+      while (end + 1 < points.length && erasedMask[end + 1] == 0) {
+        end += 1;
+      }
+      final segmentPoints = points.sublist(start, end + 1);
+      if (style.kind == StrokeToolKind.pen) {
+        _drawPenStroke(canvas, segmentPoints, style);
+      } else {
+        _drawCenterlineStroke(canvas, segmentPoints, style);
+      }
+      i = end;
     }
-
-    _drawCenterlineStroke(canvas, points, style);
   }
 
   void _drawPenStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {

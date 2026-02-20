@@ -197,6 +197,28 @@ class DrawingStroke {
   final List<int>? erasedMask;
   final List<dynamic>? erasedSegments;
 
+  List<int> ensureErasedMask() {
+    final pointCount = pointsNorm.length;
+    final source = erasedMask;
+    if (source == null || source.length != pointCount) {
+      final normalized = List<int>.filled(pointCount, 0, growable: false);
+      if (source != null) {
+        final copyLength = source.length < pointCount ? source.length : pointCount;
+        for (var i = 0; i < copyLength; i += 1) {
+          normalized[i] = source[i] == 0 ? 0 : 1;
+        }
+      }
+      return normalized;
+    }
+    return source.map((value) => value == 0 ? 0 : 1).toList(growable: false);
+  }
+
+  List<bool> erasedMaskAsBool() {
+    return ensureErasedMask()
+        .map((value) => value != 0)
+        .toList(growable: false);
+  }
+
   DrawingStroke deepCopy() {
     return DrawingStroke(
       id: id,
@@ -258,15 +280,32 @@ class DrawingStroke {
     final erasedMaskRaw = json['erasedMask'];
     final erasedSegmentsRaw = json['erasedSegments'];
 
+    final pointsNorm = rawPoints.whereType<List>().map<Offset>((coords) {
+      final x = _asDouble(coords.isNotEmpty ? coords[0] : null, 0);
+      final y = _asDouble(coords.length > 1 ? coords[1] : null, 0);
+      return Offset(x, y);
+    }).toList(growable: false);
+    final parsedMask =
+        erasedMaskRaw is List
+            ? erasedMaskRaw
+                .map<int>((item) => _asInt(item, 0) == 0 ? 0 : 1)
+                .toList(growable: false)
+            : null;
+    final normalizedMask =
+        parsedMask == null
+            ? null
+            : List<int>.generate(pointsNorm.length, (index) {
+              if (index >= parsedMask.length) {
+                return 0;
+              }
+              return parsedMask[index] == 0 ? 0 : 1;
+            }, growable: false);
+
     return DrawingStroke(
       id: _asString(json['id'], null) ?? DrawingStroke.generateId(),
       pageNumber: _asInt(json['pageNumber'], 1),
       style: style,
-      pointsNorm: rawPoints.whereType<List>().map<Offset>((coords) {
-        final x = _asDouble(coords.isNotEmpty ? coords[0] : null, 0);
-        final y = _asDouble(coords.length > 1 ? coords[1] : null, 0);
-        return Offset(x, y);
-      }).toList(),
+      pointsNorm: pointsNorm,
       toolType: _drawingToolFromJson(json['toolType'], fallback: fallbackTool),
       opacity: _asDouble(json['opacity'], style.opacity),
       isStraightened: _asBool(json['isStraightened'], false),
@@ -276,12 +315,7 @@ class DrawingStroke {
           json.containsKey('erasedMaskVersion')
               ? _asInt(json['erasedMaskVersion'], 0)
               : null,
-      erasedMask:
-          erasedMaskRaw is List
-              ? erasedMaskRaw
-                  .map<int>((item) => _asInt(item, 0))
-                  .toList(growable: false)
-              : null,
+      erasedMask: normalizedMask,
       erasedSegments:
           erasedSegmentsRaw is List
               ? List<dynamic>.from(erasedSegmentsRaw)
