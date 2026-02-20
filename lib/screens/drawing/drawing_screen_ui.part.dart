@@ -168,6 +168,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final isPenSelected = !isStrokeEraserSelected && !isAreaEraserSelected;
     final canAdjustStrokeStyle = hasActiveTool && isPenSelected;
     final showOpacity = style.kind == StrokeToolKind.highlighter;
+    final clampedAreaEraserRadius = _areaEraserRadiusPx.clamp(6.0, 60.0);
+    final previewDiameter = (clampedAreaEraserRadius * 2).clamp(16.0, 56.0);
     final colorRow = <int>[
       ..._standardPaletteArgb.take(8),
       ..._recentArgb.take(2),
@@ -210,20 +212,100 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ),
               if (isAreaEraserSelected) ...[
                 const SizedBox(height: 8),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('지우개 크기'),
-                    Expanded(
-                      child: Slider(
-                        value: _areaEraserRadiusPx.clamp(6.0, 60.0),
-                        min: 6,
-                        max: 60,
-                        divisions: 54,
-                        label: _areaEraserRadiusPx.round().toString(),
-                        onChanged: _handleAreaEraserRadiusChanged,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Tooltip(
+                            message: '지우개 크기 조절',
+                            child: const Text(
+                              '지우개 크기',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 56,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${clampedAreaEraserRadius.round()} px',
+                              maxLines: 1,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(_areaEraserRadiusPx.round().toString()),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Center(
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: theme.colorScheme.outline),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 4,
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                              showValueIndicator: ShowValueIndicator.always,
+                            ),
+                            child: Slider(
+                              value: clampedAreaEraserRadius,
+                              min: 6,
+                              max: 60,
+                              divisions: 54,
+                              label: clampedAreaEraserRadius.round().toString(),
+                              onChanged: _handleAreaEraserRadiusChanged,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Center(
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: theme.colorScheme.outline),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 56,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: previewDiameter,
+                              height: previewDiameter,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ],
