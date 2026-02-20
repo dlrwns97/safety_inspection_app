@@ -1134,6 +1134,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfNavigationScaleStart(ScaleStartDetails details) {
+    if (details.pointerCount < 2) {
+      return;
+    }
+    _startFreeDrawNavGesture(details.localFocalPoint);
+  }
+
+  void _handlePdfNavigationPanStart(DragStartDetails details) {
+    _startFreeDrawNavGesture(details.localPosition);
+  }
+
+  void _startFreeDrawNavGesture(Offset localFocalPoint) {
     if (!_isFreeDrawMode ||
         _isStylusActive ||
         _activeStylusPointerId != null ||
@@ -1142,13 +1153,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _cancelFreeDrawNavGesture();
       return;
     }
-    if (details.pointerCount < 1) {
-      return;
-    }
     _navGestureStartPage = _currentPage;
     final controller = _photoControllerForPage(_navGestureStartPage!);
     _navGestureStartValue = controller.value;
-    _navGestureStartFocal = details.localFocalPoint;
+    _navGestureStartFocal = localFocalPoint;
   }
 
   void _handlePdfNavigationScaleUpdate(ScaleUpdateDetails details) {
@@ -1164,32 +1172,75 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _navGestureStartFocal == null) {
       return;
     }
-    if (details.pointerCount < 1) {
+    if (details.pointerCount < 2) {
+      return;
+    }
+    _updateFreeDrawNavGesture(
+      localFocalPoint: details.localFocalPoint,
+      desiredScale: (_navGestureStartValue?.scale ?? 1.0) * details.scale,
+    );
+  }
+
+  void _handlePdfNavigationPanUpdate(DragUpdateDetails details) {
+    _updateFreeDrawNavGesture(localFocalPoint: details.localPosition);
+  }
+
+  void _updateFreeDrawNavGesture({
+    required Offset localFocalPoint,
+    double? desiredScale,
+  }) {
+    if (!_isFreeDrawMode ||
+        _isStylusActive ||
+        _activeStylusPointerId != null ||
+        _inProgressStroke != null ||
+        _pendingDraw) {
+      return;
+    }
+    if (_navGestureStartPage == null ||
+        _navGestureStartValue == null ||
+        _navGestureStartFocal == null) {
       return;
     }
     final page = _navGestureStartPage!;
     final controller = _photoControllerForPage(page);
     final start = _navGestureStartValue!;
-    final startScale = start.scale ?? 1.0;
-    final double scale =
-        details.pointerCount >= 2 ? (startScale * details.scale) : startScale;
-    final Offset delta = details.localFocalPoint - _navGestureStartFocal!;
+    final Offset delta = localFocalPoint - _navGestureStartFocal!;
     final Offset newPos = start.position + delta;
-    final double clampedScale =
-        scale.clamp(_freeDrawMinScale, _freeDrawMaxScale).toDouble();
+    final double startScale = start.scale ?? 1.0;
+    final double targetScale = desiredScale ?? startScale;
+    final double effectiveScale;
+    if (targetScale < _freeDrawMinScale) {
+      final over = _freeDrawMinScale - targetScale;
+      effectiveScale = _freeDrawMinScale - (over * 0.15);
+    } else if (targetScale > _freeDrawMaxScale) {
+      final over = targetScale - _freeDrawMaxScale;
+      effectiveScale = _freeDrawMaxScale + (over * 0.15);
+    } else {
+      effectiveScale = targetScale;
+    }
     controller.value = PhotoViewControllerValue(
       position: newPos,
       rotation: start.rotation,
-      scale: clampedScale,
+      scale: effectiveScale,
       rotationFocusPoint: start.rotationFocusPoint,
     );
   }
 
   void _handlePdfNavigationScaleEnd(ScaleEndDetails details) {
+    _endFreeDrawNavigationGesture();
+  }
+
+  void _handlePdfNavigationPanEnd(DragEndDetails details) {
+    _endFreeDrawNavigationGesture();
+  }
+
+  void _handlePdfNavigationPanCancel() {
+    _endFreeDrawNavigationGesture();
+  }
+
+  void _endFreeDrawNavigationGesture() {
     if (_isFreeDrawMode) {
-      _snapFreeDrawScaleBackIfOutOfBounds(
-        _navGestureStartPage ?? _currentPage,
-      );
+      _snapFreeDrawScaleBackIfOutOfBounds(_navGestureStartPage ?? _currentPage);
     }
     _cancelFreeDrawNavGesture();
   }
@@ -1220,7 +1271,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   double get _freeDrawSnapScale =>
-      _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: 1.0);
+      _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: _freeDrawMinScale);
 
   void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
     final controller = _photoControllerForPage(pageNumber);
