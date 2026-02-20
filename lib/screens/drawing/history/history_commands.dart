@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_types.dart';
@@ -133,33 +135,85 @@ class ClearAllCommand extends HistoryCommand {
 }
 
 class BatchEraseCommand extends HistoryCommand {
+  BatchEraseCommandItem _normalizeItem(
+    BatchEraseCommandItem item,
+    DrawingCanvasController controller,
+  ) {
+    final stroke = controller.findStrokeById(page, item.strokeId);
+    final pointCount = stroke?.pointsNorm.length ?? item.afterMask.length;
+    return BatchEraseCommandItem(
+      strokeId: item.strokeId,
+      beforeMask: _normalizeMask(item.beforeMask, pointCount),
+      afterMask: _normalizeMask(item.afterMask, pointCount),
+    );
+  }
+
+  List<bool> _normalizeMask(List<bool> mask, int pointCount) {
+    if (pointCount <= 0) {
+      return const <bool>[];
+    }
+    final normalized = List<bool>.filled(pointCount, false, growable: false);
+    final copyLength = mask.length < pointCount ? mask.length : pointCount;
+    for (var i = 0; i < copyLength; i += 1) {
+      normalized[i] = mask[i];
+    }
+    return normalized;
+  }
+
   BatchEraseCommand({
     required this.page,
-    required List<EraseAreaCommand> commands,
+    required List<BatchEraseCommandItem> items,
     DateTime? timestamp,
-  }) : commands = List<EraseAreaCommand>.from(commands, growable: false),
+  }) : items = (List<BatchEraseCommandItem>.from(items, growable: false)
+           ..sort((a, b) => a.strokeId.compareTo(b.strokeId))),
        super(timestamp: timestamp);
 
   @override
   final int page;
-  final List<EraseAreaCommand> commands;
+  final List<BatchEraseCommandItem> items;
 
   @override
   HistoryCommandType get type => HistoryCommandType.eraseArea;
 
   @override
   void execute(DrawingCanvasController controller) {
-    for (final command in commands) {
-      command.execute(controller);
-    }
+    _applyMasks(controller, useAfterMask: true);
   }
 
   @override
   void undo(DrawingCanvasController controller) {
-    for (final command in commands.reversed) {
-      command.undo(controller);
+    _applyMasks(controller, useAfterMask: false);
+  }
+
+  void _applyMasks(DrawingCanvasController controller, {required bool useAfterMask}) {
+    for (final item in items) {
+      final normalizedItem = _normalizeItem(item, controller);
+      final applied = controller.setErasedMaskBool(
+        page,
+        normalizedItem.strokeId,
+        useAfterMask ? normalizedItem.afterMask : normalizedItem.beforeMask,
+      );
+      if (!applied && kDebugMode) {
+        debugPrint(
+          '[Drawing] BatchEraseCommand skip missing stroke '
+          'page=$page id=${normalizedItem.strokeId}',
+        );
+      }
     }
   }
+}
+
+class BatchEraseCommandItem {
+  BatchEraseCommandItem({
+    required this.strokeId,
+    required List<bool> beforeMask,
+    required List<bool> afterMask,
+  }) : beforeMask = List<bool>.from(beforeMask, growable: false),
+       afterMask = List<bool>.from(afterMask, growable: false);
+
+  final String strokeId;
+  final List<bool> beforeMask;
+  final List<bool> afterMask;
 }
 
 class ReplaceStrokesCommand extends HistoryCommand {

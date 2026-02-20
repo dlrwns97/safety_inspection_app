@@ -1813,7 +1813,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _commitAreaEraserSession() {
     final session = _activeAreaEraserSession;
     if (session != null && session.addedById.isNotEmpty) {
-      final commandsByPage = <int, List<EraseAreaCommand>>{};
+      final itemsByPage = <int, List<BatchEraseCommandItem>>{};
       var totalMaskedDelta = 0;
       for (final entry in session.addedById.entries) {
         final updated = entry.value;
@@ -1826,36 +1826,43 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         if (listEquals(previousMask, nextMask)) {
           continue;
         }
-        final pageCommands = commandsByPage.putIfAbsent(
+        final pageItems = itemsByPage.putIfAbsent(
           updated.pageNumber,
-          () => <EraseAreaCommand>[],
+          () => <BatchEraseCommandItem>[],
         );
-        pageCommands.add(
-          EraseAreaCommand(
-            page: updated.pageNumber,
+        pageItems.add(
+          BatchEraseCommandItem(
             strokeId: updated.id,
-            previousMask: previousMask,
-            newMask: nextMask,
+            beforeMask: previousMask,
+            afterMask: nextMask,
           ),
         );
         totalMaskedDelta +=
             _countMaskedTrue(nextMask) - _countMaskedTrue(previousMask);
       }
 
-      for (final entry in commandsByPage.entries) {
+      for (final entry in itemsByPage.entries) {
         final page = entry.key;
-        for (final command in entry.value) {
-          _historyManager.execute(command, _canvasController);
+        final items = entry.value;
+        if (items.isEmpty) {
+          continue;
         }
+        _historyManager.execute(
+          BatchEraseCommand(
+            page: page,
+            items: items,
+          ),
+          _canvasController,
+        );
         _syncStrokesByPageFromControllerPage(page);
         if (kDebugMode) {
           debugPrint(
-            '[Drawing] eraserCommit page=$page candidates=${entry.value.length} '
+            '[Drawing] eraserCommit page=$page candidates=${items.length} '
             'maskedDelta=$totalMaskedDelta tick=${_canvasController.cacheRebuildTick.value}',
           );
         }
       }
-      if (commandsByPage.isNotEmpty) {
+      if (itemsByPage.isNotEmpty) {
         _updateDrawingHistoryAvailabilityState();
         _requestPersistDrawing();
       }
