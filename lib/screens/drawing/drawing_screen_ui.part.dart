@@ -174,6 +174,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ..._standardPaletteArgb.take(8),
       ..._recentArgb.take(2),
     ];
+    final hasCurrentPageStrokes =
+        _canvasController.getStrokes(_currentPage).isNotEmpty;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: panelMaxW, minWidth: panelMinW),
@@ -328,6 +330,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ],
                       ),
                     ),
+                  ),
+                  IconButton(
+                    onPressed: hasCurrentPageStrokes
+                        ? _handleClearAllStrokes
+                        : null,
+                    icon: const Icon(Icons.delete_sweep),
+                    tooltip: '전체 지우기',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
