@@ -124,6 +124,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   static const double _kMinAreaEraserRadiusPx = 6.0;
   static const double _kMaxAreaEraserRadiusPx = 60.0;
   double _areaEraserRadiusPx = 24.0;
+  bool _eraseHighlighterOnly = false;
   Offset? _eraserCursorPageLocal;
   int? _eraserCursorPageNumber;
   int? _activeAreaEraserPointerId;

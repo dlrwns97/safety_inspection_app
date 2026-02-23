@@ -1711,11 +1711,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
+  void _handleEraseHighlighterOnlyChanged(bool value) {
+    if (_eraseHighlighterOnly == value) {
+      return;
+    }
+    _safeSetState(() {
+      _eraseHighlighterOnly = value;
+    });
+  }
+
   bool get _isAreaEraserActive =>
       _isFreeDrawMode && _activeTool == DrawingTool.areaEraser;
 
   bool get _isStrokeEraserActive =>
       _isFreeDrawMode && _activeTool == DrawingTool.strokeEraser;
+
+  bool _isHighlighterStroke(DrawingStroke stroke) {
+    return stroke.style.kind == StrokeToolKind.highlighter;
+  }
 
   double _strokeEraserBaseThresholdForPage({
     required List<DrawingStroke>? strokes,
@@ -1801,6 +1814,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     for (final candidateId in candidateIds) {
       final stroke = _canvasController.findStrokeById(pageNumber, candidateId);
       if (stroke == null) {
+        continue;
+      }
+      if (_eraseHighlighterOnly && !_isHighlighterStroke(stroke)) {
         continue;
       }
       final distanceSquared = _minDistanceSquaredToStrokePolylinePx(
@@ -2112,6 +2128,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           addedById[candidateId] ??
           _canvasController.findStrokeById(pageNumber, candidateId);
       if (sourceStroke == null) {
+        continue;
+      }
+      if (_eraseHighlighterOnly && !_isHighlighterStroke(sourceStroke)) {
         continue;
       }
 
