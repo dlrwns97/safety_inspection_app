@@ -930,7 +930,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ),
               Positioned.fill(
                 child: RawGestureDetector(
-                  behavior: HitTestBehavior.translucent,
+                  behavior: HitTestBehavior.opaque,
                   gestures: <Type, GestureRecognizerFactory>{
                     _TouchOnlyPanGestureRecognizer:
                         GestureRecognizerFactoryWithHandlers<
@@ -948,6 +948,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               ..onUpdate = (details) {
                                 if (_isStylusActive) {
                                   return;
+                                }
+                                if (kDebugMode) {
+                                  debugPrint('PAN UPDATE pointerCount=1');
                                 }
                                 _handlePdfNavigationPanUpdate(details);
                               }
@@ -982,6 +985,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 if (_isStylusActive) {
                                   return;
                                 }
+                                if (kDebugMode) {
+                                  debugPrint(
+                                    'SCALE UPDATE pointerCount=${details.pointerCount}',
+                                  );
+                                }
                                 _handlePdfNavigationScaleUpdate(details);
                               }
                               ..onEnd = (details) {
@@ -993,7 +1001,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                         ),
                   },
-                  child: const SizedBox.expand(),
+                  child: const ColoredBox(color: Colors.transparent),
                 ),
               ),
             ],
@@ -1225,19 +1233,43 @@ class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
 class _TouchOnlyPanGestureRecognizer extends PanGestureRecognizer {
   @override
   bool isPointerAllowed(PointerEvent event) {
-    if (event.kind != PointerDeviceKind.touch) {
+    final bool isTouch = event.kind == PointerDeviceKind.touch;
+    if (kDebugMode && event is PointerDownEvent) {
+      debugPrint(
+        '_TouchOnlyPanGestureRecognizer.isPointerAllowed kind=${event.kind}, allowed=$isTouch',
+      );
+    }
+    if (!isTouch) {
       return false;
     }
-    return super.isPointerAllowed(event);
+    final bool allowed = super.isPointerAllowed(event);
+    if (kDebugMode && event is PointerDownEvent) {
+      debugPrint(
+        '_TouchOnlyPanGestureRecognizer.super.isPointerAllowed kind=${event.kind}, allowed=$allowed',
+      );
+    }
+    return allowed;
   }
 }
 
 class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
   @override
   bool isPointerAllowed(PointerDownEvent event) {
-    if (event.kind != PointerDeviceKind.touch) {
+    final bool isTouch = event.kind == PointerDeviceKind.touch;
+    if (kDebugMode) {
+      debugPrint(
+        '_TouchOnlyScaleGestureRecognizer.isPointerAllowed kind=${event.kind}, allowed=$isTouch',
+      );
+    }
+    if (!isTouch) {
       return false;
     }
-    return super.isPointerAllowed(event);
+    final bool allowed = super.isPointerAllowed(event);
+    if (kDebugMode) {
+      debugPrint(
+        '_TouchOnlyScaleGestureRecognizer.super.isPointerAllowed kind=${event.kind}, allowed=$allowed',
+      );
+    }
+    return allowed;
   }
 }
