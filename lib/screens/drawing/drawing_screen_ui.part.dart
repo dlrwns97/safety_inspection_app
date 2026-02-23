@@ -174,8 +174,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ..._standardPaletteArgb.take(8),
       ..._recentArgb.take(2),
     ];
-    final hasCurrentPageStrokes =
-        _canvasController.getStrokes(_currentPage).isNotEmpty;
+    final currentPageStrokes = _canvasController.getStrokes(_currentPage);
+    final hasCurrentPageStrokes = currentPageStrokes.isNotEmpty;
+    final hasCurrentPageHighlighterStrokes = currentPageStrokes.any(
+      (stroke) => stroke.style.kind == StrokeToolKind.highlighter,
+    );
+    final hasCurrentPagePenStrokes = currentPageStrokes.any(
+      (stroke) => stroke.style.kind == StrokeToolKind.pen,
+    );
     final isEraserSelected = isStrokeEraserSelected || isAreaEraserSelected;
 
     return ConstrainedBox(
@@ -359,6 +365,30 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         : null,
                     icon: const Icon(Icons.delete_sweep),
                     tooltip: '전체 지우기',
+                  ),
+                  IconButton(
+                    onPressed: hasCurrentPageHighlighterStrokes
+                        ? _handleClearHighlighterOnly
+                        : null,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    icon: const Icon(Icons.auto_fix_high),
+                    tooltip: '형광펜만 전체 지우기',
+                  ),
+                  IconButton(
+                    onPressed: hasCurrentPagePenStrokes
+                        ? _handleClearPenOnly
+                        : null,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    icon: const Icon(Icons.edit_off),
+                    tooltip: '펜만 전체 지우기',
                   ),
                   IconButton(
                     onPressed: isEraserSelected
