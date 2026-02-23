@@ -1170,13 +1170,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final double targetScale = isTwoFinger
         ? startScale * details.scale
         : startScale;
+    final double minScale = _freeDrawMinScaleForPage(page);
+    final double maxScale = _freeDrawMaxScaleForPage(page);
     final double effectiveScale;
-    if (targetScale < _freeDrawMinScale) {
-      final over = _freeDrawMinScale - targetScale;
-      effectiveScale = _freeDrawMinScale - (over * 0.15);
-    } else if (targetScale > _freeDrawMaxScale) {
-      final over = targetScale - _freeDrawMaxScale;
-      effectiveScale = _freeDrawMaxScale + (over * 0.15);
+    if (targetScale < minScale) {
+      final over = minScale - targetScale;
+      effectiveScale = minScale - (over * 0.15);
+    } else if (targetScale > maxScale) {
+      final over = targetScale - maxScale;
+      effectiveScale = maxScale + (over * 0.15);
     } else {
       effectiveScale = targetScale;
     }
@@ -1223,11 +1225,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return fallback;
   }
 
-  double get _freeDrawMinScale =>
-      _resolveFreeDrawScale(PdfDrawingMinScale, fallback: 1.0);
+  double _baseInitialScaleForPage(int pageNumber) {
+    final scale = _photoControllerForPage(pageNumber).value.scale;
+    if (scale != null && scale.isFinite && scale > 0) {
+      return scale;
+    }
+    return _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: 1.0);
+  }
 
-  double get _freeDrawMaxScale {
-    final minScale = _freeDrawMinScale;
+  double _freeDrawMinScaleForPage(int pageNumber) =>
+      _baseInitialScaleForPage(pageNumber);
+
+  double _freeDrawMaxScaleForPage(int pageNumber) {
+    final minScale = _freeDrawMinScaleForPage(pageNumber);
     final maxScale = minScale * PdfDrawingMaxScaleMultiplier;
     if (!maxScale.isFinite || maxScale <= minScale) {
       return 5.0;
@@ -1235,15 +1245,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return maxScale;
   }
 
-  double get _freeDrawSnapScale =>
-      _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: _freeDrawMinScale);
+  double _freeDrawSnapScaleForPage(int pageNumber) {
+    final initialScale = _baseInitialScaleForPage(pageNumber);
+    final minScale = _freeDrawMinScaleForPage(pageNumber);
+    return initialScale < minScale ? minScale : initialScale;
+  }
 
   void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
     final scale = value.scale ?? 1.0;
-    final minScale = _freeDrawMinScale;
-    final maxScale = _freeDrawMaxScale;
+    final minScale = _freeDrawMinScaleForPage(pageNumber);
+    final maxScale = _freeDrawMaxScaleForPage(pageNumber);
     if (scale >= minScale && scale <= maxScale) {
       return;
     }
@@ -1259,8 +1272,51 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     controller.value = PhotoViewControllerValue(
       position: Offset.zero,
       rotation: value.rotation,
-      scale: _freeDrawSnapScale,
+      scale: _freeDrawSnapScaleForPage(pageNumber),
       rotationFocusPoint: value.rotationFocusPoint,
+    );
+  }
+
+  void _debugScheduleBasePhotoViewBoundsLog({
+    required int pageNumber,
+    required String reason,
+  }) {
+    if (!kDebugMode) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _debugLogBasePhotoViewBounds(pageNumber: pageNumber, reason: reason);
+    });
+  }
+
+  void _debugLogBasePhotoViewBounds({
+    required int pageNumber,
+    required String reason,
+  }) {
+    if (!kDebugMode ||
+        !mounted ||
+        _isFreeDrawMode ||
+        _selectedDefectId != null ||
+        _selectedEquipmentId != null) {
+      return;
+    }
+    final controller = _pdfPhotoControllers[pageNumber];
+    if (controller == null) {
+      return;
+    }
+    final value = controller.value;
+    final scale = value.scale ?? 1.0;
+    final position = value.position;
+    final initialScale = _baseInitialScaleForPage(pageNumber);
+    final minScale = _freeDrawMinScaleForPage(pageNumber);
+    final maxScale = _freeDrawMaxScaleForPage(pageNumber);
+    debugPrint(
+      '[PV-BASE] reason=$reason page=$pageNumber '
+      'scale=$scale pos=$position '
+      'min=$minScale max=$maxScale initial=$initialScale '
+      'policyMin=$PdfDrawingMinScale '
+      'policyMaxMultiplier=$PdfDrawingMaxScaleMultiplier '
+      'policyInitial=$PdfDrawingInitialScale',
     );
   }
 

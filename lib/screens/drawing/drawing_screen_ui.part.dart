@@ -700,6 +700,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
         'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
       );
     }
+    if (kDebugMode && enablePdfPanGestures && enablePdfScaleGestures) {
+      _debugScheduleBasePhotoViewBoundsLog(
+        pageNumber: _currentPage,
+        reason: 'first-frame-build',
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         return PdfDrawingView(
