@@ -162,19 +162,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _freeDrawUiMutationsInWindowByState[this] =
         (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
   }
-
-  bool get _isSinglePointerDrawingActive {
-    if (!_isFreeDrawMode) {
-      return false;
-    }
-    if (_activePointerIds.length != 1) {
-      return false;
-    }
-    return _isFreeDrawConsumingOneFinger ||
-        _inProgressStroke != null ||
-        _pendingDraw;
-  }
-
   bool get _isPanScaleAllowedDuringDraw {
     if (!_isFreeDrawMode) {
       return true;
@@ -192,13 +179,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return kind == PointerDeviceKind.stylus ||
         kind == PointerDeviceKind.invertedStylus;
   }
-
-  bool _hasAnyTouchPointer() {
-    return _activePointerKinds.values.any(
-      (kind) => kind == PointerDeviceKind.touch,
-    );
-  }
-
   int get _activeTouchPointerCount =>
       _activePointerKinds.values
           .where((kind) => kind == PointerDeviceKind.touch)
@@ -240,22 +220,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
     final inverted = Matrix4.inverted(matrix);
     final pageLocal = MatrixUtils.transformPoint(inverted, viewportLocal);
-
-    if (kDebugMode) {
-      _debugLastPdfPointerMapping = <String, Object?>{
-        'destLocal': viewportLocal,
-        'pageLocal': pageLocal,
-        'normalized': Offset(
-          pageLocal.dx / childSize.width,
-          pageLocal.dy / childSize.height,
-        ),
-        'position': controllerValue.position,
-        'scale': controllerValue.scale,
-        'viewportSize': viewportSize,
-        'childSize': childSize,
-      };
-    }
-
     if (pageLocal.dx < 0 ||
         pageLocal.dx > childSize.width ||
         pageLocal.dy < 0 ||
@@ -1548,7 +1512,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isFreeDrawConsumingOneFinger = true;
         _pendingDraw = false;
       });
-      _debugLastPageLocal = downPageLocal;
       _handleFreeDrawPointerStart(downNorm, pageNumber);
     }
 
@@ -1570,7 +1533,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    _debugLastPageLocal = pageLocal;
     _queueFreeDrawMove(
       pageNumber: pageNumber,
       pageSize: pageSize,
@@ -2375,7 +2337,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       _syncStrokesByPageFromControllerPage(pageNumber);
       _updateDrawingHistoryAvailabilityState();
-      _debugLastPageLocal = null;
       _inProgressStroke = null;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         _canvasController.setLiveStroke(null);
@@ -2594,7 +2555,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             : DrawingTool.pen;
       } else {
         _activePointerIds.clear();
-        _debugLastPageLocal = null;
         _inProgressStroke = null;
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;

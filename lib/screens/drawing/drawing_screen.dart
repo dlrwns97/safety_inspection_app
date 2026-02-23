@@ -131,8 +131,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   final List<_PendingAreaEraserMove> _areaEraserPath =
       <_PendingAreaEraserMove>[];
   bool _isAreaEraserFrameScheduled = false;
-  int _debugAreaEraserUpdatesInWindow = 0;
-  DateTime? _debugAreaEraserWindowStart;
   final Set<int> _activePointerIds = <int>{};
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};
@@ -176,8 +174,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     0xFF6D4C41,
   ];
   late final List<StrokeStyle> _presets = StrokePresets.defaults();
-  Offset? _debugLastPageLocal;
-  Map<String, Object?>? _debugLastPdfPointerMapping;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
