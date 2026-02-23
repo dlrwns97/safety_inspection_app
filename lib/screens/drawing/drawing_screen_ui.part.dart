@@ -212,6 +212,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ],
               ),
+              if (isStrokeEraserSelected || isAreaEraserSelected) ...[
+                const SizedBox(height: 8),
+                Tooltip(
+                  message: '형광펜으로 그린 선만 지웁니다',
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '형광펜만 지우기',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Switch(
+                        value: _eraseHighlighterOnly,
+                        onChanged: _handleEraseHighlighterOnlyChanged,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (isAreaEraserSelected) ...[
                 const SizedBox(height: 8),
                 Column(
