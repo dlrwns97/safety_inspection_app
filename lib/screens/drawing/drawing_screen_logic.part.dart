@@ -1204,7 +1204,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _endFreeDrawNavigationGesture() {
     if (_isFreeDrawMode) {
-      _snapFreeDrawScaleBackIfOutOfBounds(_navStartPage ?? _currentPage);
+      _snapFreeDrawScaleIfOutOfBounds(_navStartPage ?? _currentPage);
     }
     _cancelFreeDrawNavGesture();
   }
@@ -1238,17 +1238,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   double get _freeDrawSnapScale =>
       _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: _freeDrawMinScale);
 
-  void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
+  void _snapFreeDrawScaleIfOutOfBounds(int pageNumber) {
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
-    final scale = value.scale ?? 1.0;
-    if (scale >= _freeDrawMinScale && scale <= _freeDrawMaxScale) {
+    final effectiveScale = value.scale ?? 1.0;
+    if (effectiveScale >= _freeDrawMinScale &&
+        effectiveScale <= _freeDrawMaxScale) {
       return;
     }
+
+    final bool belowMin = effectiveScale < _freeDrawMinScale;
+    final double nextScale = belowMin ? _freeDrawSnapScale : _freeDrawMaxScale;
+    final Offset nextPosition = belowMin ? Offset.zero : value.position;
+
     controller.value = PhotoViewControllerValue(
-      position: Offset.zero,
+      position: nextPosition,
       rotation: value.rotation,
-      scale: _freeDrawSnapScale,
+      scale: nextScale,
       rotationFocusPoint: value.rotationFocusPoint,
     );
   }
