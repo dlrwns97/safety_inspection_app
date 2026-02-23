@@ -1197,21 +1197,15 @@ class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
 class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
   @override
   bool isPointerAllowed(PointerEvent event) {
-    final bool isTouch = event.kind == PointerDeviceKind.touch;
-    if (kDebugMode) {
-      debugPrint(
-        '_TouchOnlyScaleGestureRecognizer.isPointerAllowed kind=${event.kind}, allowed=$isTouch',
-      );
-    }
-    if (!isTouch) {
+    if (event.kind != PointerDeviceKind.touch) {
       return false;
     }
-    final bool allowed = super.isPointerAllowed(event);
-    if (kDebugMode) {
-      debugPrint(
-        '_TouchOnlyScaleGestureRecognizer.super.isPointerAllowed kind=${event.kind}, allowed=$allowed',
-      );
+
+    if (event is PointerDownEvent) {
+      return super.isPointerAllowed(event);
     }
-    return allowed;
+
+    // For non-down events, allow; the arena decision is made on down.
+    return true;
   }
 }
