@@ -801,6 +801,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return (s == null || s <= 0) ? 1.0 : s;
     }
 
+    final stylusOverlayBehavior = (_isFreeDrawMode && _isStylusActive)
+        ? HitTestBehavior.opaque
+        : HitTestBehavior.translucent;
+
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
       behavior: HitTestBehavior.opaque,
@@ -895,43 +899,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ),
             ),
               Positioned.fill(
-                child: Listener(
-                  behavior: (_isFreeDrawMode && _isStylusActive)
-                      ? HitTestBehavior.opaque
-                      : HitTestBehavior.translucent,
-                  onPointerDown:
-                      (e) => _handleOverlayPointerDownWithStylusDrawing(
-                    e,
-                    pageNumber: pageNumber,
-                    pageSize: pageSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                    photoScale: currentPhotoScale(),
-                  ),
-                  onPointerMove:
-                      (e) => _handleOverlayPointerMoveWithStylusDrawing(
-                    e,
-                    pageNumber: pageNumber,
-                    pageSize: pageSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                    photoScale: currentPhotoScale(),
-                  ),
-                  onPointerUp:
-                      (e) => _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                    e,
-                    pageNumber: pageNumber,
-                    pageSize: pageSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                  ),
-                  onPointerCancel: (e) =>
-                      _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                        e,
-                        pageNumber: pageNumber,
-                        pageSize: pageSize,
-                        drawingLocalToPageLocal: drawingLocalToPageLocal,
-                      ),
-                ),
-              ),
-              Positioned.fill(
                 child: RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
                   gestures: <Type, GestureRecognizerFactory>{
@@ -969,6 +936,57 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ),
                   },
                   child: const ColoredBox(color: Colors.transparent),
+                ),
+              ),
+              Positioned.fill(
+                child: Listener(
+                  behavior: stylusOverlayBehavior,
+                  onPointerDown: (e) {
+                    if (e.kind == PointerDeviceKind.touch) {
+                      return;
+                    }
+                    _handleOverlayPointerDownWithStylusDrawing(
+                      e,
+                      pageNumber: pageNumber,
+                      pageSize: pageSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                      photoScale: currentPhotoScale(),
+                    );
+                  },
+                  onPointerMove: (e) {
+                    if (e.kind == PointerDeviceKind.touch) {
+                      return;
+                    }
+                    _handleOverlayPointerMoveWithStylusDrawing(
+                      e,
+                      pageNumber: pageNumber,
+                      pageSize: pageSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                      photoScale: currentPhotoScale(),
+                    );
+                  },
+                  onPointerUp: (e) {
+                    if (e.kind == PointerDeviceKind.touch) {
+                      return;
+                    }
+                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                      e,
+                      pageNumber: pageNumber,
+                      pageSize: pageSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    );
+                  },
+                  onPointerCancel: (e) {
+                    if (e.kind == PointerDeviceKind.touch) {
+                      return;
+                    }
+                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                      e,
+                      pageNumber: pageNumber,
+                      pageSize: pageSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    );
+                  },
                 ),
               ),
             ],
