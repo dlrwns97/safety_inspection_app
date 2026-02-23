@@ -1277,47 +1277,30 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
-  void _debugScheduleBasePhotoViewBoundsLog({
-    required int pageNumber,
-    required String reason,
-  }) {
-    if (!kDebugMode) {
+  void _debugLogPhotoViewBaseStateOnce(String tag) {
+    if (!kDebugMode || !mounted || _isFreeDrawMode) {
+      return;
+    }
+    final key = '$tag:$_currentPage';
+    if (!_basePhotoViewDebugLogOnceKeys.add(key)) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _debugLogBasePhotoViewBounds(pageNumber: pageNumber, reason: reason);
+      if (!mounted || _isFreeDrawMode) {
+        return;
+      }
+      final controller = _photoControllerForPage(_currentPage);
+      final v = controller.value;
+      debugPrint(
+        '[$tag] page=$_currentPage scale=${v.scale} '
+        'pos=${v.position} rot=${v.rotation}',
+      );
+      debugPrint(
+        '[$tag] bounds min=$PdfDrawingMinScale '
+        'initial=$PdfDrawingInitialScale '
+        'maxMul=$PdfDrawingMaxScaleMultiplier',
+      );
     });
-  }
-
-  void _debugLogBasePhotoViewBounds({
-    required int pageNumber,
-    required String reason,
-  }) {
-    if (!kDebugMode ||
-        !mounted ||
-        _isFreeDrawMode ||
-        _selectedDefectId != null ||
-        _selectedEquipmentId != null) {
-      return;
-    }
-    final controller = _pdfPhotoControllers[pageNumber];
-    if (controller == null) {
-      return;
-    }
-    final value = controller.value;
-    final scale = value.scale ?? 1.0;
-    final position = value.position;
-    final initialScale = _baseInitialScaleForPage(pageNumber);
-    final minScale = _freeDrawMinScaleForPage(pageNumber);
-    final maxScale = _freeDrawMaxScaleForPage(pageNumber);
-    debugPrint(
-      '[PV-BASE] reason=$reason page=$pageNumber '
-      'scale=$scale pos=$position '
-      'min=$minScale max=$maxScale initial=$initialScale '
-      'policyMin=$PdfDrawingMinScale '
-      'policyMaxMultiplier=$PdfDrawingMaxScaleMultiplier '
-      'policyInitial=$PdfDrawingInitialScale',
-    );
   }
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
@@ -2524,6 +2507,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         const SnackBar(content: Text('자유 그리기: 한 손가락으로 그리기, 두 손가락으로 확대/이동')),
       );
     }
+    if (!_isFreeDrawMode) {
+      _debugLogPhotoViewBaseStateOnce('mode-toggle');
+    }
   }
 
   void _enterMoveMode() {
@@ -3203,13 +3189,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         .toList();
   }
 
-  void _handlePdfPageChanged(int page) =>
-      _setPdfState(() {
-        _currentPage = page;
-        _canvasController.setEraserCursor(
-          _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
-        );
-      });
+  void _handlePdfPageChanged(int page) {
+    _setPdfState(() {
+      _currentPage = page;
+      _canvasController.setEraserCursor(
+        _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
+      );
+    });
+    if (!_isFreeDrawMode) {
+      _debugLogPhotoViewBaseStateOnce('page-change');
+    }
+  }
 
   void _handlePdfDocumentLoaded(PdfDocument document) async {
     final pageCount = document.pagesCount;

@@ -82,7 +82,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       TransformationController();
   final Map<int, PhotoViewController> _pdfPhotoControllers = {};
   final Map<int, PhotoViewScaleStateController> _pdfScaleStateControllers = {};
-  final Set<int> _basePhotoViewDebugListenersAttached = <int>{};
+  final Set<String> _basePhotoViewDebugLogOnceKeys = <String>{};
   final GlobalKey _canvasKey = GlobalKey();
   final GlobalKey<State<StatefulWidget>> _pdfViewerKey =
       GlobalKey<State<StatefulWidget>>();
@@ -273,36 +273,18 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
 
   PhotoViewController _photoControllerForPage(int pageNumber) {
-    final created = !_pdfPhotoControllers.containsKey(pageNumber);
     final controller = _pdfPhotoControllers.putIfAbsent(
       pageNumber,
       () => PhotoViewController(),
     );
-    if (created && _basePhotoViewDebugListenersAttached.add(pageNumber)) {
-      controller.addListener(() {
-        _debugLogBasePhotoViewBounds(
-          pageNumber: pageNumber,
-          reason: 'controller-listener',
-        );
-      });
-    }
     return controller;
   }
 
   PhotoViewScaleStateController _scaleStateControllerForPage(int pageNumber) {
-    final created = !_pdfScaleStateControllers.containsKey(pageNumber);
     final controller = _pdfScaleStateControllers.putIfAbsent(
       pageNumber,
       () => PhotoViewScaleStateController(),
     );
-    if (created && _basePhotoViewDebugListenersAttached.add(-pageNumber)) {
-      controller.addListener(() {
-        _debugLogBasePhotoViewBounds(
-          pageNumber: pageNumber,
-          reason: 'scale-state-listener(${controller.scaleState})',
-        );
-      });
-    }
     return controller;
   }
 
@@ -319,7 +301,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     _pdfPhotoControllers.clear();
     _pdfScaleStateControllers.clear();
-    _basePhotoViewDebugListenersAttached.clear();
+    _basePhotoViewDebugLogOnceKeys.clear();
     _pdfPageContentKeys.clear();
   }
 

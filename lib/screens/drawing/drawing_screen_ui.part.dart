@@ -701,10 +701,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       );
     }
     if (kDebugMode && enablePdfPanGestures && enablePdfScaleGestures) {
-      _debugScheduleBasePhotoViewBoundsLog(
-        pageNumber: _currentPage,
-        reason: 'first-frame-build',
-      );
+      _debugLogPhotoViewBaseStateOnce('viewer-build');
     }
     return LayoutBuilder(
       builder: (context, constraints) {
