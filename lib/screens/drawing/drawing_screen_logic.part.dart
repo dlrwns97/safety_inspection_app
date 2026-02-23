@@ -28,6 +28,38 @@ class _PendingFreeDrawMove {
   final double photoScale;
 }
 
+class _AreaEraserSession {
+  const _AreaEraserSession({
+    required this.radius,
+    this.removedOriginalIds = const <String>{},
+    this.processedStrokeIds = const <String>{},
+    this.removedById = const <String, DrawingStroke>{},
+    this.addedById = const <String, DrawingStroke>{},
+  });
+
+  final double radius;
+  final Set<String> removedOriginalIds;
+  final Set<String> processedStrokeIds;
+  final Map<String, DrawingStroke> removedById;
+  final Map<String, DrawingStroke> addedById;
+
+  _AreaEraserSession copyWith({
+    double? radius,
+    Set<String>? removedOriginalIds,
+    Set<String>? processedStrokeIds,
+    Map<String, DrawingStroke>? removedById,
+    Map<String, DrawingStroke>? addedById,
+  }) {
+    return _AreaEraserSession(
+      radius: radius ?? this.radius,
+      removedOriginalIds: removedOriginalIds ?? this.removedOriginalIds,
+      processedStrokeIds: processedStrokeIds ?? this.processedStrokeIds,
+      removedById: removedById ?? this.removedById,
+      addedById: addedById ?? this.addedById,
+    );
+  }
+}
+
 final Expando<_PendingFreeDrawMove> _pendingFreeDrawMoveByState =
     Expando<_PendingFreeDrawMove>('pendingFreeDrawMoveByState');
 final Expando<bool> _isFreeDrawMoveScheduledByState =
@@ -1901,7 +1933,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required int pageNumber,
     required Offset pageLocal,
     required double radiusPagePx,
-    required EraserSession session,
+    required _AreaEraserSession session,
   }) {
     final baseStrokes = _canvasController.getStrokes(pageNumber);
     final previewStrokes = baseStrokes
@@ -1927,10 +1959,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _startAreaEraserSession(int pointer) {
     _activeAreaEraserPointerId = pointer;
-    _activeAreaEraserSession = _eraserEngine.startSession(
-      mode: EraserMode.area,
-      radius: _areaEraserRadiusPx,
-    );
+    _activeAreaEraserSession = _AreaEraserSession(radius: _areaEraserRadiusPx);
     _areaEraserPath.clear();
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _canvasController.setEraserPreview(null);
@@ -1982,7 +2011,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _activeAreaEraserSession = updatedSession;
 
     _areaEraserPath.add(pending);
-    _eraserEngine.recordUiMutation();
     _safeSetState(() {
       _eraserCursorPageNumber = pending.pageNumber;
       _eraserCursorPageLocal = pending.pageLocal;
@@ -2079,8 +2107,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return count;
   }
 
-  EraserSession _applyAreaEraserPointMask(
-    EraserSession session, {
+  _AreaEraserSession _applyAreaEraserPointMask(
+    _AreaEraserSession session, {
     required int pageNumber,
     required Size pageSize,
     required Offset center,

@@ -30,7 +30,6 @@ import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_widg
 import 'package:safety_inspection_app/screens/drawing/canvas/stroke_cache_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_constants.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_controller.dart';
-import 'package:safety_inspection_app/screens/drawing/engines/eraser_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/carbonation_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/core_sampling_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/delete_defect_tab_dialog.dart';
@@ -127,8 +126,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   Offset? _eraserCursorPageLocal;
   int? _eraserCursorPageNumber;
   int? _activeAreaEraserPointerId;
-  final EraserEngine _eraserEngine = EraserEngine();
-  EraserSession? _activeAreaEraserSession;
+  _AreaEraserSession? _activeAreaEraserSession;
   _PendingAreaEraserMove? _pendingAreaEraserMove;
   final List<_PendingAreaEraserMove> _areaEraserPath =
       <_PendingAreaEraserMove>[];
