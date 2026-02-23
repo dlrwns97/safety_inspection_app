@@ -1165,10 +1165,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final start = _navStartValue!;
     _navAccumDelta += details.focalPointDelta;
     final double startScale = start.scale ?? 1.0;
-    final double scaleForPan =
-        (controller.value.scale ?? startScale).clamp(0.5, 10.0);
-    final Offset desiredPos =
-        start.position + (_navAccumDelta * (1.0 / scaleForPan));
     final bool isTwoFinger = details.pointerCount >= 2;
     final double desiredScale = isTwoFinger
         ? startScale * details.scale
@@ -1185,6 +1181,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     } else {
       effectiveScale = desiredScale;
     }
+    final double s = effectiveScale;
+    final double panBoost =
+        (s <= 1.0) ? 1.0 : (1.0 + (s - 1.0) * 0.35);
+    final Offset desiredPos = start.position + (_navAccumDelta * panBoost);
 
     if (kDebugMode && _debugNavUpdateLogCount < 3) {
       _debugNavUpdateLogCount += 1;
