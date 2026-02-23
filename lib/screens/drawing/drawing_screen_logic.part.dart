@@ -2411,18 +2411,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
   }
 
-  Future<void> _handleClearAllStrokes() async {
-    final page = _currentPage;
-    if (_canvasController.getStrokes(page).isEmpty) {
-      return;
-    }
-
+  Future<bool> _confirmClear({
+    required String title,
+    required String message,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('전체 지우기'),
-          content: const Text('현재 페이지의 손글씨를 모두 지울까요?'),
+          title: Text(title),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -2436,13 +2434,77 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         );
       },
     );
+    return confirmed == true;
+  }
 
-    if (confirmed != true) {
+  Future<void> _handleClearAllStrokes() async {
+    final page = _currentPage;
+    if (_canvasController.getStrokes(page).isEmpty) {
+      return;
+    }
+
+    if (!await _confirmClear(title: '전체 지우기', message: '현재 페이지의 손글씨를 모두 지울까요?')) {
       return;
     }
 
     _safeSetState(() {
       _historyManager.execute(ClearAllCommand(page: page), _canvasController);
+      _syncStrokesByPageFromControllerPage(page);
+      _updateDrawingHistoryAvailabilityState();
+      _clearSelectionAndPopup();
+    });
+    _requestPersistDrawing();
+  }
+
+  Future<void> _handleClearHighlighterOnly() async {
+    final page = _currentPage;
+    final strokes = _canvasController.getStrokes(page);
+    final hasMatchingStroke = strokes.any(
+      (stroke) => stroke.style.kind == StrokeToolKind.highlighter,
+    );
+    if (!hasMatchingStroke) {
+      return;
+    }
+    if (!await _confirmClear(
+      title: '형광펜만 전체 지우기',
+      message: '현재 페이지의 형광펜 손글씨만 모두 지울까요?',
+    )) {
+      return;
+    }
+
+    _safeSetState(() {
+      _historyManager.execute(
+        ClearToolKindCommand(page: page, kind: StrokeToolKind.highlighter),
+        _canvasController,
+      );
+      _syncStrokesByPageFromControllerPage(page);
+      _updateDrawingHistoryAvailabilityState();
+      _clearSelectionAndPopup();
+    });
+    _requestPersistDrawing();
+  }
+
+  Future<void> _handleClearPenOnly() async {
+    final page = _currentPage;
+    final strokes = _canvasController.getStrokes(page);
+    final hasMatchingStroke = strokes.any(
+      (stroke) => stroke.style.kind == StrokeToolKind.pen,
+    );
+    if (!hasMatchingStroke) {
+      return;
+    }
+    if (!await _confirmClear(
+      title: '펜만 전체 지우기',
+      message: '현재 페이지의 펜 손글씨만 모두 지울까요?',
+    )) {
+      return;
+    }
+
+    _safeSetState(() {
+      _historyManager.execute(
+        ClearToolKindCommand(page: page, kind: StrokeToolKind.pen),
+        _canvasController,
+      );
       _syncStrokesByPageFromControllerPage(page);
       _updateDrawingHistoryAvailabilityState();
       _clearSelectionAndPopup();
