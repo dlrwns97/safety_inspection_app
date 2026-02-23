@@ -176,6 +176,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     ];
     final hasCurrentPageStrokes =
         _canvasController.getStrokes(_currentPage).isNotEmpty;
+    final isEraserSelected = isStrokeEraserSelected || isAreaEraserSelected;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: panelMaxW, minWidth: panelMinW),
@@ -358,6 +359,22 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         : null,
                     icon: const Icon(Icons.delete_sweep),
                     tooltip: '전체 지우기',
+                  ),
+                  IconButton(
+                    onPressed: isEraserSelected
+                        ? () => _handleEraseHighlighterOnlyChanged(!_eraseHighlighterOnly)
+                        : null,
+                    icon: Icon(
+                      _eraseHighlighterOnly
+                          ? Icons.auto_fix_high
+                          : Icons.auto_fix_high_outlined,
+                      color: _eraseHighlighterOnly
+                          ? theme.colorScheme.primary
+                          : null,
+                    ),
+                    tooltip: _eraseHighlighterOnly
+                        ? '형광펜만 지우기: 켜짐'
+                        : '형광펜만 지우기: 꺼짐',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
