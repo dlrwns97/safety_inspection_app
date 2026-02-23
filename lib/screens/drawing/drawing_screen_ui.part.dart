@@ -700,38 +700,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
         'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
       );
     }
-    return RawGestureDetector(
-      behavior: HitTestBehavior.translucent,
-      gestures: <Type, GestureRecognizerFactory>{
-        _TouchOnlyPanGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<
-              _TouchOnlyPanGestureRecognizer
-            >(
-              _TouchOnlyPanGestureRecognizer.new,
-              (_TouchOnlyPanGestureRecognizer instance) {
-                instance
-                  ..onStart = _handlePdfNavigationPanStart
-                  ..onUpdate = _handlePdfNavigationPanUpdate
-                  ..onEnd = _handlePdfNavigationPanEnd
-                  ..onCancel = _handlePdfNavigationPanCancel;
-              },
-            ),
-        _TouchOnlyScaleGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<
-              _TouchOnlyScaleGestureRecognizer
-            >(
-              _TouchOnlyScaleGestureRecognizer.new,
-              (_TouchOnlyScaleGestureRecognizer instance) {
-                instance
-                  ..onStart = _handlePdfNavigationScaleStart
-                  ..onUpdate = _handlePdfNavigationScaleUpdate
-                  ..onEnd = _handlePdfNavigationScaleEnd;
-              },
-            ),
-      },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return PdfDrawingView(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return PdfDrawingView(
             pdfController: _pdfController,
             pdfLoadError: _pdfLoadError,
             sitePdfName: _site.pdfName,
@@ -762,9 +733,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   imageProvider: imageProvider,
                   pageContentKey: pageContentKey,
                 ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 
@@ -923,8 +893,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             ),
               Positioned.fill(
                 child: Listener(
-                  behavior: (_isFreeDrawMode &&
-                          _activeStylusPointerId != null)
+                  behavior: (_isFreeDrawMode && _isStylusActive)
                       ? HitTestBehavior.opaque
                       : HitTestBehavior.translucent,
                   onPointerDown:
@@ -957,6 +926,74 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         pageSize: pageSize,
                         drawingLocalToPageLocal: drawingLocalToPageLocal,
                       ),
+                ),
+              ),
+              Positioned.fill(
+                child: RawGestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  gestures: <Type, GestureRecognizerFactory>{
+                    _TouchOnlyPanGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          _TouchOnlyPanGestureRecognizer
+                        >(
+                          _TouchOnlyPanGestureRecognizer.new,
+                          (_TouchOnlyPanGestureRecognizer instance) {
+                            instance
+                              ..onStart = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationPanStart(details);
+                              }
+                              ..onUpdate = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationPanUpdate(details);
+                              }
+                              ..onEnd = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationPanEnd(details);
+                              }
+                              ..onCancel = () {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationPanCancel();
+                              };
+                          },
+                        ),
+                    _TouchOnlyScaleGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          _TouchOnlyScaleGestureRecognizer
+                        >(
+                          _TouchOnlyScaleGestureRecognizer.new,
+                          (_TouchOnlyScaleGestureRecognizer instance) {
+                            instance
+                              ..onStart = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleStart(details);
+                              }
+                              ..onUpdate = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleUpdate(details);
+                              }
+                              ..onEnd = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleEnd(details);
+                              };
+                          },
+                        ),
+                  },
+                  child: const SizedBox.expand(),
                 ),
               ),
             ],
