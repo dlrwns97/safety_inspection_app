@@ -1134,17 +1134,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handlePdfNavigationScaleStart(ScaleStartDetails details) {
-    if (details.pointerCount < 2) {
-      return;
-    }
-    _startFreeDrawNavGesture(details.localFocalPoint);
-  }
-
-  void _handlePdfNavigationPanStart(DragStartDetails details) {
-    _startFreeDrawNavGesture(details.localPosition);
-  }
-
-  void _startFreeDrawNavGesture(Offset localFocalPoint) {
     if (!_isFreeDrawMode ||
         _isStylusActive ||
         _activeStylusPointerId != null ||
@@ -1153,10 +1142,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _cancelFreeDrawNavGesture();
       return;
     }
-    _navGestureStartPage = _currentPage;
-    final controller = _photoControllerForPage(_navGestureStartPage!);
-    _navGestureStartValue = controller.value;
-    _navGestureStartFocal = localFocalPoint;
+    _navStartPage = _currentPage;
+    final controller = _photoControllerForPage(_navStartPage!);
+    _navStartValue = controller.value;
+    _navAccumDelta = Offset.zero;
+    _debugNavUpdateLogCount = 0;
   }
 
   void _handlePdfNavigationScaleUpdate(ScaleUpdateDetails details) {
@@ -1167,47 +1157,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pendingDraw) {
       return;
     }
-    if (_navGestureStartPage == null ||
-        _navGestureStartValue == null ||
-        _navGestureStartFocal == null) {
+    if (_navStartPage == null || _navStartValue == null) {
       return;
     }
-    if (details.pointerCount < 2) {
-      return;
-    }
-    _updateFreeDrawNavGesture(
-      localFocalPoint: details.localFocalPoint,
-      desiredScale: (_navGestureStartValue?.scale ?? 1.0) * details.scale,
-    );
-  }
-
-  void _handlePdfNavigationPanUpdate(DragUpdateDetails details) {
-    _updateFreeDrawNavGesture(localFocalPoint: details.localPosition);
-  }
-
-  void _updateFreeDrawNavGesture({
-    required Offset localFocalPoint,
-    double? desiredScale,
-  }) {
-    if (!_isFreeDrawMode ||
-        _isStylusActive ||
-        _activeStylusPointerId != null ||
-        _inProgressStroke != null ||
-        _pendingDraw) {
-      return;
-    }
-    if (_navGestureStartPage == null ||
-        _navGestureStartValue == null ||
-        _navGestureStartFocal == null) {
-      return;
-    }
-    final page = _navGestureStartPage!;
+    final page = _navStartPage!;
     final controller = _photoControllerForPage(page);
-    final start = _navGestureStartValue!;
-    final Offset delta = localFocalPoint - _navGestureStartFocal!;
-    final Offset newPos = start.position + delta;
+    final start = _navStartValue!;
+    _navAccumDelta += details.focalPointDelta;
+    final Offset desiredPos = start.position + _navAccumDelta;
     final double startScale = start.scale ?? 1.0;
-    final double targetScale = desiredScale ?? startScale;
+    final bool isTwoFinger = details.pointerCount >= 2;
+    final double targetScale = isTwoFinger
+        ? startScale * details.scale
+        : startScale;
     final double effectiveScale;
     if (targetScale < _freeDrawMinScale) {
       final over = _freeDrawMinScale - targetScale;
@@ -1218,8 +1180,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     } else {
       effectiveScale = targetScale;
     }
+
+    if (kDebugMode && _debugNavUpdateLogCount < 3) {
+      _debugNavUpdateLogCount += 1;
+      // ignore: avoid_print
+      print(
+        'NAV update page=$page pointers=${details.pointerCount} '
+        'scale=$effectiveScale pos=$desiredPos',
+      );
+    }
+
     controller.value = PhotoViewControllerValue(
-      position: newPos,
+      position: desiredPos,
       rotation: start.rotation,
       scale: effectiveScale,
       rotationFocusPoint: start.rotationFocusPoint,
@@ -1230,25 +1202,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _endFreeDrawNavigationGesture();
   }
 
-  void _handlePdfNavigationPanEnd(DragEndDetails details) {
-    _endFreeDrawNavigationGesture();
-  }
-
-  void _handlePdfNavigationPanCancel() {
-    _endFreeDrawNavigationGesture();
-  }
-
   void _endFreeDrawNavigationGesture() {
     if (_isFreeDrawMode) {
-      _snapFreeDrawScaleBackIfOutOfBounds(_navGestureStartPage ?? _currentPage);
+      _snapFreeDrawScaleBackIfOutOfBounds(_navStartPage ?? _currentPage);
     }
     _cancelFreeDrawNavGesture();
   }
 
   void _cancelFreeDrawNavGesture() {
-    _navGestureStartPage = null;
-    _navGestureStartValue = null;
-    _navGestureStartFocal = null;
+    _navStartPage = null;
+    _navStartValue = null;
+    _navAccumDelta = Offset.zero;
+    _debugNavUpdateLogCount = 0;
   }
 
   double _resolveFreeDrawScale(dynamic value, {required double fallback}) {

@@ -932,42 +932,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 child: RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
                   gestures: <Type, GestureRecognizerFactory>{
-                    _TouchOnlyPanGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          _TouchOnlyPanGestureRecognizer
-                        >(
-                          _TouchOnlyPanGestureRecognizer.new,
-                          (_TouchOnlyPanGestureRecognizer instance) {
-                            instance
-                              ..onStart = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                _handlePdfNavigationPanStart(details);
-                              }
-                              ..onUpdate = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                if (kDebugMode) {
-                                  debugPrint('PAN UPDATE pointerCount=1');
-                                }
-                                _handlePdfNavigationPanUpdate(details);
-                              }
-                              ..onEnd = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                _handlePdfNavigationPanEnd(details);
-                              }
-                              ..onCancel = () {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                _handlePdfNavigationPanCancel();
-                              };
-                          },
-                        ),
                     _TouchOnlyScaleGestureRecognizer:
                         GestureRecognizerFactoryWithHandlers<
                           _TouchOnlyScaleGestureRecognizer
@@ -1230,31 +1194,9 @@ class _StylusArenaBlocker extends OneSequenceGestureRecognizer {
   void didStopTrackingLastPointer(int pointer) {}
 }
 
-class _TouchOnlyPanGestureRecognizer extends PanGestureRecognizer {
-  @override
-  bool isPointerAllowed(PointerEvent event) {
-    final bool isTouch = event.kind == PointerDeviceKind.touch;
-    if (kDebugMode && event is PointerDownEvent) {
-      debugPrint(
-        '_TouchOnlyPanGestureRecognizer.isPointerAllowed kind=${event.kind}, allowed=$isTouch',
-      );
-    }
-    if (!isTouch) {
-      return false;
-    }
-    final bool allowed = super.isPointerAllowed(event);
-    if (kDebugMode && event is PointerDownEvent) {
-      debugPrint(
-        '_TouchOnlyPanGestureRecognizer.super.isPointerAllowed kind=${event.kind}, allowed=$allowed',
-      );
-    }
-    return allowed;
-  }
-}
-
 class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
   @override
-  bool isPointerAllowed(PointerDownEvent event) {
+  bool isPointerAllowed(PointerEvent event) {
     final bool isTouch = event.kind == PointerDeviceKind.touch;
     if (kDebugMode) {
       debugPrint(
