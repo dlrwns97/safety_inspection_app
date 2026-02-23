@@ -8,7 +8,6 @@ import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/cached_image_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/eraser_cursor_painter.dart';
-import 'package:safety_inspection_app/screens/drawing/canvas/eraser_preview_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/live_stroke_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/preview_strokes_painter.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/stroke_cache_manager.dart';
