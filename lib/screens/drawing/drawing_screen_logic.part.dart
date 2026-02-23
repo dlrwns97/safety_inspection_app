@@ -1164,23 +1164,26 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final controller = _photoControllerForPage(page);
     final start = _navStartValue!;
     _navAccumDelta += details.focalPointDelta;
-    final Offset desiredPos = start.position + _navAccumDelta;
     final double startScale = start.scale ?? 1.0;
+    final double scaleForPan =
+        (controller.value.scale ?? startScale).clamp(0.5, 10.0);
+    final Offset desiredPos =
+        start.position + (_navAccumDelta * (1.0 / scaleForPan));
     final bool isTwoFinger = details.pointerCount >= 2;
-    final double targetScale = isTwoFinger
+    final double desiredScale = isTwoFinger
         ? startScale * details.scale
         : startScale;
     final double minScale = _freeDrawMinScaleForPage(page);
     final double maxScale = _freeDrawMaxScaleForPage(page);
     final double effectiveScale;
-    if (targetScale < minScale) {
-      final over = minScale - targetScale;
+    if (desiredScale < minScale) {
+      final over = minScale - desiredScale;
       effectiveScale = minScale - (over * 0.15);
-    } else if (targetScale > maxScale) {
-      final over = targetScale - maxScale;
+    } else if (desiredScale > maxScale) {
+      final over = desiredScale - maxScale;
       effectiveScale = maxScale + (over * 0.15);
     } else {
-      effectiveScale = targetScale;
+      effectiveScale = desiredScale;
     }
 
     if (kDebugMode && _debugNavUpdateLogCount < 3) {
@@ -1206,7 +1209,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _endFreeDrawNavigationGesture() {
     if (_isFreeDrawMode) {
-      _snapFreeDrawScaleBackIfOutOfBounds(_navStartPage ?? _currentPage);
+      _snapFreeDrawScaleBackIfOutOfBounds(
+        _navStartPage ?? _currentPage,
+        start: _navStartValue,
+      );
     }
     _cancelFreeDrawNavGesture();
   }
@@ -1225,16 +1231,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return fallback;
   }
 
-  double _baseInitialScaleForPage(int pageNumber) {
-    final scale = _photoControllerForPage(pageNumber).value.scale;
-    if (scale != null && scale.isFinite && scale > 0) {
-      return scale;
+  double _freeDrawMinScaleForPage(int pageNumber) {
+    final minScale = _resolveFreeDrawScale(PdfDrawingMinScale, fallback: 1.0);
+    if (!minScale.isFinite || minScale <= 0) {
+      return 1.0;
     }
-    return _resolveFreeDrawScale(PdfDrawingInitialScale, fallback: 1.0);
+    return minScale;
   }
-
-  double _freeDrawMinScaleForPage(int pageNumber) =>
-      _baseInitialScaleForPage(pageNumber);
 
   double _freeDrawMaxScaleForPage(int pageNumber) {
     final minScale = _freeDrawMinScaleForPage(pageNumber);
@@ -1245,13 +1248,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return maxScale;
   }
 
-  double _freeDrawSnapScaleForPage(int pageNumber) {
-    final initialScale = _baseInitialScaleForPage(pageNumber);
+  double _freeDrawInitialScaleForPage(int pageNumber) {
     final minScale = _freeDrawMinScaleForPage(pageNumber);
-    return initialScale < minScale ? minScale : initialScale;
+    final initialScale = _resolveFreeDrawScale(
+      PdfDrawingInitialScale,
+      fallback: minScale,
+    );
+    if (!initialScale.isFinite || initialScale <= 0) {
+      return minScale;
+    }
+    return initialScale;
   }
 
-  void _snapFreeDrawScaleBackIfOutOfBounds(int pageNumber) {
+  void _snapFreeDrawScaleBackIfOutOfBounds(
+    int pageNumber, {
+    PhotoViewControllerValue? start,
+  }) {
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
     final scale = value.scale ?? 1.0;
@@ -1260,20 +1272,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (scale >= minScale && scale <= maxScale) {
       return;
     }
+    final snapshot = start ?? value;
     if (scale > maxScale) {
       controller.value = PhotoViewControllerValue(
         position: value.position,
-        rotation: value.rotation,
+        rotation: snapshot.rotation,
         scale: maxScale,
-        rotationFocusPoint: value.rotationFocusPoint,
+        rotationFocusPoint: snapshot.rotationFocusPoint,
       );
       return;
     }
+    final snapScale = _freeDrawInitialScaleForPage(pageNumber).clamp(
+      minScale,
+      maxScale,
+    );
     controller.value = PhotoViewControllerValue(
       position: Offset.zero,
-      rotation: value.rotation,
-      scale: _freeDrawSnapScaleForPage(pageNumber),
-      rotationFocusPoint: value.rotationFocusPoint,
+      rotation: snapshot.rotation,
+      scale: snapScale,
+      rotationFocusPoint: snapshot.rotationFocusPoint,
     );
   }
 
