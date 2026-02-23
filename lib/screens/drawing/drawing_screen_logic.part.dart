@@ -1242,7 +1242,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final controller = _photoControllerForPage(pageNumber);
     final value = controller.value;
     final scale = value.scale ?? 1.0;
-    if (scale >= _freeDrawMinScale && scale <= _freeDrawMaxScale) {
+    final minScale = _freeDrawMinScale;
+    final maxScale = _freeDrawMaxScale;
+    if (scale >= minScale && scale <= maxScale) {
+      return;
+    }
+    if (scale > maxScale) {
+      controller.value = PhotoViewControllerValue(
+        position: value.position,
+        rotation: value.rotation,
+        scale: maxScale,
+        rotationFocusPoint: value.rotationFocusPoint,
+      );
       return;
     }
     controller.value = PhotoViewControllerValue(
