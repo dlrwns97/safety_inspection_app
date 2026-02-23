@@ -1289,6 +1289,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.touch) {
+      return;
+    }
     final previousCount = _activePointerIds.length;
     final previousTouchCount = _activeTouchPointerCount;
     _activePointerIds.add(event.pointer);
@@ -1376,6 +1379,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
+    if (event.kind == PointerDeviceKind.touch) {
+      return;
+    }
+
     if (!_isFreeDrawMode) {
       return;
     }
@@ -1623,6 +1630,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
+    if (event.kind == PointerDeviceKind.touch) {
+      return;
+    }
     final didRemove = _activePointerIds.remove(event.pointer);
     if (!didRemove) {
       return;
