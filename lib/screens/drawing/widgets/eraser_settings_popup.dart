@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
+const double kPad = 12;
+const double kGap = 8;
+const double kTitleFont = 16;
+const double kBodyFont = 13;
+const double kChipH = 34;
+const double kButtonH = 40;
+const double kPreviewH = 90;
+
 class EraserSettingsPopup extends StatefulWidget {
   const EraserSettingsPopup({
     super.key,
@@ -42,132 +50,165 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
     final clampedRadius = _radiusPx.clamp(6.0, 60.0);
     final hasModeToggle = _mode != null && widget.onModeChanged != null;
     final isStrokeEraserMode = _mode == DrawingTool.strokeEraser;
-    final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: viewInsetsBottom),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.all(kPad),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '지우개 설정',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                        tooltip: '닫기',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (!isStrokeEraserMode) ...[
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 72,
-                          height: 72,
-                          child: CustomPaint(
-                            painter: _EraserBrushPreviewPainter(radiusPx: clampedRadius),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text('반경: ${clampedRadius.round()}px'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Expanded(child: Text('크기')),
-                        Text('${clampedRadius.round()} px'),
-                      ],
-                    ),
-                    Slider(
-                      value: clampedRadius,
-                      min: 6,
-                      max: 60,
-                      divisions: 54,
-                      label: clampedRadius.round().toString(),
-                      onChanged: (next) {
-                        setState(() {
-                          _radiusPx = next;
-                        });
-                        widget.onRadiusChanged(next);
-                      },
-                    ),
-                  ],
-                  if (hasModeToggle) ...[
-                    const SizedBox(height: 8),
-                    SegmentedButton<DrawingTool>(
-                      showSelectedIcon: false,
-                      segments: const [
-                        ButtonSegment<DrawingTool>(
-                          value: DrawingTool.areaEraser,
-                          label: Text('영역 지우개'),
-                        ),
-                        ButtonSegment<DrawingTool>(
-                          value: DrawingTool.strokeEraser,
-                          label: Text('획 지우개'),
-                        ),
-                      ],
-                      selected: {_mode!},
-                      onSelectionChanged: (next) {
-                        if (next.isEmpty) {
-                          return;
-                        }
-                        setState(() {
-                          _mode = next.first;
-                        });
-                        widget.onModeChanged!.call(next.first);
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.tonal(
-                      onPressed: () async {
-                        await widget.onClearPenOnly();
-                      },
-                      child: const Text('그리기만 지우기'),
+                  Expanded(
+                    child: Text(
+                      '지우개 설정',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontSize: kTitleFont),
                     ),
                   ),
-                  const SizedBox(height: 8),
                   SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.tonal(
-                      onPressed: () async {
-                        await widget.onClearHighlighterOnly();
-                      },
-                      child: const Text('형광펜만 지우기'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () async {
-                        await widget.onClearAll();
-                      },
-                      child: const Text('전체 지우기'),
+                    width: 32,
+                    height: 32,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: '닫기',
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: kGap),
+              if (!isStrokeEraserMode) ...[
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: CustomPaint(
+                        painter: _EraserBrushPreviewPainter(radiusPx: clampedRadius),
+                      ),
+                    ),
+                    const SizedBox(width: kGap),
+                    Text('반경: ${clampedRadius.round()}px', style: const TextStyle(fontSize: kBodyFont)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Expanded(child: Text('크기', style: TextStyle(fontSize: kBodyFont))),
+                    Text('${clampedRadius.round()} px', style: const TextStyle(fontSize: kBodyFont)),
+                  ],
+                ),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  ),
+                  child: Slider(
+                    value: clampedRadius,
+                    min: 6,
+                    max: 60,
+                    divisions: 54,
+                    label: clampedRadius.round().toString(),
+                    onChanged: (next) {
+                      setState(() {
+                        _radiusPx = next;
+                      });
+                      widget.onRadiusChanged(next);
+                    },
+                  ),
+                ),
+              ],
+              if (hasModeToggle) ...[
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: kChipH,
+                  child: SegmentedButton<DrawingTool>(
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      padding: MaterialStateProperty.all(
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                      textStyle: MaterialStateProperty.all(
+                        const TextStyle(fontSize: kBodyFont),
+                      ),
+                    ),
+                    segments: const [
+                      ButtonSegment<DrawingTool>(
+                        value: DrawingTool.areaEraser,
+                        label: Text('영역 지우개'),
+                      ),
+                      ButtonSegment<DrawingTool>(
+                        value: DrawingTool.strokeEraser,
+                        label: Text('획 지우개'),
+                      ),
+                    ],
+                    selected: {_mode!},
+                    onSelectionChanged: (next) {
+                      if (next.isEmpty) {
+                        return;
+                      }
+                      setState(() {
+                        _mode = next.first;
+                      });
+                      widget.onModeChanged!.call(next.first);
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: kGap),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(kButtonH),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(fontSize: kBodyFont),
+                  ),
+                  onPressed: () async {
+                    await widget.onClearPenOnly();
+                  },
+                  child: const Text('그리기만 지우기'),
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(kButtonH),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(fontSize: kBodyFont),
+                  ),
+                  onPressed: () async {
+                    await widget.onClearHighlighterOnly();
+                  },
+                  child: const Text('형광펜만 지우기'),
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(kButtonH),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(fontSize: kBodyFont),
+                  ),
+                  onPressed: () async {
+                    await widget.onClearAll();
+                  },
+                  child: const Text('전체 지우기'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
