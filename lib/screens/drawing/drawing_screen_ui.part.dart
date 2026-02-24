@@ -337,14 +337,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   IconButton(
                     onPressed: hasCurrentPageStrokes
-                        ? _handleClearCurrentPageAllStrokes
+                        ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
                     tooltip: '전체 지우기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
-                        ? _handleClearCurrentPageHighlighterStrokes
+                        ? _clearCurrentPageHighlighterStrokes
                         : null,
                     visualDensity: VisualDensity.compact,
                     constraints: const BoxConstraints.tightFor(
@@ -356,7 +356,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
-                        ? _handleClearCurrentPagePenStrokes
+                        ? _clearCurrentPagePenStrokes
                         : null,
                     visualDensity: VisualDensity.compact,
                     constraints: const BoxConstraints.tightFor(
@@ -571,9 +571,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ? DrawingTool.strokeEraser
               : DrawingTool.areaEraser,
           onModeChanged: _handleDrawingToolChanged,
-          onClearPenOnly: () => unawaited(_handleClearCurrentPagePenStrokes()),
-          onClearHighlighterOnly: () => unawaited(_handleClearCurrentPageHighlighterStrokes()),
-          onClearAll: () => unawaited(_handleClearCurrentPageAllStrokes()),
+          onClearPenOnly: _clearCurrentPagePenStrokes,
+          onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
+          onClearAll: _clearCurrentPageAllStrokes,
         ),
       );
     } finally {

@@ -18,9 +18,9 @@ class EraserSettingsPopup extends StatefulWidget {
   final ValueChanged<double> onRadiusChanged;
   final DrawingTool? mode;
   final ValueChanged<DrawingTool>? onModeChanged;
-  final VoidCallback onClearPenOnly;
-  final VoidCallback onClearHighlighterOnly;
-  final VoidCallback onClearAll;
+  final Future<void> Function() onClearPenOnly;
+  final Future<void> Function() onClearHighlighterOnly;
+  final Future<void> Function() onClearAll;
 
   @override
   State<EraserSettingsPopup> createState() => _EraserSettingsPopupState();
@@ -122,9 +122,8 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.tonal(
-                      onPressed: () {
-                        widget.onClearPenOnly();
-                        Navigator.of(context).pop();
+                      onPressed: () async {
+                        await widget.onClearPenOnly();
                       },
                       child: const Text('그리기만 지우기'),
                     ),
@@ -133,9 +132,8 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.tonal(
-                      onPressed: () {
-                        widget.onClearHighlighterOnly();
-                        Navigator.of(context).pop();
+                      onPressed: () async {
+                        await widget.onClearHighlighterOnly();
                       },
                       child: const Text('형광펜만 지우기'),
                     ),
@@ -144,9 +142,8 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: () {
-                        widget.onClearAll();
-                        Navigator.of(context).pop();
+                      onPressed: () async {
+                        await widget.onClearAll();
                       },
                       child: const Text('전체 지우기'),
                     ),

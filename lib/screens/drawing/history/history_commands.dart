@@ -168,6 +168,43 @@ class ClearToolKindCommand extends HistoryCommand {
   }
 }
 
+
+class BatchRemoveStrokesCommand extends HistoryCommand {
+  BatchRemoveStrokesCommand({
+    required this.page,
+    required List<String> strokeIds,
+    DateTime? timestamp,
+  }) : strokeIds = List<String>.from(strokeIds, growable: false),
+       super(timestamp: timestamp);
+
+  @override
+  final int page;
+  final List<String> strokeIds;
+  late List<DrawingStroke> _before;
+
+  @override
+  HistoryCommandType get type => HistoryCommandType.clearAll;
+
+  @override
+  void execute(DrawingCanvasController controller) {
+    _before = controller
+        .getStrokes(page)
+        .map((stroke) => stroke.deepCopy())
+        .toList(growable: false);
+    final targetIds = strokeIds.toSet();
+    final after = _before
+        .where((stroke) => !targetIds.contains(stroke.id))
+        .map((stroke) => stroke.deepCopy())
+        .toList(growable: false);
+    controller.restoreStrokes(page, after);
+  }
+
+  @override
+  void undo(DrawingCanvasController controller) {
+    controller.restoreStrokes(page, _before);
+  }
+}
+
 class BatchEraseCommand extends HistoryCommand {
   BatchEraseCommandItem _normalizeItem(
     BatchEraseCommandItem item,
