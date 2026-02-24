@@ -1602,6 +1602,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size pageSize,
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
+    const double kStrokeEraserHitRadiusPx = 10.0;
     if (_activeTool == DrawingTool.strokeEraser) {
       if (_activeStrokeEraserPointerId != event.pointer) {
         return;
@@ -1612,7 +1613,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       final radiusPagePx = _viewportDistanceToPageDistance(
         viewportLocal: event.localPosition,
-        viewportDistancePx: _areaEraserRadiusPx,
+        viewportDistancePx: kStrokeEraserHitRadiusPx,
         drawingLocalToPageLocal: drawingLocalToPageLocal,
       );
       final closestResult = _findClosestStrokeAtPageLocal(
