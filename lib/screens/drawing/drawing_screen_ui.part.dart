@@ -561,31 +561,55 @@ extension _DrawingScreenUi on _DrawingScreenState {
     }
     _isToolSettingsSheetOpen = true;
     try {
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: false,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              EraserSettingsPopup(
-                radiusPx: _areaEraserRadiusPx,
-                onRadiusChanged: _handleAreaEraserRadiusChanged,
-                mode: _activeTool == DrawingTool.strokeEraser
-                    ? DrawingTool.strokeEraser
-                    : DrawingTool.areaEraser,
-                onModeChanged: _handleDrawingToolChanged,
-                onClearPenOnly: _clearCurrentPagePenStrokes,
-                onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
-                onClearAll: _clearCurrentPageAllStrokes,
-              ),
-            ],
-          ),
+      await _showSettingsSheet(
+        child: EraserSettingsPopup(
+          radiusPx: _areaEraserRadiusPx,
+          onRadiusChanged: _handleAreaEraserRadiusChanged,
+          mode: _activeTool == DrawingTool.strokeEraser
+              ? DrawingTool.strokeEraser
+              : DrawingTool.areaEraser,
+          onModeChanged: _handleDrawingToolChanged,
+          onClearPenOnly: _clearCurrentPagePenStrokes,
+          onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
+          onClearAll: _clearCurrentPageAllStrokes,
         ),
       );
     } finally {
       _isToolSettingsSheetOpen = false;
     }
+  }
+
+  Future<void> _showSettingsSheet({required Widget child}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.55,
+          minChildSize: 0.35,
+          maxChildSize: 0.90,
+          builder: (context, scrollController) {
+            return Material(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              clipBehavior: Clip.antiAlias,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 16 + MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: child,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _closeToolSettingsSheetIfOpen() async {
@@ -604,42 +628,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final style = _activeStrokeStyleOrFallback;
     _isToolSettingsSheetOpen = true;
     try {
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: false,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PenSettingsPopup(
-                currentStyle: style,
-                recentColors: _recentArgb.map(Color.new).toList(growable: false),
-                standardPaletteColors: _standardPaletteArgb
-                    .map(Color.new)
-                    .toList(growable: false),
-                isStraightenModeEnabled: _isStraightenModeEnabled,
-                onStyleChanged: (next) {
-                  _updateActivePreset(next);
-                },
-                onPresetCommitted: (next) {
-                  _applyPresetWithRecentColor(next);
-                },
-                onStraightenModeChanged: (enabled) {
-                  _safeSetState(() {
-                    _isStraightenModeEnabled = enabled;
-                    if (!enabled) {
-                      _straightenSnappedAngleByPointer.clear();
-                      _straightenStartPageByPointer.clear();
-                    }
-                  });
-                },
-                onOpenAllColors: () {
-                  Navigator.of(context).pop();
-                  _openColorDialog();
-                },
-              ),
-            ],
-          ),
+      await _showSettingsSheet(
+        child: PenSettingsPopup(
+          currentStyle: style,
+          recentColors: _recentArgb.map(Color.new).toList(growable: false),
+          standardPaletteColors: _standardPaletteArgb
+              .map(Color.new)
+              .toList(growable: false),
+          isStraightenModeEnabled: _isStraightenModeEnabled,
+          onStyleChanged: (next) {
+            _updateActivePreset(next);
+          },
+          onPresetCommitted: (next) {
+            _applyPresetWithRecentColor(next);
+          },
+          onStraightenModeChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenModeEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+                _straightenStartPageByPointer.clear();
+              }
+            });
+          },
+          onOpenAllColors: () {
+            Navigator.of(context).pop();
+            _openColorDialog();
+          },
         ),
       );
     } finally {

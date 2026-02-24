@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
-const double kPad = 12;
 const double kGap = 8;
 const double kTitleFont = 16;
 const double kBodyFont = 13;
@@ -51,15 +50,13 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
     final hasModeToggle = _mode != null && widget.onModeChanged != null;
     final isStrokeEraserMode = _mode == DrawingTool.strokeEraser;
 
-    return Padding(
-      padding: const EdgeInsets.all(kPad),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
               Row(
                 children: [
                   Expanded(
@@ -87,11 +84,14 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
               if (!isStrokeEraserMode) ...[
                 Row(
                   children: [
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: CustomPaint(
-                        painter: _EraserBrushPreviewPainter(radiusPx: clampedRadius),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 110),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: CustomPaint(
+                          painter: _EraserBrushPreviewPainter(radiusPx: clampedRadius),
+                        ),
                       ),
                     ),
                     const SizedBox(width: kGap),
