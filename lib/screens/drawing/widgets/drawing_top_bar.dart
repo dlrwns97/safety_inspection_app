@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_detail_row.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_selection_row.dart';
@@ -20,7 +21,7 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
-    required this.activeDrawingTool,
+    required this.activeStrokeTool,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
@@ -43,10 +44,10 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final DrawingTool activeDrawingTool;
+  final StrokeToolKind activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
-  final ValueChanged<DrawingTool> onDrawingToolSelected;
+  final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
@@ -76,7 +77,7 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onDefectLongPress: onDefectLongPress,
                 onEquipmentSelected: onEquipmentSelected,
                 onEquipmentLongPress: onEquipmentLongPress,
-                activeDrawingTool: activeDrawingTool,
+                activeStrokeTool: activeStrokeTool,
                 canUndoDrawing: canUndoDrawing,
                 canRedoDrawing: canRedoDrawing,
                 onDrawingToolSelected: onDrawingToolSelected,

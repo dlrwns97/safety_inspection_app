@@ -94,23 +94,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPanCancel: _handleMovePanCancel,
           ),
         ),
-      if (_isFreeDrawMode && _isToolPanelOpen)
-        Positioned(
-          left: 12,
-          right: 12,
-          top: 12,
-          child: _buildStrokePresetPanel(),
-        ),
-      if (_isFreeDrawMode && !_isToolPanelOpen)
-        Positioned(
-          top: 12,
-          right: 12,
-          child: FloatingActionButton.small(
-            heroTag: 'tool-panel-open',
-            onPressed: () => _setToolPanelOpen(true),
-            child: const Icon(Icons.edit),
-          ),
-        ),
     ];
   }
 
@@ -529,37 +512,111 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }
 
 
+  Future<void> _selectToolAndOpenSettings(StrokeToolKind kind) async {
+    if (!mounted) {
+      return;
+    }
+    if (_isToolSettingsSheetOpen && _activeToolKindForToolbar == kind) {
+      return;
+    }
+
+    switch (kind) {
+      case StrokeToolKind.pen:
+      case StrokeToolKind.highlighter:
+        _activateStrokeKind(kind);
+        _handleDrawingToolChanged(DrawingTool.pen);
+        await _showPenSettingsPopup();
+        return;
+      case StrokeToolKind.eraser:
+        _handleDrawingToolChanged(DrawingTool.areaEraser);
+        await _showEraserSettingsPopup();
+        return;
+    }
+  }
+
+  void _activateStrokeKind(StrokeToolKind kind) {
+    final currentIndex = _activePresetIndex;
+    if (currentIndex != null && _presets[_clampPresetIndex(currentIndex)].kind == kind) {
+      return;
+    }
+    final index = _presets.indexWhere((style) => style.kind == kind);
+    if (index < 0) {
+      return;
+    }
+    _safeSetState(() {
+      _activePresetIndex = index;
+    });
+  }
+
+  Future<void> _showEraserSettingsPopup() async {
+    await _closeToolSettingsSheetIfOpen();
+    if (!mounted) {
+      return;
+    }
+    _isToolSettingsSheetOpen = true;
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => EraserSettingsPopup(
+          radiusPx: _areaEraserRadiusPx,
+          onRadiusChanged: _handleAreaEraserRadiusChanged,
+        ),
+      );
+    } finally {
+      _isToolSettingsSheetOpen = false;
+    }
+  }
+
+  Future<void> _closeToolSettingsSheetIfOpen() async {
+    if (!_isToolSettingsSheetOpen || !mounted) {
+      return;
+    }
+    await Navigator.of(context).maybePop();
+  }
+
+
   Future<void> _showPenSettingsPopup() async {
+    await _closeToolSettingsSheetIfOpen();
+    if (!mounted) {
+      return;
+    }
     final style = _activeStrokeStyleOrFallback;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => PenSettingsPopup(
-        currentStyle: style,
-        recentColors: _recentArgb.map(Color.new).toList(growable: false),
-        standardPaletteColors: _standardPaletteArgb.map(Color.new).toList(growable: false),
-        isStraightenModeEnabled: _isStraightenModeEnabled,
-        onStyleChanged: (next) {
-          _updateActivePreset(next);
-        },
-        onPresetCommitted: (next) {
-          _applyPresetWithRecentColor(next);
-        },
-        onStraightenModeChanged: (enabled) {
-          _safeSetState(() {
-            _isStraightenModeEnabled = enabled;
-            if (!enabled) {
-              _straightenSnappedAngleByPointer.clear();
-              _straightenStartPageByPointer.clear();
-            }
-          });
-        },
-        onOpenAllColors: () {
-          Navigator.of(context).pop();
-          _openColorDialog();
-        },
-      ),
-    );
+    _isToolSettingsSheetOpen = true;
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => PenSettingsPopup(
+          currentStyle: style,
+          recentColors: _recentArgb.map(Color.new).toList(growable: false),
+          standardPaletteColors: _standardPaletteArgb
+              .map(Color.new)
+              .toList(growable: false),
+          isStraightenModeEnabled: _isStraightenModeEnabled,
+          onStyleChanged: (next) {
+            _updateActivePreset(next);
+          },
+          onPresetCommitted: (next) {
+            _applyPresetWithRecentColor(next);
+          },
+          onStraightenModeChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenModeEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+                _straightenStartPageByPointer.clear();
+              }
+            });
+          },
+          onOpenAllColors: () {
+            Navigator.of(context).pop();
+            _openColorDialog();
+          },
+        ),
+      );
+    } finally {
+      _isToolSettingsSheetOpen = false;
+    }
   }
 
   Future<void> _openColorDialog() async {

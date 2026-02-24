@@ -53,6 +53,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_laye
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pen_settings_popup.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/eraser_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
@@ -153,6 +154,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
+  bool _isToolSettingsSheetOpen = false;
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   final Map<int, SpatialIndex> _strokeSpatialIndexByPage = <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
@@ -230,6 +232,14 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   StrokeStyle get _activeStrokeStyleOrFallback =>
       _activeStrokeStyle ?? _presets.first;
+
+  StrokeToolKind get _activeToolKindForToolbar {
+    if (_activeTool == DrawingTool.areaEraser ||
+        _activeTool == DrawingTool.strokeEraser) {
+      return StrokeToolKind.eraser;
+    }
+    return _activeStrokeStyleOrFallback.kind;
+  }
 
   void _setToolPanelOpen(bool value) =>
       _safeSetState(() => _isToolPanelOpen = value);
@@ -884,10 +894,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       _sidePanelEquipmentCategory = item;
     }),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
-    activeDrawingTool: _activeTool,
+    activeStrokeTool: _activeToolKindForToolbar,
     canUndoDrawing: _canUndoDrawing,
     canRedoDrawing: _canRedoDrawing,
-    onDrawingToolSelected: _handleDrawingToolChanged,
+    onDrawingToolSelected: _selectToolAndOpenSettings,
     onUndoDrawing: _handleUndoDrawing,
     onRedoDrawing: _handleRedoDrawing,
   );
