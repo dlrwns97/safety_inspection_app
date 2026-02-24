@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/highlighter_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
 
@@ -86,7 +87,8 @@ class LiveStrokePainter extends CustomPainter {
           devicePixelRatio != oldDelegate.devicePixelRatio;
     }
 
-    final currentLast = current.pointsNorm.isNotEmpty ? current.pointsNorm.last : null;
+    final currentLast =
+        current.pointsNorm.isNotEmpty ? current.pointsNorm.last : null;
     final previousLast =
         previous.pointsNorm.isNotEmpty ? previous.pointsNorm.last : null;
 
@@ -163,6 +165,12 @@ class LiveStrokePainter extends CustomPainter {
     var resolvedBlendMode = style.kind == StrokeToolKind.highlighter
         ? BlendMode.multiply
         : BlendMode.srcOver;
+    final useHighlighterEngine =
+        style.kind == StrokeToolKind.highlighter ||
+        style.variant == PenVariant.highlighter ||
+        style.variant == PenVariant.highlighterChisel ||
+        style.variant == PenVariant.marker ||
+        style.variant == PenVariant.markerChisel;
 
     switch (style.variant) {
       case PenVariant.fountainPen:
@@ -178,29 +186,30 @@ class LiveStrokePainter extends CustomPainter {
         break;
       case PenVariant.highlighterChisel:
       case PenVariant.markerChisel:
-        resolvedStrokeCap = StrokeCap.square;
-        resolvedStrokeJoin = StrokeJoin.bevel;
-        break;
       case PenVariant.highlighter:
-        resolvedBlendMode = BlendMode.multiply;
-        break;
       case PenVariant.marker:
-        resolvedBlendMode = BlendMode.srcOver;
+        if (!useHighlighterEngine) {
+          resolvedStrokeCap = HighlighterEngine.capForVariant(style.variant);
+          resolvedStrokeJoin = HighlighterEngine.joinForVariant(style.variant);
+          resolvedBlendMode = HighlighterEngine.blendForVariant(style.variant);
+        }
         break;
       case PenVariant.pen:
         break;
     }
 
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = resolvedStrokeWidth
-      ..strokeCap = resolvedStrokeCap
-      ..strokeJoin = resolvedStrokeJoin
-      ..blendMode = resolvedBlendMode
-      ..isAntiAlias = true
-      ..color = Color(style.argbColor).withValues(
-        alpha: _resolvedOpacity(style, strokeOpacity),
-      );
+    final paint = useHighlighterEngine
+        ? HighlighterEngine.paintForStyle(style, strokeOpacity)
+        : Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = resolvedStrokeCap
+          ..strokeJoin = resolvedStrokeJoin
+          ..blendMode = resolvedBlendMode
+          ..isAntiAlias = true
+          ..color = Color(style.argbColor).withValues(
+            alpha: _resolvedOpacity(style, strokeOpacity),
+          );
+    paint.strokeWidth = resolvedStrokeWidth;
     if (points.length == 1) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;

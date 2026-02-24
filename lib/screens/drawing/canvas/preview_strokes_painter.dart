@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/highlighter_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 
 class PreviewStrokesPainter extends CustomPainter {
@@ -123,6 +124,13 @@ class PreviewStrokesPainter extends CustomPainter {
     var join = StrokeJoin.round;
     var blendMode =
         style.kind == StrokeToolKind.highlighter ? BlendMode.multiply : BlendMode.srcOver;
+    final useHighlighterEngine =
+        style.kind == StrokeToolKind.highlighter ||
+        style.variant == PenVariant.highlighter ||
+        style.variant == PenVariant.highlighterChisel ||
+        style.variant == PenVariant.marker ||
+        style.variant == PenVariant.markerChisel;
+
     switch (style.variant) {
       case PenVariant.fountainPen:
         width *= 1.15;
@@ -137,25 +145,30 @@ class PreviewStrokesPainter extends CustomPainter {
         break;
       case PenVariant.highlighterChisel:
       case PenVariant.markerChisel:
-        cap = StrokeCap.square;
-        join = StrokeJoin.bevel;
-        break;
       case PenVariant.highlighter:
-        blendMode = BlendMode.multiply;
-        break;
       case PenVariant.marker:
-        blendMode = BlendMode.srcOver;
+        if (!useHighlighterEngine) {
+          cap = HighlighterEngine.capForVariant(style.variant);
+          join = HighlighterEngine.joinForVariant(style.variant);
+          blendMode = HighlighterEngine.blendForVariant(style.variant);
+        }
         break;
       case PenVariant.pen:
         break;
     }
-    final paint = Paint()
-      ..color = Color(style.argbColor).withValues(alpha: _resolvedOpacity(style, strokeOpacity))
-      ..strokeWidth = math.max(0.5, width)
-      ..strokeCap = cap
-      ..strokeJoin = join
-      ..style = PaintingStyle.stroke
-      ..blendMode = blendMode;
+
+    final paint = useHighlighterEngine
+        ? HighlighterEngine.paintForStyle(style, strokeOpacity)
+        : Paint()
+          ..color = Color(style.argbColor).withValues(
+            alpha: _resolvedOpacity(style, strokeOpacity),
+          )
+          ..strokeCap = cap
+          ..strokeJoin = join
+          ..style = PaintingStyle.stroke
+          ..blendMode = blendMode
+          ..isAntiAlias = true;
+    paint.strokeWidth = math.max(0.5, width);
     if (points.length == 1) {
       canvas.drawCircle(points.first, math.max(0.5, paint.strokeWidth / 2), paint);
       return;
