@@ -41,6 +41,7 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
   Widget build(BuildContext context) {
     final clampedRadius = _radiusPx.clamp(6.0, 60.0);
     final hasModeToggle = _mode != null && widget.onModeChanged != null;
+    final isStrokeEraserMode = _mode == DrawingTool.strokeEraser;
     final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return SafeArea(
@@ -71,25 +72,41 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Expanded(child: Text('크기')),
-                      Text('${clampedRadius.round()} px'),
-                    ],
-                  ),
-                  Slider(
-                    value: clampedRadius,
-                    min: 6,
-                    max: 60,
-                    divisions: 54,
-                    label: clampedRadius.round().toString(),
-                    onChanged: (next) {
-                      setState(() {
-                        _radiusPx = next;
-                      });
-                      widget.onRadiusChanged(next);
-                    },
-                  ),
+                  if (!isStrokeEraserMode) ...[
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: CustomPaint(
+                            painter: _EraserBrushPreviewPainter(radiusPx: clampedRadius),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('반경: ${clampedRadius.round()}px'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Expanded(child: Text('크기')),
+                        Text('${clampedRadius.round()} px'),
+                      ],
+                    ),
+                    Slider(
+                      value: clampedRadius,
+                      min: 6,
+                      max: 60,
+                      divisions: 54,
+                      label: clampedRadius.round().toString(),
+                      onChanged: (next) {
+                        setState(() {
+                          _radiusPx = next;
+                        });
+                        widget.onRadiusChanged(next);
+                      },
+                    ),
+                  ],
                   if (hasModeToggle) ...[
                     const SizedBox(height: 8),
                     SegmentedButton<DrawingTool>(
@@ -155,5 +172,34 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
         ),
       ),
     );
+  }
+}
+
+class _EraserBrushPreviewPainter extends CustomPainter {
+  const _EraserBrushPreviewPainter({required this.radiusPx});
+
+  final double radiusPx;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = (size.shortestSide / 2) - 2;
+    final previewRadius = radiusPx.clamp(1.0, maxRadius);
+
+    final fillPaint = Paint()
+      ..color = Colors.grey.withOpacity(0.18)
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = Colors.grey.shade700
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    canvas.drawCircle(center, previewRadius, fillPaint);
+    canvas.drawCircle(center, previewRadius, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _EraserBrushPreviewPainter oldDelegate) {
+    return oldDelegate.radiusPx != radiusPx;
   }
 }
