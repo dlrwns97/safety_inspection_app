@@ -33,28 +33,28 @@ class _PendingFreeDrawMove {
 class _AreaEraserSession {
   const _AreaEraserSession({
     required this.radius,
-    this.removedOriginalIds = const <String>{},
+    this.removedStrokeIds = const <String>{},
     this.processedStrokeIds = const <String>{},
     this.removedById = const <String, DrawingStroke>{},
     this.addedById = const <String, DrawingStroke>{},
   });
 
   final double radius;
-  final Set<String> removedOriginalIds;
+  final Set<String> removedStrokeIds;
   final Set<String> processedStrokeIds;
   final Map<String, DrawingStroke> removedById;
   final Map<String, DrawingStroke> addedById;
 
   _AreaEraserSession copyWith({
     double? radius,
-    Set<String>? removedOriginalIds,
+    Set<String>? removedStrokeIds,
     Set<String>? processedStrokeIds,
     Map<String, DrawingStroke>? removedById,
     Map<String, DrawingStroke>? addedById,
   }) {
     return _AreaEraserSession(
       radius: radius ?? this.radius,
-      removedOriginalIds: removedOriginalIds ?? this.removedOriginalIds,
+      removedStrokeIds: removedStrokeIds ?? this.removedStrokeIds,
       processedStrokeIds: processedStrokeIds ?? this.processedStrokeIds,
       removedById: removedById ?? this.removedById,
       addedById: addedById ?? this.addedById,
@@ -1925,27 +1925,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return double.infinity;
     }
 
+    final erasedMask = stroke.ensureErasedMask();
     final pageWidth = pageSize.width;
     final pageHeight = pageSize.height;
-    if (points.length == 1) {
-      final dx = points.first.dx * pageWidth - centerPx.dx;
-      final dy = points.first.dy * pageHeight - centerPx.dy;
-      return (dx * dx) + (dy * dy);
-    }
-
     var minDistanceSquared = double.infinity;
-    var prevX = points.first.dx * pageWidth;
-    var prevY = points.first.dy * pageHeight;
-    for (var i = 1; i < points.length; i += 1) {
-      final next = points[i];
-      final p1 = Offset(prevX, prevY);
-      final p2 = Offset(next.dx * pageWidth, next.dy * pageHeight);
-      final distanceSquared = _distanceSquaredToSegment(centerPx, p1, p2);
+
+    for (var i = 0; i < points.length; i += 1) {
+      if (erasedMask[i] != 0) {
+        continue;
+      }
+
+      final pointPx = Offset(points[i].dx * pageWidth, points[i].dy * pageHeight);
+      final pointDelta = pointPx - centerPx;
+      final pointDistanceSquared =
+          (pointDelta.dx * pointDelta.dx) + (pointDelta.dy * pointDelta.dy);
+      if (pointDistanceSquared < minDistanceSquared) {
+        minDistanceSquared = pointDistanceSquared;
+      }
+
+      if (i == 0 || erasedMask[i - 1] != 0) {
+        continue;
+      }
+      final prev = points[i - 1];
+      final p1 = Offset(prev.dx * pageWidth, prev.dy * pageHeight);
+      final distanceSquared = _distanceSquaredToSegment(centerPx, p1, pointPx);
       if (distanceSquared < minDistanceSquared) {
         minDistanceSquared = distanceSquared;
       }
-      prevX = p2.dx;
-      prevY = p2.dy;
     }
 
     return minDistanceSquared;
@@ -2191,7 +2197,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final removedById = Map<String, DrawingStroke>.from(session.removedById);
     final addedById = Map<String, DrawingStroke>.from(session.addedById);
-    final removedOriginalIds = Set<String>.from(session.removedOriginalIds);
+    final removedStrokeIds = Set<String>.from(session.removedStrokeIds);
     final processedStrokeIds = Set<String>.from(session.processedStrokeIds);
     final radiusSq = radiusPagePx * radiusPagePx;
 
@@ -2243,12 +2249,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             ? null
             : List<dynamic>.from(sourceStroke.erasedSegments!),
       );
-      removedOriginalIds.add(candidateId);
+      removedStrokeIds.add(candidateId);
       processedStrokeIds.add(candidateId);
     }
 
     return session.copyWith(
-      removedOriginalIds: removedOriginalIds,
+      removedStrokeIds: removedStrokeIds,
       processedStrokeIds: processedStrokeIds,
       removedById: removedById,
       addedById: addedById,
@@ -2697,9 +2703,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return confirmed == true;
   }
 
-  Future<void> _handleClearCurrentPageAllStrokes() async {
+  Future<void> _clearCurrentPageAllStrokes() async {
     final page = _currentPage;
-    if (_canvasController.getStrokes(page).isEmpty) {
+    final strokes = _canvasController.getStrokes(page);
+    if (strokes.isEmpty) {
       return;
     }
 
@@ -2707,26 +2714,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final removedCount = _canvasController.getStrokes(page).length;
+    final removedStrokeIds = strokes.map((stroke) => stroke.id).toList(growable: false);
     _safeSetState(() {
-      _historyManager.execute(ClearAllCommand(page: page), _canvasController);
+      _historyManager.execute(
+        BatchRemoveStrokesCommand(page: page, strokeIds: removedStrokeIds),
+        _canvasController,
+      );
       _syncStrokesByPageFromControllerPage(page);
       _updateDrawingHistoryAvailabilityState();
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearAll page=$page removed=$removedCount');
+      debugPrint('[Eraser] clearAll page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
+    if (_isToolSettingsSheetOpen && mounted) {
+      await Navigator.of(context).maybePop();
+    }
   }
 
-  Future<void> _handleClearCurrentPageHighlighterStrokes() async {
+  Future<void> _clearCurrentPageHighlighterStrokes() async {
     final page = _currentPage;
     final strokes = _canvasController.getStrokes(page);
-    final hasMatchingStroke = strokes.any(
-      (stroke) => stroke.style.kind == StrokeToolKind.highlighter,
-    );
-    if (!hasMatchingStroke) {
+    final removedStrokeIds = strokes
+        .where((stroke) => stroke.style.kind == StrokeToolKind.highlighter)
+        .map((stroke) => stroke.id)
+        .toList(growable: false);
+    if (removedStrokeIds.isEmpty) {
       return;
     }
     if (!await _confirmClear(
@@ -2736,11 +2750,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final removedCount =
-        strokes.where((stroke) => stroke.style.kind == StrokeToolKind.highlighter).length;
     _safeSetState(() {
       _historyManager.execute(
-        ClearToolKindCommand(page: page, kind: StrokeToolKind.highlighter),
+        BatchRemoveStrokesCommand(page: page, strokeIds: removedStrokeIds),
         _canvasController,
       );
       _syncStrokesByPageFromControllerPage(page);
@@ -2748,18 +2760,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearHighlighter page=$page removed=$removedCount');
+      debugPrint('[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
+    if (_isToolSettingsSheetOpen && mounted) {
+      await Navigator.of(context).maybePop();
+    }
   }
 
-  Future<void> _handleClearCurrentPagePenStrokes() async {
+  Future<void> _clearCurrentPagePenStrokes() async {
     final page = _currentPage;
     final strokes = _canvasController.getStrokes(page);
-    final hasMatchingStroke = strokes.any(
-      (stroke) => stroke.style.kind == StrokeToolKind.pen,
-    );
-    if (!hasMatchingStroke) {
+    final removedStrokeIds = strokes
+        .where((stroke) => stroke.style.kind == StrokeToolKind.pen)
+        .map((stroke) => stroke.id)
+        .toList(growable: false);
+    if (removedStrokeIds.isEmpty) {
       return;
     }
     if (!await _confirmClear(
@@ -2769,11 +2785,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final removedCount =
-        strokes.where((stroke) => stroke.style.kind == StrokeToolKind.pen).length;
     _safeSetState(() {
       _historyManager.execute(
-        ClearToolKindCommand(page: page, kind: StrokeToolKind.pen),
+        BatchRemoveStrokesCommand(page: page, strokeIds: removedStrokeIds),
         _canvasController,
       );
       _syncStrokesByPageFromControllerPage(page);
@@ -2781,9 +2795,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearPen page=$page removed=$removedCount');
+      debugPrint('[Eraser] clearPen page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
+    if (_isToolSettingsSheetOpen && mounted) {
+      await Navigator.of(context).maybePop();
+    }
   }
 
   void _syncStrokesByPageFromControllerPage(int page) {
