@@ -2295,6 +2295,25 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       normalized: normalized,
       destSize: destSize,
     );
+    final shouldRenderStraightPreview =
+        _isStraightenModeEnabled &&
+        (inProgressStroke.style.kind == StrokeToolKind.pen ||
+            inProgressStroke.style.kind == StrokeToolKind.highlighter);
+    if (shouldRenderStraightPreview) {
+      final startNorm = inProgressStroke.pointsNorm.first;
+      final newPoints = _buildStraightLinePointsNorm(
+        startNorm: startNorm,
+        endNorm: processedNormalized,
+        destSize: destSize,
+        photoScale: photoScale,
+      );
+      _recordFreeDrawPerfUiMutation();
+      inProgressStroke.pointsNorm
+        ..clear()
+        ..addAll(newPoints);
+      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
+      return;
+    }
     final candidates = shouldInterpolateFromLastPoint
         ? _interpolateNormalizedPoints(
             from: inProgressStroke.pointsNorm.last,
@@ -2328,6 +2347,50 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
       );
     }
+  }
+
+  List<Offset> _buildStraightLinePointsNorm({
+    required Offset startNorm,
+    required Offset endNorm,
+    required Size destSize,
+    required double photoScale,
+  }) {
+    if (destSize.width <= 0 || destSize.height <= 0) {
+      return <Offset>[startNorm, endNorm];
+    }
+
+    final startPage = Offset(
+      startNorm.dx * destSize.width,
+      startNorm.dy * destSize.height,
+    );
+    final endPage = Offset(
+      endNorm.dx * destSize.width,
+      endNorm.dy * destSize.height,
+    );
+    final distancePx = (endPage - startPage).distance;
+    final effectiveScale = math.max(photoScale, 1.0);
+    final stepPx = math.max(1.2 / effectiveScale, 0.5) * 2.0;
+    if (distancePx <= stepPx) {
+      return <Offset>[startNorm, endNorm];
+    }
+
+    final steps = math.max(1, (distancePx / stepPx).floor());
+    if (steps <= 1) {
+      return <Offset>[startNorm, endNorm];
+    }
+
+    final points = <Offset>[startNorm];
+    for (int i = 1; i < steps; i++) {
+      final t = i / steps;
+      points.add(
+        Offset(
+          startNorm.dx + (endNorm.dx - startNorm.dx) * t,
+          startNorm.dy + (endNorm.dy - startNorm.dy) * t,
+        ),
+      );
+    }
+    points.add(endNorm);
+    return points;
   }
 
   Offset _applyStraightenSamsungLike({
