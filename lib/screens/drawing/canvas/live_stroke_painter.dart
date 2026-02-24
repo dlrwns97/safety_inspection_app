@@ -1,9 +1,9 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
+import 'package:perfect_freehand/perfect_freehand.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
 
 /// Paints only the in-progress stroke as a live overlay above cached content.
@@ -16,6 +16,7 @@ class LiveStrokePainter extends CustomPainter {
 
   final DrawingStroke? liveStroke;
   final double devicePixelRatio;
+  static final Set<String> _debugLoggedStrokeIds = <String>{};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -33,7 +34,6 @@ class LiveStrokePainter extends CustomPainter {
       return;
     }
 
-    final paint = _buildPaint(stroke);
     final scaledPoints = points
         .map(
           (point) => Offset(point.dx * size.width, point.dy * size.height),
@@ -50,14 +50,25 @@ class LiveStrokePainter extends CustomPainter {
       while (end + 1 < scaledPoints.length && erasedMask[end + 1] == 0) {
         end += 1;
       }
-      if (start == end) {
-        canvas.drawPoints(ui.PointMode.points, <Offset>[scaledPoints[start]], paint);
-      } else {
-        final path = _buildPath(scaledPoints, start: start, end: end);
-        canvas.drawPath(path, paint);
-      }
+      final segmentPoints = scaledPoints.sublist(start, end + 1);
+      _drawSegment(canvas, stroke, segmentPoints);
       i = end;
     }
+  }
+
+  void _drawSegment(Canvas canvas, DrawingStroke stroke, List<Offset> points) {
+    final style = stroke.style;
+    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
+      debugPrint(
+        '[Drawing] LiveStrokePainter stroke=${stroke.id} '
+        'variant=${style.variant.name}',
+      );
+    }
+    if (style.kind == StrokeToolKind.pen) {
+      _drawPenSegment(canvas, style, stroke.opacity, points);
+      return;
+    }
+    _drawCenterlineSegment(canvas, style, stroke.opacity, points);
   }
 
   @override
@@ -94,25 +105,118 @@ class LiveStrokePainter extends CustomPainter {
     return tool == DrawingTool.strokeEraser || tool == DrawingTool.areaEraser;
   }
 
-  Path _buildPath(List<Offset> points, {required int start, required int end}) {
-    final path = Path()..moveTo(points[start].dx, points[start].dy);
-    for (var i = start + 1; i <= end; i += 1) {
-      path.lineTo(points[i].dx, points[i].dy);
+  void _drawPenSegment(
+    Canvas canvas,
+    StrokeStyle style,
+    double strokeOpacity,
+    List<Offset> points,
+  ) {
+    final resolvedOpacity = _resolvedOpacity(style, strokeOpacity);
+    if (points.length == 1) {
+      canvas.drawCircle(
+        points.first,
+        style.widthPx / 2,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true
+          ..color = Color(style.argbColor).withValues(alpha: resolvedOpacity),
+      );
+      return;
     }
-    return path;
+    final input = points
+        .map((point) => PointVector(point.dx, point.dy))
+        .toList(growable: false);
+    final outline = getStroke(input, options: PenEngine.optionsFor(style));
+    if (outline.isEmpty) {
+      return;
+    }
+    final path = Path()..moveTo(outline.first.dx, outline.first.dy);
+    for (var i = 0; i < outline.length - 1; i += 1) {
+      final p0 = outline[i];
+      final p1 = outline[i + 1];
+      path.quadraticBezierTo(
+        p0.dx,
+        p0.dy,
+        (p0.dx + p1.dx) / 2,
+        (p0.dy + p1.dy) / 2,
+      );
+    }
+    path.close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true
+        ..color = Color(style.argbColor).withValues(alpha: resolvedOpacity),
+    );
   }
 
-  Paint _buildPaint(DrawingStroke stroke) {
-    final baseColor = Color(stroke.style.argbColor);
-    final effectiveOpacity =
-        (stroke.style.opacity * stroke.opacity).clamp(0.0, 1.0).toDouble();
+  void _drawCenterlineSegment(
+    Canvas canvas,
+    StrokeStyle style,
+    double strokeOpacity,
+    List<Offset> points,
+  ) {
+    var resolvedStrokeWidth = style.widthPx;
+    var resolvedStrokeCap = StrokeCap.round;
+    var resolvedStrokeJoin = StrokeJoin.round;
+    var resolvedBlendMode = style.kind == StrokeToolKind.highlighter
+        ? BlendMode.multiply
+        : BlendMode.srcOver;
 
-    return Paint()
+    switch (style.variant) {
+      case PenVariant.fountainPen:
+        resolvedStrokeWidth *= 1.15;
+        break;
+      case PenVariant.calligraphyPen:
+        resolvedStrokeCap = StrokeCap.square;
+        resolvedStrokeJoin = StrokeJoin.bevel;
+        resolvedStrokeWidth *= 1.1;
+        break;
+      case PenVariant.pencil:
+        resolvedStrokeWidth *= 0.9;
+        break;
+      case PenVariant.highlighterChisel:
+      case PenVariant.markerChisel:
+        resolvedStrokeCap = StrokeCap.square;
+        resolvedStrokeJoin = StrokeJoin.bevel;
+        break;
+      case PenVariant.highlighter:
+        resolvedBlendMode = BlendMode.multiply;
+        break;
+      case PenVariant.marker:
+        resolvedBlendMode = BlendMode.srcOver;
+        break;
+      case PenVariant.pen:
+        break;
+    }
+
+    final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke.style.widthPx
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = resolvedStrokeWidth
+      ..strokeCap = resolvedStrokeCap
+      ..strokeJoin = resolvedStrokeJoin
+      ..blendMode = resolvedBlendMode
       ..isAntiAlias = true
-      ..color = baseColor.withValues(alpha: effectiveOpacity);
+      ..color = Color(style.argbColor).withValues(
+        alpha: _resolvedOpacity(style, strokeOpacity),
+      );
+    if (points.length == 1) {
+      canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
+      return;
+    }
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length; i += 1) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  double _resolvedOpacity(StrokeStyle style, double strokeOpacity) {
+    var alpha = (style.opacity * strokeOpacity).clamp(0.0, 1.0).toDouble();
+    if (style.variant == PenVariant.pencil) {
+      alpha *= 0.85;
+    }
+    return alpha.clamp(0.0, 1.0);
   }
 }

@@ -272,6 +272,13 @@ class _DrawingScreenState extends State<DrawingScreen>
     final normalizedIndex = _clampPresetIndex(index);
     _safeSetState(() {
       _presets[normalizedIndex] = next;
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] updateActivePreset index=$normalizedIndex '
+          'kind=${next.kind.name} variant=${next.variant.name} '
+          'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
+        );
+      }
     });
   }
 
@@ -284,6 +291,13 @@ class _DrawingScreenState extends State<DrawingScreen>
     final normalizedIndex = _clampPresetIndex(index);
     _safeSetState(() {
       _presets[normalizedIndex] = next;
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] applyPresetWithRecentColor index=$normalizedIndex '
+          'kind=${next.kind.name} variant=${next.variant.name} '
+          'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
+        );
+      }
       _recentArgb.remove(next.argbColor);
       _recentArgb.insert(0, next.argbColor);
       if (_recentArgb.length > 5) {

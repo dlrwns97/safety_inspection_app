@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 
@@ -60,6 +61,13 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
 
   void _applyStyle(StrokeStyle next) {
     setState(() => _style = next);
+    if (kDebugMode) {
+      debugPrint(
+        '[Drawing] PenSettingsPopup onStyleChanged '
+        'kind=${next.kind.name} variant=${next.variant.name} '
+        'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
+      );
+    }
     widget.onStyleChanged(next);
   }
 

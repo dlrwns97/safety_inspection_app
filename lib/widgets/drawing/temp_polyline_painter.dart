@@ -25,6 +25,7 @@ class TempPolylinePainter extends CustomPainter {
   static int _cachedBaseHash = 0;
   static int _cacheHit = 0;
   static int _cacheMiss = 0;
+  static final Set<String> _debugLoggedStrokeIds = <String>{};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -125,6 +126,9 @@ class TempPolylinePainter extends CustomPainter {
     final points = pointsNorm.map(toPageLocal).toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
     final style = stroke.style;
+    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
+      debugPrint('[Drawing] TempPolylinePainter stroke=${stroke.id} variant=${style.variant.name}');
+    }
 
     for (var i = 0; i < points.length; i += 1) {
       if (erasedMask[i] != 0) {
