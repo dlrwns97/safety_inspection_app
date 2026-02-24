@@ -216,6 +216,20 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     tooltip: '범위 지우개',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
+                  const SizedBox(width: 8),
+                  panelButton(
+                    icon: Icons.straighten,
+                    selected: _isStraightenModeEnabled,
+                    tooltip: '직교 모드',
+                    onTap: () {
+                      _safeSetState(() {
+                        _isStraightenModeEnabled = !_isStraightenModeEnabled;
+                        if (!_isStraightenModeEnabled) {
+                          _straightenLockedAngleRadByPointer.clear();
+                        }
+                      });
+                    },
+                  ),
                 ],
               ),
               if (isAreaEraserSelected) ...[

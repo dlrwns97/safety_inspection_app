@@ -16,12 +16,14 @@ class _PendingAreaEraserMove {
 
 class _PendingFreeDrawMove {
   const _PendingFreeDrawMove({
+    required this.pointerId,
     required this.pageNumber,
     required this.pageSize,
     required this.normalized,
     required this.photoScale,
   });
 
+  final int pointerId;
   final int pageNumber;
   final Size pageSize;
   final Offset normalized;
@@ -1335,7 +1337,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         previousTouchCount < 2 && touchCount >= 2;
     if (becameTwoFingerTouch) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
-        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+        _handleFreeDrawPointerEnd(
+          _inProgressStroke?.pageNumber ?? _currentPage,
+          pointerId: event.pointer,
+        );
       }
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -1455,7 +1460,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (_activeStrokeStyle == null) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
-        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+        _handleFreeDrawPointerEnd(
+          _inProgressStroke?.pageNumber ?? _currentPage,
+          pointerId: event.pointer,
+        );
       }
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -1534,6 +1542,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     _queueFreeDrawMove(
+      pointerId: event.pointer,
       pageNumber: pageNumber,
       pageSize: pageSize,
       normalized: norm,
@@ -1614,7 +1623,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (wasStylus) {
       _flushPendingFreeDrawMove();
       if (_isFreeDrawConsumingOneFinger) {
-        _handleFreeDrawPointerEnd(pageNumber);
+        _handleFreeDrawPointerEnd(pageNumber, pointerId: event.pointer);
       }
       _safeSetState(() {
         _isFreeDrawConsumingOneFinger = false;
@@ -1667,9 +1676,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeStylusPointerId == event.pointer) {
       _activeStylusPointerId = null;
     }
+    _straightenLockedAngleRadByPointer.remove(event.pointer);
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgressStroke != null) {
-        _handleFreeDrawPointerEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+        _handleFreeDrawPointerEnd(
+          _inProgressStroke?.pageNumber ?? _currentPage,
+          pointerId: event.pointer,
+        );
       }
       _safeSetState(() {});
       return;
@@ -2188,12 +2201,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _queueFreeDrawMove({
+    required int pointerId,
     required int pageNumber,
     required Size pageSize,
     required Offset normalized,
     required double photoScale,
   }) {
     _pendingFreeDrawMove = _PendingFreeDrawMove(
+      pointerId: pointerId,
       pageNumber: pageNumber,
       pageSize: pageSize,
       normalized: normalized,
@@ -2220,6 +2235,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pending.normalized,
       pending.pageNumber,
       pending.pageSize,
+      pointerId: pending.pointerId,
       photoScale: pending.photoScale,
       shouldInterpolateFromLastPoint: true,
     );
@@ -2257,6 +2273,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Offset normalized,
     int pageNumber,
     Size destSize, {
+    required int pointerId,
     required double photoScale,
     bool shouldInterpolateFromLastPoint = false,
   }) {
@@ -2268,14 +2285,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         inProgressStroke.pageNumber != pageNumber) {
       return;
     }
+    if (_activeStylusPointerId != null && _activeStylusPointerId != pointerId) {
+      return;
+    }
+    final processedNormalized = _applyStraightenModeToPoint(
+      pointerId: pointerId,
+      inProgressStroke: inProgressStroke,
+      normalized: normalized,
+      destSize: destSize,
+    );
     final candidates = shouldInterpolateFromLastPoint
         ? _interpolateNormalizedPoints(
             from: inProgressStroke.pointsNorm.last,
-            to: normalized,
+            to: processedNormalized,
             pageSize: destSize,
             photoScale: photoScale,
           )
-        : <Offset>[normalized];
+        : <Offset>[processedNormalized];
 
     const double thresholdScreenPx = 1.2;
     final effectiveScale = (photoScale <= 0) ? 1.0 : photoScale;
@@ -2303,7 +2329,99 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
   }
 
-  void _handleFreeDrawPointerEnd(int pageNumber) {
+  Offset _applyStraightenModeToPoint({
+    required int pointerId,
+    required DrawingStroke inProgressStroke,
+    required Offset normalized,
+    required Size destSize,
+  }) {
+    final shouldApply =
+        _isStraightenModeEnabled &&
+        (inProgressStroke.style.kind == StrokeToolKind.pen ||
+            inProgressStroke.style.kind == StrokeToolKind.highlighter);
+    if (!shouldApply) {
+      return normalized;
+    }
+    if (destSize.width <= 0 || destSize.height <= 0) {
+      return normalized;
+    }
+    if (inProgressStroke.pointsNorm.isEmpty) {
+      return normalized;
+    }
+
+    final startNorm = inProgressStroke.pointsNorm.first;
+    final startPage = Offset(
+      startNorm.dx * destSize.width,
+      startNorm.dy * destSize.height,
+    );
+    final rawPage = Offset(
+      normalized.dx * destSize.width,
+      normalized.dy * destSize.height,
+    );
+    final vector = rawPage - startPage;
+    final dragDistance = vector.distance;
+    if (dragDistance <= 0) {
+      return normalized;
+    }
+
+    double signedDirectionFromAxis(double angle) {
+      final normalizedAngle = ((angle + math.pi) % (2 * math.pi)) - math.pi;
+      if (normalizedAngle > math.pi / 2) {
+        return normalizedAngle - math.pi;
+      }
+      if (normalizedAngle < -math.pi / 2) {
+        return normalizedAngle + math.pi;
+      }
+      return normalizedAngle;
+    }
+
+    const angleBuckets = <double>[
+      0,
+      math.pi / 4,
+      math.pi / 2,
+      3 * math.pi / 4,
+      math.pi,
+    ];
+
+    final lockedAngle = _straightenLockedAngleRadByPointer[pointerId];
+    double snappedAbsAngle = lockedAngle ?? 0;
+    if (lockedAngle == null) {
+      final angle = math.atan2(vector.dy, vector.dx);
+      final axisAngle = (angle.abs()) % math.pi;
+      var bestAngle = angleBuckets.first;
+      var bestDelta = (axisAngle - bestAngle).abs();
+      for (final bucket in angleBuckets.skip(1)) {
+        final delta = (axisAngle - bucket).abs();
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestAngle = bucket;
+        }
+      }
+      snappedAbsAngle = bestAngle;
+      if (dragDistance >= _DrawingScreenState._kStraightenLockThresholdPx) {
+        _straightenLockedAngleRadByPointer[pointerId] = snappedAbsAngle;
+      }
+    }
+
+    final signedDirection = signedDirectionFromAxis(math.atan2(vector.dy, vector.dx));
+    final signedSnapped = signedDirection >= 0 ? snappedAbsAngle : -snappedAbsAngle;
+    final directionUnit = Offset(math.cos(signedSnapped), math.sin(signedSnapped));
+    final t = math.max(0.0, vector.dx * directionUnit.dx + vector.dy * directionUnit.dy);
+    final snappedPage = Offset(
+      startPage.dx + directionUnit.dx * t,
+      startPage.dy + directionUnit.dy * t,
+    );
+    return Offset(
+      snappedPage.dx / destSize.width,
+      snappedPage.dy / destSize.height,
+    );
+  }
+
+  void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
+    _straightenLockedAngleRadByPointer.remove(pointerId);
+    if (_activeStylusPointerId == pointerId) {
+      _activeStylusPointerId = null;
+    }
     _handleFreeDrawEnd(pageNumber);
   }
 
