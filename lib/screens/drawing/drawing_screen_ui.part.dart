@@ -225,7 +225,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
                         if (!_isStraightenModeEnabled) {
-                          _straightenLockedAngleRadByPointer.clear();
+                          _straightenSnappedAngleByPointer.clear();
+                          _straightenStartPageByPointer.clear();
                         }
                       });
                     },
