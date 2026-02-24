@@ -135,6 +135,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};
   int? _activeStylusPointerId;
+  bool _isStraightenModeEnabled = false;
+  final Map<int, double> _straightenLockedAngleRadByPointer = <int, double>{};
+  static const double _kStraightenLockThresholdPx = 8.0;
   bool _isFreeDrawConsumingOneFinger = false;
   PhotoViewControllerValue? _navStartValue;
   int? _navStartPage;
