@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 class TempPolylinePainter extends CustomPainter {
@@ -179,51 +180,7 @@ class TempPolylinePainter extends CustomPainter {
   }
 
   StrokeOptions _optionsForPen(StrokeStyle style) {
-    final size = style.widthPx;
-
-    switch (style.variant) {
-      case PenVariant.fountainPen:
-        return StrokeOptions(
-          size: size,
-          thinning: 0.55,
-          smoothing: 0.75,
-          streamline: 0.70,
-          simulatePressure: true,
-          start: StrokeEndOptions.start(cap: true),
-          end: StrokeEndOptions.end(cap: true),
-        );
-      case PenVariant.calligraphyPen:
-        return StrokeOptions(
-          size: size,
-          thinning: 0.75,
-          smoothing: 0.55,
-          streamline: 0.60,
-          simulatePressure: true,
-          start: StrokeEndOptions.start(cap: true),
-          end: StrokeEndOptions.end(cap: true),
-        );
-      case PenVariant.pencil:
-        return StrokeOptions(
-          size: size * 0.95,
-          thinning: 0.35,
-          smoothing: 0.40,
-          streamline: 0.35,
-          simulatePressure: true,
-          start: StrokeEndOptions.start(cap: true),
-          end: StrokeEndOptions.end(cap: true),
-        );
-      case PenVariant.pen:
-      default:
-        return StrokeOptions(
-          size: size,
-          thinning: 0.60,
-          smoothing: 0.65,
-          streamline: 0.60,
-          simulatePressure: true,
-          start: StrokeEndOptions.start(cap: true),
-          end: StrokeEndOptions.end(cap: true),
-        );
-    }
+    return PenEngine.optionsFor(style);
   }
 
   double _resolvedPenOpacity(StrokeStyle style) {
