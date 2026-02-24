@@ -52,6 +52,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/pen_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
@@ -257,8 +258,8 @@ class _DrawingScreenState extends State<DrawingScreen>
     _safeSetState(() {
       _recentArgb.remove(argb);
       _recentArgb.insert(0, argb);
-      if (_recentArgb.length > 10) {
-        _recentArgb.removeRange(10, _recentArgb.length);
+      if (_recentArgb.length > 5) {
+        _recentArgb.removeRange(5, _recentArgb.length);
       }
     });
   }
@@ -271,6 +272,23 @@ class _DrawingScreenState extends State<DrawingScreen>
     final normalizedIndex = _clampPresetIndex(index);
     _safeSetState(() {
       _presets[normalizedIndex] = next;
+    });
+  }
+
+
+  void _applyPresetWithRecentColor(StrokeStyle next) {
+    final index = _activePresetIndex;
+    if (index == null) {
+      return;
+    }
+    final normalizedIndex = _clampPresetIndex(index);
+    _safeSetState(() {
+      _presets[normalizedIndex] = next;
+      _recentArgb.remove(next.argbColor);
+      _recentArgb.insert(0, next.argbColor);
+      if (_recentArgb.length > 5) {
+        _recentArgb.removeRange(5, _recentArgb.length);
+      }
     });
   }
 
