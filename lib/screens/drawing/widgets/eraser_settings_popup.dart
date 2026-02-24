@@ -19,6 +19,7 @@ class EraserSettingsPopup extends StatefulWidget {
     required this.onClearAll,
     this.mode,
     this.onModeChanged,
+    this.onClose,
   });
 
   final double radiusPx;
@@ -28,6 +29,7 @@ class EraserSettingsPopup extends StatefulWidget {
   final Future<void> Function() onClearPenOnly;
   final Future<void> Function() onClearHighlighterOnly;
   final Future<void> Function() onClearAll;
+  final VoidCallback? onClose;
 
   @override
   State<EraserSettingsPopup> createState() => _EraserSettingsPopupState();
@@ -50,10 +52,7 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
     final hasModeToggle = _mode != null && widget.onModeChanged != null;
     final isStrokeEraserMode = _mode == DrawingTool.strokeEraser;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
+    return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -72,7 +71,7 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                     width: 32,
                     height: 32,
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: widget.onClose,
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.close, size: 18),
                       tooltip: '닫기',
@@ -209,9 +208,7 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
                 ),
               ),
             ],
-          ),
-        ),
-    );
+          );
   }
 }
 

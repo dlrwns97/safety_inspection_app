@@ -54,6 +54,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_part
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pen_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/eraser_settings_popup.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/settings_popover.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
@@ -157,7 +158,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
-  bool _isToolSettingsSheetOpen = false;
+  final SettingsPopoverController _settingsPopover = SettingsPopoverController();
+  final LayerLink _penLink = LayerLink();
+  final LayerLink _highlighterLink = LayerLink();
+  final LayerLink _eraserLink = LayerLink();
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   final Map<int, SpatialIndex> _strokeSpatialIndexByPage = <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
@@ -669,6 +673,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _resetPdfViewControllers();
     _transformationController.dispose();
     _sidePanelController.dispose();
+    _settingsPopover.hide();
     super.dispose();
   }
 
@@ -903,6 +908,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     onDrawingToolSelected: _selectToolAndOpenSettings,
     onUndoDrawing: _handleUndoDrawing,
     onRedoDrawing: _handleRedoDrawing,
+    penToolLink: _penLink,
+    highlighterToolLink: _highlighterLink,
+    eraserToolLink: _eraserLink,
   );
   CanvasMarkerLayer _buildMarkerLayer({
     required Widget child,

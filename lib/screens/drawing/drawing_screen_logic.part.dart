@@ -2729,8 +2729,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       debugPrint('[Eraser] clearAll page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
-    if (_isToolSettingsSheetOpen && mounted) {
-      await Navigator.of(context).maybePop();
+    if (_settingsPopover.isShown) {
+      _settingsPopover.hide();
     }
   }
 
@@ -2764,8 +2764,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       debugPrint('[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
-    if (_isToolSettingsSheetOpen && mounted) {
-      await Navigator.of(context).maybePop();
+    if (_settingsPopover.isShown) {
+      _settingsPopover.hide();
     }
   }
 
@@ -2799,8 +2799,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       debugPrint('[Eraser] clearPen page=$page removed=${removedStrokeIds.length}');
     }
     _requestPersistDrawing();
-    if (_isToolSettingsSheetOpen && mounted) {
-      await Navigator.of(context).maybePop();
+    if (_settingsPopover.isShown) {
+      _settingsPopover.hide();
     }
   }
 

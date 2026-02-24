@@ -27,6 +27,9 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onDrawingToolSelected,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
+    this.penToolLink,
+    this.highlighterToolLink,
+    this.eraserToolLink,
   });
 
   static const double _toolBarHeight = 56.0;
@@ -50,6 +53,9 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
+  final LayerLink? penToolLink;
+  final LayerLink? highlighterToolLink;
+  final LayerLink? eraserToolLink;
 
   @override
   Size get preferredSize => const Size.fromHeight(_toolBarHeight);
@@ -83,6 +89,9 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
                 onDrawingToolSelected: onDrawingToolSelected,
                 onUndoDrawing: onUndoDrawing,
                 onRedoDrawing: onRedoDrawing,
+                penToolLink: penToolLink,
+                highlighterToolLink: highlighterToolLink,
+                eraserToolLink: eraserToolLink,
               ),
       ),
     );

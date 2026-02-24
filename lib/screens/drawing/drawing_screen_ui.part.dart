@@ -454,7 +454,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
                 IconButton(
-                  onPressed: canAdjustStrokeStyle ? _showPenSettingsPopup : null,
+                  onPressed: canAdjustStrokeStyle ? _showPenSettingsPopover : null,
                   icon: const Icon(Icons.tune),
                   tooltip: '펜 설정',
                 ),
@@ -519,7 +519,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (kDebugMode) {
       debugPrint('TOOL change: $kind');
     }
-    if (_isToolSettingsSheetOpen && _activeToolKindForToolbar == kind) {
+    if (_settingsPopover.isShown && _activeToolKindForToolbar == kind) {
       return;
     }
 
@@ -528,14 +528,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
       case StrokeToolKind.highlighter:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
-        await _showPenSettingsPopup();
+        _showPenSettingsPopover();
         return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
             ? DrawingTool.strokeEraser
             : DrawingTool.areaEraser;
         _handleDrawingToolChanged(nextEraserTool);
-        await _showEraserSettingsPopup();
+        _showEraserSettingsPopover();
         return;
     }
   }
@@ -554,112 +554,67 @@ extension _DrawingScreenUi on _DrawingScreenState {
     });
   }
 
-  Future<void> _showEraserSettingsPopup() async {
-    await _closeToolSettingsSheetIfOpen();
+  void _showPopover({required LayerLink link, required Widget child}) {
+    _settingsPopover.show(context: context, link: link, child: child);
+  }
+
+  void _showEraserSettingsPopover() {
     if (!mounted) {
       return;
     }
-    _isToolSettingsSheetOpen = true;
-    try {
-      await _showSettingsSheet(
-        child: EraserSettingsPopup(
-          radiusPx: _areaEraserRadiusPx,
-          onRadiusChanged: _handleAreaEraserRadiusChanged,
-          mode: _activeTool == DrawingTool.strokeEraser
-              ? DrawingTool.strokeEraser
-              : DrawingTool.areaEraser,
-          onModeChanged: _handleDrawingToolChanged,
-          onClearPenOnly: _clearCurrentPagePenStrokes,
-          onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
-          onClearAll: _clearCurrentPageAllStrokes,
-        ),
-      );
-    } finally {
-      _isToolSettingsSheetOpen = false;
-    }
-  }
-
-  Future<void> _showSettingsSheet({required Widget child}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.55,
-          minChildSize: 0.35,
-          maxChildSize: 0.90,
-          builder: (context, scrollController) {
-            return Material(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              clipBehavior: Clip.antiAlias,
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                  bottom: 16 + MediaQuery.viewInsetsOf(context).bottom,
-                ),
-                child: child,
-              ),
-            );
-          },
-        );
-      },
+    _showPopover(
+      link: _eraserLink,
+      child: EraserSettingsPopup(
+        radiusPx: _areaEraserRadiusPx,
+        onRadiusChanged: _handleAreaEraserRadiusChanged,
+        mode: _activeTool == DrawingTool.strokeEraser
+            ? DrawingTool.strokeEraser
+            : DrawingTool.areaEraser,
+        onModeChanged: _handleDrawingToolChanged,
+        onClearPenOnly: _clearCurrentPagePenStrokes,
+        onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
+        onClearAll: _clearCurrentPageAllStrokes,
+        onClose: _settingsPopover.hide,
+      ),
     );
   }
 
-  Future<void> _closeToolSettingsSheetIfOpen() async {
-    if (!_isToolSettingsSheetOpen || !mounted) {
-      return;
-    }
-    await Navigator.of(context).maybePop();
-  }
-
-
-  Future<void> _showPenSettingsPopup() async {
-    await _closeToolSettingsSheetIfOpen();
+  void _showPenSettingsPopover() {
     if (!mounted) {
       return;
     }
     final style = _activeStrokeStyleOrFallback;
-    _isToolSettingsSheetOpen = true;
-    try {
-      await _showSettingsSheet(
-        child: PenSettingsPopup(
-          currentStyle: style,
-          recentColors: _recentArgb.map(Color.new).toList(growable: false),
-          standardPaletteColors: _standardPaletteArgb
-              .map(Color.new)
-              .toList(growable: false),
-          isStraightenModeEnabled: _isStraightenModeEnabled,
-          onStyleChanged: (next) {
-            _updateActivePreset(next);
-          },
-          onPresetCommitted: (next) {
-            _applyPresetWithRecentColor(next);
-          },
-          onStraightenModeChanged: (enabled) {
-            _safeSetState(() {
-              _isStraightenModeEnabled = enabled;
-              if (!enabled) {
-                _straightenSnappedAngleByPointer.clear();
-                _straightenStartPageByPointer.clear();
-              }
-            });
-          },
-          onOpenAllColors: () {
-            Navigator.of(context).pop();
-            _openColorDialog();
-          },
-        ),
-      );
-    } finally {
-      _isToolSettingsSheetOpen = false;
-    }
+    _showPopover(
+      link: style.kind == StrokeToolKind.highlighter ? _highlighterLink : _penLink,
+      child: PenSettingsPopup(
+        currentStyle: style,
+        recentColors: _recentArgb.map(Color.new).toList(growable: false),
+        standardPaletteColors: _standardPaletteArgb
+            .map(Color.new)
+            .toList(growable: false),
+        isStraightenModeEnabled: _isStraightenModeEnabled,
+        onStyleChanged: (next) {
+          _updateActivePreset(next);
+        },
+        onPresetCommitted: (next) {
+          _applyPresetWithRecentColor(next);
+        },
+        onStraightenModeChanged: (enabled) {
+          _safeSetState(() {
+            _isStraightenModeEnabled = enabled;
+            if (!enabled) {
+              _straightenSnappedAngleByPointer.clear();
+              _straightenStartPageByPointer.clear();
+            }
+          });
+        },
+        onOpenAllColors: () {
+          _settingsPopover.hide();
+          _openColorDialog();
+        },
+        onClose: _settingsPopover.hide,
+      ),
+    );
   }
 
   Future<void> _openColorDialog() async {
