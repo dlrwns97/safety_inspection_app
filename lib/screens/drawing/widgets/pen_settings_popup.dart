@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 
-const double kPad = 12;
 const double kGap = 8;
 const double kTitleFont = 16;
 const double kBodyFont = 13;
@@ -116,106 +115,106 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(kPad),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(10),
-              ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
-          const SizedBox(height: kGap),
-          Text(
-            '펜 설정',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: kTitleFont),
-          ),
-          const SizedBox(height: kGap),
-          _PenPreview(style: _style),
-          if (_style.kind == StrokeToolKind.pen) ...[
-            const SizedBox(height: kGap),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final variant in penVariants)
-                  SizedBox(
-                    height: kChipH,
-                    child: ChoiceChip(
-                      label: Text(variant.name, style: const TextStyle(fontSize: kBodyFont)),
-                      selected: _style.variant == variant,
-                      visualDensity: VisualDensity.compact,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      onSelected: (_) => _applyStyle(_style.copyWith(variant: variant)),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          const SizedBox(height: kGap),
-          _CompactSliderRow(
-            label: '두께',
-            valueLabel: '${_style.widthPx.round()}',
-            slider: Slider(
-              min: 1,
-              max: 48,
-              divisions: 47,
-              value: _style.widthPx.clamp(1, 48),
-              onChanged: (v) => _applyStyle(_style.copyWith(widthPx: v)),
-            ),
-          ),
-          if (_style.kind == StrokeToolKind.highlighter)
-            _CompactSliderRow(
-              label: '투명도',
-              valueLabel: '${(_style.opacity * 100).round()}%',
-              slider: Slider(
-                min: 0.05,
-                max: 1,
-                value: _style.opacity.clamp(0.05, 1.0),
-                onChanged: (v) => _applyStyle(_style.copyWith(opacity: v)),
-              ),
-            ),
+        ),
+        const SizedBox(height: kGap),
+        Text(
+          '펜 설정',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: kTitleFont),
+        ),
+        const SizedBox(height: kGap),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 110),
+          child: _PenPreview(style: _style),
+        ),
+        if (_style.kind == StrokeToolKind.pen) ...[
           const SizedBox(height: kGap),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final paletteColor in widget.standardPaletteColors.take(8))
-                colorChip(paletteColor),
-              if (widget.recentColors.isNotEmpty) ...widget.recentColors.map(colorChip),
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: widget.onOpenAllColors,
-                  icon: const Icon(Icons.colorize, size: 18),
-                  tooltip: '색상 선택',
+              for (final variant in penVariants)
+                SizedBox(
+                  height: kChipH,
+                  child: ChoiceChip(
+                    label: Text(variant.name, style: const TextStyle(fontSize: kBodyFont)),
+                    selected: _style.variant == variant,
+                    visualDensity: VisualDensity.compact,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    onSelected: (_) => _applyStyle(_style.copyWith(variant: variant)),
+                  ),
                 ),
-              ),
             ],
           ),
-          const SizedBox(height: 2),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: const Text('직교 모드', style: TextStyle(fontSize: kBodyFont)),
-            value: _isStraightenModeEnabled,
-            onChanged: (enabled) {
-              setState(() => _isStraightenModeEnabled = enabled);
-              widget.onStraightenModeChanged(enabled);
-            },
-          ),
         ],
-      ),
+        const SizedBox(height: kGap),
+        _CompactSliderRow(
+          label: '두께',
+          valueLabel: '${_style.widthPx.round()}',
+          slider: Slider(
+            min: 1,
+            max: 48,
+            divisions: 47,
+            value: _style.widthPx.clamp(1, 48),
+            onChanged: (v) => _applyStyle(_style.copyWith(widthPx: v)),
+          ),
+        ),
+        if (_style.kind == StrokeToolKind.highlighter)
+          _CompactSliderRow(
+            label: '투명도',
+            valueLabel: '${(_style.opacity * 100).round()}%',
+            slider: Slider(
+              min: 0.05,
+              max: 1,
+              value: _style.opacity.clamp(0.05, 1.0),
+              onChanged: (v) => _applyStyle(_style.copyWith(opacity: v)),
+            ),
+          ),
+        const SizedBox(height: kGap),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final paletteColor in widget.standardPaletteColors.take(8))
+              colorChip(paletteColor),
+            if (widget.recentColors.isNotEmpty) ...widget.recentColors.map(colorChip),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                onPressed: widget.onOpenAllColors,
+                icon: const Icon(Icons.colorize, size: 18),
+                tooltip: '색상 선택',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: const Text('직교 모드', style: TextStyle(fontSize: kBodyFont)),
+          value: _isStraightenModeEnabled,
+          onChanged: (enabled) {
+            setState(() => _isStraightenModeEnabled = enabled);
+            widget.onStraightenModeChanged(enabled);
+          },
+        ),
+      ],
     );
   }
 }
