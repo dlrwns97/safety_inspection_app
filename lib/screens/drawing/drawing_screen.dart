@@ -129,6 +129,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   int? _eraserCursorPageNumber;
   int? _activeAreaEraserPointerId;
   _AreaEraserSession? _activeAreaEraserSession;
+  int? _activeStrokeEraserPointerId;
+  final Set<String> _erasedStrokeIdsThisDrag = <String>{};
+  int _erasedStrokeCountThisDrag = 0;
   _PendingAreaEraserMove? _pendingAreaEraserMove;
   final List<_PendingAreaEraserMove> _areaEraserPath =
       <_PendingAreaEraserMove>[];

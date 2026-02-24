@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
-class EraserSettingsPopup extends StatelessWidget {
+class EraserSettingsPopup extends StatefulWidget {
   const EraserSettingsPopup({
     super.key,
     required this.radiusPx,
@@ -23,9 +23,24 @@ class EraserSettingsPopup extends StatelessWidget {
   final VoidCallback onClearAll;
 
   @override
+  State<EraserSettingsPopup> createState() => _EraserSettingsPopupState();
+}
+
+class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
+  late double _radiusPx;
+  DrawingTool? _mode;
+
+  @override
+  void initState() {
+    super.initState();
+    _radiusPx = widget.radiusPx;
+    _mode = widget.mode;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final clampedRadius = radiusPx.clamp(6.0, 60.0);
-    final hasModeToggle = mode != null && onModeChanged != null;
+    final clampedRadius = _radiusPx.clamp(6.0, 60.0);
+    final hasModeToggle = _mode != null && widget.onModeChanged != null;
     final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return SafeArea(
@@ -68,7 +83,12 @@ class EraserSettingsPopup extends StatelessWidget {
                     max: 60,
                     divisions: 54,
                     label: clampedRadius.round().toString(),
-                    onChanged: onRadiusChanged,
+                    onChanged: (next) {
+                      setState(() {
+                        _radiusPx = next;
+                      });
+                      widget.onRadiusChanged(next);
+                    },
                   ),
                   if (hasModeToggle) ...[
                     const SizedBox(height: 8),
@@ -84,12 +104,15 @@ class EraserSettingsPopup extends StatelessWidget {
                           label: Text('획 지우개'),
                         ),
                       ],
-                      selected: {mode!},
+                      selected: {_mode!},
                       onSelectionChanged: (next) {
                         if (next.isEmpty) {
                           return;
                         }
-                        onModeChanged!.call(next.first);
+                        setState(() {
+                          _mode = next.first;
+                        });
+                        widget.onModeChanged!.call(next.first);
                       },
                     ),
                   ],
@@ -100,7 +123,7 @@ class EraserSettingsPopup extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton.tonal(
                       onPressed: () {
-                        onClearPenOnly();
+                        widget.onClearPenOnly();
                         Navigator.of(context).pop();
                       },
                       child: const Text('그리기만 지우기'),
@@ -111,7 +134,7 @@ class EraserSettingsPopup extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton.tonal(
                       onPressed: () {
-                        onClearHighlighterOnly();
+                        widget.onClearHighlighterOnly();
                         Navigator.of(context).pop();
                       },
                       child: const Text('형광펜만 지우기'),
@@ -122,7 +145,7 @@ class EraserSettingsPopup extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () {
-                        onClearAll();
+                        widget.onClearAll();
                         Navigator.of(context).pop();
                       },
                       child: const Text('전체 지우기'),
