@@ -516,6 +516,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    if (kDebugMode) {
+      debugPrint('TOOL change: $kind');
+    }
     if (_isToolSettingsSheetOpen && _activeToolKindForToolbar == kind) {
       return;
     }
@@ -528,7 +531,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
         await _showPenSettingsPopup();
         return;
       case StrokeToolKind.eraser:
-        _handleDrawingToolChanged(DrawingTool.areaEraser);
+        final nextEraserTool = _activeTool == DrawingTool.strokeEraser
+            ? DrawingTool.strokeEraser
+            : DrawingTool.areaEraser;
+        _handleDrawingToolChanged(nextEraserTool);
         await _showEraserSettingsPopup();
         return;
     }
@@ -557,10 +563,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
     try {
       await showModalBottomSheet<void>(
         context: context,
+        isScrollControlled: true,
         builder: (context) => EraserSettingsPopup(
           radiusPx: _areaEraserRadiusPx,
           onRadiusChanged: _handleAreaEraserRadiusChanged,
-          mode: _isStrokeEraserActive ? DrawingTool.strokeEraser : DrawingTool.areaEraser,
+          mode: _activeTool == DrawingTool.strokeEraser
+              ? DrawingTool.strokeEraser
+              : DrawingTool.areaEraser,
           onModeChanged: _handleDrawingToolChanged,
           onClearPenOnly: () => unawaited(_handleClearPenOnly()),
           onClearHighlighterOnly: () => unawaited(_handleClearHighlighterOnly()),
