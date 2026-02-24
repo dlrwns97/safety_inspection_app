@@ -563,17 +563,24 @@ extension _DrawingScreenUi on _DrawingScreenState {
     try {
       await showModalBottomSheet<void>(
         context: context,
-        isScrollControlled: true,
-        builder: (context) => EraserSettingsPopup(
-          radiusPx: _areaEraserRadiusPx,
-          onRadiusChanged: _handleAreaEraserRadiusChanged,
-          mode: _activeTool == DrawingTool.strokeEraser
-              ? DrawingTool.strokeEraser
-              : DrawingTool.areaEraser,
-          onModeChanged: _handleDrawingToolChanged,
-          onClearPenOnly: _clearCurrentPagePenStrokes,
-          onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
-          onClearAll: _clearCurrentPageAllStrokes,
+        isScrollControlled: false,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              EraserSettingsPopup(
+                radiusPx: _areaEraserRadiusPx,
+                onRadiusChanged: _handleAreaEraserRadiusChanged,
+                mode: _activeTool == DrawingTool.strokeEraser
+                    ? DrawingTool.strokeEraser
+                    : DrawingTool.areaEraser,
+                onModeChanged: _handleDrawingToolChanged,
+                onClearPenOnly: _clearCurrentPagePenStrokes,
+                onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
+                onClearAll: _clearCurrentPageAllStrokes,
+              ),
+            ],
+          ),
         ),
       );
     } finally {
@@ -599,33 +606,40 @@ extension _DrawingScreenUi on _DrawingScreenState {
     try {
       await showModalBottomSheet<void>(
         context: context,
-        isScrollControlled: true,
-        builder: (context) => PenSettingsPopup(
-          currentStyle: style,
-          recentColors: _recentArgb.map(Color.new).toList(growable: false),
-          standardPaletteColors: _standardPaletteArgb
-              .map(Color.new)
-              .toList(growable: false),
-          isStraightenModeEnabled: _isStraightenModeEnabled,
-          onStyleChanged: (next) {
-            _updateActivePreset(next);
-          },
-          onPresetCommitted: (next) {
-            _applyPresetWithRecentColor(next);
-          },
-          onStraightenModeChanged: (enabled) {
-            _safeSetState(() {
-              _isStraightenModeEnabled = enabled;
-              if (!enabled) {
-                _straightenSnappedAngleByPointer.clear();
-                _straightenStartPageByPointer.clear();
-              }
-            });
-          },
-          onOpenAllColors: () {
-            Navigator.of(context).pop();
-            _openColorDialog();
-          },
+        isScrollControlled: false,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PenSettingsPopup(
+                currentStyle: style,
+                recentColors: _recentArgb.map(Color.new).toList(growable: false),
+                standardPaletteColors: _standardPaletteArgb
+                    .map(Color.new)
+                    .toList(growable: false),
+                isStraightenModeEnabled: _isStraightenModeEnabled,
+                onStyleChanged: (next) {
+                  _updateActivePreset(next);
+                },
+                onPresetCommitted: (next) {
+                  _applyPresetWithRecentColor(next);
+                },
+                onStraightenModeChanged: (enabled) {
+                  _safeSetState(() {
+                    _isStraightenModeEnabled = enabled;
+                    if (!enabled) {
+                      _straightenSnappedAngleByPointer.clear();
+                      _straightenStartPageByPointer.clear();
+                    }
+                  });
+                },
+                onOpenAllColors: () {
+                  Navigator.of(context).pop();
+                  _openColorDialog();
+                },
+              ),
+            ],
+          ),
         ),
       );
     } finally {
