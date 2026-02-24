@@ -471,9 +471,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
                 IconButton(
-                  onPressed: canAdjustStrokeStyle ? _openColorDialog : null,
-                  icon: const Icon(Icons.colorize),
-                  tooltip: '색상 선택',
+                  onPressed: canAdjustStrokeStyle ? _showPenSettingsPopup : null,
+                  icon: const Icon(Icons.tune),
+                  tooltip: '펜 설정',
                 ),
               ],
             ),
@@ -524,6 +524,41 @@ extension _DrawingScreenUi on _DrawingScreenState {
             color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
           ),
         ),
+      ),
+    );
+  }
+
+
+  Future<void> _showPenSettingsPopup() async {
+    final style = _activeStrokeStyleOrFallback;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => PenSettingsPopup(
+        currentStyle: style,
+        recentColors: _recentArgb.map(Color.new).toList(growable: false),
+        standardPaletteColors: _standardPaletteArgb.map(Color.new).toList(growable: false),
+        isStraightenModeEnabled: _isStraightenModeEnabled,
+        onStyleChanged: (next) {
+          _updateActivePreset(next);
+        },
+        onColorPicked: (color) {
+          final base = _activeStrokeStyleOrFallback;
+          _applyPresetWithRecentColor(base.copyWith(argbColor: color.value));
+        },
+        onStraightenModeChanged: (enabled) {
+          _safeSetState(() {
+            _isStraightenModeEnabled = enabled;
+            if (!enabled) {
+              _straightenSnappedAngleByPointer.clear();
+              _straightenStartPageByPointer.clear();
+            }
+          });
+        },
+        onOpenAllColors: () {
+          Navigator.of(context).pop();
+          _openColorDialog();
+        },
       ),
     );
   }
@@ -670,8 +705,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               if (base.kind == StrokeToolKind.highlighter) {
                                 next = next.copyWith(opacity: opacity);
                               }
-                              _updateActivePreset(next);
-                              _pushRecentColor(argb);
+                              _applyPresetWithRecentColor(next);
                               Navigator.pop(ctx);
                             },
                             child: const Text('완료'),
