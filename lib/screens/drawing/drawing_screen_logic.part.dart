@@ -2431,28 +2431,31 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return normalized;
     }
 
-    final rawAngleRad = math.atan2(vector.dy, vector.dx);
-    double angleAbs = rawAngleRad.abs();
-    while (angleAbs > math.pi) {
-      angleAbs -= math.pi;
+    final vectorDistance = vector.distance;
+    if (vectorDistance <= 0) {
+      return normalized;
     }
-    if (angleAbs > math.pi) {
-      angleAbs = 2 * math.pi - angleAbs;
-    }
-    angleAbs = angleAbs.clamp(0.0, math.pi);
+    final vHat = Offset(vector.dx / vectorDistance, vector.dy / vectorDistance);
+    final invSqrt2 = 1 / math.sqrt(2);
+    final candidateAxes = <Offset>[
+      const Offset(1, 0),
+      const Offset(0, 1),
+      Offset(invSqrt2, invSqrt2),
+      Offset(-invSqrt2, invSqrt2),
+    ];
 
-    final candidateAngles = _DrawingScreenState.kAnglesDeg
-        .map((deg) => deg * math.pi / 180.0)
-        .toList(growable: false);
-    var nearest = candidateAngles.first;
-    var nearestDelta = (angleAbs - nearest).abs();
-    for (final candidate in candidateAngles.skip(1)) {
-      final delta = (angleAbs - candidate).abs();
-      if (delta < nearestDelta) {
-        nearest = candidate;
-        nearestDelta = delta;
+    Offset nearestAxis = candidateAxes.first;
+    var bestScore =
+        (vHat.dx * nearestAxis.dx + vHat.dy * nearestAxis.dy).abs();
+    for (final axis in candidateAxes.skip(1)) {
+      final score = (vHat.dx * axis.dx + vHat.dy * axis.dy).abs();
+      if (score > bestScore) {
+        nearestAxis = axis;
+        bestScore = score;
       }
     }
+    final nearestDelta = math.acos(bestScore.clamp(0.0, 1.0));
+    final nearest = math.atan2(nearestAxis.dy, nearestAxis.dx);
 
     final enterRad = _DrawingScreenState.kEnterSnapDeg * math.pi / 180.0;
     final exitRad = _DrawingScreenState.kExitSnapDeg * math.pi / 180.0;
@@ -2466,7 +2469,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         return normalized;
       }
     } else {
-      final deltaFromCurrent = (angleAbs - snappedAngle).abs();
+      final snappedAxis = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
+      final snappedScore =
+          (vHat.dx * snappedAxis.dx + vHat.dy * snappedAxis.dy).abs();
+      final deltaFromCurrent = math.acos(snappedScore.clamp(0.0, 1.0));
       if (deltaFromCurrent >= exitRad) {
         _straightenSnappedAngleByPointer[pointerId] = null;
         return normalized;
