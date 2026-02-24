@@ -211,7 +211,6 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
             ],
           ),
         ),
-      ),
     );
   }
 }
