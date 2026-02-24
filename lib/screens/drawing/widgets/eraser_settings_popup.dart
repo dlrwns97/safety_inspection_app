@@ -56,7 +56,7 @@ class _EraserSettingsPopupState extends State<EraserSettingsPopup> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          children: <Widget>[
               Row(
                 children: [
                   Expanded(
