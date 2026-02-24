@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
 
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+
 class EraserSettingsPopup extends StatelessWidget {
   const EraserSettingsPopup({
     super.key,
     required this.radiusPx,
     required this.onRadiusChanged,
+    required this.onClearPenOnly,
+    required this.onClearHighlighterOnly,
+    required this.onClearAll,
+    this.mode,
+    this.onModeChanged,
   });
 
   final double radiusPx;
   final ValueChanged<double> onRadiusChanged;
+  final DrawingTool? mode;
+  final ValueChanged<DrawingTool>? onModeChanged;
+  final VoidCallback onClearPenOnly;
+  final VoidCallback onClearHighlighterOnly;
+  final VoidCallback onClearAll;
 
   @override
   Widget build(BuildContext context) {
-    final clampedRadius = radiusPx.clamp(6.0, 60.0);
+    final clampedRadius = radiusPx.clamp(4.0, 80.0);
+    final hasModeToggle = mode != null && onModeChanged != null;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -20,8 +34,22 @@ class EraserSettingsPopup extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('지우개 설정', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '지우개 설정',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  tooltip: '닫기',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 const Expanded(child: Text('크기')),
@@ -30,11 +58,69 @@ class EraserSettingsPopup extends StatelessWidget {
             ),
             Slider(
               value: clampedRadius,
-              min: 6,
-              max: 60,
-              divisions: 54,
+              min: 4,
+              max: 80,
+              divisions: 76,
               label: clampedRadius.round().toString(),
               onChanged: onRadiusChanged,
+            ),
+            if (hasModeToggle) ...[
+              const SizedBox(height: 8),
+              SegmentedButton<DrawingTool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment<DrawingTool>(
+                    value: DrawingTool.areaEraser,
+                    label: Text('영역 지우개'),
+                  ),
+                  ButtonSegment<DrawingTool>(
+                    value: DrawingTool.strokeEraser,
+                    label: Text('획 지우개'),
+                  ),
+                ],
+                selected: {mode!},
+                onSelectionChanged: (next) {
+                  if (next.isEmpty) {
+                    return;
+                  }
+                  onModeChanged!.call(next.first);
+                },
+              ),
+            ],
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: () {
+                  onClearPenOnly();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('그리기만 지우기'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: () {
+                  onClearHighlighterOnly();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('형광펜만 지우기'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  onClearAll();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('전체 지우기'),
+              ),
             ),
           ],
         ),
