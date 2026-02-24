@@ -136,8 +136,13 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, PointerDeviceKind>{};
   int? _activeStylusPointerId;
   bool _isStraightenModeEnabled = false;
-  final Map<int, double> _straightenLockedAngleRadByPointer = <int, double>{};
-  static const double _kStraightenLockThresholdPx = 8.0;
+  final Map<int, double?> _straightenSnappedAngleByPointer =
+      <int, double?>{};
+  final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
+  static const double kMinDragToConsiderSnapPx = 12.0;
+  static const double kEnterSnapDeg = 7.0;
+  static const double kExitSnapDeg = 12.0;
+  static const List<double> kAnglesDeg = <double>[0, 45, 90, 135, 180];
   bool _isFreeDrawConsumingOneFinger = false;
   PhotoViewControllerValue? _navStartValue;
   int? _navStartPage;

@@ -1676,7 +1676,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeStylusPointerId == event.pointer) {
       _activeStylusPointerId = null;
     }
-    _straightenLockedAngleRadByPointer.remove(event.pointer);
+    _straightenSnappedAngleByPointer.remove(event.pointer);
+    _straightenStartPageByPointer.remove(event.pointer);
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(
@@ -2288,7 +2289,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeStylusPointerId != null && _activeStylusPointerId != pointerId) {
       return;
     }
-    final processedNormalized = _applyStraightenModeToPoint(
+    final processedNormalized = _applyStraightenSamsungLike(
       pointerId: pointerId,
       inProgressStroke: inProgressStroke,
       normalized: normalized,
@@ -2329,7 +2330,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
   }
 
-  Offset _applyStraightenModeToPoint({
+  Offset _applyStraightenSamsungLike({
     required int pointerId,
     required DrawingStroke inProgressStroke,
     required Offset normalized,
@@ -2349,67 +2350,76 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return normalized;
     }
 
+    final cachedStart = _straightenStartPageByPointer[pointerId];
     final startNorm = inProgressStroke.pointsNorm.first;
-    final startPage = Offset(
-      startNorm.dx * destSize.width,
-      startNorm.dy * destSize.height,
-    );
+    final startPage =
+        cachedStart ??
+        Offset(startNorm.dx * destSize.width, startNorm.dy * destSize.height);
+    if (cachedStart == null) {
+      _straightenStartPageByPointer[pointerId] = startPage;
+    }
+
     final rawPage = Offset(
       normalized.dx * destSize.width,
       normalized.dy * destSize.height,
     );
     final vector = rawPage - startPage;
-    final dragDistance = vector.distance;
-    if (dragDistance <= 0) {
+    if (vector.distance < _DrawingScreenState.kMinDragToConsiderSnapPx) {
       return normalized;
     }
 
-    double signedDirectionFromAxis(double angle) {
-      final normalizedAngle = ((angle + math.pi) % (2 * math.pi)) - math.pi;
-      if (normalizedAngle > math.pi / 2) {
-        return normalizedAngle - math.pi;
-      }
-      if (normalizedAngle < -math.pi / 2) {
-        return normalizedAngle + math.pi;
-      }
-      return normalizedAngle;
+    final rawAngleRad = math.atan2(vector.dy, vector.dx);
+    double angleAbs = rawAngleRad.abs();
+    while (angleAbs > math.pi) {
+      angleAbs -= math.pi;
     }
+    if (angleAbs > math.pi) {
+      angleAbs = 2 * math.pi - angleAbs;
+    }
+    angleAbs = angleAbs.clamp(0.0, math.pi);
 
-    const angleBuckets = <double>[
-      0,
-      math.pi / 4,
-      math.pi / 2,
-      3 * math.pi / 4,
-      math.pi,
-    ];
-
-    final lockedAngle = _straightenLockedAngleRadByPointer[pointerId];
-    double snappedAbsAngle = lockedAngle ?? 0;
-    if (lockedAngle == null) {
-      final angle = math.atan2(vector.dy, vector.dx);
-      final axisAngle = (angle.abs()) % math.pi;
-      var bestAngle = angleBuckets.first;
-      var bestDelta = (axisAngle - bestAngle).abs();
-      for (final bucket in angleBuckets.skip(1)) {
-        final delta = (axisAngle - bucket).abs();
-        if (delta < bestDelta) {
-          bestDelta = delta;
-          bestAngle = bucket;
-        }
-      }
-      snappedAbsAngle = bestAngle;
-      if (dragDistance >= _DrawingScreenState._kStraightenLockThresholdPx) {
-        _straightenLockedAngleRadByPointer[pointerId] = snappedAbsAngle;
+    final candidateAngles = _DrawingScreenState.kAnglesDeg
+        .map((deg) => deg * math.pi / 180.0)
+        .toList(growable: false);
+    var nearest = candidateAngles.first;
+    var nearestDelta = (angleAbs - nearest).abs();
+    for (final candidate in candidateAngles.skip(1)) {
+      final delta = (angleAbs - candidate).abs();
+      if (delta < nearestDelta) {
+        nearest = candidate;
+        nearestDelta = delta;
       }
     }
 
-    final signedDirection = signedDirectionFromAxis(math.atan2(vector.dy, vector.dx));
-    final signedSnapped = signedDirection >= 0 ? snappedAbsAngle : -snappedAbsAngle;
-    final directionUnit = Offset(math.cos(signedSnapped), math.sin(signedSnapped));
-    final t = math.max(0.0, vector.dx * directionUnit.dx + vector.dy * directionUnit.dy);
+    final enterRad = _DrawingScreenState.kEnterSnapDeg * math.pi / 180.0;
+    final exitRad = _DrawingScreenState.kExitSnapDeg * math.pi / 180.0;
+    var snappedAngle = _straightenSnappedAngleByPointer[pointerId];
+
+    if (snappedAngle == null) {
+      if (nearestDelta <= enterRad) {
+        snappedAngle = nearest;
+        _straightenSnappedAngleByPointer[pointerId] = snappedAngle;
+      } else {
+        return normalized;
+      }
+    } else {
+      final deltaFromCurrent = (angleAbs - snappedAngle).abs();
+      if (deltaFromCurrent >= exitRad) {
+        _straightenSnappedAngleByPointer[pointerId] = null;
+        return normalized;
+      }
+    }
+
+    var unit = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
+    var t = vector.dx * unit.dx + vector.dy * unit.dy;
+    if (t < 0) {
+      unit = Offset(-unit.dx, -unit.dy);
+      t = -t;
+    }
+
     final snappedPage = Offset(
-      startPage.dx + directionUnit.dx * t,
-      startPage.dy + directionUnit.dy * t,
+      startPage.dx + unit.dx * t,
+      startPage.dy + unit.dy * t,
     );
     return Offset(
       snappedPage.dx / destSize.width,
@@ -2418,7 +2428,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
-    _straightenLockedAngleRadByPointer.remove(pointerId);
+    _straightenSnappedAngleByPointer.remove(pointerId);
+    _straightenStartPageByPointer.remove(pointerId);
     if (_activeStylusPointerId == pointerId) {
       _activeStylusPointerId = null;
     }
