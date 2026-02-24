@@ -542,9 +542,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
         onStyleChanged: (next) {
           _updateActivePreset(next);
         },
-        onColorPicked: (color) {
-          final base = _activeStrokeStyleOrFallback;
-          _applyPresetWithRecentColor(base.copyWith(argbColor: color.value));
+        onPresetCommitted: (next) {
+          _applyPresetWithRecentColor(next);
         },
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {

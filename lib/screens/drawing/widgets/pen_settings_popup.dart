@@ -10,7 +10,7 @@ class PenSettingsPopup extends StatefulWidget {
     required this.standardPaletteColors,
     required this.isStraightenModeEnabled,
     required this.onStyleChanged,
-    required this.onColorPicked,
+    required this.onPresetCommitted,
     required this.onStraightenModeChanged,
     required this.onOpenAllColors,
   });
@@ -20,7 +20,7 @@ class PenSettingsPopup extends StatefulWidget {
   final List<Color> standardPaletteColors;
   final bool isStraightenModeEnabled;
   final ValueChanged<StrokeStyle> onStyleChanged;
-  final ValueChanged<Color> onColorPicked;
+  final ValueChanged<StrokeStyle> onPresetCommitted;
   final ValueChanged<bool> onStraightenModeChanged;
   final VoidCallback onOpenAllColors;
 
@@ -39,6 +39,25 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     _isStraightenModeEnabled = widget.isStraightenModeEnabled;
   }
 
+  @override
+  void didUpdateWidget(covariant PenSettingsPopup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isSameStyle(oldWidget.currentStyle, widget.currentStyle)) {
+      _style = widget.currentStyle;
+    }
+    if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
+      _isStraightenModeEnabled = widget.isStraightenModeEnabled;
+    }
+  }
+
+  bool _isSameStyle(StrokeStyle a, StrokeStyle b) {
+    return a.kind == b.kind &&
+        a.variant == b.variant &&
+        a.widthPx == b.widthPx &&
+        a.argbColor == b.argbColor &&
+        a.opacity == b.opacity;
+  }
+
   void _applyStyle(StrokeStyle next) {
     setState(() => _style = next);
     widget.onStyleChanged(next);
@@ -47,7 +66,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
   void _pickColor(Color color) {
     final next = _style.copyWith(argbColor: color.value);
     setState(() => _style = next);
-    widget.onColorPicked(color);
+    widget.onPresetCommitted(next);
   }
 
   @override
