@@ -560,6 +560,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
         builder: (context) => EraserSettingsPopup(
           radiusPx: _areaEraserRadiusPx,
           onRadiusChanged: _handleAreaEraserRadiusChanged,
+          mode: _isStrokeEraserActive ? DrawingTool.strokeEraser : DrawingTool.areaEraser,
+          onModeChanged: _handleDrawingToolChanged,
+          onClearPenOnly: () => unawaited(_handleClearPenOnly()),
+          onClearHighlighterOnly: () => unawaited(_handleClearHighlighterOnly()),
+          onClearAll: () => unawaited(_handleClearAllStrokes()),
         ),
       );
     } finally {
