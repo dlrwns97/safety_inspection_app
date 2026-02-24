@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/numbered_tabs.dart';
@@ -20,7 +21,7 @@ class ToolHeaderRow extends StatelessWidget {
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
-    required this.activeDrawingTool,
+    required this.activeStrokeTool,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
@@ -39,10 +40,10 @@ class ToolHeaderRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final DrawingTool activeDrawingTool;
+  final StrokeToolKind activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
-  final ValueChanged<DrawingTool> onDrawingToolSelected;
+  final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
@@ -70,7 +71,7 @@ class ToolHeaderRow extends StatelessWidget {
               fit: FlexFit.loose,
               child: isFreeDrawMode
                   ? _FreeDrawActionTabs(
-                      activeTool: activeDrawingTool,
+                      activeTool: activeStrokeTool,
                       canUndo: canUndoDrawing,
                       canRedo: canRedoDrawing,
                       onToolSelected: onDrawingToolSelected,
@@ -156,37 +157,45 @@ class _FreeDrawActionTabs extends StatelessWidget {
     required this.onRedo,
   });
 
-  final DrawingTool activeTool;
+  final StrokeToolKind activeTool;
   final bool canUndo;
   final bool canRedo;
-  final ValueChanged<DrawingTool> onToolSelected;
+  final ValueChanged<StrokeToolKind> onToolSelected;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ChoiceChip(
-            label: const Text('자유선'),
-            selected: activeTool == DrawingTool.pen,
-            onSelected: (_) => onToolSelected(DrawingTool.pen),
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            label: const Text('되돌리기'),
-            onPressed: canUndo ? onUndo : null,
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            label: const Text('앞으로'),
-            onPressed: canRedo ? onRedo : null,
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        ChoiceChip(
+          label: const Text('자유선'),
+          selected: activeTool == StrokeToolKind.pen,
+          onSelected: (_) => onToolSelected(StrokeToolKind.pen),
+        ),
+        const SizedBox(width: 8),
+        ChoiceChip(
+          label: const Text('형광펜'),
+          selected: activeTool == StrokeToolKind.highlighter,
+          onSelected: (_) => onToolSelected(StrokeToolKind.highlighter),
+        ),
+        const SizedBox(width: 8),
+        ChoiceChip(
+          label: const Text('지우개'),
+          selected: activeTool == StrokeToolKind.eraser,
+          onSelected: (_) => onToolSelected(StrokeToolKind.eraser),
+        ),
+        const Spacer(),
+        ActionChip(
+          label: const Text('되돌리기'),
+          onPressed: canUndo ? onUndo : null,
+        ),
+        const SizedBox(width: 8),
+        ActionChip(
+          label: const Text('앞으로'),
+          onPressed: canRedo ? onRedo : null,
+        ),
+      ],
     );
   }
 }

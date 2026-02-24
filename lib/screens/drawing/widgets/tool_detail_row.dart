@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/tool_header_row.dart';
 
@@ -18,7 +19,7 @@ class ToolDetailRow extends StatelessWidget {
     required this.onDefectLongPress,
     required this.onEquipmentSelected,
     required this.onEquipmentLongPress,
-    required this.activeDrawingTool,
+    required this.activeStrokeTool,
     required this.canUndoDrawing,
     required this.canRedoDrawing,
     required this.onDrawingToolSelected,
@@ -37,10 +38,10 @@ class ToolDetailRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final DrawingTool activeDrawingTool;
+  final StrokeToolKind activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
-  final ValueChanged<DrawingTool> onDrawingToolSelected;
+  final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
 
@@ -58,7 +59,7 @@ class ToolDetailRow extends StatelessWidget {
       onDefectLongPress: onDefectLongPress,
       onEquipmentSelected: onEquipmentSelected,
       onEquipmentLongPress: onEquipmentLongPress,
-      activeDrawingTool: activeDrawingTool,
+      activeStrokeTool: activeStrokeTool,
       canUndoDrawing: canUndoDrawing,
       canRedoDrawing: canRedoDrawing,
       onDrawingToolSelected: onDrawingToolSelected,
