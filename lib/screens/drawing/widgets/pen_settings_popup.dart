@@ -21,6 +21,7 @@ class PenSettingsPopup extends StatefulWidget {
     required this.onPresetCommitted,
     required this.onStraightenModeChanged,
     required this.onOpenAllColors,
+    this.onClose,
   });
 
   final StrokeStyle currentStyle;
@@ -31,6 +32,7 @@ class PenSettingsPopup extends StatefulWidget {
   final ValueChanged<StrokeStyle> onPresetCommitted;
   final ValueChanged<bool> onStraightenModeChanged;
   final VoidCallback onOpenAllColors;
+  final VoidCallback? onClose;
 
   @override
   State<PenSettingsPopup> createState() => _PenSettingsPopupState();
@@ -119,20 +121,25 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(10),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '펜 설정',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: kTitleFont),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: kGap),
-        Text(
-          '펜 설정',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: kTitleFont),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                onPressed: widget.onClose,
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: '닫기',
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: kGap),
         ConstrainedBox(

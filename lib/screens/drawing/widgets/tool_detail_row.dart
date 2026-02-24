@@ -25,6 +25,9 @@ class ToolDetailRow extends StatelessWidget {
     required this.onDrawingToolSelected,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
+    this.penToolLink,
+    this.highlighterToolLink,
+    this.eraserToolLink,
   });
 
   final DrawMode mode;
@@ -44,6 +47,9 @@ class ToolDetailRow extends StatelessWidget {
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
+  final LayerLink? penToolLink;
+  final LayerLink? highlighterToolLink;
+  final LayerLink? eraserToolLink;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +71,9 @@ class ToolDetailRow extends StatelessWidget {
       onDrawingToolSelected: onDrawingToolSelected,
       onUndoDrawing: onUndoDrawing,
       onRedoDrawing: onRedoDrawing,
+      penToolLink: penToolLink,
+      highlighterToolLink: highlighterToolLink,
+      eraserToolLink: eraserToolLink,
     );
   }
 }

@@ -27,6 +27,9 @@ class ToolHeaderRow extends StatelessWidget {
     required this.onDrawingToolSelected,
     required this.onUndoDrawing,
     required this.onRedoDrawing,
+    this.penToolLink,
+    this.highlighterToolLink,
+    this.eraserToolLink,
   });
 
   final DrawMode mode;
@@ -46,6 +49,9 @@ class ToolHeaderRow extends StatelessWidget {
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;
   final VoidCallback onUndoDrawing;
   final VoidCallback onRedoDrawing;
+  final LayerLink? penToolLink;
+  final LayerLink? highlighterToolLink;
+  final LayerLink? eraserToolLink;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +83,9 @@ class ToolHeaderRow extends StatelessWidget {
                       onToolSelected: onDrawingToolSelected,
                       onUndo: onUndoDrawing,
                       onRedo: onRedoDrawing,
+                      penToolLink: penToolLink,
+                      highlighterToolLink: highlighterToolLink,
+                      eraserToolLink: eraserToolLink,
                     )
                   : Row(
                   children: [
@@ -155,6 +164,9 @@ class _FreeDrawActionTabs extends StatelessWidget {
     required this.onToolSelected,
     required this.onUndo,
     required this.onRedo,
+    this.penToolLink,
+    this.highlighterToolLink,
+    this.eraserToolLink,
   });
 
   final StrokeToolKind activeTool;
@@ -163,27 +175,39 @@ class _FreeDrawActionTabs extends StatelessWidget {
   final ValueChanged<StrokeToolKind> onToolSelected;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
+  final LayerLink? penToolLink;
+  final LayerLink? highlighterToolLink;
+  final LayerLink? eraserToolLink;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        ChoiceChip(
-          label: const Text('자유선'),
-          selected: activeTool == StrokeToolKind.pen,
-          onSelected: (_) => onToolSelected(StrokeToolKind.pen),
+        CompositedTransformTarget(
+          link: penToolLink ?? LayerLink(),
+          child: ChoiceChip(
+            label: const Text('자유선'),
+            selected: activeTool == StrokeToolKind.pen,
+            onSelected: (_) => onToolSelected(StrokeToolKind.pen),
+          ),
         ),
         const SizedBox(width: 8),
-        ChoiceChip(
-          label: const Text('형광펜'),
-          selected: activeTool == StrokeToolKind.highlighter,
-          onSelected: (_) => onToolSelected(StrokeToolKind.highlighter),
+        CompositedTransformTarget(
+          link: highlighterToolLink ?? LayerLink(),
+          child: ChoiceChip(
+            label: const Text('형광펜'),
+            selected: activeTool == StrokeToolKind.highlighter,
+            onSelected: (_) => onToolSelected(StrokeToolKind.highlighter),
+          ),
         ),
         const SizedBox(width: 8),
-        ChoiceChip(
-          label: const Text('지우개'),
-          selected: activeTool == StrokeToolKind.eraser,
-          onSelected: (_) => onToolSelected(StrokeToolKind.eraser),
+        CompositedTransformTarget(
+          link: eraserToolLink ?? LayerLink(),
+          child: ChoiceChip(
+            label: const Text('지우개'),
+            selected: activeTool == StrokeToolKind.eraser,
+            onSelected: (_) => onToolSelected(StrokeToolKind.eraser),
+          ),
         ),
         const Spacer(),
         ActionChip(
