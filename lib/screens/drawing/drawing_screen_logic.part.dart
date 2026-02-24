@@ -1574,8 +1574,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _cancelFreeDrawNavGesture();
       _activeStylusPointerId = event.pointer;
       _safeSetState(() {
-        _pendingDraw = true;
-        _pendingDrawDownViewportLocal = event.localPosition;
+        _activeStrokeEraserPointerId = event.pointer;
+        _erasedStrokeIdsThisDrag.clear();
+        _erasedStrokeCountThisDrag = 0;
       });
       return;
     }
@@ -1602,6 +1603,40 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
     if (_activeTool == DrawingTool.strokeEraser) {
+      if (_activeStrokeEraserPointerId != event.pointer) {
+        return;
+      }
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final radiusPagePx = _viewportDistanceToPageDistance(
+        viewportLocal: event.localPosition,
+        viewportDistancePx: _areaEraserRadiusPx,
+        drawingLocalToPageLocal: drawingLocalToPageLocal,
+      );
+      final closestResult = _findClosestStrokeAtPageLocal(
+        pageNumber: pageNumber,
+        pageLocal: pageLocal,
+        pageSize: pageSize,
+        queryRadiusPx: math.max(
+          radiusPagePx,
+          _strokeEraserBaseThresholdForPage(
+            strokes: _strokesByPage[pageNumber],
+            pageSize: pageSize,
+          ),
+        ),
+      );
+      if (closestResult == null ||
+          closestResult.distanceSquared > radiusPagePx * radiusPagePx ||
+          _erasedStrokeIdsThisDrag.contains(closestResult.stroke.id)) {
+        return;
+      }
+      _safeSetState(() {
+        _erasedStrokeIdsThisDrag.add(closestResult.stroke.id);
+        _erasedStrokeCountThisDrag += 1;
+        _removeStrokeWithUndoSnapshot(closestResult.stroke);
+      });
       return;
     }
     if (_activeAreaEraserPointerId != event.pointer) {
@@ -1655,44 +1690,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (_activeTool == DrawingTool.strokeEraser && wasStylus) {
       if (kDebugMode) {
-        debugPrint('[Eraser] up mode=stroke');
-      }
-      final down = _pendingDrawDownViewportLocal;
-      if (down != null && event is PointerUpEvent) {
-        final movedEnough =
-            (event.localPosition - down).distance >= _DrawingScreenState._kDrawStartSlopPx;
-        if (!movedEnough) {
-          final pageLocal = drawingLocalToPageLocal(event.localPosition);
-          final radiusPagePx = _viewportDistanceToPageDistance(
-            viewportLocal: event.localPosition,
-            viewportDistancePx: _areaEraserRadiusPx,
-            drawingLocalToPageLocal: drawingLocalToPageLocal,
-          );
-          if (pageLocal != null) {
-            final closestResult = _findClosestStrokeAtPageLocal(
-              pageNumber: pageNumber,
-              pageLocal: pageLocal,
-              pageSize: pageSize,
-              queryRadiusPx: math.max(
-                radiusPagePx,
-                _strokeEraserBaseThresholdForPage(
-                  strokes: _strokesByPage[pageNumber],
-                  pageSize: pageSize,
-                ),
-              ),
-            );
-            if (closestResult != null &&
-                closestResult.distanceSquared <= radiusPagePx * radiusPagePx) {
-              _safeSetState(() {
-                _removeStrokeWithUndoSnapshot(closestResult.stroke);
-              });
-            }
-          }
-        }
+        debugPrint('[Eraser] up mode=stroke removed=$_erasedStrokeCountThisDrag');
       }
       _safeSetState(() {
-        _pendingDraw = false;
-        _pendingDrawDownViewportLocal = null;
+        _activeStrokeEraserPointerId = null;
+        _erasedStrokeIdsThisDrag.clear();
+        _erasedStrokeCountThisDrag = 0;
         _activeStylusPointerId = null;
       });
     }
@@ -1770,16 +1773,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _eraserCursorPageNumber = null;
       _canvasController.setEraserCursor(null);
       _canvasController.setEraserPreview(null);
+      _activeAreaEraserPointerId = null;
+      _activeAreaEraserSession = null;
+      _activeStrokeEraserPointerId = null;
+      _erasedStrokeIdsThisDrag.clear();
+      _erasedStrokeCountThisDrag = 0;
+      _pendingDraw = false;
+      _pendingDrawDownViewportLocal = null;
     });
+    if (kDebugMode) {
+      debugPrint('[Eraser] modeChanged next=$tool');
+    }
   }
 
   void _handleAreaEraserRadiusChanged(double value) {
+    final nextRadius = value.clamp(
+      _DrawingScreenState._kMinAreaEraserRadiusPx,
+      _DrawingScreenState._kMaxAreaEraserRadiusPx,
+    );
     _safeSetState(() {
-      _areaEraserRadiusPx = value.clamp(
-        _DrawingScreenState._kMinAreaEraserRadiusPx,
-        _DrawingScreenState._kMaxAreaEraserRadiusPx,
-      );
+      _areaEraserRadiusPx = nextRadius;
+      final session = _activeAreaEraserSession;
+      if (session != null) {
+        _activeAreaEraserSession = session.copyWith(radius: _areaEraserRadiusPx);
+      }
     });
+    if (kDebugMode) {
+      debugPrint('[Eraser] radiusChanged px=${nextRadius.toStringAsFixed(1)}');
+    }
   }
 
   bool get _isAreaEraserActive =>
@@ -2676,7 +2697,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return confirmed == true;
   }
 
-  Future<void> _handleClearAllStrokes() async {
+  Future<void> _handleClearCurrentPageAllStrokes() async {
     final page = _currentPage;
     if (_canvasController.getStrokes(page).isEmpty) {
       return;
@@ -2686,16 +2707,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
+    final removedCount = _canvasController.getStrokes(page).length;
     _safeSetState(() {
       _historyManager.execute(ClearAllCommand(page: page), _canvasController);
       _syncStrokesByPageFromControllerPage(page);
       _updateDrawingHistoryAvailabilityState();
       _clearSelectionAndPopup();
     });
+    if (kDebugMode) {
+      debugPrint('[Eraser] clearAll page=$page removed=$removedCount');
+    }
     _requestPersistDrawing();
   }
 
-  Future<void> _handleClearHighlighterOnly() async {
+  Future<void> _handleClearCurrentPageHighlighterStrokes() async {
     final page = _currentPage;
     final strokes = _canvasController.getStrokes(page);
     final hasMatchingStroke = strokes.any(
@@ -2711,6 +2736,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
+    final removedCount =
+        strokes.where((stroke) => stroke.style.kind == StrokeToolKind.highlighter).length;
     _safeSetState(() {
       _historyManager.execute(
         ClearToolKindCommand(page: page, kind: StrokeToolKind.highlighter),
@@ -2720,10 +2747,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _updateDrawingHistoryAvailabilityState();
       _clearSelectionAndPopup();
     });
+    if (kDebugMode) {
+      debugPrint('[Eraser] clearHighlighter page=$page removed=$removedCount');
+    }
     _requestPersistDrawing();
   }
 
-  Future<void> _handleClearPenOnly() async {
+  Future<void> _handleClearCurrentPagePenStrokes() async {
     final page = _currentPage;
     final strokes = _canvasController.getStrokes(page);
     final hasMatchingStroke = strokes.any(
@@ -2739,6 +2769,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
+    final removedCount =
+        strokes.where((stroke) => stroke.style.kind == StrokeToolKind.pen).length;
     _safeSetState(() {
       _historyManager.execute(
         ClearToolKindCommand(page: page, kind: StrokeToolKind.pen),
@@ -2748,6 +2780,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _updateDrawingHistoryAvailabilityState();
       _clearSelectionAndPopup();
     });
+    if (kDebugMode) {
+      debugPrint('[Eraser] clearPen page=$page removed=$removedCount');
+    }
     _requestPersistDrawing();
   }
 
