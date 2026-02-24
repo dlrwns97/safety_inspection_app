@@ -2260,13 +2260,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
-      _inProgressStroke = DrawingStroke(
+      final stroke = DrawingStroke(
         id: DrawingStroke.generateId(),
         pageNumber: pageNumber,
         style: style,
         pointsNorm: <Offset>[normalized],
       );
-      _canvasController.setLiveStroke(_inProgressStroke);
+      _inProgressStroke = stroke;
+      if (kDebugMode) {
+        debugPrint(
+          '[Drawing] NEW STROKE style: kind=${style.kind.name}, '
+          'variant=${style.variant.name}, width=${style.widthPx.toStringAsFixed(1)}, '
+          'color=${style.argbColor}, id=${stroke.id}',
+        );
+      }
+      _canvasController.setLiveStroke(stroke);
     });
   }
 
