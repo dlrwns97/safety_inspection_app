@@ -13,6 +13,8 @@ class ResolvedCenterlineStyle {
   final bool usesHighlighterEngine;
 }
 
+const double _kCenterlineDotThresholdPx = 1.5;
+
 ResolvedCenterlineStyle resolveCenterlineStyle({
   required StrokeStyle style,
   required double strokeOpacity,
@@ -28,6 +30,18 @@ ResolvedCenterlineStyle resolveCenterlineStyle({
     paint: paint,
     usesHighlighterEngine: usesHighlighterEngine,
   );
+}
+
+bool shouldRenderCenterlineAsDot(List<Offset> points) {
+  if (points.length <= 1) {
+    return true;
+  }
+  if (points.length > 2) {
+    return false;
+  }
+
+  final length = (points[1] - points[0]).distance;
+  return length < _kCenterlineDotThresholdPx;
 }
 
 Paint _fallbackPaintForStyle({

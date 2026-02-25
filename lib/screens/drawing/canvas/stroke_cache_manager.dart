@@ -207,7 +207,7 @@ class StrokeCacheManager extends ChangeNotifier {
   ) {
     final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
     final paint = resolved.paint;
-    if (points.length == 1) {
+    if (shouldRenderCenterlineAsDot(points)) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;
     }

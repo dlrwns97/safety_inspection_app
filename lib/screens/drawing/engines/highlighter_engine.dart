@@ -20,20 +20,19 @@ class HighlighterEngine {
     required StrokeStyle style,
     required double strokeOpacity,
   }) {
-    final isChisel =
-        style.variant == PenVariant.highlighterChisel ||
+    final isMarkerVariant =
+        style.variant == PenVariant.marker ||
         style.variant == PenVariant.markerChisel;
-    final blendMode =
-        style.variant == PenVariant.marker || style.variant == PenVariant.markerChisel
-        ? BlendMode.srcOver
-        : BlendMode.multiply;
+    final strokeCap = isMarkerVariant ? StrokeCap.round : StrokeCap.square;
+    final strokeJoin = isMarkerVariant ? StrokeJoin.round : StrokeJoin.miter;
+    final blendMode = isMarkerVariant ? BlendMode.srcOver : BlendMode.multiply;
 
     return Paint()
       ..style = PaintingStyle.stroke
       ..isAntiAlias = true
       ..strokeWidth = style.widthPx
-      ..strokeCap = isChisel ? StrokeCap.square : StrokeCap.round
-      ..strokeJoin = isChisel ? StrokeJoin.bevel : StrokeJoin.round
+      ..strokeCap = strokeCap
+      ..strokeJoin = strokeJoin
       ..blendMode = blendMode
       ..color = Color(style.argbColor).withValues(
         alpha: (style.opacity * strokeOpacity).clamp(0.0, 1.0).toDouble(),

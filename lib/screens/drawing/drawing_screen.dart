@@ -193,6 +193,15 @@ class _DrawingScreenState extends State<DrawingScreen>
     0xFF6D4C41,
   ];
   late final List<StrokeStyle> _presets = StrokePresets.defaults();
+  static const double _kDefaultHighlighterOpacity = 0.35;
+  static const double _kDefaultMarkerOpacity = 0.80;
+  final Map<PenVariant, double> _highlighterOpacityByVariant =
+      <PenVariant, double>{
+        PenVariant.highlighter: _kDefaultHighlighterOpacity,
+        PenVariant.highlighterChisel: _kDefaultHighlighterOpacity,
+        PenVariant.marker: _kDefaultMarkerOpacity,
+        PenVariant.markerChisel: _kDefaultMarkerOpacity,
+      };
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
@@ -280,6 +289,46 @@ class _DrawingScreenState extends State<DrawingScreen>
         _recentArgb.removeRange(5, _recentArgb.length);
       }
     });
+  }
+
+  bool _isMarkerVariant(PenVariant variant) {
+    return variant == PenVariant.marker || variant == PenVariant.markerChisel;
+  }
+
+  bool _isHighlighterFamilyVariant(PenVariant variant) {
+    return variant == PenVariant.highlighter ||
+        variant == PenVariant.highlighterChisel ||
+        variant == PenVariant.marker ||
+        variant == PenVariant.markerChisel;
+  }
+
+  PenVariant _normalizedHighlighterVariant(PenVariant variant) {
+    return _isMarkerVariant(variant) ? PenVariant.marker : PenVariant.highlighter;
+  }
+
+  double _defaultOpacityForHighlighterVariant(PenVariant variant) {
+    return _isMarkerVariant(variant)
+        ? _kDefaultMarkerOpacity
+        : _kDefaultHighlighterOpacity;
+  }
+
+  StrokeStyle _styleForHighlighterVariantSwitch({
+    required StrokeStyle current,
+    required PenVariant nextVariant,
+  }) {
+    if (!_isHighlighterFamilyVariant(nextVariant)) {
+      return current.copyWith(variant: nextVariant);
+    }
+    final currentVariant = _normalizedHighlighterVariant(current.variant);
+    if (_isHighlighterFamilyVariant(current.variant)) {
+      _highlighterOpacityByVariant[currentVariant] = current.opacity;
+    }
+    final normalizedNextVariant = _normalizedHighlighterVariant(nextVariant);
+    final nextOpacity =
+        _highlighterOpacityByVariant[normalizedNextVariant] ??
+        _defaultOpacityForHighlighterVariant(normalizedNextVariant);
+    _highlighterOpacityByVariant[normalizedNextVariant] = nextOpacity;
+    return current.copyWith(variant: nextVariant, opacity: nextOpacity);
   }
 
   void _updateActivePreset(StrokeStyle next) {
@@ -616,6 +665,13 @@ class _DrawingScreenState extends State<DrawingScreen>
       _canvasController.invalidateCache(_currentPage, reason: 'initial');
     });
     _site = widget.site;
+    final initialHighlighterPreset = _presets.firstWhere(
+      (style) => style.kind == StrokeToolKind.highlighter,
+      orElse: () => const StrokeStyle(kind: StrokeToolKind.highlighter),
+    );
+    final initialVariant =
+        _normalizedHighlighterVariant(initialHighlighterPreset.variant);
+    _highlighterOpacityByVariant[initialVariant] = initialHighlighterPreset.opacity;
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
@@ -634,6 +690,13 @@ class _DrawingScreenState extends State<DrawingScreen>
     final didChangeDrawing =
         _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
+    final initialHighlighterPreset = _presets.firstWhere(
+      (style) => style.kind == StrokeToolKind.highlighter,
+      orElse: () => const StrokeStyle(kind: StrokeToolKind.highlighter),
+    );
+    final initialVariant =
+        _normalizedHighlighterVariant(initialHighlighterPreset.variant);
+    _highlighterOpacityByVariant[initialVariant] = initialHighlighterPreset.opacity;
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
