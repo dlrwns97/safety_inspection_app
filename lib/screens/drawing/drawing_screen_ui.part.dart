@@ -630,7 +630,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         },
         onOpenAllColors: () {
           _settingsPopover.hide();
-          _openColorDialog();
+          _openEyedropperColorDialog();
         },
         onClose: _settingsPopover.hide,
       ),
@@ -668,11 +668,42 @@ extension _DrawingScreenUi on _DrawingScreenState {
         },
         onOpenAllColors: () {
           _settingsPopover.hide();
-          _openColorDialog();
+          _openEyedropperColorDialog();
         },
         onClose: _settingsPopover.hide,
       ),
     );
+  }
+
+  Future<void> _openEyedropperColorDialog() async {
+    final currentStyle = _activeStrokeStyleOrFallback;
+    final originalColor = Color(currentStyle.argbColor);
+    final recentColors = _recentArgb.map(Color.new).toList(growable: false);
+
+    assert(() {
+      debugPrint('OPEN NEW COLOR PICKER');
+      return true;
+    }());
+
+    final kept = await showDrawingColorPickerDialog(
+      context,
+      initialColor: originalColor,
+      recentColors: recentColors,
+      onLiveChanged: (color) {
+        final style = _activeStrokeStyleOrFallback;
+        _updateActivePreset(style.copyWith(argbColor: color.value));
+      },
+      onCommitChanged: (color) {
+        final style = _activeStrokeStyleOrFallback;
+        _applyPresetWithRecentColor(style.copyWith(argbColor: color.value));
+      },
+    );
+
+    if (kept) {
+      return;
+    }
+    final style = _activeStrokeStyleOrFallback;
+    _updateActivePreset(style.copyWith(argbColor: originalColor.value));
   }
 
   Future<void> _openColorDialog() async {
