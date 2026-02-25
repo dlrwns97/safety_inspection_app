@@ -626,6 +626,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
           final current = _activeStrokeStyleOrFallback;
           _applyPresetWithRecentColor(current.copyWith(argbColor: color.value));
         },
+        onOpenAllColors: () {
+          _settingsPopover.hide();
+          _openColorDialog();
+        },
         onClose: _settingsPopover.hide,
       ),
     );
