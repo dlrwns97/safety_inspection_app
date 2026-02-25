@@ -612,7 +612,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
             .toList(growable: false),
         onVariantChanged: (variant) {
           final current = _activeStrokeStyleOrFallback;
-          _updateActivePreset(current.copyWith(variant: variant));
+          _updateActivePreset(
+            _styleForHighlighterVariantSwitch(current: current, nextVariant: variant),
+          );
         },
         onWidthChanged: (width) {
           final current = _activeStrokeStyleOrFallback;
