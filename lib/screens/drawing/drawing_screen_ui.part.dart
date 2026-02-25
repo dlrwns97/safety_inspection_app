@@ -210,8 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         if (!_isStraightenModeEnabled) {
                           _straightenSnappedAngleByPointer.clear();
                           _straightenStartPageByPointer.clear();
-                          _highlighterStraightenAnchorPageByPointer.clear();
-                          _highlighterStraightenLockAxisByPointer.clear();
+                          _resetHighlighterStraightenState();
                         }
                       });
                     },
@@ -637,8 +636,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             if (!enabled) {
               _straightenSnappedAngleByPointer.clear();
               _straightenStartPageByPointer.clear();
-              _highlighterStraightenAnchorPageByPointer.clear();
-              _highlighterStraightenLockAxisByPointer.clear();
+              _resetHighlighterStraightenState();
             }
           });
         },
@@ -677,8 +675,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             if (!enabled) {
               _straightenSnappedAngleByPointer.clear();
               _straightenStartPageByPointer.clear();
-              _highlighterStraightenAnchorPageByPointer.clear();
-              _highlighterStraightenLockAxisByPointer.clear();
+              _resetHighlighterStraightenState();
             }
           });
         },
