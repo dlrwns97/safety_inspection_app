@@ -40,6 +40,9 @@ class _DrawingColorPickerDialog extends StatefulWidget {
 }
 
 class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
+  static const double _kDialogHorizontalPadding = 16;
+  static const double _kDialogVerticalPadding = 14;
+
   late HSVColor _hsv;
   late double _alpha;
 
@@ -89,155 +92,191 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenSize = MediaQuery.sizeOf(context);
+    final maxDialogWidth = math.min(screenSize.width * 0.9, 560.0);
+    final maxDialogHeight = math.min(screenSize.height * 0.78, 520.0);
+    final shouldAllowBodyScroll = maxDialogHeight < 470;
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: DefaultTabController(
-          length: 2,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('색상 선택', style: theme.textTheme.titleMedium),
-                    ),
-                    Semantics(
-                      label: '닫기',
-                      button: true,
-                      child: IconButton(
-                        onPressed: () {
-                          _emitCommit();
-                          _close(kept: true);
-                        },
-                        icon: const Icon(Icons.close),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TabBar(
-                  tabs: const [Tab(text: '표준'), Tab(text: '사용자 지정')],
-                  labelColor: theme.colorScheme.primary,
-                  dividerColor: theme.colorScheme.outlineVariant,
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 420,
-                  child: TabBarView(
+      child: LayoutBuilder(
+        builder: (context, _) {
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxDialogWidth,
+              maxHeight: maxDialogHeight,
+            ),
+            child: SizedBox(
+              width: maxDialogWidth,
+              height: maxDialogHeight,
+              child: DefaultTabController(
+                length: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _kDialogHorizontalPadding,
+                    vertical: _kDialogVerticalPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildStandardTab(context),
-                      _buildCustomTab(context),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text('색상 선택', style: theme.textTheme.titleMedium),
+                          ),
+                          Semantics(
+                            label: '닫기',
+                            button: true,
+                            child: IconButton(
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _emitCommit();
+                                _close(kept: true);
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      TabBar(
+                        tabs: const [Tab(text: '표준'), Tab(text: '사용자 지정')],
+                        labelColor: theme.colorScheme.primary,
+                        dividerColor: theme.colorScheme.outlineVariant,
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: shouldAllowBodyScroll
+                            ? SingleChildScrollView(
+                                child: SizedBox(
+                                  height: 360,
+                                  child: TabBarView(
+                                    children: [
+                                      _buildStandardTab(context, compact: true),
+                                      _buildCustomTab(context, compact: true),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : TabBarView(
+                                children: [
+                                  _buildStandardTab(context),
+                                  _buildCustomTab(context),
+                                ],
+                              ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _close(kept: false),
+                              child: const Text('취소'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                _emitCommit();
+                                _close(kept: true);
+                              },
+                              child: const Text('완료'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _close(kept: false),
-                        child: const Text('취소'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          _emitCommit();
-                          _close(kept: true);
-                        },
-                        child: const Text('완료'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStandardTab(BuildContext context, {bool compact = false}) {
+    final width = MediaQuery.sizeOf(context).width;
+    final panelHeight = compact ? 200.0 : math.min(250.0, width * 0.45);
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: panelHeight,
+          child: _RainbowValuePanel(
+            hsv: _hsv,
+            onChanged: (hue, value) => _updateRainbowHueValue(hue, value),
+            onInteractionEnd: (hue, value) => _updateRainbowHueValue(hue, value, commit: true),
           ),
         ),
-      ),
+        SizedBox(height: compact ? 8 : 10),
+        _AlphaSliderRow(
+          alpha: _alpha,
+          baseColor: _hsv.toColor(),
+          onChanged: _updateAlpha,
+          onChangeEnd: (value) => _updateAlpha(value, commit: true),
+        ),
+        SizedBox(height: compact ? 8 : 10),
+        _ColorInfoSection(color: _selectedColor, compact: compact),
+      ],
     );
+
+    if (!compact) {
+      return content;
+    }
+    return SingleChildScrollView(child: content);
   }
 
-  Widget _buildStandardTab(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final panelHeight = math.min(260.0, width * 0.55);
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: panelHeight,
-            child: _RainbowValuePanel(
-              hsv: _hsv,
-              onChanged: (hue, value) => _updateRainbowHueValue(hue, value),
-              onInteractionEnd: (hue, value) => _updateRainbowHueValue(hue, value, commit: true),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _AlphaSliderRow(
-            alpha: _alpha,
-            baseColor: _hsv.toColor(),
-            onChanged: _updateAlpha,
-            onChangeEnd: (value) => _updateAlpha(value, commit: true),
-          ),
-          const SizedBox(height: 12),
-          _ColorInfoSection(color: _selectedColor),
-        ],
-      ),
+  Widget _buildCustomTab(BuildContext context, {bool compact = false}) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SaturationValuePanel(
+          hsv: _hsv,
+          height: compact ? 180 : 210,
+          onChanged: (pos, size) => _updateSaturationValue(pos, size),
+          onInteractionEnd: (pos, size) => _updateSaturationValue(pos, size, commit: true),
+        ),
+        SizedBox(height: compact ? 8 : 10),
+        _GradientSlider(
+          value: _hsv.hue,
+          min: 0,
+          max: 360,
+          gradient: const LinearGradient(colors: [
+            Color(0xFFFF0000),
+            Color(0xFFFFFF00),
+            Color(0xFF00FF00),
+            Color(0xFF00FFFF),
+            Color(0xFF0000FF),
+            Color(0xFFFF00FF),
+            Color(0xFFFF0000),
+          ]),
+          onChanged: (value) {
+            setState(() => _hsv = _hsv.withHue(value));
+            _emitLive();
+          },
+          onChangeEnd: (_) => _emitCommit(),
+        ),
+        const SizedBox(height: 6),
+        _AlphaSliderRow(
+          alpha: _alpha,
+          baseColor: _hsv.toColor(),
+          onChanged: _updateAlpha,
+          onChangeEnd: (value) => _updateAlpha(value, commit: true),
+        ),
+        SizedBox(height: compact ? 8 : 10),
+        _ColorInfoSection(color: _selectedColor, compact: compact),
+      ],
     );
-  }
 
-  Widget _buildCustomTab(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SaturationValuePanel(
-            hsv: _hsv,
-            onChanged: (pos, size) => _updateSaturationValue(pos, size),
-            onInteractionEnd: (pos, size) => _updateSaturationValue(pos, size, commit: true),
-          ),
-          const SizedBox(height: 12),
-          _GradientSlider(
-            value: _hsv.hue,
-            min: 0,
-            max: 360,
-            gradient: const LinearGradient(colors: [
-              Color(0xFFFF0000),
-              Color(0xFFFFFF00),
-              Color(0xFF00FF00),
-              Color(0xFF00FFFF),
-              Color(0xFF0000FF),
-              Color(0xFFFF00FF),
-              Color(0xFFFF0000),
-            ]),
-            onChanged: (value) {
-              setState(() => _hsv = _hsv.withHue(value));
-              _emitLive();
-            },
-            onChangeEnd: (_) => _emitCommit(),
-          ),
-          const SizedBox(height: 8),
-          _AlphaSliderRow(
-            alpha: _alpha,
-            baseColor: _hsv.toColor(),
-            onChanged: _updateAlpha,
-            onChangeEnd: (value) => _updateAlpha(value, commit: true),
-          ),
-          const SizedBox(height: 12),
-          _ColorInfoSection(color: _selectedColor),
-        ],
-      ),
-    );
+    if (!compact) {
+      return content;
+    }
+    return SingleChildScrollView(child: content);
   }
 }
 
@@ -246,9 +285,11 @@ class _SaturationValuePanel extends StatelessWidget {
     required this.hsv,
     required this.onChanged,
     required this.onInteractionEnd,
+    this.height = 210,
   });
 
   final HSVColor hsv;
+  final double height;
   final void Function(Offset localPosition, Size size) onChanged;
   final void Function(Offset localPosition, Size size) onInteractionEnd;
 
@@ -256,7 +297,7 @@ class _SaturationValuePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, 210);
+        final size = Size(constraints.maxWidth, height);
         return SizedBox(
           width: size.width,
           height: size.height,
@@ -517,9 +558,10 @@ class _AlphaSliderRow extends StatelessWidget {
 }
 
 class _ColorInfoSection extends StatelessWidget {
-  const _ColorInfoSection({required this.color});
+  const _ColorInfoSection({required this.color, this.compact = false});
 
   final Color color;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -531,20 +573,20 @@ class _ColorInfoSection extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 56,
-          height: 56,
+          width: compact ? 48 : 56,
+          height: compact ? 48 : 56,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: compact ? 10 : 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('HEX  $hex', style: theme.textTheme.titleSmall),
+              Text('HEX  $hex', style: compact ? theme.textTheme.bodyMedium : theme.textTheme.titleSmall),
               const SizedBox(height: 2),
               Text('RGB  ${color.red}, ${color.green}, ${color.blue}', style: theme.textTheme.bodyMedium),
               const SizedBox(height: 2),
