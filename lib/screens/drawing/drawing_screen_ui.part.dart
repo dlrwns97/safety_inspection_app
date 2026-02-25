@@ -454,7 +454,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
                 IconButton(
-                  onPressed: canAdjustStrokeStyle ? _showPenSettingsPopover : null,
+                  onPressed: !canAdjustStrokeStyle
+                      ? null
+                      : () {
+                          if (style.kind == StrokeToolKind.highlighter) {
+                            _showHighlighterSettingsPopover();
+                            return;
+                          }
+                          _showPenSettingsPopover();
+                        },
                   icon: const Icon(Icons.tune),
                   tooltip: '펜 설정',
                 ),
@@ -525,10 +533,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
     switch (kind) {
       case StrokeToolKind.pen:
-      case StrokeToolKind.highlighter:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
         _showPenSettingsPopover();
+        return;
+      case StrokeToolKind.highlighter:
+        _activateStrokeKind(kind);
+        _handleDrawingToolChanged(DrawingTool.pen);
+        _showHighlighterSettingsPopover();
         return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
@@ -574,6 +586,46 @@ extension _DrawingScreenUi on _DrawingScreenState {
         onClearPenOnly: _clearCurrentPagePenStrokes,
         onClearHighlighterOnly: _clearCurrentPageHighlighterStrokes,
         onClearAll: _clearCurrentPageAllStrokes,
+        onClose: _settingsPopover.hide,
+      ),
+    );
+  }
+
+  void _showHighlighterSettingsPopover() {
+    if (!mounted) {
+      return;
+    }
+    final style = _activeStrokeStyleOrFallback.kind == StrokeToolKind.highlighter
+        ? _activeStrokeStyleOrFallback
+        : _presets.firstWhere(
+            (preset) => preset.kind == StrokeToolKind.highlighter,
+            orElse: () => _activeStrokeStyleOrFallback,
+          );
+
+    _showPopover(
+      link: _highlighterLink,
+      child: HighlighterSettingsPopup(
+        currentStyle: style,
+        recentColors: _recentArgb.map(Color.new).toList(growable: false),
+        standardPaletteColors: _standardPaletteArgb
+            .map(Color.new)
+            .toList(growable: false),
+        onVariantChanged: (variant) {
+          final current = _activeStrokeStyleOrFallback;
+          _updateActivePreset(current.copyWith(variant: variant));
+        },
+        onWidthChanged: (width) {
+          final current = _activeStrokeStyleOrFallback;
+          _updateActivePreset(current.copyWith(widthPx: width));
+        },
+        onOpacityChanged: (opacity) {
+          final current = _activeStrokeStyleOrFallback;
+          _updateActivePreset(current.copyWith(opacity: opacity));
+        },
+        onColorChanged: (color) {
+          final current = _activeStrokeStyleOrFallback;
+          _applyPresetWithRecentColor(current.copyWith(argbColor: color.value));
+        },
         onClose: _settingsPopover.hide,
       ),
     );

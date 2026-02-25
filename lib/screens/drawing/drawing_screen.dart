@@ -53,6 +53,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_laye
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pen_settings_popup.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/highlighter_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/eraser_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/settings_popover.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
