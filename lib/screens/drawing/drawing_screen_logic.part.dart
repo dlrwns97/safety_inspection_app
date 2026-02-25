@@ -1745,8 +1745,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _straightenSnappedAngleByPointer.remove(event.pointer);
     _straightenStartPageByPointer.remove(event.pointer);
-    _highlighterStraightenAnchorPageByPointer.remove(event.pointer);
-    _highlighterStraightenLockAxisByPointer.remove(event.pointer);
+    if (_inProgressStroke?.style.kind == StrokeToolKind.highlighter) {
+      _resetHighlighterStraightenState();
+    }
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(
@@ -2360,6 +2361,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pointsNorm: <Offset>[normalized],
       );
       _inProgressStroke = stroke;
+      if (style.kind == StrokeToolKind.highlighter) {
+        _resetHighlighterStraightenState();
+      }
       if (kDebugMode) {
         debugPrint(
           '[Drawing] NEW STROKE style: kind=${style.kind.name}, '
@@ -2400,7 +2404,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final processedNormalized =
         (_isStraightenModeEnabled && isHighlighterPath)
             ? _applyHighlighterStraightenAxisLock(
-                pointerId: pointerId,
                 inProgressStroke: inProgressStroke,
                 normalized: normalized,
                 destSize: destSize,
@@ -2421,7 +2424,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           straightenAppendEpsilonPx / destSize.shortestSide;
       final previousEnd = inProgressStroke.pointsNorm.last;
 
-      final lockAxis = _highlighterStraightenLockAxisByPointer[pointerId];
+      final lockAxis = _highlighterStraightenLockAxis;
       final bool isHighlighterStraightened =
           _isStraightenModeEnabled && isHighlighterPath;
       final bool didAppend;
@@ -2451,7 +2454,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             processedNormalized.dy * destSize.height,
           );
           debugPrint(
-            '[HL Straighten] locked=$lockAxis raw=$raw snapped=$snapped appended=$didAppend',
+            '[HL/MM Straighten] lock=$lockAxis raw=$raw snapped=$snapped append=$didAppend',
           );
         } else {
           final start = inProgressStroke.pointsNorm.first;
@@ -2564,7 +2567,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
 
   Offset _applyHighlighterStraightenAxisLock({
-    required int pointerId,
     required DrawingStroke inProgressStroke,
     required Offset normalized,
     required Size destSize,
@@ -2581,24 +2583,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     final startNorm = inProgressStroke.pointsNorm.first;
-    final anchorPage = _highlighterStraightenAnchorPageByPointer[pointerId] ??
+    final anchorPage =
+        _highlighterStraightenAnchorPage ??
         Offset(startNorm.dx * destSize.width, startNorm.dy * destSize.height);
-    _highlighterStraightenAnchorPageByPointer[pointerId] = anchorPage;
+    _highlighterStraightenAnchorPage = anchorPage;
 
     final rawPage = Offset(
       normalized.dx * destSize.width,
       normalized.dy * destSize.height,
     );
 
-    var lockAxis = _highlighterStraightenLockAxisByPointer[pointerId];
+    var lockAxis = _highlighterStraightenLockAxis;
     final dx = rawPage.dx - anchorPage.dx;
     final dy = rawPage.dy - anchorPage.dy;
     const double lockThresholdPx = 2.0;
-    if (lockAxis == null && math.max(dx.abs(), dy.abs()) >= lockThresholdPx) {
+    if (!_highlighterStraightenHasLock &&
+        math.max(dx.abs(), dy.abs()) >= lockThresholdPx) {
       lockAxis = dx.abs() >= dy.abs()
           ? _StraightenAxisLock.horizontal
           : _StraightenAxisLock.vertical;
-      _highlighterStraightenLockAxisByPointer[pointerId] = lockAxis;
+      _highlighterStraightenHasLock = true;
+      _highlighterStraightenLockAxis = lockAxis;
     }
 
     final snappedPage = switch (lockAxis) {
@@ -2738,8 +2743,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
     _straightenSnappedAngleByPointer.remove(pointerId);
     _straightenStartPageByPointer.remove(pointerId);
-    _highlighterStraightenAnchorPageByPointer.remove(pointerId);
-    _highlighterStraightenLockAxisByPointer.remove(pointerId);
+    if (_inProgressStroke?.style.kind == StrokeToolKind.highlighter) {
+      _resetHighlighterStraightenState();
+    }
     if (_activeStylusPointerId == pointerId) {
       _activeStylusPointerId = null;
     }
@@ -2782,6 +2788,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       });
     });
     _requestPersistDrawing();
+  }
+
+  void _resetHighlighterStraightenState() {
+    _highlighterStraightenAnchorPage = null;
+    _highlighterStraightenLockAxis = null;
+    _highlighterStraightenHasLock = false;
   }
 
 
