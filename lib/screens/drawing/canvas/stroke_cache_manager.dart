@@ -7,6 +7,7 @@ import 'package:perfect_freehand/perfect_freehand.dart';
 
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/centerline_style_utils.dart';
 
 /// Builds and stores a per-page raster cache image for committed drawing strokes.
 class StrokeCacheManager extends ChangeNotifier {
@@ -204,46 +205,10 @@ class StrokeCacheManager extends ChangeNotifier {
     double strokeOpacity,
     List<Offset> points,
   ) {
-    var width = style.widthPx;
-    var cap = StrokeCap.round;
-    var join = StrokeJoin.round;
-    var blendMode =
-        style.kind == StrokeToolKind.highlighter ? BlendMode.multiply : BlendMode.srcOver;
-    switch (style.variant) {
-      case PenVariant.fountainPen:
-        width *= 1.15;
-        break;
-      case PenVariant.calligraphyPen:
-        width *= 1.1;
-        cap = StrokeCap.square;
-        join = StrokeJoin.bevel;
-        break;
-      case PenVariant.pencil:
-        width *= 0.9;
-        break;
-      case PenVariant.highlighterChisel:
-      case PenVariant.markerChisel:
-        cap = StrokeCap.square;
-        join = StrokeJoin.bevel;
-        break;
-      case PenVariant.highlighter:
-        blendMode = BlendMode.multiply;
-        break;
-      case PenVariant.marker:
-        blendMode = BlendMode.srcOver;
-        break;
-      case PenVariant.pen:
-        break;
-    }
-    final paint = Paint()
-      ..color = Color(style.argbColor).withValues(alpha: _resolvedOpacity(style, strokeOpacity))
-      ..strokeWidth = width
-      ..strokeCap = cap
-      ..strokeJoin = join
-      ..style = PaintingStyle.stroke
-      ..blendMode = blendMode;
+    final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
+    final paint = resolved.paint;
     if (points.length == 1) {
-      canvas.drawCircle(points.first, math.max(0.5, paint.strokeWidth / 2), paint);
+      canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;
     }
     final path = Path()..moveTo(points.first.dx, points.first.dy);
