@@ -132,11 +132,14 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
             SizedBox(
               width: 32,
               height: 32,
-              child: IconButton(
-                onPressed: widget.onClose,
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.close, size: 18),
-                tooltip: '닫기',
+              child: Semantics(
+                label: '닫기',
+                button: true,
+                child: IconButton(
+                  onPressed: widget.onClose,
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.close, size: 18),
+                ),
               ),
             ),
           ],
@@ -201,11 +204,14 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
             SizedBox(
               width: 32,
               height: 32,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                onPressed: widget.onOpenAllColors,
-                icon: const Icon(Icons.colorize, size: 18),
-                tooltip: '색상 선택',
+              child: Semantics(
+                label: '색상 선택',
+                button: true,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: widget.onOpenAllColors,
+                  icon: const Icon(Icons.colorize, size: 18),
+                ),
               ),
             ),
           ],
