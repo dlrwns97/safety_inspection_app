@@ -1745,9 +1745,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _straightenSnappedAngleByPointer.remove(event.pointer);
     _straightenStartPageByPointer.remove(event.pointer);
-    if (_inProgressStroke?.style.kind == StrokeToolKind.highlighter) {
-      _resetHighlighterStraightenState();
-    }
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(
@@ -2361,9 +2358,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pointsNorm: <Offset>[normalized],
       );
       _inProgressStroke = stroke;
-      if (style.kind == StrokeToolKind.highlighter) {
-        _resetHighlighterStraightenState();
-      }
       if (kDebugMode) {
         debugPrint(
           '[Drawing] NEW STROKE style: kind=${style.kind.name}, '
@@ -2403,50 +2397,63 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isStraightenModeEnabled &&
         inProgressStroke.style.kind == StrokeToolKind.pen;
 
-    final processedNormalized =
-        isHighlighterStraightened
-            ? _applyHighlighterStraightenDynamicSnap(
-                inProgressStroke: inProgressStroke,
-                normalized: normalized,
-                destSize: destSize,
-              )
-            : _applyStraightenSamsungLike(
-                pointerId: pointerId,
-                inProgressStroke: inProgressStroke,
-                normalized: normalized,
-                destSize: destSize,
-              );
+    final processedNormalized = _applyStraightenSamsungLike(
+      pointerId: pointerId,
+      inProgressStroke: inProgressStroke,
+      normalized: normalized,
+      destSize: destSize,
+      applyToHighlighter: isHighlighterStraightened,
+    );
 
     if (isHighlighterStraightened) {
       if (destSize.shortestSide <= 0) {
         return;
       }
       const double straightenAppendEpsilonPx = 0.75;
+      const double axisDetectionEpsilonPx = 0.001;
       final previousEnd = inProgressStroke.pointsNorm.last;
+      final rawPage = Offset(
+        normalized.dx * destSize.width,
+        normalized.dy * destSize.height,
+      );
       final previousEndPage = Offset(
         previousEnd.dx * destSize.width,
         previousEnd.dy * destSize.height,
       );
-      final processedPage = Offset(
+      final snappedPage = Offset(
         processedNormalized.dx * destSize.width,
         processedNormalized.dy * destSize.height,
       );
 
-      final lockAxis = _highlighterStraightenLockAxis;
+      final horizontalSnap =
+          (snappedPage.dx - rawPage.dx).abs() <= axisDetectionEpsilonPx &&
+          (snappedPage.dy - rawPage.dy).abs() > axisDetectionEpsilonPx;
+      final verticalSnap =
+          (snappedPage.dy - rawPage.dy).abs() <= axisDetectionEpsilonPx &&
+          (snappedPage.dx - rawPage.dx).abs() > axisDetectionEpsilonPx;
+
       final bool didAppend;
-      if (lockAxis == _StraightenAxisLock.horizontal) {
+      if (horizontalSnap) {
         didAppend =
-            (processedPage.dx - previousEndPage.dx).abs() >=
+            (snappedPage.dx - previousEndPage.dx).abs() >=
             straightenAppendEpsilonPx;
-      } else if (lockAxis == _StraightenAxisLock.vertical) {
+      } else if (verticalSnap) {
         didAppend =
-            (processedPage.dy - previousEndPage.dy).abs() >=
+            (snappedPage.dy - previousEndPage.dy).abs() >=
             straightenAppendEpsilonPx;
       } else {
         didAppend =
-            (processedPage - previousEndPage).distance >=
+            (snappedPage - previousEndPage).distance >=
             straightenAppendEpsilonPx;
       }
+
+      assert(() {
+        debugPrint(
+          '[HL/MM] straighten=$isHighlighterStraightened rawPx=$rawPage '
+          'snappedPx=$snappedPage lastPx=$previousEndPage append=$didAppend',
+        );
+        return true;
+      }());
 
       if (!didAppend) {
         return;
@@ -2580,80 +2587,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
 
-  Offset _applyHighlighterStraightenDynamicSnap({
-    required DrawingStroke inProgressStroke,
-    required Offset normalized,
-    required Size destSize,
-  }) {
-    if (!_isStraightenModeEnabled ||
-        inProgressStroke.style.kind != StrokeToolKind.highlighter) {
-      return normalized;
-    }
-    if (destSize.width <= 0 || destSize.height <= 0) {
-      return normalized;
-    }
-    if (inProgressStroke.pointsNorm.isEmpty) {
-      return normalized;
-    }
-    final lastNorm = inProgressStroke.pointsNorm.last;
-    final lastPage = Offset(
-      lastNorm.dx * destSize.width,
-      lastNorm.dy * destSize.height,
-    );
-
-    final rawPage = Offset(
-      normalized.dx * destSize.width,
-      normalized.dy * destSize.height,
-    );
-
-    var lockAxis = _highlighterStraightenLockAxis;
-    final dx = rawPage.dx - lastPage.dx;
-    final dy = rawPage.dy - lastPage.dy;
-    if (!_highlighterStraightenHasLock) {
-      lockAxis = dx.abs() >= dy.abs()
-          ? _StraightenAxisLock.horizontal
-          : _StraightenAxisLock.vertical;
-      _highlighterStraightenHasLock = true;
-      _highlighterStraightenLockAxis = lockAxis;
-    } else if (lockAxis == _StraightenAxisLock.horizontal &&
-        dy.abs() > dx.abs() * 1.25) {
-      lockAxis = _StraightenAxisLock.vertical;
-      _highlighterStraightenLockAxis = lockAxis;
-    } else if (lockAxis == _StraightenAxisLock.vertical &&
-        dx.abs() > dy.abs() * 1.25) {
-      lockAxis = _StraightenAxisLock.horizontal;
-      _highlighterStraightenLockAxis = lockAxis;
-    }
-
-    final snappedPage = switch (lockAxis) {
-      _StraightenAxisLock.horizontal => Offset(rawPage.dx, lastPage.dy),
-      _StraightenAxisLock.vertical => Offset(lastPage.dx, rawPage.dy),
-      null => rawPage,
-    };
-
-    assert(() {
-      debugPrint(
-        '[HL/MM Straighten] axis=$lockAxis raw=$rawPage snapped=$snappedPage '
-        'dx=${dx.toStringAsFixed(2)} dy=${dy.toStringAsFixed(2)}',
-      );
-      return true;
-    }());
-
-    return Offset(
-      snappedPage.dx / destSize.width,
-      snappedPage.dy / destSize.height,
-    );
-  }
-
   Offset _applyStraightenSamsungLike({
     required int pointerId,
     required DrawingStroke inProgressStroke,
     required Offset normalized,
     required Size destSize,
+    bool applyToHighlighter = false,
   }) {
+    final isPenPath = inProgressStroke.style.kind == StrokeToolKind.pen;
+    final isHighlighterPath =
+        inProgressStroke.style.kind == StrokeToolKind.highlighter;
     final shouldApply =
         _isStraightenModeEnabled &&
-        inProgressStroke.style.kind == StrokeToolKind.pen;
+        (isPenPath || (applyToHighlighter && isHighlighterPath));
     if (!shouldApply) {
       return normalized;
     }
@@ -2770,9 +2716,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
     _straightenSnappedAngleByPointer.remove(pointerId);
     _straightenStartPageByPointer.remove(pointerId);
-    if (_inProgressStroke?.style.kind == StrokeToolKind.highlighter) {
-      _resetHighlighterStraightenState();
-    }
     if (_activeStylusPointerId == pointerId) {
       _activeStylusPointerId = null;
     }
@@ -2816,12 +2759,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     });
     _requestPersistDrawing();
   }
-
-  void _resetHighlighterStraightenState() {
-    _highlighterStraightenLockAxis = null;
-    _highlighterStraightenHasLock = false;
-  }
-
 
   void _updateDrawingHistoryAvailabilityState() {
     _canUndoDrawing = _historyManager.canUndo;
