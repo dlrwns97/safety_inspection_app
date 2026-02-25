@@ -17,6 +17,7 @@ class HighlighterSettingsPopup extends StatefulWidget {
     required this.onWidthChanged,
     required this.onOpacityChanged,
     required this.onColorChanged,
+    required this.onOpenAllColors,
     this.onClose,
   });
 
@@ -27,6 +28,7 @@ class HighlighterSettingsPopup extends StatefulWidget {
   final ValueChanged<double> onWidthChanged;
   final ValueChanged<double> onOpacityChanged;
   final ValueChanged<Color> onColorChanged;
+  final VoidCallback onOpenAllColors;
   final VoidCallback? onClose;
 
   @override
@@ -39,15 +41,45 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   @override
   void initState() {
     super.initState();
-    _style = widget.currentStyle;
+    _style = _normalizedStyle(widget.currentStyle);
+    _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: _style);
   }
 
   @override
   void didUpdateWidget(covariant HighlighterSettingsPopup oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_isSameStyle(oldWidget.currentStyle, widget.currentStyle)) {
-      _style = widget.currentStyle;
+      final normalized = _normalizedStyle(widget.currentStyle);
+      _style = normalized;
+      _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: normalized);
     }
+  }
+
+  StrokeStyle _normalizedStyle(StrokeStyle style) {
+    final normalizedVariant = switch (style.variant) {
+      PenVariant.highlighterChisel => PenVariant.highlighter,
+      PenVariant.markerChisel => PenVariant.marker,
+      _ => style.variant,
+    };
+    if (normalizedVariant == style.variant) {
+      return style;
+    }
+    return style.copyWith(variant: normalizedVariant);
+  }
+
+  void _normalizeVariantIfNeeded({
+    required StrokeStyle source,
+    required StrokeStyle normalized,
+  }) {
+    if (source.variant == normalized.variant) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      widget.onVariantChanged(normalized.variant);
+    });
   }
 
   bool _isSameStyle(StrokeStyle a, StrokeStyle b) {
@@ -82,10 +114,8 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   Widget build(BuildContext context) {
     final selectedColor = Color(_style.argbColor);
     const highlighterVariants = <({PenVariant variant, String label})>[
-      (variant: PenVariant.highlighter, label: 'Highlighter'),
-      (variant: PenVariant.highlighterChisel, label: 'Highlighter (Chisel)'),
-      (variant: PenVariant.marker, label: 'Marker'),
-      (variant: PenVariant.markerChisel, label: 'Marker (Chisel)'),
+      (variant: PenVariant.highlighter, label: '형광펜'),
+      (variant: PenVariant.marker, label: '마커'),
     ];
 
     Widget colorChip(Color value) {
@@ -113,104 +143,129 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '형광펜 설정',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: _kTitleFont),
-              ),
-            ),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: Semantics(
-                label: '닫기',
-                button: true,
-                child: IconButton(
-                  onPressed: widget.onClose,
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.close, size: 18),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 420),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '형광펜 설정',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: _kTitleFont),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: _kGap),
-        const Text('타입', style: TextStyle(fontSize: _kBodyFont)),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final option in highlighterVariants)
               SizedBox(
-                height: _kChipH,
+                width: 32,
+                height: 32,
                 child: Semantics(
-                  label: option.label,
+                  label: '닫기',
                   button: true,
-                  selected: _style.variant == option.variant,
-                  child: ChoiceChip(
-                    label: Text(option.label, style: const TextStyle(fontSize: _kBodyFont)),
-                    selected: _style.variant == option.variant,
-                    visualDensity: VisualDensity.compact,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    onSelected: (_) => _pickVariant(option.variant),
+                  child: IconButton(
+                    onPressed: widget.onClose,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.close, size: 18),
                   ),
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: _kGap),
-        SizedBox(
-          height: 56,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            ],
+          ),
+          const SizedBox(height: _kGap),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('타입', style: TextStyle(fontSize: _kBodyFont)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final option in highlighterVariants)
+                        SizedBox(
+                          height: _kChipH,
+                          child: Semantics(
+                            label: option.label,
+                            button: true,
+                            selected: _style.variant == option.variant,
+                            child: ChoiceChip(
+                              label: Text(option.label, style: const TextStyle(fontSize: _kBodyFont)),
+                              selected: _style.variant == option.variant,
+                              visualDensity: VisualDensity.compact,
+                              labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              onSelected: (_) => _pickVariant(option.variant),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: _kGap),
+                  SizedBox(
+                    height: 56,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                      ),
+                      child: CustomPaint(
+                        painter: _HighlighterPreviewPainter(style: _style),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: _kGap),
+                  _CompactSliderRow(
+                    label: '두께',
+                    valueLabel: '${_style.widthPx.round()}px',
+                    slider: Slider(
+                      min: 1,
+                      max: 48,
+                      divisions: 47,
+                      value: _style.widthPx.clamp(1, 48),
+                      onChanged: _pickWidth,
+                    ),
+                  ),
+                  _CompactSliderRow(
+                    label: '투명도',
+                    valueLabel: '${(_style.opacity * 100).round()}%',
+                    slider: Slider(
+                      min: 0.05,
+                      max: 1,
+                      value: _style.opacity.clamp(0.05, 1),
+                      onChanged: _pickOpacity,
+                    ),
+                  ),
+                  const SizedBox(height: _kGap),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ...widget.recentColors.map(colorChip),
+                      ...widget.standardPaletteColors.take(8).map(colorChip),
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Semantics(
+                          label: '색상 선택',
+                          button: true,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: widget.onOpenAllColors,
+                            icon: const Icon(Icons.colorize, size: 18),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: CustomPaint(
-              painter: _HighlighterPreviewPainter(style: _style),
-            ),
           ),
-        ),
-        const SizedBox(height: _kGap),
-        _CompactSliderRow(
-          label: '굵기',
-          valueLabel: '${_style.widthPx.round()}px',
-          slider: Slider(
-            min: 1,
-            max: 48,
-            divisions: 47,
-            value: _style.widthPx.clamp(1, 48),
-            onChanged: _pickWidth,
-          ),
-        ),
-        _CompactSliderRow(
-          label: '투명도',
-          valueLabel: '${(_style.opacity * 100).round()}%',
-          slider: Slider(
-            min: 0.05,
-            max: 1,
-            value: _style.opacity.clamp(0.05, 1),
-            onChanged: _pickOpacity,
-          ),
-        ),
-        const SizedBox(height: _kGap),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            ...widget.recentColors.map(colorChip),
-            ...widget.standardPaletteColors.take(8).map(colorChip),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
