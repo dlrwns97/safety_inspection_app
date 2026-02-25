@@ -149,7 +149,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, double?> _straightenSnappedAngleByPointer =
       <int, double?>{};
   final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
-  Offset? _highlighterStraightenAnchorPage;
   _StraightenAxisLock? _highlighterStraightenLockAxis;
   bool _highlighterStraightenHasLock = false;
   static const double kMinDragToConsiderSnapPx = 12.0;
