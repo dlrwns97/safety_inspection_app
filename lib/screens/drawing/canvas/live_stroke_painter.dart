@@ -4,7 +4,8 @@ import 'package:perfect_freehand/perfect_freehand.dart';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
-import 'package:safety_inspection_app/screens/drawing/models/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/centerline_style_utils.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 /// Paints only the in-progress stroke as a live overlay above cached content.
 class LiveStrokePainter extends CustomPainter {
@@ -157,50 +158,8 @@ class LiveStrokePainter extends CustomPainter {
     double strokeOpacity,
     List<Offset> points,
   ) {
-    var resolvedStrokeWidth = style.widthPx;
-    var resolvedStrokeCap = StrokeCap.round;
-    var resolvedStrokeJoin = StrokeJoin.round;
-    var resolvedBlendMode = style.kind == StrokeToolKind.highlighter
-        ? BlendMode.multiply
-        : BlendMode.srcOver;
-
-    switch (style.variant) {
-      case PenVariant.fountainPen:
-        resolvedStrokeWidth *= 1.15;
-        break;
-      case PenVariant.calligraphyPen:
-        resolvedStrokeCap = StrokeCap.square;
-        resolvedStrokeJoin = StrokeJoin.bevel;
-        resolvedStrokeWidth *= 1.1;
-        break;
-      case PenVariant.pencil:
-        resolvedStrokeWidth *= 0.9;
-        break;
-      case PenVariant.highlighterChisel:
-      case PenVariant.markerChisel:
-        resolvedStrokeCap = StrokeCap.square;
-        resolvedStrokeJoin = StrokeJoin.bevel;
-        break;
-      case PenVariant.highlighter:
-        resolvedBlendMode = BlendMode.multiply;
-        break;
-      case PenVariant.marker:
-        resolvedBlendMode = BlendMode.srcOver;
-        break;
-      case PenVariant.pen:
-        break;
-    }
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = resolvedStrokeWidth
-      ..strokeCap = resolvedStrokeCap
-      ..strokeJoin = resolvedStrokeJoin
-      ..blendMode = resolvedBlendMode
-      ..isAntiAlias = true
-      ..color = Color(style.argbColor).withValues(
-        alpha: _resolvedOpacity(style, strokeOpacity),
-      );
+    final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
+    final paint = resolved.paint;
     if (points.length == 1) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;
