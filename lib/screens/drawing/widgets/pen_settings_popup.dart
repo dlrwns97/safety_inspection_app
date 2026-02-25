@@ -86,6 +86,16 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     widget.onPresetCommitted(next);
   }
 
+  String _variantLabel(PenVariant variant) {
+    return switch (variant) {
+      PenVariant.pen => '펜',
+      PenVariant.fountainPen => '만년필',
+      PenVariant.calligraphyPen => '캘리그래피',
+      PenVariant.pencil => '연필',
+      _ => variant.name,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentColor = Color(_style.argbColor);
@@ -159,7 +169,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
                 SizedBox(
                   height: kChipH,
                   child: ChoiceChip(
-                    label: Text(variant.name, style: const TextStyle(fontSize: kBodyFont)),
+                    label: Text(_variantLabel(variant), style: const TextStyle(fontSize: kBodyFont)),
                     selected: _style.variant == variant,
                     visualDensity: VisualDensity.compact,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
