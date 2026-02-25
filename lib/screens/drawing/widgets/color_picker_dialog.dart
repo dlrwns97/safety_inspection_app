@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 Future<bool> showDrawingColorPickerDialog(
@@ -64,6 +66,22 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
     }
   }
 
+  void _updateRainbowHueValue(double hue, double value, {bool commit = false}) {
+    setState(() => _hsv = _hsv.withHue(hue).withSaturation(1).withValue(value));
+    _emitLive();
+    if (commit) {
+      _emitCommit();
+    }
+  }
+
+  void _updateAlpha(double value, {bool commit = false}) {
+    setState(() => _alpha = value);
+    _emitLive();
+    if (commit) {
+      _emitCommit();
+    }
+  }
+
   void _close({required bool kept}) {
     Navigator.of(context).pop(kept);
   }
@@ -71,156 +89,153 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selected = _selectedColor;
-    final rgbHex =
-        '#${selected.red.toRadixString(16).padLeft(2, '0').toUpperCase()}${selected.green.toRadixString(16).padLeft(2, '0').toUpperCase()}${selected.blue.toRadixString(16).padLeft(2, '0').toUpperCase()}';
-    final alphaPercent = (_alpha * 100).round();
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text('색상 선택', style: theme.textTheme.titleMedium),
-                  ),
-                  Semantics(
-                    label: '닫기',
-                    button: true,
-                    child: IconButton(
-                      onPressed: () {
-                        _emitCommit();
-                        _close(kept: true);
-                      },
-                      icon: const Icon(Icons.close),
+        child: DefaultTabController(
+          length: 2,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('색상 선택', style: theme.textTheme.titleMedium),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _SaturationValuePanel(
-                hsv: _hsv,
-                onChanged: (pos, size) => _updateSaturationValue(pos, size),
-                onInteractionEnd: (pos, size) => _updateSaturationValue(pos, size, commit: true),
-              ),
-              const SizedBox(height: 12),
-              _GradientSlider(
-                value: _hsv.hue,
-                min: 0,
-                max: 360,
-                gradient: const LinearGradient(colors: [
-                  Color(0xFFFF0000),
-                  Color(0xFFFFFF00),
-                  Color(0xFF00FF00),
-                  Color(0xFF00FFFF),
-                  Color(0xFF0000FF),
-                  Color(0xFFFF00FF),
-                  Color(0xFFFF0000),
-                ]),
-                onChanged: (value) {
-                  setState(() => _hsv = _hsv.withHue(value));
-                  _emitLive();
-                },
-                onChangeEnd: (_) => _emitCommit(),
-              ),
-              const SizedBox(height: 8),
-              _GradientSlider(
-                value: _alpha,
-                min: 0,
-                max: 1,
-                gradient: LinearGradient(
-                  colors: [
-                    _hsv.toColor().withValues(alpha: 0),
-                    _hsv.toColor().withValues(alpha: 1),
+                    Semantics(
+                      label: '닫기',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () {
+                          _emitCommit();
+                          _close(kept: true);
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                    ),
                   ],
                 ),
-                onChanged: (value) {
-                  setState(() => _alpha = value);
-                  _emitLive();
-                },
-                onChangeEnd: (_) => _emitCommit(),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: selected,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.colorScheme.outlineVariant),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(rgbHex, style: theme.textTheme.titleSmall),
-                        const SizedBox(height: 4),
-                        Text('투명도 $alphaPercent%', style: theme.textTheme.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (widget.recentColors.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Text('최근 색상', style: theme.textTheme.labelLarge),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                TabBar(
+                  tabs: const [Tab(text: '표준'), Tab(text: '사용자 지정')],
+                  labelColor: theme.colorScheme.primary,
+                  dividerColor: theme.colorScheme.outlineVariant,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 420,
+                  child: TabBarView(
+                    children: [
+                      _buildStandardTab(context),
+                      _buildCustomTab(context),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
                   children: [
-                    for (final color in widget.recentColors.take(12))
-                      _RecentColorSwatch(
-                        color: color,
-                        isSelected: color.value == selected.withValues(alpha: 1).value,
-                        onTap: () {
-                          setState(() {
-                            _hsv = HSVColor.fromColor(color.withValues(alpha: 1));
-                            _alpha = color.opacity;
-                          });
-                          _emitLive();
-                          _emitCommit();
-                        },
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _close(kept: false),
+                        child: const Text('취소'),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          _emitCommit();
+                          _close(kept: true);
+                        },
+                        child: const Text('완료'),
+                      ),
+                    ),
                   ],
                 ),
               ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _close(kept: false),
-                      child: const Text('취소'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        _emitCommit();
-                        _close(kept: true);
-                      },
-                      child: const Text('완료'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStandardTab(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final panelHeight = math.min(260.0, width * 0.55);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: panelHeight,
+            child: _RainbowValuePanel(
+              hsv: _hsv,
+              onChanged: (hue, value) => _updateRainbowHueValue(hue, value),
+              onInteractionEnd: (hue, value) => _updateRainbowHueValue(hue, value, commit: true),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _AlphaSliderRow(
+            alpha: _alpha,
+            baseColor: _hsv.toColor(),
+            onChanged: _updateAlpha,
+            onChangeEnd: (value) => _updateAlpha(value, commit: true),
+          ),
+          const SizedBox(height: 12),
+          _ColorInfoSection(color: _selectedColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomTab(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SaturationValuePanel(
+            hsv: _hsv,
+            onChanged: (pos, size) => _updateSaturationValue(pos, size),
+            onInteractionEnd: (pos, size) => _updateSaturationValue(pos, size, commit: true),
+          ),
+          const SizedBox(height: 12),
+          _GradientSlider(
+            value: _hsv.hue,
+            min: 0,
+            max: 360,
+            gradient: const LinearGradient(colors: [
+              Color(0xFFFF0000),
+              Color(0xFFFFFF00),
+              Color(0xFF00FF00),
+              Color(0xFF00FFFF),
+              Color(0xFF0000FF),
+              Color(0xFFFF00FF),
+              Color(0xFFFF0000),
+            ]),
+            onChanged: (value) {
+              setState(() => _hsv = _hsv.withHue(value));
+              _emitLive();
+            },
+            onChangeEnd: (_) => _emitCommit(),
+          ),
+          const SizedBox(height: 8),
+          _AlphaSliderRow(
+            alpha: _alpha,
+            baseColor: _hsv.toColor(),
+            onChanged: _updateAlpha,
+            onChangeEnd: (value) => _updateAlpha(value, commit: true),
+          ),
+          const SizedBox(height: 12),
+          _ColorInfoSection(color: _selectedColor),
+        ],
       ),
     );
   }
@@ -328,6 +343,220 @@ class _SaturationValuePanelPainter extends CustomPainter {
   }
 }
 
+class _RainbowValuePanel extends StatelessWidget {
+  const _RainbowValuePanel({
+    required this.hsv,
+    required this.onChanged,
+    required this.onInteractionEnd,
+  });
+
+  final HSVColor hsv;
+  final void Function(double hue, double value) onChanged;
+  final void Function(double hue, double value) onInteractionEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = math.min(constraints.maxWidth, constraints.maxHeight);
+        final size = Size(side, side);
+
+        ({double hue, double value}) toHueValue(Offset local) {
+          final clampedX = local.dx.clamp(0.0, size.width);
+          final clampedY = local.dy.clamp(0.0, size.height);
+          final hue = (clampedX / size.width) * 360;
+          final value = 1 - (clampedY / size.height);
+          return (hue: hue.clamp(0.0, 360.0), value: value.clamp(0.0, 1.0));
+        }
+
+        return Align(
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: Semantics(
+              label: '표준 색상 패널',
+              child: GestureDetector(
+                onTapDown: (details) {
+                  final mapped = toHueValue(details.localPosition);
+                  onChanged(mapped.hue, mapped.value);
+                  onInteractionEnd(mapped.hue, mapped.value);
+                },
+                onPanDown: (details) {
+                  final mapped = toHueValue(details.localPosition);
+                  onChanged(mapped.hue, mapped.value);
+                },
+                onPanUpdate: (details) {
+                  final mapped = toHueValue(details.localPosition);
+                  onChanged(mapped.hue, mapped.value);
+                },
+                onPanEnd: (_) {
+                  onInteractionEnd(hsv.hue, hsv.value);
+                },
+                child: CustomPaint(
+                  painter: _RainbowValuePanelPainter(hsv: hsv),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RainbowValuePanelPainter extends CustomPainter {
+  const _RainbowValuePanelPainter({required this.hsv});
+
+  final HSVColor hsv;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(14));
+
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFFFF0000),
+            Color(0xFFFFFF00),
+            Color(0xFF00FF00),
+            Color(0xFF00FFFF),
+            Color(0xFF0000FF),
+            Color(0xFFFF00FF),
+            Color(0xFFFF0000),
+          ],
+        ).createShader(rect),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black],
+        ).createShader(rect),
+    );
+    canvas.restore();
+
+    final x = (hsv.hue / 360.0).clamp(0.0, 1.0) * size.width;
+    final y = (1 - hsv.value).clamp(0.0, 1.0) * size.height;
+    final thumb = Offset(x, y);
+    final thumbColor = HSVColor.fromAHSV(1, hsv.hue, 1, hsv.value).toColor();
+
+    canvas.drawCircle(
+      thumb,
+      12,
+      Paint()
+        ..color = Colors.black26
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    canvas.drawCircle(thumb, 10, Paint()..color = thumbColor);
+    canvas.drawCircle(
+      thumb,
+      10,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RainbowValuePanelPainter oldDelegate) {
+    return oldDelegate.hsv != hsv;
+  }
+}
+
+class _AlphaSliderRow extends StatelessWidget {
+  const _AlphaSliderRow({
+    required this.alpha,
+    required this.baseColor,
+    required this.onChanged,
+    required this.onChangeEnd,
+  });
+
+  final double alpha;
+  final Color baseColor;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final alphaPercent = (alpha * 100).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('투명도', style: Theme.of(context).textTheme.bodyMedium),
+            const Spacer(),
+            Text('$alphaPercent%', style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _GradientSlider(
+          value: alpha,
+          min: 0,
+          max: 1,
+          gradient: LinearGradient(
+            colors: [
+              baseColor.withValues(alpha: 0),
+              baseColor.withValues(alpha: 1),
+            ],
+          ),
+          onChanged: onChanged,
+          onChangeEnd: onChangeEnd,
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorInfoSection extends StatelessWidget {
+  const _ColorInfoSection({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hex =
+        '#${color.red.toRadixString(16).padLeft(2, '0').toUpperCase()}${color.green.toRadixString(16).padLeft(2, '0').toUpperCase()}${color.blue.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+    final alphaPercent = (color.opacity * 100).round();
+
+    return Row(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('HEX  $hex', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text('RGB  ${color.red}, ${color.green}, ${color.blue}', style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 2),
+              Text('A  $alphaPercent%', style: theme.textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _GradientSlider extends StatelessWidget {
   const _GradientSlider({
     required this.value,
@@ -376,40 +605,6 @@ class _GradientSlider extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RecentColorSwatch extends StatelessWidget {
-  const _RecentColorSwatch({
-    required this.color,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final Color color;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline,
-            width: isSelected ? 3 : 1,
-          ),
-        ),
       ),
     );
   }
