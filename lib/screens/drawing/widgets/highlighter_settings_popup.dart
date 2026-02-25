@@ -119,7 +119,7 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
     ];
 
     Widget colorChip(Color value) {
-      final selected = value.value == selectedColor.value;
+      final selected = value.withAlpha(0xFF).value == selectedColor.withAlpha(0xFF).value;
       return Semantics(
         label: '색상 선택',
         button: true,

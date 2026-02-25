@@ -677,13 +677,29 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Future<void> _openColorDialog() async {
     final style = _activeStrokeStyleOrFallback;
-    Color selected = Color(style.argbColor);
-    double opacity = style.opacity;
-    HSVColor hsv = HSVColor.fromColor(selected.withOpacity(1));
+    final originalColor = Color(style.argbColor);
+    final originalOpacity = style.opacity;
+    Color selected = originalColor;
+    double opacity = originalOpacity;
+    HSVColor hsv = HSVColor.fromColor(selected.withAlpha(0xFF));
     bool useStandardTab = true;
 
-    await showDialog<void>(
+    StrokeStyle buildLiveStyle() {
+      final base = _activeStrokeStyleOrFallback;
+      var next = base.copyWith(argbColor: selected.value);
+      if (base.kind == StrokeToolKind.highlighter) {
+        next = next.copyWith(opacity: opacity);
+      }
+      return next;
+    }
+
+    void applyLive() {
+      _updateActivePreset(buildLiveStyle());
+    }
+
+    final kept = await showDialog<bool>(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -691,12 +707,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
             builder: (ctx, setD) {
               void applyColor(Color c) {
                 selected = c;
-                hsv = HSVColor.fromColor(c.withOpacity(1));
+                hsv = HSVColor.fromColor(c.withAlpha(0xFF));
+                applyLive();
                 setD(() {});
               }
 
               void applyOpacity(double v) {
                 opacity = v;
+                applyLive();
                 setD(() {});
               }
 
@@ -735,7 +753,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         runSpacing: 10,
                         children: [
                           for (final argb in _standardPaletteArgb)
-                            _colorCircle(argb, selected: selected.value == argb, onTap: () => applyColor(Color(argb))),
+                            _colorCircle(
+                              argb,
+                              selected:
+                                  selected.withAlpha(0xFF).value ==
+                                  Color(argb).withAlpha(0xFF).value,
+                              onTap: () => applyColor(Color(argb)),
+                            ),
                         ],
                       ),
                       if (_recentArgb.isNotEmpty) ...[
@@ -747,7 +771,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           runSpacing: 10,
                           children: [
                             for (final argb in _recentArgb)
-                              _colorCircle(argb, selected: selected.value == argb, onTap: () => applyColor(Color(argb))),
+                              _colorCircle(
+                                argb,
+                                selected: selected.withAlpha(0xFF).value == Color(argb).withAlpha(0xFF).value,
+                                onTap: () => applyColor(Color(argb).withAlpha(selected.alpha)),
+                              ),
                           ],
                         ),
                       ],
@@ -794,7 +822,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          '#${selected.value.toRadixString(16).padLeft(8, '0').toUpperCase()}  R ${selected.red}  G ${selected.green}  B ${selected.blue}',
+                          '#${selected.withAlpha(0xFF).value.toRadixString(16).substring(2).toUpperCase()} '
+                          ' R ${selected.red}  G ${selected.green}  B ${selected.blue}',
                         ),
                       ),
                     ],
@@ -803,7 +832,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () => Navigator.pop(ctx, false),
                             child: const Text('취소'),
                           ),
                         ),
@@ -811,14 +840,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: FilledButton(
                             onPressed: () {
-                              final argb = selected.value;
-                              final base = _activeStrokeStyleOrFallback;
-                              var next = base.copyWith(argbColor: argb);
-                              if (base.kind == StrokeToolKind.highlighter) {
-                                next = next.copyWith(opacity: opacity);
-                              }
-                              _applyPresetWithRecentColor(next);
-                              Navigator.pop(ctx);
+                              _applyPresetWithRecentColor(buildLiveStyle());
+                              Navigator.pop(ctx, true);
                             },
                             child: const Text('완료'),
                           ),
@@ -833,6 +856,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
         );
       },
     );
+
+    if (kept == true) {
+      return;
+    }
+    final base = _activeStrokeStyleOrFallback;
+    var reverted = base.copyWith(argbColor: originalColor.value);
+    if (base.kind == StrokeToolKind.highlighter) {
+      reverted = reverted.copyWith(opacity: originalOpacity);
+    }
+    _updateActivePreset(reverted);
   }
 
   Widget _buildCanvasDrawingLayer() {
@@ -1328,8 +1361,11 @@ class _HsvColorSquarePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
     final hueColor = HSVColor.fromAHSV(1, hsv.hue, 1, 1).toColor();
 
+    canvas.save();
+    canvas.clipRRect(rrect);
     canvas.drawRect(rect, Paint()..color = hueColor);
     canvas.drawRect(
       rect,
@@ -1347,9 +1383,10 @@ class _HsvColorSquarePainter extends CustomPainter {
           colors: [Colors.transparent, Colors.black],
         ).createShader(rect),
     );
+    canvas.restore();
 
-    final dx = hsv.saturation * size.width;
-    final dy = (1 - hsv.value) * size.height;
+    final dx = (hsv.saturation * size.width).clamp(0.0, size.width).toDouble();
+    final dy = ((1 - hsv.value) * size.height).clamp(0.0, size.height).toDouble();
     final thumb = Offset(dx, dy);
     canvas.drawCircle(
       thumb,

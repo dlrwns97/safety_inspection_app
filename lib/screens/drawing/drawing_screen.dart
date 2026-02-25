@@ -178,6 +178,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
+  static const int _kMaxRecentColors = 12;
   final List<int> _standardPaletteArgb = const <int>[
     0xFF000000,
     0xFFFFFFFF,
@@ -282,11 +283,12 @@ class _DrawingScreenState extends State<DrawingScreen>
   }
 
   void _pushRecentColor(int argb) {
+    final rgb = Color(argb).withAlpha(0xFF).value;
     _safeSetState(() {
-      _recentArgb.remove(argb);
-      _recentArgb.insert(0, argb);
-      if (_recentArgb.length > 5) {
-        _recentArgb.removeRange(5, _recentArgb.length);
+      _recentArgb.remove(rgb);
+      _recentArgb.insert(0, rgb);
+      if (_recentArgb.length > _kMaxRecentColors) {
+        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
       }
     });
   }
@@ -365,10 +367,11 @@ class _DrawingScreenState extends State<DrawingScreen>
           'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
         );
       }
-      _recentArgb.remove(next.argbColor);
-      _recentArgb.insert(0, next.argbColor);
-      if (_recentArgb.length > 5) {
-        _recentArgb.removeRange(5, _recentArgb.length);
+      final rgb = Color(next.argbColor).withAlpha(0xFF).value;
+      _recentArgb.remove(rgb);
+      _recentArgb.insert(0, rgb);
+      if (_recentArgb.length > _kMaxRecentColors) {
+        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
       }
     });
   }
