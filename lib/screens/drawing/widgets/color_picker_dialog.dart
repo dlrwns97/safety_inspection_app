@@ -42,6 +42,8 @@ class _DrawingColorPickerDialog extends StatefulWidget {
 class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   static const double _kDialogHorizontalPadding = 16;
   static const double _kDialogVerticalPadding = 14;
+  static const int _kMosaicColumns = 20;
+  static const int _kMosaicRows = 13;
 
   late HSVColor _hsv;
   late double _alpha;
@@ -69,12 +71,59 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
     }
   }
 
-  void _updateRainbowHueValue(double hue, double value, {bool commit = false}) {
-    setState(() => _hsv = _hsv.withHue(hue).withSaturation(1).withValue(value));
+  void _updateMosaicSelection(int column, int row, {bool commit = false}) {
+    final color = _mosaicColorAt(column, row);
+    setState(() => _hsv = HSVColor.fromColor(color));
     _emitLive();
     if (commit) {
       _emitCommit();
     }
+  }
+
+  Color _mosaicColorAt(int column, int row) {
+    final clampedColumn = column.clamp(0, _kMosaicColumns - 1);
+    final clampedRow = row.clamp(0, _kMosaicRows - 1);
+    final hue = (clampedColumn / (_kMosaicColumns - 1)) * 360;
+    final base = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
+
+    final topBandEnd = ((_kMosaicRows - 1) * 0.38).round();
+    final middleBandEnd = ((_kMosaicRows - 1) * 0.69).round();
+
+    if (clampedRow <= topBandEnd) {
+      final t = (clampedRow / math.max(1, topBandEnd)).clamp(0.0, 1.0);
+      return Color.lerp(Colors.white, base, t) ?? base;
+    }
+    if (clampedRow <= middleBandEnd) {
+      final t = ((clampedRow - topBandEnd) / math.max(1, middleBandEnd - topBandEnd)).clamp(0.0, 1.0);
+      return Color.lerp(base.withValues(alpha: 0.88), base, t) ?? base;
+    }
+
+    final t = ((clampedRow - middleBandEnd) / math.max(1, (_kMosaicRows - 1) - middleBandEnd)).clamp(0.0, 1.0);
+    return Color.lerp(base, Colors.black, t * 0.8) ?? base;
+  }
+
+  ({int column, int row}) _selectedMosaicCell() {
+    final color = _hsv.toColor();
+    var bestDistance = double.infinity;
+    var bestColumn = 0;
+    var bestRow = 0;
+
+    for (var row = 0; row < _kMosaicRows; row++) {
+      for (var column = 0; column < _kMosaicColumns; column++) {
+        final candidate = _mosaicColorAt(column, row);
+        final dr = (candidate.red - color.red).toDouble();
+        final dg = (candidate.green - color.green).toDouble();
+        final db = (candidate.blue - color.blue).toDouble();
+        final distance = dr * dr + dg * dg + db * db;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestColumn = column;
+          bestRow = row;
+        }
+      }
+    }
+
+    return (column: bestColumn, row: bestRow);
   }
 
   void _updateAlpha(double value, {bool commit = false}) {
@@ -199,30 +248,45 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   }
 
   Widget _buildStandardTab(BuildContext context, {bool compact = false}) {
-    final width = MediaQuery.sizeOf(context).width;
-    final panelHeight = compact ? 200.0 : math.min(250.0, width * 0.45);
+    final selectedCell = _selectedMosaicCell();
 
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: panelHeight,
-          child: _RainbowValuePanel(
-            hsv: _hsv,
-            onChanged: (hue, value) => _updateRainbowHueValue(hue, value),
-            onInteractionEnd: (hue, value) => _updateRainbowHueValue(hue, value, commit: true),
-          ),
-        ),
-        SizedBox(height: compact ? 8 : 10),
-        _AlphaSliderRow(
-          alpha: _alpha,
-          baseColor: _hsv.toColor(),
-          onChanged: _updateAlpha,
-          onChangeEnd: (value) => _updateAlpha(value, commit: true),
-        ),
-        SizedBox(height: compact ? 8 : 10),
-        _ColorInfoSection(color: _selectedColor, compact: compact),
-      ],
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        final panelWidth = compact
+            ? math.min(320.0, constraints.maxWidth)
+            : math.min(420.0, constraints.maxWidth * 0.70);
+        final panelHeight = panelWidth * 0.72;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              child: SizedBox(
+                width: panelWidth,
+                height: panelHeight,
+                child: _MosaicPalettePanel(
+                  columns: _kMosaicColumns,
+                  rows: _kMosaicRows,
+                  selectedColumn: selectedCell.column,
+                  selectedRow: selectedCell.row,
+                  colorAt: _mosaicColorAt,
+                  onChanged: (column, row) => _updateMosaicSelection(column, row),
+                  onInteractionEnd: (column, row) => _updateMosaicSelection(column, row, commit: true),
+                ),
+              ),
+            ),
+            SizedBox(height: compact ? 8 : 10),
+            _AlphaSliderRow(
+              alpha: _alpha,
+              baseColor: _hsv.toColor(),
+              onChanged: _updateAlpha,
+              onChangeEnd: (value) => _updateAlpha(value, commit: true),
+            ),
+            SizedBox(height: compact ? 8 : 10),
+            _ColorInfoSection(color: _selectedColor, compact: compact),
+          ],
+        );
+      },
     );
 
     if (!compact) {
@@ -277,6 +341,144 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
       return content;
     }
     return SingleChildScrollView(child: content);
+  }
+}
+
+class _MosaicPalettePanel extends StatelessWidget {
+  const _MosaicPalettePanel({
+    required this.columns,
+    required this.rows,
+    required this.selectedColumn,
+    required this.selectedRow,
+    required this.colorAt,
+    required this.onChanged,
+    required this.onInteractionEnd,
+  });
+
+  final int columns;
+  final int rows;
+  final int selectedColumn;
+  final int selectedRow;
+  final Color Function(int column, int row) colorAt;
+  final void Function(int column, int row) onChanged;
+  final void Function(int column, int row) onInteractionEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+
+        ({int column, int row}) toCell(Offset local) {
+          final cellWidth = size.width / columns;
+          final cellHeight = size.height / rows;
+          final column = (local.dx / cellWidth).floor().clamp(0, columns - 1);
+          final row = (local.dy / cellHeight).floor().clamp(0, rows - 1);
+          return (column: column, row: row);
+        }
+
+        return Semantics(
+          label: '표준 색상 패널',
+          child: GestureDetector(
+            onTapDown: (details) {
+              final cell = toCell(details.localPosition);
+              onChanged(cell.column, cell.row);
+              onInteractionEnd(cell.column, cell.row);
+            },
+            onPanDown: (details) {
+              final cell = toCell(details.localPosition);
+              onChanged(cell.column, cell.row);
+            },
+            onPanUpdate: (details) {
+              final cell = toCell(details.localPosition);
+              onChanged(cell.column, cell.row);
+            },
+            onPanEnd: (_) => onInteractionEnd(selectedColumn, selectedRow),
+            child: CustomPaint(
+              painter: _MosaicPalettePanelPainter(
+                columns: columns,
+                rows: rows,
+                selectedColumn: selectedColumn,
+                selectedRow: selectedRow,
+                colorAt: colorAt,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MosaicPalettePanelPainter extends CustomPainter {
+  const _MosaicPalettePanelPainter({
+    required this.columns,
+    required this.rows,
+    required this.selectedColumn,
+    required this.selectedRow,
+    required this.colorAt,
+  });
+
+  final int columns;
+  final int rows;
+  final int selectedColumn;
+  final int selectedRow;
+  final Color Function(int column, int row) colorAt;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(14));
+    final cellWidth = size.width / columns;
+    final cellHeight = size.height / rows;
+
+    canvas.save();
+    canvas.clipRRect(rrect);
+    for (var row = 0; row < rows; row++) {
+      for (var column = 0; column < columns; column++) {
+        final cellRect = Rect.fromLTWH(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
+        canvas.drawRect(cellRect, Paint()..color = colorAt(column, row));
+        canvas.drawRect(
+          cellRect,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.7
+            ..color = Colors.black.withValues(alpha: 0.10),
+        );
+      }
+    }
+    canvas.restore();
+
+    final center = Offset(
+      (selectedColumn + 0.5) * cellWidth,
+      (selectedRow + 0.5) * cellHeight,
+    );
+    final ringRadius = math.min(cellWidth, cellHeight) * 0.38;
+
+    canvas.drawCircle(
+      center,
+      ringRadius + 1,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.black.withValues(alpha: 0.45),
+    );
+    canvas.drawCircle(
+      center,
+      ringRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MosaicPalettePanelPainter oldDelegate) {
+    return oldDelegate.columns != columns ||
+        oldDelegate.rows != rows ||
+        oldDelegate.selectedColumn != selectedColumn ||
+        oldDelegate.selectedRow != selectedRow;
   }
 }
 
@@ -380,134 +582,6 @@ class _SaturationValuePanelPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SaturationValuePanelPainter oldDelegate) {
-    return oldDelegate.hsv != hsv;
-  }
-}
-
-class _RainbowValuePanel extends StatelessWidget {
-  const _RainbowValuePanel({
-    required this.hsv,
-    required this.onChanged,
-    required this.onInteractionEnd,
-  });
-
-  final HSVColor hsv;
-  final void Function(double hue, double value) onChanged;
-  final void Function(double hue, double value) onInteractionEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final side = math.min(constraints.maxWidth, constraints.maxHeight);
-        final size = Size(side, side);
-
-        ({double hue, double value}) toHueValue(Offset local) {
-          final clampedX = local.dx.clamp(0.0, size.width);
-          final clampedY = local.dy.clamp(0.0, size.height);
-          final hue = (clampedX / size.width) * 360;
-          final value = 1 - (clampedY / size.height);
-          return (hue: hue.clamp(0.0, 360.0), value: value.clamp(0.0, 1.0));
-        }
-
-        return Align(
-          child: SizedBox(
-            width: size.width,
-            height: size.height,
-            child: Semantics(
-              label: '표준 색상 패널',
-              child: GestureDetector(
-                onTapDown: (details) {
-                  final mapped = toHueValue(details.localPosition);
-                  onChanged(mapped.hue, mapped.value);
-                  onInteractionEnd(mapped.hue, mapped.value);
-                },
-                onPanDown: (details) {
-                  final mapped = toHueValue(details.localPosition);
-                  onChanged(mapped.hue, mapped.value);
-                },
-                onPanUpdate: (details) {
-                  final mapped = toHueValue(details.localPosition);
-                  onChanged(mapped.hue, mapped.value);
-                },
-                onPanEnd: (_) {
-                  onInteractionEnd(hsv.hue, hsv.value);
-                },
-                child: CustomPaint(
-                  painter: _RainbowValuePanelPainter(hsv: hsv),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _RainbowValuePanelPainter extends CustomPainter {
-  const _RainbowValuePanelPainter({required this.hsv});
-
-  final HSVColor hsv;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(14));
-
-    canvas.save();
-    canvas.clipRRect(rrect);
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [
-            Color(0xFFFF0000),
-            Color(0xFFFFFF00),
-            Color(0xFF00FF00),
-            Color(0xFF00FFFF),
-            Color(0xFF0000FF),
-            Color(0xFFFF00FF),
-            Color(0xFFFF0000),
-          ],
-        ).createShader(rect),
-    );
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black],
-        ).createShader(rect),
-    );
-    canvas.restore();
-
-    final x = (hsv.hue / 360.0).clamp(0.0, 1.0) * size.width;
-    final y = (1 - hsv.value).clamp(0.0, 1.0) * size.height;
-    final thumb = Offset(x, y);
-    final thumbColor = HSVColor.fromAHSV(1, hsv.hue, 1, hsv.value).toColor();
-
-    canvas.drawCircle(
-      thumb,
-      12,
-      Paint()
-        ..color = Colors.black26
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
-    canvas.drawCircle(thumb, 10, Paint()..color = thumbColor);
-    canvas.drawCircle(
-      thumb,
-      10,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = Colors.white,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RainbowValuePanelPainter oldDelegate) {
     return oldDelegate.hsv != hsv;
   }
 }
