@@ -107,7 +107,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     ];
 
     Widget colorChip(Color value) {
-      final selected = value.value == currentColor.value;
+      final selected = value.withAlpha(0xFF).value == currentColor.withAlpha(0xFF).value;
       return GestureDetector(
         onTap: () => _pickColor(value),
         child: Container(

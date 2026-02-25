@@ -677,31 +677,195 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Future<void> _openColorDialog() async {
     final style = _activeStrokeStyleOrFallback;
-    final originalColor = Color(style.argbColor).withValues(alpha: style.opacity);
+    final originalColor = Color(style.argbColor);
+    final originalOpacity = style.opacity;
+    Color selected = originalColor;
+    double opacity = originalOpacity;
+    HSVColor hsv = HSVColor.fromColor(selected.withAlpha(0xFF));
+    bool useStandardTab = true;
 
-    StrokeStyle _styleFromPickerColor(Color color) {
+    StrokeStyle buildLiveStyle() {
       final base = _activeStrokeStyleOrFallback;
-      return base.copyWith(
-        argbColor: color.withValues(alpha: 1).value,
-        opacity: color.opacity,
-      );
+      var next = base.copyWith(argbColor: selected.value);
+      if (base.kind == StrokeToolKind.highlighter) {
+        next = next.copyWith(opacity: opacity);
+      }
+      return next;
     }
 
-    final kept = await showDrawingColorPickerDialog(
-      context,
-      initialColor: originalColor,
-      recentColors: _recentArgb.map(Color.new).toList(growable: false),
-      onLiveChanged: (color) {
-        _updateActivePreset(_styleFromPickerColor(color));
-      },
-      onCommitChanged: (color) {
-        _applyPresetWithRecentColor(_styleFromPickerColor(color));
+    void applyLive() {
+      _updateActivePreset(buildLiveStyle());
+    }
+
+    final kept = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: StatefulBuilder(
+            builder: (ctx, setD) {
+              void applyColor(Color c) {
+                selected = c;
+                hsv = HSVColor.fromColor(c.withAlpha(0xFF));
+                applyLive();
+                setD(() {});
+              }
+
+              void applyOpacity(double v) {
+                opacity = v;
+                applyLive();
+                setD(() {});
+              }
+
+              Widget tabButton(String text, bool active, VoidCallback onTap) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: onTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: active ? Theme.of(ctx).colorScheme.primaryContainer : Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(text),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: tabButton('표준', useStandardTab, () => setD(() => useStandardTab = true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: tabButton('사용자 지정', !useStandardTab, () => setD(() => useStandardTab = false))),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (useStandardTab) ...[
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final argb in _standardPaletteArgb)
+                            _colorCircle(
+                              argb,
+                              selected:
+                                  selected.withAlpha(0xFF).value ==
+                                  Color(argb).withAlpha(0xFF).value,
+                              onTap: () => applyColor(Color(argb)),
+                            ),
+                        ],
+                      ),
+                      if (_recentArgb.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Align(alignment: Alignment.centerLeft, child: Text('최근', style: Theme.of(ctx).textTheme.labelLarge)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final argb in _recentArgb)
+                              _colorCircle(
+                                argb,
+                                selected: selected.withAlpha(0xFF).value == Color(argb).withAlpha(0xFF).value,
+                                onTap: () => applyColor(Color(argb).withAlpha(selected.alpha)),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ] else ...[
+                      _HsvColorSquare(
+                        hsv: hsv,
+                        onChanged: (next) {
+                          hsv = next;
+                          applyColor(next.toColor());
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Text('Hue'),
+                          Expanded(
+                            child: Slider(
+                              min: 0,
+                              max: 360,
+                              value: hsv.hue,
+                              onChanged: (v) {
+                                hsv = hsv.withHue(v);
+                                applyColor(hsv.toColor());
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Text('투명도'),
+                          Expanded(
+                            child: Slider(
+                              min: 0.05,
+                              max: 1.0,
+                              value: opacity.clamp(0.05, 1.0),
+                              onChanged: applyOpacity,
+                            ),
+                          ),
+                          Text('${(opacity * 100).round()}%'),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '#${selected.withAlpha(0xFF).value.toRadixString(16).substring(2).toUpperCase()} '
+                          ' R ${selected.red}  G ${selected.green}  B ${selected.blue}',
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('취소'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              _applyPresetWithRecentColor(buildLiveStyle());
+                              Navigator.pop(ctx, true);
+                            },
+                            child: const Text('완료'),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
+        );
       },
     );
 
-    if (!kept) {
-      _updateActivePreset(style);
+    if (kept == true) {
+      return;
     }
+    final base = _activeStrokeStyleOrFallback;
+    var reverted = base.copyWith(argbColor: originalColor.value);
+    if (base.kind == StrokeToolKind.highlighter) {
+      reverted = reverted.copyWith(opacity: originalOpacity);
+    }
+    _updateActivePreset(reverted);
   }
 
   Widget _buildCanvasDrawingLayer() {
@@ -1150,6 +1314,101 @@ extension _DrawingScreenUi on _DrawingScreenState {
         child: KeyedSubtree(key: tapRegionKey, child: child),
       ),
     );
+  }
+}
+
+
+class _HsvColorSquare extends StatelessWidget {
+  const _HsvColorSquare({required this.hsv, required this.onChanged});
+
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, 180);
+
+        void update(Offset localPosition) {
+          final s = (localPosition.dx / size.width).clamp(0.0, 1.0);
+          final v = (1 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
+          onChanged(hsv.withSaturation(s).withValue(v));
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          height: size.height,
+          child: GestureDetector(
+            onPanDown: (d) => update(d.localPosition),
+            onPanUpdate: (d) => update(d.localPosition),
+            onTapDown: (d) => update(d.localPosition),
+            child: CustomPaint(
+              painter: _HsvColorSquarePainter(hsv: hsv),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HsvColorSquarePainter extends CustomPainter {
+  const _HsvColorSquarePainter({required this.hsv});
+
+  final HSVColor hsv;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(12));
+    final hueColor = HSVColor.fromAHSV(1, hsv.hue, 1, 1).toColor();
+
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(rect, Paint()..color = hueColor);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Colors.white, Colors.transparent],
+        ).createShader(rect),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black],
+        ).createShader(rect),
+    );
+    canvas.restore();
+
+    final dx = (hsv.saturation * size.width).clamp(0.0, size.width).toDouble();
+    final dy = ((1 - hsv.value) * size.height).clamp(0.0, size.height).toDouble();
+    final thumb = Offset(dx, dy);
+    canvas.drawCircle(
+      thumb,
+      8,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.white,
+    );
+    canvas.drawCircle(
+      thumb,
+      10,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black54,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HsvColorSquarePainter oldDelegate) {
+    return oldDelegate.hsv != hsv;
   }
 }
 
