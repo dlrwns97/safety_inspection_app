@@ -78,6 +78,11 @@ const double _kMinValidPdfPageSide = 200.0;
 typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
 
 extension _DrawingScreenLogic on _DrawingScreenState {
+  void _resetHighlighterStraightenState() {
+    _straightenSnappedAngleByPointer.clear();
+    _straightenStartPageByPointer.clear();
+  }
+
   _PendingFreeDrawMove? get _pendingFreeDrawMove =>
       _pendingFreeDrawMoveByState[this];
 
