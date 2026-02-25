@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
@@ -42,8 +43,8 @@ class _DrawingColorPickerDialog extends StatefulWidget {
 class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   static const double _kDialogHorizontalPadding = 16;
   static const double _kDialogVerticalPadding = 14;
-  static const int _kMosaicColumns = 20;
-  static const int _kMosaicRows = 13;
+  static const int _kMosaicColumns = 19;
+  static const int _kMosaicRows = 12;
 
   late HSVColor _hsv;
   late double _alpha;
@@ -85,21 +86,25 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
     final clampedRow = row.clamp(0, _kMosaicRows - 1);
     final hue = (clampedColumn / (_kMosaicColumns - 1)) * 360;
     final base = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
+    final t = (clampedRow / math.max(1, _kMosaicRows - 1)).clamp(0.0, 1.0);
+    const topEnd = 0.22;
+    const middleEnd = 0.62;
 
-    final topBandEnd = ((_kMosaicRows - 1) * 0.38).round();
-    final middleBandEnd = ((_kMosaicRows - 1) * 0.69).round();
-
-    if (clampedRow <= topBandEnd) {
-      final t = (clampedRow / math.max(1, topBandEnd)).clamp(0.0, 1.0);
-      return Color.lerp(Colors.white, base, t) ?? base;
-    }
-    if (clampedRow <= middleBandEnd) {
-      final t = ((clampedRow - topBandEnd) / math.max(1, middleBandEnd - topBandEnd)).clamp(0.0, 1.0);
-      return Color.lerp(base.withValues(alpha: 0.88), base, t) ?? base;
+    if (t <= topEnd) {
+      final u = (t / topEnd).clamp(0.0, 1.0);
+      final mixWhite = lerpDouble(0.55, 0.05, u) ?? 0.05;
+      return Color.lerp(Colors.white, base, 1 - mixWhite) ?? base;
     }
 
-    final t = ((clampedRow - middleBandEnd) / math.max(1, (_kMosaicRows - 1) - middleBandEnd)).clamp(0.0, 1.0);
-    return Color.lerp(base, Colors.black, t * 0.8) ?? base;
+    if (t < middleEnd) {
+      final u = ((t - topEnd) / (middleEnd - topEnd)).clamp(0.0, 1.0);
+      final value = lerpDouble(1.0, 0.90, u) ?? 1.0;
+      return HSVColor.fromAHSV(1, hue, 1.0, value).toColor();
+    }
+
+    final u = ((t - middleEnd) / (1 - middleEnd)).clamp(0.0, 1.0);
+    final mixBlack = lerpDouble(0.0, 0.75, u) ?? 0.0;
+    return Color.lerp(base, Colors.black, mixBlack) ?? base;
   }
 
   ({int column, int row}) _selectedMosaicCell() {
