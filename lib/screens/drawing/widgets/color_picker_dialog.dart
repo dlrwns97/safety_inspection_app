@@ -281,13 +281,6 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
               ),
             ),
             SizedBox(height: compact ? 8 : 10),
-            _AlphaSliderRow(
-              alpha: _alpha,
-              baseColor: _hsv.toColor(),
-              onChanged: _updateAlpha,
-              onChangeEnd: (value) => _updateAlpha(value, commit: true),
-            ),
-            SizedBox(height: compact ? 8 : 10),
             _ColorInfoSection(color: _selectedColor, compact: compact),
           ],
         );

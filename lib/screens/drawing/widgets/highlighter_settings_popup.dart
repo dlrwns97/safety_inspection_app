@@ -13,10 +13,12 @@ class HighlighterSettingsPopup extends StatefulWidget {
     required this.currentStyle,
     required this.recentColors,
     required this.standardPaletteColors,
+    required this.isStraightenModeEnabled,
     required this.onVariantChanged,
     required this.onWidthChanged,
     required this.onOpacityChanged,
     required this.onColorChanged,
+    required this.onStraightenModeChanged,
     required this.onOpenAllColors,
     this.onClose,
   });
@@ -24,10 +26,12 @@ class HighlighterSettingsPopup extends StatefulWidget {
   final StrokeStyle currentStyle;
   final List<Color> recentColors;
   final List<Color> standardPaletteColors;
+  final bool isStraightenModeEnabled;
   final ValueChanged<PenVariant> onVariantChanged;
   final ValueChanged<double> onWidthChanged;
   final ValueChanged<double> onOpacityChanged;
   final ValueChanged<Color> onColorChanged;
+  final ValueChanged<bool> onStraightenModeChanged;
   final VoidCallback onOpenAllColors;
   final VoidCallback? onClose;
 
@@ -37,11 +41,13 @@ class HighlighterSettingsPopup extends StatefulWidget {
 
 class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   late StrokeStyle _style;
+  late bool _isStraightenModeEnabled;
 
   @override
   void initState() {
     super.initState();
     _style = _normalizedStyle(widget.currentStyle);
+    _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: _style);
   }
 
@@ -52,6 +58,9 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
       final normalized = _normalizedStyle(widget.currentStyle);
       _style = normalized;
       _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: normalized);
+    }
+    if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
+      _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     }
   }
 
@@ -259,6 +268,21 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 2),
+                  Semantics(
+                    label: '직교 모드',
+                    toggled: _isStraightenModeEnabled,
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('직교 모드', style: TextStyle(fontSize: _kBodyFont)),
+                      value: _isStraightenModeEnabled,
+                      onChanged: (enabled) {
+                        setState(() => _isStraightenModeEnabled = enabled);
+                        widget.onStraightenModeChanged(enabled);
+                      },
+                    ),
                   ),
                 ],
               ),

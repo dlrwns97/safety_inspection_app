@@ -610,6 +610,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         standardPaletteColors: _standardPaletteArgb
             .map(Color.new)
             .toList(growable: false),
+        isStraightenModeEnabled: _isStraightenModeEnabled,
         onVariantChanged: (variant) {
           final current = _activeStrokeStyleOrFallback;
           _updateActivePreset(
@@ -627,6 +628,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
         onColorChanged: (color) {
           final current = _activeStrokeStyleOrFallback;
           _applyPresetWithRecentColor(current.copyWith(argbColor: color.value));
+        },
+        onStraightenModeChanged: (enabled) {
+          _safeSetState(() {
+            _isStraightenModeEnabled = enabled;
+            if (!enabled) {
+              _straightenSnappedAngleByPointer.clear();
+              _straightenStartPageByPointer.clear();
+            }
+          });
         },
         onOpenAllColors: () {
           _settingsPopover.hide();
