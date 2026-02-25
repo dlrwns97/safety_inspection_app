@@ -2399,6 +2399,30 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         (inProgressStroke.style.kind == StrokeToolKind.pen ||
             inProgressStroke.style.kind == StrokeToolKind.highlighter);
     if (shouldRenderStraightPreview) {
+      if (destSize.shortestSide <= 0) {
+        return;
+      }
+      const double straightenAppendEpsilonPx = 0.5;
+      final double straightenAppendEpsilonNorm =
+          straightenAppendEpsilonPx / destSize.shortestSide;
+      final previousEnd = inProgressStroke.pointsNorm.last;
+      final didAppend =
+          (processedNormalized - previousEnd).distance >=
+          straightenAppendEpsilonNorm;
+      assert(() {
+        final start = inProgressStroke.pointsNorm.first;
+        final dx = (normalized.dx - start.dx) * destSize.width;
+        final dy = (normalized.dy - start.dy) * destSize.height;
+        debugPrint(
+          '[Drawing][Straighten] update rawDx=${dx.toStringAsFixed(2)} '
+          'rawDy=${dy.toStringAsFixed(2)} snapped=$processedNormalized '
+          'appended=$didAppend',
+        );
+        return true;
+      }());
+      if (!didAppend) {
+        return;
+      }
       final startNorm = inProgressStroke.pointsNorm.first;
       final newPoints = _buildStraightLinePointsNorm(
         startNorm: startNorm,
@@ -2526,6 +2550,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       normalized.dy * destSize.height,
     );
     final vector = rawPage - startPage;
+    final absDx = vector.dx.abs();
+    final absDy = vector.dy.abs();
     if (vector.distance < _DrawingScreenState.kMinDragToConsiderSnapPx) {
       return normalized;
     }
@@ -2578,17 +2604,35 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
     }
 
-    var unit = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
-    var t = vector.dx * unit.dx + vector.dy * unit.dy;
-    if (t < 0) {
-      unit = Offset(-unit.dx, -unit.dy);
-      t = -t;
+    Offset snappedPage;
+    final normalizedAngle = snappedAngle.abs() % math.pi;
+    final isHorizontalSnap =
+        normalizedAngle <= 1e-6 || (math.pi - normalizedAngle) <= 1e-6;
+    final isVerticalSnap = (normalizedAngle - (math.pi / 2)).abs() <= 1e-6;
+    if (isHorizontalSnap) {
+      snappedPage = Offset(rawPage.dx, startPage.dy);
+    } else if (isVerticalSnap) {
+      snappedPage = Offset(startPage.dx, rawPage.dy);
+    } else {
+      var unit = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
+      var t = vector.dx * unit.dx + vector.dy * unit.dy;
+      if (t < 0) {
+        unit = Offset(-unit.dx, -unit.dy);
+        t = -t;
+      }
+      snappedPage = Offset(
+        startPage.dx + unit.dx * t,
+        startPage.dy + unit.dy * t,
+      );
     }
-
-    final snappedPage = Offset(
-      startPage.dx + unit.dx * t,
-      startPage.dy + unit.dy * t,
-    );
+    assert(() {
+      debugPrint(
+        '[Drawing][Straighten] snap rawDx=${vector.dx.toStringAsFixed(2)} '
+        'rawDy=${vector.dy.toStringAsFixed(2)} absDx=${absDx.toStringAsFixed(2)} '
+        'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
+      );
+      return true;
+    }());
     return Offset(
       snappedPage.dx / destSize.width,
       snappedPage.dy / destSize.height,
