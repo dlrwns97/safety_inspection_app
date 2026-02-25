@@ -54,6 +54,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_part
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pen_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/highlighter_settings_popup.dart';
+import 'package:safety_inspection_app/screens/drawing/widgets/color_picker_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/eraser_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/settings_popover.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
