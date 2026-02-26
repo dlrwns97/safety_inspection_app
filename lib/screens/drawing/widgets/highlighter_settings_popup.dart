@@ -10,7 +10,10 @@ const double _kChipH = 34;
 class HighlighterSettingsPopup extends StatefulWidget {
   const HighlighterSettingsPopup({
     super.key,
-    required this.currentStyle,
+    required this.currentVariant,
+    required this.currentHighlighterWidth,
+    required this.currentHighlighterOpacity,
+    required this.currentHighlighterColor,
     required this.recentColors,
     required this.standardPaletteColors,
     required this.isStraightenModeEnabled,
@@ -25,7 +28,10 @@ class HighlighterSettingsPopup extends StatefulWidget {
     this.onClose,
   });
 
-  final StrokeStyle currentStyle;
+  final PenVariant currentVariant;
+  final double currentHighlighterWidth;
+  final double currentHighlighterOpacity;
+  final Color currentHighlighterColor;
   final List<Color> recentColors;
   final List<Color> standardPaletteColors;
   final bool isStraightenModeEnabled;
@@ -44,27 +50,19 @@ class HighlighterSettingsPopup extends StatefulWidget {
 }
 
 class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
-  late StrokeStyle _style;
   late bool _isStraightenModeEnabled;
   late bool _isStraightenSnapEnabled;
 
   @override
   void initState() {
     super.initState();
-    _style = _normalizedStyle(widget.currentStyle);
     _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     _isStraightenSnapEnabled = widget.straightenSnapEnabled;
-    _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: _style);
   }
 
   @override
   void didUpdateWidget(covariant HighlighterSettingsPopup oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isSameStyle(oldWidget.currentStyle, widget.currentStyle)) {
-      final normalized = _normalizedStyle(widget.currentStyle);
-      _style = normalized;
-      _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: normalized);
-    }
     if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
       _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     }
@@ -73,64 +71,16 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
     }
   }
 
-  StrokeStyle _normalizedStyle(StrokeStyle style) {
-    final normalizedVariant = switch (style.variant) {
-      PenVariant.highlighter => PenVariant.highlighter,
-      PenVariant.marker => PenVariant.marker,
-      _ => PenVariant.highlighter,
-    };
-    if (normalizedVariant == style.variant) {
-      return style;
-    }
-    return style.copyWith(variant: normalizedVariant);
-  }
-
-  void _normalizeVariantIfNeeded({
-    required StrokeStyle source,
-    required StrokeStyle normalized,
-  }) {
-    if (source.variant == normalized.variant) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      widget.onVariantChanged(normalized.variant);
-    });
-  }
-
-  bool _isSameStyle(StrokeStyle a, StrokeStyle b) {
-    return a.kind == b.kind &&
-        a.variant == b.variant &&
-        a.widthPx == b.widthPx &&
-        a.argbColor == b.argbColor &&
-        a.opacity == b.opacity;
-  }
-
-  void _pickVariant(PenVariant variant) {
-    setState(() => _style = _style.copyWith(variant: variant));
-    widget.onVariantChanged(variant);
-  }
-
-  void _pickWidth(double width) {
-    setState(() => _style = _style.copyWith(widthPx: width));
-    widget.onWidthChanged(width);
-  }
-
-  void _pickOpacity(double opacity) {
-    setState(() => _style = _style.copyWith(opacity: opacity));
-    widget.onOpacityChanged(opacity);
-  }
-
-  void _pickColor(Color color) {
-    setState(() => _style = _style.copyWith(argbColor: color.value));
-    widget.onColorChanged(color);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final selectedColor = Color(_style.argbColor);
+    final selectedColor = widget.currentHighlighterColor;
+    final previewStyle = StrokeStyle(
+      kind: StrokeToolKind.highlighter,
+      variant: widget.currentVariant,
+      widthPx: widget.currentHighlighterWidth,
+      opacity: widget.currentHighlighterOpacity,
+      argbColor: widget.currentHighlighterColor.value,
+    );
     const highlighterVariants = <({PenVariant variant, String label})>[
       (variant: PenVariant.highlighter, label: '형광펜'),
       (variant: PenVariant.marker, label: '마커'),
@@ -142,7 +92,7 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
         label: '색상 선택',
         button: true,
         child: GestureDetector(
-          onTap: () => _pickColor(value),
+          onTap: () => widget.onColorChanged(value),
           child: Container(
             width: 28,
             height: 28,
@@ -208,14 +158,14 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                           child: Semantics(
                             label: option.label,
                             button: true,
-                            selected: _style.variant == option.variant,
+                            selected: widget.currentVariant == option.variant,
                             child: ChoiceChip(
                               label: Text(option.label, style: const TextStyle(fontSize: _kBodyFont)),
-                              selected: _style.variant == option.variant,
+                              selected: widget.currentVariant == option.variant,
                               visualDensity: VisualDensity.compact,
                               labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              onSelected: (_) => _pickVariant(option.variant),
+                              onSelected: (_) => widget.onVariantChanged(option.variant),
                             ),
                           ),
                         ),
@@ -230,30 +180,30 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                         color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
                       ),
                       child: CustomPaint(
-                        painter: _HighlighterPreviewPainter(style: _style),
+                        painter: _HighlighterPreviewPainter(style: previewStyle),
                       ),
                     ),
                   ),
                   const SizedBox(height: _kGap),
                   _CompactSliderRow(
                     label: '두께',
-                    valueLabel: '${_style.widthPx.round()}px',
+                    valueLabel: '${widget.currentHighlighterWidth.round()}px',
                     slider: Slider(
                       min: 1,
                       max: 48,
                       divisions: 47,
-                      value: _style.widthPx.clamp(1, 48),
-                      onChanged: _pickWidth,
+                      value: widget.currentHighlighterWidth.clamp(1, 48),
+                      onChanged: widget.onWidthChanged,
                     ),
                   ),
                   _CompactSliderRow(
                     label: '투명도',
-                    valueLabel: '${(_style.opacity * 100).round()}%',
+                    valueLabel: '${(widget.currentHighlighterOpacity * 100).round()}%',
                     slider: Slider(
                       min: 0.05,
                       max: 1,
-                      value: _style.opacity.clamp(0.05, 1),
-                      onChanged: _pickOpacity,
+                      value: widget.currentHighlighterOpacity.clamp(0.05, 1),
+                      onChanged: widget.onOpacityChanged,
                     ),
                   ),
                   const SizedBox(height: _kGap),

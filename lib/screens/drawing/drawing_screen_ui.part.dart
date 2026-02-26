@@ -596,19 +596,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final activeStyle = _activeStrokeStyleOrFallback;
-    final style = activeStyle.copyWith(
-      kind: StrokeToolKind.highlighter,
-      variant: _highlighterVariantFromUiType(_activeHighlighterType),
-      widthPx: _currentHlWidth,
-      opacity: _currentHlOpacity,
-      argbColor: _currentHlColor.value,
-    );
-
     _showPopover(
       link: _highlighterLink,
       child: HighlighterSettingsPopup(
-        currentStyle: style,
+        currentVariant: _highlighterVariantFromUiType(_activeHighlighterType),
+        currentHighlighterWidth: _currentHlWidth,
+        currentHighlighterOpacity: _currentHlOpacity,
+        currentHighlighterColor: _currentHlColor,
         recentColors: _recentArgb.map(Color.new).toList(growable: false),
         standardPaletteColors: _standardPaletteArgb
             .map(Color.new)
@@ -616,7 +610,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
         onVariantChanged: (variant) {
-          _switchVariant(variant);
+          _switchHighlighterType(_highlighterUiTypeFromVariant(variant));
         },
         onWidthChanged: (width) {
           _applyCurrentStyleValues(width: width);
@@ -658,40 +652,26 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final activeStyle = _activeStrokeStyleOrFallback;
-    final style = activeStyle.copyWith(
-      kind: StrokeToolKind.pen,
-      variant: _penVariantFromUiType(_activePenType),
-      widthPx: _currentPenWidth,
-      argbColor: _currentPenColor.value,
-    );
     _showPopover(
       link: _penLink,
       child: PenSettingsPopup(
-        currentStyle: style,
+        currentVariant: _penVariantFromUiType(_activePenType),
+        currentPenWidth: _currentPenWidth,
+        currentPenColor: _currentPenColor,
         recentColors: _recentArgb.map(Color.new).toList(growable: false),
         standardPaletteColors: _standardPaletteArgb
             .map(Color.new)
             .toList(growable: false),
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
-        onStyleChanged: (next) {
-          if (next.variant != _currentVariant) {
-            _switchVariant(next.variant);
-            return;
-          }
-          _applyCurrentStyleValues(width: next.widthPx, color: Color(next.argbColor));
+        onVariantChanged: (variant) {
+          _switchPenType(_penUiTypeFromVariant(variant));
         },
-        onPresetCommitted: (next) {
-          if (next.variant != _currentVariant) {
-            _switchVariant(next.variant);
-            return;
-          }
-          _applyCurrentStyleValues(
-            width: next.widthPx,
-            color: Color(next.argbColor),
-            pushRecentColor: true,
-          );
+        onWidthChanged: (width) {
+          _applyCurrentStyleValues(width: width);
+        },
+        onColorChanged: (color) {
+          _applyCurrentStyleValues(color: color, pushRecentColor: true);
         },
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {

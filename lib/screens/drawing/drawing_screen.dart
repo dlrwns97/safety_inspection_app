@@ -398,8 +398,8 @@ class _DrawingScreenState extends State<DrawingScreen>
         : ToolFamily.pen;
     _activePenType = _penUiTypeFromVariant(initialStyle.variant);
     _activeHighlighterType = _highlighterUiTypeFromVariant(initialStyle.variant);
-    _loadPenTypeSettings(_activePenType);
-    _loadHighlighterTypeSettings(_activeHighlighterType);
+    _loadPenType(_activePenType);
+    _loadHighlighterType(_activeHighlighterType);
   }
 
   void _updateActivePreset(StrokeStyle next) {
@@ -418,12 +418,12 @@ class _DrawingScreenState extends State<DrawingScreen>
         _currentHlWidth = next.widthPx;
         _currentHlOpacity = next.opacity;
         _currentHlColor = Color(next.argbColor);
-        _saveHighlighterTypeSettings(_activeHighlighterType);
+        _saveHighlighterType(_activeHighlighterType);
       } else {
         _activePenType = _penUiTypeFromVariant(next.variant);
         _currentPenWidth = next.widthPx;
         _currentPenColor = Color(next.argbColor);
-        _savePenTypeSettings(_activePenType);
+        _savePenType(_activePenType);
       }
     });
   }
@@ -432,31 +432,26 @@ class _DrawingScreenState extends State<DrawingScreen>
       ? _highlighterVariantFromUiType(_activeHighlighterType)
       : _penVariantFromUiType(_activePenType);
 
-  void _savePenTypeSettings(PenUiType type) {
-    _penWidthByType[type] = _currentPenWidth;
-    _penColorByType[type] = _currentPenColor;
+  void _savePenType(PenUiType t) {
+    _penWidthByType[t] = _currentPenWidth;
+    _penColorByType[t] = _currentPenColor;
   }
 
-  void _loadPenTypeSettings(PenUiType type) {
-    final baseStyle = _activeStrokeStyleOrFallback;
-    _currentPenWidth = _penWidthByType[type] ?? baseStyle.widthPx;
-    _currentPenColor = _penColorByType[type] ?? Color(baseStyle.argbColor);
+  void _loadPenType(PenUiType t) {
+    _currentPenWidth = _penWidthByType[t] ?? _currentPenWidth;
+    _currentPenColor = _penColorByType[t] ?? _currentPenColor;
   }
 
-  void _saveHighlighterTypeSettings(HighlighterUiType type) {
-    _hlWidthByType[type] = _currentHlWidth;
-    _hlOpacityByType[type] = _currentHlOpacity;
-    _hlColorByType[type] = _currentHlColor;
+  void _saveHighlighterType(HighlighterUiType t) {
+    _hlWidthByType[t] = _currentHlWidth;
+    _hlOpacityByType[t] = _currentHlOpacity;
+    _hlColorByType[t] = _currentHlColor;
   }
 
-  void _loadHighlighterTypeSettings(HighlighterUiType type) {
-    final baseStyle = _activeStrokeStyleOrFallback;
-    _currentHlWidth = _hlWidthByType[type] ?? baseStyle.widthPx;
-    _currentHlOpacity = _hlOpacityByType[type] ??
-        (type == HighlighterUiType.marker
-            ? _kDefaultMarkerOpacity
-            : _kDefaultHighlighterOpacity);
-    _currentHlColor = _hlColorByType[type] ?? Color(baseStyle.argbColor);
+  void _loadHighlighterType(HighlighterUiType t) {
+    _currentHlWidth = _hlWidthByType[t] ?? _currentHlWidth;
+    _currentHlOpacity = _hlOpacityByType[t] ?? _currentHlOpacity;
+    _currentHlColor = _hlColorByType[t] ?? _currentHlColor;
   }
 
   void _syncCurrentFamilyStyleToPreset() {
@@ -488,11 +483,11 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (_activePenType == newType) {
       return;
     }
-    _savePenTypeSettings(_activePenType);
+    _savePenType(_activePenType);
     _safeSetState(() {
       _activeFamily = ToolFamily.pen;
       _activePenType = newType;
-      _loadPenTypeSettings(newType);
+      _loadPenType(newType);
       _syncCurrentFamilyStyleToPreset();
     });
   }
@@ -501,11 +496,11 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (_activeHighlighterType == newType) {
       return;
     }
-    _saveHighlighterTypeSettings(_activeHighlighterType);
+    _saveHighlighterType(_activeHighlighterType);
     _safeSetState(() {
       _activeFamily = ToolFamily.highlighter;
       _activeHighlighterType = newType;
-      _loadHighlighterTypeSettings(newType);
+      _loadHighlighterType(newType);
       _syncCurrentFamilyStyleToPreset();
     });
   }
@@ -529,11 +524,11 @@ class _DrawingScreenState extends State<DrawingScreen>
         _currentHlWidth = width ?? _currentHlWidth;
         _currentHlOpacity = opacity ?? _currentHlOpacity;
         _currentHlColor = color ?? _currentHlColor;
-        _saveHighlighterTypeSettings(_activeHighlighterType);
+        _saveHighlighterType(_activeHighlighterType);
       } else {
         _currentPenWidth = width ?? _currentPenWidth;
         _currentPenColor = color ?? _currentPenColor;
-        _savePenTypeSettings(_activePenType);
+        _savePenType(_activePenType);
       }
       _syncCurrentFamilyStyleToPreset();
       if (pushRecentColor && color != null) {
@@ -562,12 +557,12 @@ class _DrawingScreenState extends State<DrawingScreen>
         _currentHlWidth = next.widthPx;
         _currentHlOpacity = next.opacity;
         _currentHlColor = Color(next.argbColor);
-        _saveHighlighterTypeSettings(_activeHighlighterType);
+        _saveHighlighterType(_activeHighlighterType);
       } else {
         _activePenType = _penUiTypeFromVariant(next.variant);
         _currentPenWidth = next.widthPx;
         _currentPenColor = Color(next.argbColor);
-        _savePenTypeSettings(_activePenType);
+        _savePenType(_activePenType);
       }
       _presets[normalizedIndex] = next;
       final rgb = Color(next.argbColor).withAlpha(0xFF).value;

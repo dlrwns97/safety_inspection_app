@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
@@ -7,32 +6,37 @@ const double kGap = 8;
 const double kTitleFont = 16;
 const double kBodyFont = 13;
 const double kChipH = 34;
-const double kButtonH = 40;
 const double kPreviewH = 90;
 
 class PenSettingsPopup extends StatefulWidget {
   const PenSettingsPopup({
     super.key,
-    required this.currentStyle,
+    required this.currentVariant,
+    required this.currentPenWidth,
+    required this.currentPenColor,
     required this.recentColors,
     required this.standardPaletteColors,
     required this.isStraightenModeEnabled,
     required this.straightenSnapEnabled,
-    required this.onStyleChanged,
-    required this.onPresetCommitted,
+    required this.onVariantChanged,
+    required this.onWidthChanged,
+    required this.onColorChanged,
     required this.onStraightenModeChanged,
     required this.onStraightenSnapChanged,
     required this.onOpenAllColors,
     this.onClose,
   });
 
-  final StrokeStyle currentStyle;
+  final PenVariant currentVariant;
+  final double currentPenWidth;
+  final Color currentPenColor;
   final List<Color> recentColors;
   final List<Color> standardPaletteColors;
   final bool isStraightenModeEnabled;
   final bool straightenSnapEnabled;
-  final ValueChanged<StrokeStyle> onStyleChanged;
-  final ValueChanged<StrokeStyle> onPresetCommitted;
+  final ValueChanged<PenVariant> onVariantChanged;
+  final ValueChanged<double> onWidthChanged;
+  final ValueChanged<Color> onColorChanged;
   final ValueChanged<bool> onStraightenModeChanged;
   final ValueChanged<bool> onStraightenSnapChanged;
   final VoidCallback onOpenAllColors;
@@ -43,14 +47,12 @@ class PenSettingsPopup extends StatefulWidget {
 }
 
 class _PenSettingsPopupState extends State<PenSettingsPopup> {
-  late StrokeStyle _style;
   late bool _isStraightenModeEnabled;
   late bool _isStraightenSnapEnabled;
 
   @override
   void initState() {
     super.initState();
-    _style = widget.currentStyle;
     _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     _isStraightenSnapEnabled = widget.straightenSnapEnabled;
   }
@@ -58,41 +60,12 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
   @override
   void didUpdateWidget(covariant PenSettingsPopup oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isSameStyle(oldWidget.currentStyle, widget.currentStyle)) {
-      _style = widget.currentStyle;
-    }
     if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
       _isStraightenModeEnabled = widget.isStraightenModeEnabled;
     }
     if (oldWidget.straightenSnapEnabled != widget.straightenSnapEnabled) {
       _isStraightenSnapEnabled = widget.straightenSnapEnabled;
     }
-  }
-
-  bool _isSameStyle(StrokeStyle a, StrokeStyle b) {
-    return a.kind == b.kind &&
-        a.variant == b.variant &&
-        a.widthPx == b.widthPx &&
-        a.argbColor == b.argbColor &&
-        a.opacity == b.opacity;
-  }
-
-  void _applyStyle(StrokeStyle next) {
-    setState(() => _style = next);
-    if (kDebugMode) {
-      debugPrint(
-        '[Drawing] PenSettingsPopup onStyleChanged '
-        'kind=${next.kind.name} variant=${next.variant.name} '
-        'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
-      );
-    }
-    widget.onStyleChanged(next);
-  }
-
-  void _pickColor(Color color) {
-    final next = _style.copyWith(argbColor: color.value);
-    setState(() => _style = next);
-    widget.onPresetCommitted(next);
   }
 
   String _variantLabel(PenVariant variant) {
@@ -107,7 +80,12 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
 
   @override
   Widget build(BuildContext context) {
-    final currentColor = Color(_style.argbColor);
+    final style = StrokeStyle(
+      kind: StrokeToolKind.pen,
+      variant: widget.currentVariant,
+      widthPx: widget.currentPenWidth,
+      argbColor: widget.currentPenColor.value,
+    );
     final penVariants = const <PenVariant>[
       PenVariant.pen,
       PenVariant.fountainPen,
@@ -116,9 +94,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     ];
 
     Widget colorChip(Color value) {
-      final selected = value.withAlpha(0xFF).value == currentColor.withAlpha(0xFF).value;
+      final selected = value.withAlpha(0xFF).value == widget.currentPenColor.withAlpha(0xFF).value;
       return GestureDetector(
-        onTap: () => _pickColor(value),
+        onTap: () => widget.onColorChanged(value),
         child: Container(
           width: 28,
           height: 28,
@@ -166,59 +144,45 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
         const SizedBox(height: kGap),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 110),
-          child: _PenPreview(style: _style),
+          child: _PenPreview(style: style),
         ),
-        if (_style.kind == StrokeToolKind.pen) ...[
-          const SizedBox(height: kGap),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final variant in penVariants)
-                SizedBox(
-                  height: kChipH,
-                  child: ChoiceChip(
-                    label: Text(_variantLabel(variant), style: const TextStyle(fontSize: kBodyFont)),
-                    selected: _style.variant == variant,
-                    visualDensity: VisualDensity.compact,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    onSelected: (_) => _applyStyle(_style.copyWith(variant: variant)),
-                  ),
-                ),
-            ],
-          ),
-        ],
-        const SizedBox(height: kGap),
-        _CompactSliderRow(
-          label: '두께',
-          valueLabel: '${_style.widthPx.round()}',
-          slider: Slider(
-            min: 1,
-            max: 48,
-            divisions: 47,
-            value: _style.widthPx.clamp(1, 48),
-            onChanged: (v) => _applyStyle(_style.copyWith(widthPx: v)),
-          ),
-        ),
-        if (_style.kind == StrokeToolKind.highlighter)
-          _CompactSliderRow(
-            label: '투명도',
-            valueLabel: '${(_style.opacity * 100).round()}%',
-            slider: Slider(
-              min: 0.05,
-              max: 1,
-              value: _style.opacity.clamp(0.05, 1.0),
-              onChanged: (v) => _applyStyle(_style.copyWith(opacity: v)),
-            ),
-          ),
         const SizedBox(height: kGap),
         Wrap(
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final paletteColor in widget.standardPaletteColors.take(8))
-              colorChip(paletteColor),
+            for (final variant in penVariants)
+              SizedBox(
+                height: kChipH,
+                child: ChoiceChip(
+                  label: Text(_variantLabel(variant), style: const TextStyle(fontSize: kBodyFont)),
+                  selected: widget.currentVariant == variant,
+                  visualDensity: VisualDensity.compact,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  onSelected: (_) => widget.onVariantChanged(variant),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: kGap),
+        _CompactSliderRow(
+          label: '두께',
+          valueLabel: '${widget.currentPenWidth.round()}',
+          slider: Slider(
+            min: 1,
+            max: 48,
+            divisions: 47,
+            value: widget.currentPenWidth.clamp(1, 48),
+            onChanged: widget.onWidthChanged,
+          ),
+        ),
+        const SizedBox(height: kGap),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final paletteColor in widget.standardPaletteColors.take(8)) colorChip(paletteColor),
             if (widget.recentColors.isNotEmpty) ...widget.recentColors.take(7).map(colorChip),
             SizedBox(
               width: 32,
