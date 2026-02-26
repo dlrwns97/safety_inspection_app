@@ -491,14 +491,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForVariant(PenVariant variant) {
     return switch (variant) {
-      PenVariant.fountainPen => '펜 라운드',
-      PenVariant.calligraphyPen => '펜 치즐',
       PenVariant.pen => '펜',
+      PenVariant.fountainPen => '만년필',
+      PenVariant.calligraphyPen => '캘리그래피',
       PenVariant.pencil => '연필',
-      PenVariant.highlighter => '형광펜 라운드',
-      PenVariant.highlighterChisel => '형광펜 치즐',
-      PenVariant.marker => '마커 펜',
-      PenVariant.markerChisel => '직선 마커 펜',
+      PenVariant.highlighter => '형광펜',
+      PenVariant.marker => '마커',
+      PenVariant.highlighterChisel => '형광펜',
+      PenVariant.markerChisel => '마커',
     };
   }
 
@@ -557,25 +557,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final family = kind == StrokeToolKind.highlighter
         ? ToolFamily.highlighter
         : ToolFamily.pen;
-    final targetVariant =
-        family == _activeFamily ? _activeVariant : _defaultVariantForFamily(family);
-    _saveVariantSettings(_activeVariant);
     _safeSetState(() {
       _activeFamily = family;
-      _activeVariant = targetVariant;
-      _loadVariantSettings(_activeVariant);
       final index = _presets.indexWhere((style) => style.kind == kind);
       if (index >= 0) {
         _activePresetIndex = index;
-        _presets[index] = _presets[index].copyWith(
-          kind: kind,
-          variant: _activeVariant,
-          widthPx: _currentWidth,
-          opacity: family == ToolFamily.highlighter
-              ? _currentOpacity
-              : _presets[index].opacity,
-          argbColor: _currentColor.value,
-        );
+        _syncCurrentFamilyStyleToPreset();
       }
     });
   }
@@ -610,15 +597,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
     final activeStyle = _activeStrokeStyleOrFallback;
-    final variant = _activeFamily == ToolFamily.highlighter
-        ? _activeVariant
-        : PenVariant.highlighter;
     final style = activeStyle.copyWith(
       kind: StrokeToolKind.highlighter,
-      variant: variant,
-      widthPx: _currentWidth,
-      opacity: _currentOpacity,
-      argbColor: _currentColor.value,
+      variant: _highlighterVariantFromUiType(_activeHighlighterType),
+      widthPx: _currentHlWidth,
+      opacity: _currentHlOpacity,
+      argbColor: _currentHlColor.value,
     );
 
     _showPopover(
@@ -675,12 +659,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
     final activeStyle = _activeStrokeStyleOrFallback;
-    final variant = _activeFamily == ToolFamily.pen ? _activeVariant : PenVariant.pen;
     final style = activeStyle.copyWith(
       kind: StrokeToolKind.pen,
-      variant: variant,
-      widthPx: _currentWidth,
-      argbColor: _currentColor.value,
+      variant: _penVariantFromUiType(_activePenType),
+      widthPx: _currentPenWidth,
+      argbColor: _currentPenColor.value,
     );
     _showPopover(
       link: _penLink,
