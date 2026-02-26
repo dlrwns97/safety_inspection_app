@@ -596,12 +596,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final style = _activeStrokeStyleOrFallback.kind == StrokeToolKind.highlighter
-        ? _activeStrokeStyleOrFallback
-        : _presets.firstWhere(
-            (preset) => preset.kind == StrokeToolKind.highlighter,
-            orElse: () => _activeStrokeStyleOrFallback,
-          );
+    final activeStyle = _activeStrokeStyleOrFallback;
+    final variant = _isHighlighterFamilyVariant(activeStyle.variant)
+        ? activeStyle.variant
+        : PenVariant.highlighter;
+    final style = activeStyle.copyWith(
+      kind: StrokeToolKind.highlighter,
+      variant: variant,
+      widthPx: _currentHighlighterWidth,
+      opacity: _currentHighlighterOpacity,
+      argbColor: _currentColor.value,
+    );
 
     _showPopover(
       link: _highlighterLink,
@@ -614,22 +619,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
         onVariantChanged: (variant) {
-          final current = _activeStrokeStyleOrFallback;
-          _updateActivePreset(
-            _styleForHighlighterVariantSwitch(current: current, nextVariant: variant),
-          );
+          _switchVariant(variant);
         },
         onWidthChanged: (width) {
-          final current = _activeStrokeStyleOrFallback;
-          _updateActivePreset(current.copyWith(widthPx: width));
+          _applyCurrentStyleValues(highlighterWidth: width);
         },
         onOpacityChanged: (opacity) {
-          final current = _activeStrokeStyleOrFallback;
-          _updateActivePreset(current.copyWith(opacity: opacity));
+          _applyCurrentStyleValues(highlighterOpacity: opacity);
         },
         onColorChanged: (color) {
-          final current = _activeStrokeStyleOrFallback;
-          _applyPresetWithRecentColor(current.copyWith(argbColor: color.value));
+          _applyCurrentStyleValues(color: color, pushRecentColor: true);
         },
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {
@@ -662,7 +661,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final style = _activeStrokeStyleOrFallback;
+    final activeStyle = _activeStrokeStyleOrFallback;
+    final variant = _isPenFamilyVariant(activeStyle.variant)
+        ? activeStyle.variant
+        : PenVariant.pen;
+    final style = activeStyle.copyWith(
+      kind: StrokeToolKind.pen,
+      variant: variant,
+      widthPx: _currentPenWidth,
+      argbColor: _currentColor.value,
+    );
     _showPopover(
       link: style.kind == StrokeToolKind.highlighter ? _highlighterLink : _penLink,
       child: PenSettingsPopup(
@@ -674,10 +682,22 @@ extension _DrawingScreenUi on _DrawingScreenState {
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
         onStyleChanged: (next) {
-          _updateActivePreset(next);
+          if (next.variant != _currentVariant) {
+            _switchVariant(next.variant);
+            return;
+          }
+          _applyCurrentStyleValues(penWidth: next.widthPx, color: Color(next.argbColor));
         },
         onPresetCommitted: (next) {
-          _applyPresetWithRecentColor(next);
+          if (next.variant != _currentVariant) {
+            _switchVariant(next.variant);
+            return;
+          }
+          _applyCurrentStyleValues(
+            penWidth: next.widthPx,
+            color: Color(next.argbColor),
+            pushRecentColor: true,
+          );
         },
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {
@@ -721,20 +741,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
       initialColor: originalColor,
       recentColors: recentColors,
       onLiveChanged: (color) {
-        final style = _activeStrokeStyleOrFallback;
-        _updateActivePreset(style.copyWith(argbColor: color.value));
+        _applyCurrentStyleValues(color: color);
       },
       onCommitChanged: (color) {
-        final style = _activeStrokeStyleOrFallback;
-        _applyPresetWithRecentColor(style.copyWith(argbColor: color.value));
+        _applyCurrentStyleValues(color: color, pushRecentColor: true);
       },
     );
 
     if (kept) {
       return;
     }
-    final style = _activeStrokeStyleOrFallback;
-    _updateActivePreset(style.copyWith(argbColor: originalColor.value));
+    _applyCurrentStyleValues(color: originalColor);
   }
 
   Future<void> _openColorDialog() async {

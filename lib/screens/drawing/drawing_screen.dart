@@ -206,6 +206,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       <PenVariant, double>{};
   final Map<PenVariant, Color> _highlighterColorByVariant =
       <PenVariant, Color>{};
+  double _currentPenWidth = 3.0;
+  double _currentHighlighterWidth = 3.0;
+  double _currentHighlighterOpacity = _kDefaultHighlighterOpacity;
+  Color _currentColor = const Color(0xFF000000);
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
@@ -343,6 +347,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _rememberVariantStyle(initialPenPreset);
     _rememberVariantStyle(initialHighlighterPreset);
     _rememberVariantStyle(_activeStrokeStyleOrFallback);
+    _loadVariantSettings(_activeStrokeStyleOrFallback.variant);
   }
 
   void _rememberVariantStyle(StrokeStyle style) {
@@ -430,6 +435,111 @@ class _DrawingScreenState extends State<DrawingScreen>
           'kind=${resolved.kind.name} variant=${resolved.variant.name} '
           'width=${resolved.widthPx.toStringAsFixed(1)} color=${resolved.argbColor}',
         );
+      }
+    });
+  }
+
+  PenVariant get _currentVariant => _activeStrokeStyleOrFallback.variant;
+
+  void _saveCurrentVariantSettings() {
+    final currentVariant = _currentVariant;
+    if (_isHighlighterFamilyVariant(currentVariant)) {
+      _highlighterWidthByVariant[currentVariant] = _currentHighlighterWidth;
+      _highlighterOpacityByVariant[currentVariant] = _currentHighlighterOpacity;
+      _highlighterColorByVariant[currentVariant] = _currentColor;
+      return;
+    }
+    _penWidthByVariant[currentVariant] = _currentPenWidth;
+    _penColorByVariant[currentVariant] = _currentColor;
+  }
+
+  void _loadVariantSettings(PenVariant newVariant) {
+    final baseStyle = _activeStrokeStyleOrFallback;
+    final isHighlighter = _isHighlighterFamilyVariant(newVariant);
+
+    final nextPenWidth = _penWidthByVariant[newVariant] ?? baseStyle.widthPx;
+    final nextHighlighterWidth =
+        _highlighterWidthByVariant[newVariant] ?? baseStyle.widthPx;
+    final nextHighlighterOpacity =
+        _highlighterOpacityByVariant[newVariant] ??
+        _defaultOpacityForHighlighterVariant(newVariant);
+    final nextColor =
+        isHighlighter
+            ? (_highlighterColorByVariant[newVariant] ??
+                Color(baseStyle.argbColor))
+            : (_penColorByVariant[newVariant] ?? Color(baseStyle.argbColor));
+
+    final nextStyle = baseStyle.copyWith(
+      kind: isHighlighter ? StrokeToolKind.highlighter : StrokeToolKind.pen,
+      variant: newVariant,
+      widthPx: isHighlighter ? nextHighlighterWidth : nextPenWidth,
+      opacity: isHighlighter ? nextHighlighterOpacity : baseStyle.opacity,
+      argbColor: nextColor.value,
+    );
+
+    _safeSetState(() {
+      _currentPenWidth = nextPenWidth;
+      _currentHighlighterWidth = nextHighlighterWidth;
+      _currentHighlighterOpacity = nextHighlighterOpacity;
+      _currentColor = nextColor;
+      final index = _activePresetIndex;
+      if (index != null) {
+        _presets[_clampPresetIndex(index)] = nextStyle;
+      }
+      _rememberVariantStyle(nextStyle);
+    });
+  }
+
+  void _switchVariant(PenVariant newVariant) {
+    if (_currentVariant == newVariant) {
+      return;
+    }
+    _saveCurrentVariantSettings();
+    _loadVariantSettings(newVariant);
+  }
+
+  void _applyCurrentStyleValues({
+    double? penWidth,
+    double? highlighterWidth,
+    double? highlighterOpacity,
+    Color? color,
+    bool pushRecentColor = false,
+  }) {
+    final currentVariant = _currentVariant;
+    final isHighlighter = _isHighlighterFamilyVariant(currentVariant);
+    final nextColor = color ?? _currentColor;
+    final nextPenWidth = penWidth ?? _currentPenWidth;
+    final nextHighlighterWidth = highlighterWidth ?? _currentHighlighterWidth;
+    final nextHighlighterOpacity =
+        highlighterOpacity ?? _currentHighlighterOpacity;
+
+    final index = _activePresetIndex;
+    if (index == null) {
+      return;
+    }
+    final normalizedIndex = _clampPresetIndex(index);
+    final baseStyle = _presets[normalizedIndex];
+    final nextStyle = baseStyle.copyWith(
+      variant: currentVariant,
+      widthPx: isHighlighter ? nextHighlighterWidth : nextPenWidth,
+      opacity: isHighlighter ? nextHighlighterOpacity : baseStyle.opacity,
+      argbColor: nextColor.value,
+    );
+
+    _safeSetState(() {
+      _currentPenWidth = nextPenWidth;
+      _currentHighlighterWidth = nextHighlighterWidth;
+      _currentHighlighterOpacity = nextHighlighterOpacity;
+      _currentColor = nextColor;
+      _presets[normalizedIndex] = nextStyle;
+      _rememberVariantStyle(nextStyle);
+      if (pushRecentColor) {
+        final rgb = nextColor.withAlpha(0xFF).value;
+        _recentArgb.remove(rgb);
+        _recentArgb.insert(0, rgb);
+        if (_recentArgb.length > _kMaxRecentColors) {
+          _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
+        }
       }
     });
   }
