@@ -612,6 +612,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             .map(Color.new)
             .toList(growable: false),
         isStraightenModeEnabled: _isStraightenModeEnabled,
+        straightenSnapEnabled: _isStraightenSnapEnabled,
         onVariantChanged: (variant) {
           final current = _activeStrokeStyleOrFallback;
           _updateActivePreset(
@@ -640,6 +641,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
             }
           });
         },
+        onStraightenSnapChanged: (enabled) {
+          _safeSetState(() {
+            _isStraightenSnapEnabled = enabled;
+            if (!enabled) {
+              _straightenSnappedAngleByPointer.clear();
+            }
+          });
+        },
         onOpenAllColors: () {
           _settingsPopover.hide();
           _openEyedropperColorDialog();
@@ -663,6 +672,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             .map(Color.new)
             .toList(growable: false),
         isStraightenModeEnabled: _isStraightenModeEnabled,
+        straightenSnapEnabled: _isStraightenSnapEnabled,
         onStyleChanged: (next) {
           _updateActivePreset(next);
         },
@@ -676,6 +686,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               _straightenSnappedAngleByPointer.clear();
               _straightenStartPageByPointer.clear();
               _resetHighlighterStraightenState();
+            }
+          });
+        },
+        onStraightenSnapChanged: (enabled) {
+          _safeSetState(() {
+            _isStraightenSnapEnabled = enabled;
+            if (!enabled) {
+              _straightenSnappedAngleByPointer.clear();
             }
           });
         },

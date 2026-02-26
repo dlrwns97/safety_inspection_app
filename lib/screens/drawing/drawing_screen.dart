@@ -144,6 +144,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, PointerDeviceKind>{};
   int? _activeStylusPointerId;
   bool _isStraightenModeEnabled = false;
+  bool _isStraightenSnapEnabled = true;
   final Map<int, double?> _straightenSnappedAngleByPointer =
       <int, double?>{};
   final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};

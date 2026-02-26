@@ -2463,7 +2463,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         }
       }
 
-      final didSnap = nearestDiff <= snapToleranceRad;
+      final didSnap =
+          _isStraightenSnapEnabled && nearestDiff <= snapToleranceRad;
       final snappedPageExact =
           didSnap
               ? Offset(
