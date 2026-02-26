@@ -14,11 +14,13 @@ class HighlighterSettingsPopup extends StatefulWidget {
     required this.recentColors,
     required this.standardPaletteColors,
     required this.isStraightenModeEnabled,
+    required this.straightenSnapEnabled,
     required this.onVariantChanged,
     required this.onWidthChanged,
     required this.onOpacityChanged,
     required this.onColorChanged,
     required this.onStraightenModeChanged,
+    required this.onStraightenSnapChanged,
     required this.onOpenAllColors,
     this.onClose,
   });
@@ -27,11 +29,13 @@ class HighlighterSettingsPopup extends StatefulWidget {
   final List<Color> recentColors;
   final List<Color> standardPaletteColors;
   final bool isStraightenModeEnabled;
+  final bool straightenSnapEnabled;
   final ValueChanged<PenVariant> onVariantChanged;
   final ValueChanged<double> onWidthChanged;
   final ValueChanged<double> onOpacityChanged;
   final ValueChanged<Color> onColorChanged;
   final ValueChanged<bool> onStraightenModeChanged;
+  final ValueChanged<bool> onStraightenSnapChanged;
   final VoidCallback onOpenAllColors;
   final VoidCallback? onClose;
 
@@ -42,12 +46,14 @@ class HighlighterSettingsPopup extends StatefulWidget {
 class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   late StrokeStyle _style;
   late bool _isStraightenModeEnabled;
+  late bool _isStraightenSnapEnabled;
 
   @override
   void initState() {
     super.initState();
     _style = _normalizedStyle(widget.currentStyle);
     _isStraightenModeEnabled = widget.isStraightenModeEnabled;
+    _isStraightenSnapEnabled = widget.straightenSnapEnabled;
     _normalizeVariantIfNeeded(source: widget.currentStyle, normalized: _style);
   }
 
@@ -61,6 +67,9 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
     }
     if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
       _isStraightenModeEnabled = widget.isStraightenModeEnabled;
+    }
+    if (oldWidget.straightenSnapEnabled != widget.straightenSnapEnabled) {
+      _isStraightenSnapEnabled = widget.straightenSnapEnabled;
     }
   }
 
@@ -270,19 +279,37 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Semantics(
-                    label: '직교 모드',
-                    toggled: _isStraightenModeEnabled,
-                    child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: const Text('직교 모드', style: TextStyle(fontSize: _kBodyFont)),
-                      value: _isStraightenModeEnabled,
-                      onChanged: (enabled) {
-                        setState(() => _isStraightenModeEnabled = enabled);
-                        widget.onStraightenModeChanged(enabled);
-                      },
-                    ),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _isStraightenSnapEnabled,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() => _isStraightenSnapEnabled = value);
+                          widget.onStraightenSnapChanged(value);
+                        },
+                      ),
+                      const Text('스냅', style: TextStyle(fontSize: _kBodyFont)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Semantics(
+                          label: '직교 모드',
+                          toggled: _isStraightenModeEnabled,
+                          child: SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: const Text('직교 모드', style: TextStyle(fontSize: _kBodyFont)),
+                            value: _isStraightenModeEnabled,
+                            onChanged: (enabled) {
+                              setState(() => _isStraightenModeEnabled = enabled);
+                              widget.onStraightenModeChanged(enabled);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
