@@ -513,6 +513,81 @@ class _DrawingScreenState extends State<DrawingScreen>
     _switchPenType(_penUiTypeFromVariant(newVariant));
   }
 
+  void _handlePenVariantChanged(PenVariant variant) {
+    final nextType = _penUiTypeFromVariant(variant);
+    if (_activeFamily != ToolFamily.pen) {
+      _safeSetState(() => _activeFamily = ToolFamily.pen);
+    }
+    _switchPenType(nextType);
+  }
+
+  void _handleHighlighterVariantChanged(PenVariant variant) {
+    final nextType = _highlighterUiTypeFromVariant(variant);
+    if (_activeFamily != ToolFamily.highlighter) {
+      _safeSetState(() => _activeFamily = ToolFamily.highlighter);
+    }
+    _switchHighlighterType(nextType);
+  }
+
+  void _handlePenWidthChanged(double width) {
+    _safeSetState(() {
+      _activeFamily = ToolFamily.pen;
+      _currentPenWidth = width;
+      _savePenType(_activePenType);
+      _syncCurrentFamilyStyleToPreset();
+    });
+  }
+
+  void _handlePenColorChanged(Color color) {
+    _safeSetState(() {
+      _activeFamily = ToolFamily.pen;
+      _currentPenColor = color;
+      _savePenType(_activePenType);
+      _syncCurrentFamilyStyleToPreset();
+
+      final rgb = color.withAlpha(0xFF).value;
+      _recentArgb.remove(rgb);
+      _recentArgb.insert(0, rgb);
+      if (_recentArgb.length > _kMaxRecentColors) {
+        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
+      }
+    });
+  }
+
+  void _handleHighlighterWidthChanged(double width) {
+    _safeSetState(() {
+      _activeFamily = ToolFamily.highlighter;
+      _currentHlWidth = width;
+      _saveHighlighterType(_activeHighlighterType);
+      _syncCurrentFamilyStyleToPreset();
+    });
+  }
+
+  void _handleHighlighterOpacityChanged(double opacity) {
+    _safeSetState(() {
+      _activeFamily = ToolFamily.highlighter;
+      _currentHlOpacity = opacity;
+      _saveHighlighterType(_activeHighlighterType);
+      _syncCurrentFamilyStyleToPreset();
+    });
+  }
+
+  void _handleHighlighterColorChanged(Color color) {
+    _safeSetState(() {
+      _activeFamily = ToolFamily.highlighter;
+      _currentHlColor = color;
+      _saveHighlighterType(_activeHighlighterType);
+      _syncCurrentFamilyStyleToPreset();
+
+      final rgb = color.withAlpha(0xFF).value;
+      _recentArgb.remove(rgb);
+      _recentArgb.insert(0, rgb);
+      if (_recentArgb.length > _kMaxRecentColors) {
+        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
+      }
+    });
+  }
+
   void _applyCurrentStyleValues({
     double? width,
     double? opacity,
