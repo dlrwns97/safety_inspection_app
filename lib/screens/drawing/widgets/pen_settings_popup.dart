@@ -17,9 +17,11 @@ class PenSettingsPopup extends StatefulWidget {
     required this.recentColors,
     required this.standardPaletteColors,
     required this.isStraightenModeEnabled,
+    required this.straightenSnapEnabled,
     required this.onStyleChanged,
     required this.onPresetCommitted,
     required this.onStraightenModeChanged,
+    required this.onStraightenSnapChanged,
     required this.onOpenAllColors,
     this.onClose,
   });
@@ -28,9 +30,11 @@ class PenSettingsPopup extends StatefulWidget {
   final List<Color> recentColors;
   final List<Color> standardPaletteColors;
   final bool isStraightenModeEnabled;
+  final bool straightenSnapEnabled;
   final ValueChanged<StrokeStyle> onStyleChanged;
   final ValueChanged<StrokeStyle> onPresetCommitted;
   final ValueChanged<bool> onStraightenModeChanged;
+  final ValueChanged<bool> onStraightenSnapChanged;
   final VoidCallback onOpenAllColors;
   final VoidCallback? onClose;
 
@@ -41,12 +45,14 @@ class PenSettingsPopup extends StatefulWidget {
 class _PenSettingsPopupState extends State<PenSettingsPopup> {
   late StrokeStyle _style;
   late bool _isStraightenModeEnabled;
+  late bool _isStraightenSnapEnabled;
 
   @override
   void initState() {
     super.initState();
     _style = widget.currentStyle;
     _isStraightenModeEnabled = widget.isStraightenModeEnabled;
+    _isStraightenSnapEnabled = widget.straightenSnapEnabled;
   }
 
   @override
@@ -57,6 +63,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     }
     if (oldWidget.isStraightenModeEnabled != widget.isStraightenModeEnabled) {
       _isStraightenModeEnabled = widget.isStraightenModeEnabled;
+    }
+    if (oldWidget.straightenSnapEnabled != widget.straightenSnapEnabled) {
+      _isStraightenSnapEnabled = widget.straightenSnapEnabled;
     }
   }
 
@@ -227,15 +236,33 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
           ],
         ),
         const SizedBox(height: 2),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          title: const Text('직교 모드', style: TextStyle(fontSize: kBodyFont)),
-          value: _isStraightenModeEnabled,
-          onChanged: (enabled) {
-            setState(() => _isStraightenModeEnabled = enabled);
-            widget.onStraightenModeChanged(enabled);
-          },
+        Row(
+          children: [
+            Checkbox(
+              value: _isStraightenSnapEnabled,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() => _isStraightenSnapEnabled = value);
+                widget.onStraightenSnapChanged(value);
+              },
+            ),
+            const Text('스냅', style: TextStyle(fontSize: kBodyFont)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: const Text('직교 모드', style: TextStyle(fontSize: kBodyFont)),
+                value: _isStraightenModeEnabled,
+                onChanged: (enabled) {
+                  setState(() => _isStraightenModeEnabled = enabled);
+                  widget.onStraightenModeChanged(enabled);
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );
