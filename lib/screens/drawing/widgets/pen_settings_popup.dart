@@ -97,10 +97,10 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
 
   String _variantLabel(PenVariant variant) {
     return switch (variant) {
-      PenVariant.pen => '펜',
-      PenVariant.fountainPen => '만년필',
-      PenVariant.calligraphyPen => '캘리그래피',
-      PenVariant.pencil => '연필',
+      PenVariant.pen => '펜 라운드',
+      PenVariant.calligraphyPen => '펜 치즐',
+      PenVariant.marker => '마커',
+      PenVariant.markerChisel => '마커 치즐',
       _ => variant.name,
     };
   }
@@ -110,9 +110,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     final currentColor = Color(_style.argbColor);
     final penVariants = const <PenVariant>[
       PenVariant.pen,
-      PenVariant.fountainPen,
       PenVariant.calligraphyPen,
-      PenVariant.pencil,
+      PenVariant.marker,
+      PenVariant.markerChisel,
     ];
 
     Widget colorChip(Color value) {
