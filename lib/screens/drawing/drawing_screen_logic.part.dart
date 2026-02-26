@@ -2397,87 +2397,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final isHighlighterFamily = _isHighlighterFamilyVariant(
       inProgressStroke.style.variant,
     );
-    final bool isHighlighterStraightened =
-        _isStraightenModeEnabled && isHighlighterFamily;
-    final shouldRenderStraightPreview =
-        _isStraightenModeEnabled &&
+    final isPenFamily =
         inProgressStroke.style.kind == StrokeToolKind.pen &&
         !isHighlighterFamily;
+    final shouldRenderStraightPreview =
+        _isStraightenModeEnabled && (isPenFamily || isHighlighterFamily);
 
     final processedNormalized = _applyStraightenSamsungLike(
       pointerId: pointerId,
       inProgressStroke: inProgressStroke,
       normalized: normalized,
       destSize: destSize,
-      applyToHighlighter: isHighlighterStraightened,
+      applyToHighlighter: isHighlighterFamily,
     );
-
-    if (isHighlighterStraightened) {
-      if (destSize.shortestSide <= 0) {
-        return;
-      }
-      final startNorm = inProgressStroke.pointsNorm.first;
-      final previousEnd = inProgressStroke.pointsNorm.last;
-      const double straightenAppendEpsilonPx = 0.5;
-      const double axisDetectionEpsilonPx = 0.001;
-      final rawPage = Offset(
-        normalized.dx * destSize.width,
-        normalized.dy * destSize.height,
-      );
-      final previousEndPage = Offset(
-        previousEnd.dx * destSize.width,
-        previousEnd.dy * destSize.height,
-      );
-      final snappedPage = Offset(
-        processedNormalized.dx * destSize.width,
-        processedNormalized.dy * destSize.height,
-      );
-
-      final horizontalSnap =
-          (snappedPage.dx - rawPage.dx).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dy - rawPage.dy).abs() > axisDetectionEpsilonPx;
-      final verticalSnap =
-          (snappedPage.dy - rawPage.dy).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dx - rawPage.dx).abs() > axisDetectionEpsilonPx;
-
-      final bool didUpdate;
-      if (horizontalSnap) {
-        didUpdate =
-            (snappedPage.dx - previousEndPage.dx).abs() >=
-            straightenAppendEpsilonPx;
-      } else if (verticalSnap) {
-        didUpdate =
-            (snappedPage.dy - previousEndPage.dy).abs() >=
-            straightenAppendEpsilonPx;
-      } else {
-        didUpdate =
-            (snappedPage - previousEndPage).distance >=
-            straightenAppendEpsilonPx;
-      }
-
-      final shouldForceTwoPoint = inProgressStroke.pointsNorm.length != 2;
-      final shouldUpdate = didUpdate || shouldForceTwoPoint;
-
-      assert(() {
-        debugPrint(
-          '[HL/MM][Straighten] rawPx=$rawPage snappedPx=$snappedPage '
-          'lastPx=$previousEndPage axis=(h:$horizontalSnap,v:$verticalSnap) '
-          'updated=$shouldUpdate',
-        );
-        return true;
-      }());
-
-      if (!shouldUpdate) {
-        return;
-      }
-
-      _recordFreeDrawPerfUiMutation();
-      inProgressStroke.pointsNorm
-        ..clear()
-        ..addAll(<Offset>[startNorm, processedNormalized]);
-      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
-      return;
-    }
 
     if (shouldRenderStraightPreview) {
       if (destSize.shortestSide <= 0) {
@@ -2747,24 +2679,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
-      var committedPoints = List<Offset>.from(inProgressStroke.pointsNorm);
-      final isHighlighterFamily = _isHighlighterFamilyVariant(
-        inProgressStroke.style.variant,
-      );
-      if (_isStraightenModeEnabled &&
-          isHighlighterFamily &&
-          committedPoints.length >= 2) {
-        committedPoints = <Offset>[
-          committedPoints.first,
-          committedPoints.last,
-        ];
-      }
-
       final committedStroke = DrawingStroke(
         id: inProgressStroke.id,
         pageNumber: pageNumber,
         style: inProgressStroke.style,
-        pointsNorm: committedPoints,
+        pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
       );
       _historyManager.execute(
         AddStrokeCommand(
