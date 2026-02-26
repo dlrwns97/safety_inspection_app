@@ -2496,8 +2496,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       inProgressStroke.pointsNorm
         ..clear()
         ..addAll(newPoints);
+      final livePreviewStroke =
+          isHighlighterFamily
+              ? DrawingStroke(
+                id: inProgressStroke.id,
+                pageNumber: inProgressStroke.pageNumber,
+                style: inProgressStroke.style.copyWith(
+                  kind: StrokeToolKind.pen,
+                  variant:
+                      inProgressStroke.style.variant ==
+                                  PenVariant.highlighterChisel ||
+                              inProgressStroke.style.variant ==
+                                  PenVariant.markerChisel
+                          ? PenVariant.markerChisel
+                          : PenVariant.marker,
+                ),
+                pointsNorm: inProgressStroke.pointsNorm,
+                toolType: inProgressStroke.toolType,
+                opacity: inProgressStroke.opacity,
+                isStraightened: inProgressStroke.isStraightened,
+                penVariant: inProgressStroke.penVariant,
+                highlighterVariant: inProgressStroke.highlighterVariant,
+                erasedMaskVersion: inProgressStroke.erasedMaskVersion,
+                erasedMask: inProgressStroke.erasedMask,
+                erasedSegments: inProgressStroke.erasedSegments,
+              )
+              : inProgressStroke;
       _canvasController.setLiveStroke(
-        inProgressStroke,
+        livePreviewStroke,
         forceNotify: isHighlighterFamily,
       );
       return;
