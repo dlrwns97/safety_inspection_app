@@ -2394,13 +2394,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final isHighlighterPath =
-        inProgressStroke.style.kind == StrokeToolKind.highlighter;
+    final isHighlighterFamily = _isHighlighterFamilyVariant(
+      inProgressStroke.style.variant,
+    );
     final bool isHighlighterStraightened =
-        _isStraightenModeEnabled && isHighlighterPath;
+        _isStraightenModeEnabled && isHighlighterFamily;
     final shouldRenderStraightPreview =
         _isStraightenModeEnabled &&
-        inProgressStroke.style.kind == StrokeToolKind.pen;
+        inProgressStroke.style.kind == StrokeToolKind.pen &&
+        !isHighlighterFamily;
 
     final processedNormalized = _applyStraightenSamsungLike(
       pointerId: pointerId,
@@ -2599,12 +2601,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size destSize,
     bool applyToHighlighter = false,
   }) {
-    final isPenPath = inProgressStroke.style.kind == StrokeToolKind.pen;
-    final isHighlighterPath =
-        inProgressStroke.style.kind == StrokeToolKind.highlighter;
+    final isHighlighterFamily = _isHighlighterFamilyVariant(
+      inProgressStroke.style.variant,
+    );
+    final isPenFamily =
+        inProgressStroke.style.kind == StrokeToolKind.pen &&
+        !isHighlighterFamily;
     final shouldApply =
         _isStraightenModeEnabled &&
-        (isPenPath || (applyToHighlighter && isHighlighterPath));
+        (isPenFamily || (applyToHighlighter && isHighlighterFamily));
     if (!shouldApply) {
       return normalized;
     }
