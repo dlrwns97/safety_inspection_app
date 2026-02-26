@@ -213,6 +213,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _resetHighlighterStraightenState();
                         }
                       });
+                      unawaited(_saveDrawingSettings());
                     },
                   ),
                 ],
@@ -629,6 +630,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 _resetHighlighterStraightenState();
               }
             });
+            unawaited(_saveDrawingSettings());
           },
           onStraightenSnapChanged: (enabled) {
             _safeSetState(() {
@@ -637,6 +639,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 _straightenSnappedAngleByPointer.clear();
               }
             });
+            unawaited(_saveDrawingSettings());
           },
           onOpenAllColors: () {
             _settingsPopover.hide();
@@ -682,6 +685,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 _resetHighlighterStraightenState();
               }
             });
+            unawaited(_saveDrawingSettings());
           },
           onStraightenSnapChanged: (enabled) {
             _safeSetState(() {
@@ -690,6 +694,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 _straightenSnappedAngleByPointer.clear();
               }
             });
+            unawaited(_saveDrawingSettings());
           },
           onOpenAllColors: () {
             _settingsPopover.hide();

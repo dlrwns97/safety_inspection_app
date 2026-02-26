@@ -237,6 +237,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
+  static const String _kDrawingSettingsPrefix = 'drawing';
   late final HistoryManager _historyManager =
       HistoryManager(maxHistory: kMaxHistory);
   String? _moveTargetDefectId;
@@ -454,6 +455,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   void _savePenType(PenUiType t) {
     _penWidthByType[t] = _currentPenWidth;
     _penColorByType[t] = _currentPenColor;
+    unawaited(_saveDrawingSettings());
   }
 
   void _loadPenType(PenUiType t) {
@@ -465,6 +467,156 @@ class _DrawingScreenState extends State<DrawingScreen>
     _hlWidthByType[t] = _currentHlWidth;
     _hlOpacityByType[t] = _currentHlOpacity;
     _hlColorByType[t] = _currentHlColor;
+    unawaited(_saveDrawingSettings());
+  }
+
+  String _penWidthKey(PenUiType type) =>
+      '$_kDrawingSettingsPrefix.pen.${type.name}.width';
+
+  String _penColorKey(PenUiType type) =>
+      '$_kDrawingSettingsPrefix.pen.${type.name}.colorARGB';
+
+  String _hlWidthKey(HighlighterUiType type) =>
+      '$_kDrawingSettingsPrefix.hl.${type.name}.width';
+
+  String _hlOpacityKey(HighlighterUiType type) =>
+      '$_kDrawingSettingsPrefix.hl.${type.name}.opacity';
+
+  String _hlColorKey(HighlighterUiType type) =>
+      '$_kDrawingSettingsPrefix.hl.${type.name}.colorARGB';
+
+  Future<void> _loadDrawingSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final loadedPenWidthByType = <PenUiType, double>{};
+    final loadedPenColorByType = <PenUiType, Color>{};
+    final loadedHlWidthByType = <HighlighterUiType, double>{};
+    final loadedHlOpacityByType = <HighlighterUiType, double>{};
+    final loadedHlColorByType = <HighlighterUiType, Color>{};
+
+    for (final type in PenUiType.values) {
+      final width = prefs.getDouble(_penWidthKey(type));
+      final colorArgb = prefs.getInt(_penColorKey(type));
+      if (width != null) {
+        loadedPenWidthByType[type] = width;
+      }
+      if (colorArgb != null) {
+        loadedPenColorByType[type] = Color(colorArgb);
+      }
+    }
+
+    for (final type in HighlighterUiType.values) {
+      final width = prefs.getDouble(_hlWidthKey(type));
+      final opacity = prefs.getDouble(_hlOpacityKey(type));
+      final colorArgb = prefs.getInt(_hlColorKey(type));
+      if (width != null) {
+        loadedHlWidthByType[type] = width;
+      }
+      if (opacity != null) {
+        loadedHlOpacityByType[type] = opacity;
+      }
+      if (colorArgb != null) {
+        loadedHlColorByType[type] = Color(colorArgb);
+      }
+    }
+
+    final straightenEnabled = prefs.getBool(
+      '$_kDrawingSettingsPrefix.straighten.enabled',
+    );
+    final straightenSnapEnabled = prefs.getBool(
+      '$_kDrawingSettingsPrefix.straighten.snapEnabled',
+    );
+    final activePenTypeName = prefs.getString(
+      '$_kDrawingSettingsPrefix.last.penType',
+    );
+    final activeHlTypeName = prefs.getString(
+      '$_kDrawingSettingsPrefix.last.hlType',
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _safeSetState(() {
+      _penWidthByType.addAll(loadedPenWidthByType);
+      _penColorByType.addAll(loadedPenColorByType);
+      _hlWidthByType.addAll(loadedHlWidthByType);
+      _hlOpacityByType.addAll(loadedHlOpacityByType);
+      _hlColorByType.addAll(loadedHlColorByType);
+
+      PenUiType? savedPenType;
+      for (final type in PenUiType.values) {
+        if (type.name == activePenTypeName) {
+          savedPenType = type;
+          break;
+        }
+      }
+      HighlighterUiType? savedHlType;
+      for (final type in HighlighterUiType.values) {
+        if (type.name == activeHlTypeName) {
+          savedHlType = type;
+          break;
+        }
+      }
+      if (savedPenType != null) {
+        _activePenType = savedPenType;
+      }
+      if (savedHlType != null) {
+        _activeHighlighterType = savedHlType;
+      }
+
+      if (straightenEnabled != null) {
+        _isStraightenModeEnabled = straightenEnabled;
+      }
+      if (straightenSnapEnabled != null) {
+        _isStraightenSnapEnabled = straightenSnapEnabled;
+      }
+
+      if (_activeFamily == ToolFamily.highlighter) {
+        _loadHighlighterType(_activeHighlighterType);
+      } else {
+        _loadPenType(_activePenType);
+      }
+      _syncCurrentFamilyStyleToPreset();
+      _syncPopupNotifiers();
+    });
+  }
+
+  Future<void> _saveDrawingSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    for (final type in PenUiType.values) {
+      await prefs.setDouble(_penWidthKey(type), _penWidthByType[type] ?? _currentPenWidth);
+      await prefs.setInt(_penColorKey(type), (_penColorByType[type] ?? _currentPenColor).value);
+    }
+    for (final type in HighlighterUiType.values) {
+      await prefs.setDouble(_hlWidthKey(type), _hlWidthByType[type] ?? _currentHlWidth);
+      await prefs.setDouble(
+        _hlOpacityKey(type),
+        _hlOpacityByType[type] ??
+            (type == HighlighterUiType.marker
+                ? _kDefaultMarkerOpacity
+                : _kDefaultHighlighterOpacity),
+      );
+      await prefs.setInt(_hlColorKey(type), (_hlColorByType[type] ?? _currentHlColor).value);
+    }
+
+    await prefs.setBool(
+      '$_kDrawingSettingsPrefix.straighten.enabled',
+      _isStraightenModeEnabled,
+    );
+    await prefs.setBool(
+      '$_kDrawingSettingsPrefix.straighten.snapEnabled',
+      _isStraightenSnapEnabled,
+    );
+    await prefs.setString(
+      '$_kDrawingSettingsPrefix.last.penType',
+      _activePenType.name,
+    );
+    await prefs.setString(
+      '$_kDrawingSettingsPrefix.last.hlType',
+      _activeHighlighterType.name,
+    );
   }
 
   void _loadHighlighterType(HighlighterUiType t) {
@@ -509,6 +661,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _loadPenType(newType);
       _syncCurrentFamilyStyleToPreset();
     });
+    unawaited(_saveDrawingSettings());
   }
 
   void _switchHighlighterType(HighlighterUiType newType) {
@@ -522,6 +675,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _loadHighlighterType(newType);
       _syncCurrentFamilyStyleToPreset();
     });
+    unawaited(_saveDrawingSettings());
   }
 
   void _switchVariant(PenVariant newVariant) {
@@ -968,6 +1122,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _highlighterOpacityNotifier = ValueNotifier<double>(_currentHlOpacity);
     _highlighterColorNotifier = ValueNotifier<Color>(_currentHlColor);
     _seedVariantStateMaps();
+    unawaited(_loadDrawingSettings());
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
