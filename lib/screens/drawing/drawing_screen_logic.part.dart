@@ -2447,10 +2447,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
                 startPage.dy + math.sin(nearestTarget) * math.sqrt(dx * dx + dy * dy),
               )
               : rawPage;
-      final processedNormalized = Offset(
-        endPage.dx / destSize.width,
-        endPage.dy / destSize.height,
+      final clampedEndPage = Offset(
+        endPage.dx.clamp(0.0, destSize.width).toDouble(),
+        endPage.dy.clamp(0.0, destSize.height).toDouble(),
       );
+      final processedNormalized = Offset(
+        clampedEndPage.dx / destSize.width,
+        clampedEndPage.dy / destSize.height,
+      );
+      if (!processedNormalized.dx.isFinite ||
+          !processedNormalized.dy.isFinite) {
+        return;
+      }
 
       const double straightenAppendEpsilonPx = 0.5;
       final double straightenAppendEpsilonNorm =
