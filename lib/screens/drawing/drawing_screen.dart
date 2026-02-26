@@ -198,13 +198,14 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final List<StrokeStyle> _presets = StrokePresets.defaults();
   static const double _kDefaultHighlighterOpacity = 0.35;
   static const double _kDefaultMarkerOpacity = 0.80;
+  final Map<PenVariant, double> _penWidthByVariant = <PenVariant, double>{};
+  final Map<PenVariant, Color> _penColorByVariant = <PenVariant, Color>{};
+  final Map<PenVariant, double> _highlighterWidthByVariant =
+      <PenVariant, double>{};
   final Map<PenVariant, double> _highlighterOpacityByVariant =
-      <PenVariant, double>{
-        PenVariant.highlighter: _kDefaultHighlighterOpacity,
-        PenVariant.highlighterChisel: _kDefaultHighlighterOpacity,
-        PenVariant.marker: _kDefaultMarkerOpacity,
-        PenVariant.markerChisel: _kDefaultMarkerOpacity,
-      };
+      <PenVariant, double>{};
+  final Map<PenVariant, Color> _highlighterColorByVariant =
+      <PenVariant, Color>{};
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
@@ -301,13 +302,93 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   bool _isHighlighterFamilyVariant(PenVariant variant) {
     return variant == PenVariant.highlighter ||
-        variant == PenVariant.highlighterChisel ||
-        variant == PenVariant.marker ||
-        variant == PenVariant.markerChisel;
+        variant == PenVariant.highlighterChisel;
   }
 
-  PenVariant _normalizedHighlighterVariant(PenVariant variant) {
-    return _isMarkerVariant(variant) ? PenVariant.marker : PenVariant.highlighter;
+  bool _isPenFamilyVariant(PenVariant variant) {
+    return !_isHighlighterFamilyVariant(variant);
+  }
+
+  void _seedVariantStateMaps() {
+    final initialPenPreset = _presets.firstWhere(
+      (style) => style.kind == StrokeToolKind.pen,
+      orElse: () => const StrokeStyle(kind: StrokeToolKind.pen),
+    );
+    final initialHighlighterPreset = _presets.firstWhere(
+      (style) => style.kind == StrokeToolKind.highlighter,
+      orElse: () => const StrokeStyle(kind: StrokeToolKind.highlighter),
+    );
+    for (final variant in PenVariant.values) {
+      if (_isPenFamilyVariant(variant)) {
+        _penWidthByVariant.putIfAbsent(variant, () => initialPenPreset.widthPx);
+        _penColorByVariant.putIfAbsent(
+          variant,
+          () => Color(initialPenPreset.argbColor),
+        );
+      } else {
+        _highlighterWidthByVariant.putIfAbsent(
+          variant,
+          () => initialHighlighterPreset.widthPx,
+        );
+        _highlighterOpacityByVariant.putIfAbsent(
+          variant,
+          () => _defaultOpacityForHighlighterVariant(variant),
+        );
+        _highlighterColorByVariant.putIfAbsent(
+          variant,
+          () => Color(initialHighlighterPreset.argbColor),
+        );
+      }
+    }
+    _rememberVariantStyle(initialPenPreset);
+    _rememberVariantStyle(initialHighlighterPreset);
+    _rememberVariantStyle(_activeStrokeStyleOrFallback);
+  }
+
+  void _rememberVariantStyle(StrokeStyle style) {
+    if (_isPenFamilyVariant(style.variant)) {
+      _penWidthByVariant[style.variant] = style.widthPx;
+      _penColorByVariant[style.variant] = Color(style.argbColor);
+      return;
+    }
+    _highlighterWidthByVariant[style.variant] = style.widthPx;
+    _highlighterOpacityByVariant[style.variant] = style.opacity;
+    _highlighterColorByVariant[style.variant] = Color(style.argbColor);
+  }
+
+  StrokeStyle _restoreVariantStyle(StrokeStyle style, PenVariant variant) {
+    if (_isPenFamilyVariant(variant)) {
+      final width = _penWidthByVariant[variant] ?? style.widthPx;
+      final color = _penColorByVariant[variant] ?? Color(style.argbColor);
+      return style.copyWith(
+        variant: variant,
+        widthPx: width,
+        argbColor: color.value,
+      );
+    }
+    final width = _highlighterWidthByVariant[variant] ?? style.widthPx;
+    final opacity =
+        _highlighterOpacityByVariant[variant] ??
+        _defaultOpacityForHighlighterVariant(variant);
+    final color =
+        _highlighterColorByVariant[variant] ?? Color(style.argbColor);
+    return style.copyWith(
+      variant: variant,
+      widthPx: width,
+      opacity: opacity,
+      argbColor: color.value,
+    );
+  }
+
+  StrokeStyle _resolveVariantStyleChange({
+    required StrokeStyle current,
+    required StrokeStyle next,
+  }) {
+    if (current.variant == next.variant) {
+      return next;
+    }
+    _rememberVariantStyle(current);
+    return _restoreVariantStyle(next, next.variant);
   }
 
   double _defaultOpacityForHighlighterVariant(PenVariant variant) {
@@ -321,18 +402,15 @@ class _DrawingScreenState extends State<DrawingScreen>
     required PenVariant nextVariant,
   }) {
     if (!_isHighlighterFamilyVariant(nextVariant)) {
-      return current.copyWith(variant: nextVariant);
+      return _resolveVariantStyleChange(
+        current: current,
+        next: current.copyWith(variant: nextVariant),
+      );
     }
-    final currentVariant = _normalizedHighlighterVariant(current.variant);
-    if (_isHighlighterFamilyVariant(current.variant)) {
-      _highlighterOpacityByVariant[currentVariant] = current.opacity;
-    }
-    final normalizedNextVariant = _normalizedHighlighterVariant(nextVariant);
-    final nextOpacity =
-        _highlighterOpacityByVariant[normalizedNextVariant] ??
-        _defaultOpacityForHighlighterVariant(normalizedNextVariant);
-    _highlighterOpacityByVariant[normalizedNextVariant] = nextOpacity;
-    return current.copyWith(variant: nextVariant, opacity: nextOpacity);
+    return _resolveVariantStyleChange(
+      current: current,
+      next: current.copyWith(variant: nextVariant),
+    );
   }
 
   void _updateActivePreset(StrokeStyle next) {
@@ -341,13 +419,16 @@ class _DrawingScreenState extends State<DrawingScreen>
       return;
     }
     final normalizedIndex = _clampPresetIndex(index);
+    final current = _presets[normalizedIndex];
+    final resolved = _resolveVariantStyleChange(current: current, next: next);
     _safeSetState(() {
-      _presets[normalizedIndex] = next;
+      _presets[normalizedIndex] = resolved;
+      _rememberVariantStyle(resolved);
       if (kDebugMode) {
         debugPrint(
           '[Drawing] updateActivePreset index=$normalizedIndex '
-          'kind=${next.kind.name} variant=${next.variant.name} '
-          'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
+          'kind=${resolved.kind.name} variant=${resolved.variant.name} '
+          'width=${resolved.widthPx.toStringAsFixed(1)} color=${resolved.argbColor}',
         );
       }
     });
@@ -360,16 +441,19 @@ class _DrawingScreenState extends State<DrawingScreen>
       return;
     }
     final normalizedIndex = _clampPresetIndex(index);
+    final current = _presets[normalizedIndex];
+    final resolved = _resolveVariantStyleChange(current: current, next: next);
     _safeSetState(() {
-      _presets[normalizedIndex] = next;
+      _presets[normalizedIndex] = resolved;
+      _rememberVariantStyle(resolved);
       if (kDebugMode) {
         debugPrint(
           '[Drawing] applyPresetWithRecentColor index=$normalizedIndex '
-          'kind=${next.kind.name} variant=${next.variant.name} '
-          'width=${next.widthPx.toStringAsFixed(1)} color=${next.argbColor}',
+          'kind=${resolved.kind.name} variant=${resolved.variant.name} '
+          'width=${resolved.widthPx.toStringAsFixed(1)} color=${resolved.argbColor}',
         );
       }
-      final rgb = Color(next.argbColor).withAlpha(0xFF).value;
+      final rgb = Color(resolved.argbColor).withAlpha(0xFF).value;
       _recentArgb.remove(rgb);
       _recentArgb.insert(0, rgb);
       if (_recentArgb.length > _kMaxRecentColors) {
@@ -670,13 +754,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _canvasController.invalidateCache(_currentPage, reason: 'initial');
     });
     _site = widget.site;
-    final initialHighlighterPreset = _presets.firstWhere(
-      (style) => style.kind == StrokeToolKind.highlighter,
-      orElse: () => const StrokeStyle(kind: StrokeToolKind.highlighter),
-    );
-    final initialVariant =
-        _normalizedHighlighterVariant(initialHighlighterPreset.variant);
-    _highlighterOpacityByVariant[initialVariant] = initialHighlighterPreset.opacity;
+    _seedVariantStateMaps();
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
@@ -695,13 +773,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     final didChangeDrawing =
         _drawingIdentityKey(widget.site) != _drawingIdentityKey(oldWidget.site);
     _site = widget.site;
-    final initialHighlighterPreset = _presets.firstWhere(
-      (style) => style.kind == StrokeToolKind.highlighter,
-      orElse: () => const StrokeStyle(kind: StrokeToolKind.highlighter),
-    );
-    final initialVariant =
-        _normalizedHighlighterVariant(initialHighlighterPreset.variant);
-    _highlighterOpacityByVariant[initialVariant] = initialHighlighterPreset.opacity;
+    _seedVariantStateMaps();
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
