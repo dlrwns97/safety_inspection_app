@@ -2464,10 +2464,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final double straightenAppendEpsilonNorm =
           straightenAppendEpsilonPx / destSize.shortestSide;
       final previousEnd = inProgressStroke.pointsNorm.last;
-      final bool didAppend;
-      didAppend =
+      final bool didAppend =
           (processedNormalized - previousEnd).distance >=
           straightenAppendEpsilonNorm;
+      final shouldSkipStraightPreviewUpdate =
+          !isHighlighterFamily && !didAppend;
 
       assert(() {
         final start = inProgressStroke.pointsNorm.first;
@@ -2476,11 +2477,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         debugPrint(
           '[Drawing][Straighten] update rawDx=${dx.toStringAsFixed(2)} '
           'rawDy=${dy.toStringAsFixed(2)} snapped=$processedNormalized '
-          'appended=$didAppend',
+          'appended=$didAppend '
+          'skip=$shouldSkipStraightPreviewUpdate '
+          'highlighter=$isHighlighterFamily',
         );
         return true;
       }());
-      if (!didAppend) {
+      if (shouldSkipStraightPreviewUpdate) {
         return;
       }
       final newPoints = _buildStraightLinePointsNorm(
@@ -2493,7 +2496,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       inProgressStroke.pointsNorm
         ..clear()
         ..addAll(newPoints);
-      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
+      _canvasController.setLiveStroke(
+        inProgressStroke,
+        forceNotify: isHighlighterFamily,
+      );
       return;
     }
 
