@@ -2578,6 +2578,44 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return normalized;
     }
 
+    const axisRatio = 1.35;
+    if (absDx > absDy * axisRatio) {
+      _straightenSnappedAngleByPointer.remove(pointerId);
+      final snappedPage = Offset(startPage.dx + vector.dx, startPage.dy);
+      assert(() {
+        debugPrint(
+          '[Drawing][Straighten] axis-first horizontal '
+          'rawDx=${vector.dx.toStringAsFixed(2)} '
+          'rawDy=${vector.dy.toStringAsFixed(2)} '
+          'absDx=${absDx.toStringAsFixed(2)} '
+          'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
+        );
+        return true;
+      }());
+      return Offset(
+        snappedPage.dx / destSize.width,
+        snappedPage.dy / destSize.height,
+      );
+    }
+    if (absDy > absDx * axisRatio) {
+      _straightenSnappedAngleByPointer.remove(pointerId);
+      final snappedPage = Offset(startPage.dx, startPage.dy + vector.dy);
+      assert(() {
+        debugPrint(
+          '[Drawing][Straighten] axis-first vertical '
+          'rawDx=${vector.dx.toStringAsFixed(2)} '
+          'rawDy=${vector.dy.toStringAsFixed(2)} '
+          'absDx=${absDx.toStringAsFixed(2)} '
+          'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
+        );
+        return true;
+      }());
+      return Offset(
+        snappedPage.dx / destSize.width,
+        snappedPage.dy / destSize.height,
+      );
+    }
+
     final vectorDistance = vector.distance;
     if (vectorDistance <= 0) {
       return normalized;
