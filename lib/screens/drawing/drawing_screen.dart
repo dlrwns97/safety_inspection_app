@@ -186,7 +186,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
-  static const int _kMaxRecentColors = 12;
+  static const int _kMaxRecentColors = 8;
   final List<int> _standardPaletteArgb = const <int>[
     0xFF000000,
     0xFFFFFFFF,
@@ -316,14 +316,21 @@ class _DrawingScreenState extends State<DrawingScreen>
     });
   }
 
+  List<int> _buildRecentColors(List<int> current, int nextArgb) {
+    final nextRgb = Color(nextArgb).withAlpha(0xFF).value;
+    final updated = <int>[
+      nextRgb,
+      ...current.where((argb) => argb != nextRgb),
+    ];
+    return updated.take(_kMaxRecentColors).toList(growable: false);
+  }
+
   void _pushRecentColor(int argb) {
-    final rgb = Color(argb).withAlpha(0xFF).value;
+    final updated = _buildRecentColors(_recentArgb, argb);
     _safeSetState(() {
-      _recentArgb.remove(rgb);
-      _recentArgb.insert(0, rgb);
-      if (_recentArgb.length > _kMaxRecentColors) {
-        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
-      }
+      _recentArgb
+        ..clear()
+        ..addAll(updated);
     });
   }
 
@@ -727,12 +734,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       _savePenType(_activePenType);
       _syncCurrentFamilyStyleToPreset();
 
-      final rgb = color.withAlpha(0xFF).value;
-      _recentArgb.remove(rgb);
-      _recentArgb.insert(0, rgb);
-      if (_recentArgb.length > _kMaxRecentColors) {
-        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
-      }
+      final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+      _recentArgb
+        ..clear()
+        ..addAll(updatedRecent);
     });
   }
 
@@ -761,12 +766,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       _saveHighlighterType(_activeHighlighterType);
       _syncCurrentFamilyStyleToPreset();
 
-      final rgb = color.withAlpha(0xFF).value;
-      _recentArgb.remove(rgb);
-      _recentArgb.insert(0, rgb);
-      if (_recentArgb.length > _kMaxRecentColors) {
-        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
-      }
+      final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+      _recentArgb
+        ..clear()
+        ..addAll(updatedRecent);
     });
   }
 
@@ -789,12 +792,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       }
       _syncCurrentFamilyStyleToPreset();
       if (pushRecentColor && color != null) {
-        final rgb = color.withAlpha(0xFF).value;
-        _recentArgb.remove(rgb);
-        _recentArgb.insert(0, rgb);
-        if (_recentArgb.length > _kMaxRecentColors) {
-          _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
-        }
+        final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+        _recentArgb
+          ..clear()
+          ..addAll(updatedRecent);
       }
     });
   }
@@ -822,12 +823,10 @@ class _DrawingScreenState extends State<DrawingScreen>
         _savePenType(_activePenType);
       }
       _presets[normalizedIndex] = next;
-      final rgb = Color(next.argbColor).withAlpha(0xFF).value;
-      _recentArgb.remove(rgb);
-      _recentArgb.insert(0, rgb);
-      if (_recentArgb.length > _kMaxRecentColors) {
-        _recentArgb.removeRange(_kMaxRecentColors, _recentArgb.length);
-      }
+      final updatedRecent = _buildRecentColors(_recentArgb, next.argbColor);
+      _recentArgb
+        ..clear()
+        ..addAll(updatedRecent);
     });
   }
 

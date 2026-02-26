@@ -183,7 +183,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
           runSpacing: 6,
           children: [
             for (final paletteColor in widget.standardPaletteColors.take(8)) colorChip(paletteColor),
-            if (widget.recentColors.isNotEmpty) ...widget.recentColors.take(7).map(colorChip),
+            if (widget.recentColors.isNotEmpty) ...widget.recentColors.take(8).map(colorChip),
             SizedBox(
               width: 32,
               height: 32,
