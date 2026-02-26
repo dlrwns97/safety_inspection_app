@@ -2419,30 +2419,55 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final startNorm = inProgressStroke.pointsNorm.first;
       final previousEnd = inProgressStroke.pointsNorm.last;
       const double straightenAppendEpsilonPx = 0.5;
-      final double straightenAppendEpsilonNorm =
-          straightenAppendEpsilonPx / destSize.shortestSide;
-      final didUpdate =
-          (processedNormalized - previousEnd).distance >=
-          straightenAppendEpsilonNorm ||
-          inProgressStroke.pointsNorm.length != 2;
+      const double axisDetectionEpsilonPx = 0.001;
+      final rawPage = Offset(
+        normalized.dx * destSize.width,
+        normalized.dy * destSize.height,
+      );
+      final previousEndPage = Offset(
+        previousEnd.dx * destSize.width,
+        previousEnd.dy * destSize.height,
+      );
+      final snappedPage = Offset(
+        processedNormalized.dx * destSize.width,
+        processedNormalized.dy * destSize.height,
+      );
+
+      final horizontalSnap =
+          (snappedPage.dx - rawPage.dx).abs() <= axisDetectionEpsilonPx &&
+          (snappedPage.dy - rawPage.dy).abs() > axisDetectionEpsilonPx;
+      final verticalSnap =
+          (snappedPage.dy - rawPage.dy).abs() <= axisDetectionEpsilonPx &&
+          (snappedPage.dx - rawPage.dx).abs() > axisDetectionEpsilonPx;
+
+      final bool didUpdate;
+      if (horizontalSnap) {
+        didUpdate =
+            (snappedPage.dx - previousEndPage.dx).abs() >=
+            straightenAppendEpsilonPx;
+      } else if (verticalSnap) {
+        didUpdate =
+            (snappedPage.dy - previousEndPage.dy).abs() >=
+            straightenAppendEpsilonPx;
+      } else {
+        didUpdate =
+            (snappedPage - previousEndPage).distance >=
+            straightenAppendEpsilonPx;
+      }
+
+      final shouldForceTwoPoint = inProgressStroke.pointsNorm.length != 2;
+      final shouldUpdate = didUpdate || shouldForceTwoPoint;
 
       assert(() {
-        final rawPage = Offset(
-          normalized.dx * destSize.width,
-          normalized.dy * destSize.height,
-        );
-        final snappedPage = Offset(
-          processedNormalized.dx * destSize.width,
-          processedNormalized.dy * destSize.height,
-        );
         debugPrint(
           '[HL/MM][Straighten] rawPx=$rawPage snappedPx=$snappedPage '
-          'updated=$didUpdate',
+          'lastPx=$previousEndPage axis=(h:$horizontalSnap,v:$verticalSnap) '
+          'updated=$shouldUpdate',
         );
         return true;
       }());
 
-      if (!didUpdate) {
+      if (!shouldUpdate) {
         return;
       }
 
