@@ -2397,80 +2397,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final isHighlighterFamily = _isHighlighterFamilyVariant(
       inProgressStroke.style.variant,
     );
-    final bool isHighlighterStraightened =
-        _isStraightenModeEnabled && isHighlighterFamily;
-    final shouldRenderStraightPreview =
-        _isStraightenModeEnabled &&
+    final bool straighten = _isStraightenModeEnabled;
+    final bool isPenFamily =
         inProgressStroke.style.kind == StrokeToolKind.pen &&
         !isHighlighterFamily;
+    final shouldRenderStraightPreview =
+        straighten && (isPenFamily || isHighlighterFamily);
 
     final processedNormalized = _applyStraightenSamsungLike(
       pointerId: pointerId,
       inProgressStroke: inProgressStroke,
       normalized: normalized,
       destSize: destSize,
-      applyToHighlighter: isHighlighterStraightened,
+      applyToHighlighter: straighten && isHighlighterFamily,
     );
-
-    if (isHighlighterStraightened) {
-      if (destSize.shortestSide <= 0) {
-        return;
-      }
-      const double straightenAppendEpsilonPx = 0.75;
-      const double axisDetectionEpsilonPx = 0.001;
-      final previousEnd = inProgressStroke.pointsNorm.last;
-      final rawPage = Offset(
-        normalized.dx * destSize.width,
-        normalized.dy * destSize.height,
-      );
-      final previousEndPage = Offset(
-        previousEnd.dx * destSize.width,
-        previousEnd.dy * destSize.height,
-      );
-      final snappedPage = Offset(
-        processedNormalized.dx * destSize.width,
-        processedNormalized.dy * destSize.height,
-      );
-
-      final horizontalSnap =
-          (snappedPage.dx - rawPage.dx).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dy - rawPage.dy).abs() > axisDetectionEpsilonPx;
-      final verticalSnap =
-          (snappedPage.dy - rawPage.dy).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dx - rawPage.dx).abs() > axisDetectionEpsilonPx;
-
-      final bool didAppend;
-      if (horizontalSnap) {
-        didAppend =
-            (snappedPage.dx - previousEndPage.dx).abs() >=
-            straightenAppendEpsilonPx;
-      } else if (verticalSnap) {
-        didAppend =
-            (snappedPage.dy - previousEndPage.dy).abs() >=
-            straightenAppendEpsilonPx;
-      } else {
-        didAppend =
-            (snappedPage - previousEndPage).distance >=
-            straightenAppendEpsilonPx;
-      }
-
-      assert(() {
-        debugPrint(
-          '[HL/MM] straighten=$isHighlighterStraightened rawPx=$rawPage '
-          'snappedPx=$snappedPage lastPx=$previousEndPage append=$didAppend',
-        );
-        return true;
-      }());
-
-      if (!didAppend) {
-        return;
-      }
-
-      _recordFreeDrawPerfUiMutation();
-      inProgressStroke.pointsNorm.add(processedNormalized);
-      _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
-      return;
-    }
 
     if (shouldRenderStraightPreview) {
       if (destSize.shortestSide <= 0) {
