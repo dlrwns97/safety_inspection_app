@@ -2583,13 +2583,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return normalized;
     }
     final vHat = Offset(vector.dx / vectorDistance, vector.dy / vectorDistance);
-    final invSqrt2 = 1 / math.sqrt(2);
-    final candidateAxes = <Offset>[
-      const Offset(1, 0),
-      const Offset(0, 1),
-      Offset(invSqrt2, invSqrt2),
-      Offset(-invSqrt2, invSqrt2),
-    ];
+    const kPenAndMarkerAnglesDeg = <double>[0, 45, 90, 135];
+    const kHighlighterAnglesDeg = <double>[0, 45, 90, 135];
+    final candidateAnglesDeg =
+        (applyToHighlighter && isHighlighterFamily)
+            ? kHighlighterAnglesDeg
+            : kPenAndMarkerAnglesDeg;
+    final candidateAxes =
+        candidateAnglesDeg
+            .map(
+              (angleDeg) {
+                final rad = angleDeg * math.pi / 180.0;
+                return Offset(math.cos(rad), math.sin(rad));
+              },
+            )
+            .toList(growable: false);
 
     Offset nearestAxis = candidateAxes.first;
     var bestScore =
