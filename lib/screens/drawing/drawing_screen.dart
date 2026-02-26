@@ -227,6 +227,13 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _currentHlWidth = 3.0;
   double _currentHlOpacity = _kDefaultHighlighterOpacity;
   Color _currentHlColor = const Color(0xFF000000);
+  late final ValueNotifier<PenVariant> _penVariantNotifier;
+  late final ValueNotifier<double> _penWidthNotifier;
+  late final ValueNotifier<Color> _penColorNotifier;
+  late final ValueNotifier<PenVariant> _highlighterVariantNotifier;
+  late final ValueNotifier<double> _highlighterWidthNotifier;
+  late final ValueNotifier<double> _highlighterOpacityNotifier;
+  late final ValueNotifier<Color> _highlighterColorNotifier;
   bool _canUndoDrawing = false;
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
@@ -400,6 +407,18 @@ class _DrawingScreenState extends State<DrawingScreen>
     _activeHighlighterType = _highlighterUiTypeFromVariant(initialStyle.variant);
     _loadPenType(_activePenType);
     _loadHighlighterType(_activeHighlighterType);
+    _syncPopupNotifiers();
+  }
+
+  void _syncPopupNotifiers() {
+    _penVariantNotifier.value = _penVariantFromUiType(_activePenType);
+    _penWidthNotifier.value = _currentPenWidth;
+    _penColorNotifier.value = _currentPenColor;
+    _highlighterVariantNotifier.value =
+        _highlighterVariantFromUiType(_activeHighlighterType);
+    _highlighterWidthNotifier.value = _currentHlWidth;
+    _highlighterOpacityNotifier.value = _currentHlOpacity;
+    _highlighterColorNotifier.value = _currentHlColor;
   }
 
   void _updateActivePreset(StrokeStyle next) {
@@ -941,6 +960,13 @@ class _DrawingScreenState extends State<DrawingScreen>
       _canvasController.invalidateCache(_currentPage, reason: 'initial');
     });
     _site = widget.site;
+    _penVariantNotifier = ValueNotifier<PenVariant>(PenVariant.pen);
+    _penWidthNotifier = ValueNotifier<double>(_currentPenWidth);
+    _penColorNotifier = ValueNotifier<Color>(_currentPenColor);
+    _highlighterVariantNotifier = ValueNotifier<PenVariant>(PenVariant.highlighter);
+    _highlighterWidthNotifier = ValueNotifier<double>(_currentHlWidth);
+    _highlighterOpacityNotifier = ValueNotifier<double>(_currentHlOpacity);
+    _highlighterColorNotifier = ValueNotifier<Color>(_currentHlColor);
     _seedVariantStateMaps();
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
@@ -1002,12 +1028,20 @@ class _DrawingScreenState extends State<DrawingScreen>
     _transformationController.dispose();
     _sidePanelController.dispose();
     _settingsPopover.hide();
+    _penVariantNotifier.dispose();
+    _penWidthNotifier.dispose();
+    _penColorNotifier.dispose();
+    _highlighterVariantNotifier.dispose();
+    _highlighterWidthNotifier.dispose();
+    _highlighterOpacityNotifier.dispose();
+    _highlighterColorNotifier.dispose();
     super.dispose();
   }
 
   void _safeSetState(VoidCallback fn) {
     if (!mounted) return;
     setState(fn);
+    _syncPopupNotifiers();
   }
   MarkerHitResult? _hitTestMarker({
     required Offset point,
