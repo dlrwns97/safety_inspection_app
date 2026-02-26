@@ -2416,58 +2416,40 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (destSize.shortestSide <= 0) {
         return;
       }
-      const double straightenAppendEpsilonPx = 0.75;
-      const double axisDetectionEpsilonPx = 0.001;
+      final startNorm = inProgressStroke.pointsNorm.first;
       final previousEnd = inProgressStroke.pointsNorm.last;
-      final rawPage = Offset(
-        normalized.dx * destSize.width,
-        normalized.dy * destSize.height,
-      );
-      final previousEndPage = Offset(
-        previousEnd.dx * destSize.width,
-        previousEnd.dy * destSize.height,
-      );
-      final snappedPage = Offset(
-        processedNormalized.dx * destSize.width,
-        processedNormalized.dy * destSize.height,
-      );
-
-      final horizontalSnap =
-          (snappedPage.dx - rawPage.dx).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dy - rawPage.dy).abs() > axisDetectionEpsilonPx;
-      final verticalSnap =
-          (snappedPage.dy - rawPage.dy).abs() <= axisDetectionEpsilonPx &&
-          (snappedPage.dx - rawPage.dx).abs() > axisDetectionEpsilonPx;
-
-      final bool didAppend;
-      if (horizontalSnap) {
-        didAppend =
-            (snappedPage.dx - previousEndPage.dx).abs() >=
-            straightenAppendEpsilonPx;
-      } else if (verticalSnap) {
-        didAppend =
-            (snappedPage.dy - previousEndPage.dy).abs() >=
-            straightenAppendEpsilonPx;
-      } else {
-        didAppend =
-            (snappedPage - previousEndPage).distance >=
-            straightenAppendEpsilonPx;
-      }
+      const double straightenAppendEpsilonPx = 0.5;
+      final double straightenAppendEpsilonNorm =
+          straightenAppendEpsilonPx / destSize.shortestSide;
+      final didUpdate =
+          (processedNormalized - previousEnd).distance >=
+          straightenAppendEpsilonNorm ||
+          inProgressStroke.pointsNorm.length != 2;
 
       assert(() {
+        final rawPage = Offset(
+          normalized.dx * destSize.width,
+          normalized.dy * destSize.height,
+        );
+        final snappedPage = Offset(
+          processedNormalized.dx * destSize.width,
+          processedNormalized.dy * destSize.height,
+        );
         debugPrint(
-          '[HL/MM] straighten=$isHighlighterStraightened rawPx=$rawPage '
-          'snappedPx=$snappedPage lastPx=$previousEndPage append=$didAppend',
+          '[HL/MM][Straighten] rawPx=$rawPage snappedPx=$snappedPage '
+          'updated=$didUpdate',
         );
         return true;
       }());
 
-      if (!didAppend) {
+      if (!didUpdate) {
         return;
       }
 
       _recordFreeDrawPerfUiMutation();
-      inProgressStroke.pointsNorm.add(processedNormalized);
+      inProgressStroke.pointsNorm
+        ..clear()
+        ..addAll(<Offset>[startNorm, processedNormalized]);
       _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
       return;
     }
@@ -2740,11 +2722,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
+      var committedPoints = List<Offset>.from(inProgressStroke.pointsNorm);
+      final isHighlighterFamily = _isHighlighterFamilyVariant(
+        inProgressStroke.style.variant,
+      );
+      if (_isStraightenModeEnabled &&
+          isHighlighterFamily &&
+          committedPoints.length >= 2) {
+        committedPoints = <Offset>[
+          committedPoints.first,
+          committedPoints.last,
+        ];
+      }
+
       final committedStroke = DrawingStroke(
         id: inProgressStroke.id,
         pageNumber: pageNumber,
         style: inProgressStroke.style,
-        pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
+        pointsNorm: committedPoints,
       );
       _historyManager.execute(
         AddStrokeCommand(
