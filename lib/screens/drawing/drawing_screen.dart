@@ -572,11 +572,8 @@ class _DrawingScreenState extends State<DrawingScreen>
         _isStraightenSnapEnabled = straightenSnapEnabled;
       }
 
-      if (_activeFamily == ToolFamily.highlighter) {
-        _loadHighlighterType(_activeHighlighterType);
-      } else {
-        _loadPenType(_activePenType);
-      }
+      _loadPenType(_activePenType);
+      _loadHighlighterType(_activeHighlighterType);
       _syncCurrentFamilyStyleToPreset();
       _syncPopupNotifiers();
     });
@@ -586,11 +583,20 @@ class _DrawingScreenState extends State<DrawingScreen>
     final prefs = await SharedPreferences.getInstance();
 
     for (final type in PenUiType.values) {
-      await prefs.setDouble(_penWidthKey(type), _penWidthByType[type] ?? _currentPenWidth);
-      await prefs.setInt(_penColorKey(type), (_penColorByType[type] ?? _currentPenColor).value);
+      await prefs.setDouble(
+        _penWidthKey(type),
+        _penWidthByType[type] ?? _currentPenWidth,
+      );
+      await prefs.setInt(
+        _penColorKey(type),
+        (_penColorByType[type] ?? _currentPenColor).value,
+      );
     }
     for (final type in HighlighterUiType.values) {
-      await prefs.setDouble(_hlWidthKey(type), _hlWidthByType[type] ?? _currentHlWidth);
+      await prefs.setDouble(
+        _hlWidthKey(type),
+        _hlWidthByType[type] ?? _currentHlWidth,
+      );
       await prefs.setDouble(
         _hlOpacityKey(type),
         _hlOpacityByType[type] ??
@@ -598,7 +604,10 @@ class _DrawingScreenState extends State<DrawingScreen>
                 ? _kDefaultMarkerOpacity
                 : _kDefaultHighlighterOpacity),
       );
-      await prefs.setInt(_hlColorKey(type), (_hlColorByType[type] ?? _currentHlColor).value);
+      await prefs.setInt(
+        _hlColorKey(type),
+        (_hlColorByType[type] ?? _currentHlColor).value,
+      );
     }
 
     await prefs.setBool(
