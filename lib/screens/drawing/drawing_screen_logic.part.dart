@@ -30,6 +30,18 @@ class _PendingFreeDrawMove {
   final double photoScale;
 }
 
+class _PendingStraightenCommit {
+  const _PendingStraightenCommit({
+    required this.snappedPageExact,
+    required this.destSize,
+    required this.photoScale,
+  });
+
+  final Offset snappedPageExact;
+  final Size destSize;
+  final double photoScale;
+}
+
 class _AreaEraserSession {
   const _AreaEraserSession({
     required this.radius,
@@ -72,6 +84,11 @@ final Expando<int> _freeDrawUiMutationsInWindowByState =
     Expando<int>('freeDrawUiMutationsInWindowByState');
 final Expando<DateTime> _freeDrawWindowStartByState =
     Expando<DateTime>('freeDrawWindowStartByState');
+final Expando<Map<int, _PendingStraightenCommit>>
+_pendingStraightenCommitByPointerByState =
+    Expando<Map<int, _PendingStraightenCommit>>(
+      'pendingStraightenCommitByPointerByState',
+    );
 
 const double _kMinValidPdfPageSide = 200.0;
 
@@ -81,7 +98,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _resetHighlighterStraightenState() {
     _straightenSnappedAngleByPointer.clear();
     _straightenStartPageByPointer.clear();
+    _pendingStraightenCommitByPointer.clear();
   }
+
+  Map<int, _PendingStraightenCommit> get _pendingStraightenCommitByPointer =>
+      _pendingStraightenCommitByPointerByState[this] ??=
+          <int, _PendingStraightenCommit>{};
 
   _PendingFreeDrawMove? get _pendingFreeDrawMove =>
       _pendingFreeDrawMoveByState[this];
@@ -1750,6 +1772,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _straightenSnappedAngleByPointer.remove(event.pointer);
     _straightenStartPageByPointer.remove(event.pointer);
+    _pendingStraightenCommitByPointer.remove(event.pointer);
     if (_isFreeDrawMode) {
       if (_activePointerIds.isEmpty && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(
@@ -2440,20 +2463,51 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         }
       }
 
-      final endPage =
-          nearestDiff <= snapToleranceRad
+      final didSnap = nearestDiff <= snapToleranceRad;
+      final snappedPageExact =
+          didSnap
               ? Offset(
                 startPage.dx + math.cos(nearestTarget) * math.sqrt(dx * dx + dy * dy),
                 startPage.dy + math.sin(nearestTarget) * math.sqrt(dx * dx + dy * dy),
               )
               : rawPage;
-      final clampedEndPage = Offset(
-        endPage.dx.clamp(0.0, destSize.width).toDouble(),
-        endPage.dy.clamp(0.0, destSize.height).toDouble(),
+      final clampedSnappedPageExact = Offset(
+        snappedPageExact.dx.clamp(0.0, destSize.width).toDouble(),
+        snappedPageExact.dy.clamp(0.0, destSize.height).toDouble(),
+      );
+      var snappedPageRender = clampedSnappedPageExact;
+      if (didSnap) {
+        const epsilonPx = 0.25;
+        final isHorizontalSnap =
+            nearestTarget == 0 || nearestTarget == math.pi;
+        final isVerticalSnap =
+            nearestTarget == (math.pi / 2) ||
+            nearestTarget == (3 * math.pi / 2);
+        if (isHorizontalSnap) {
+          snappedPageRender = Offset(
+            clampedSnappedPageExact.dx,
+            clampedSnappedPageExact.dy + epsilonPx,
+          );
+        } else if (isVerticalSnap) {
+          snappedPageRender = Offset(
+            clampedSnappedPageExact.dx + epsilonPx,
+            clampedSnappedPageExact.dy,
+          );
+        }
+        snappedPageRender = Offset(
+          snappedPageRender.dx.clamp(0.0, destSize.width).toDouble(),
+          snappedPageRender.dy.clamp(0.0, destSize.height).toDouble(),
+        );
+      }
+
+      _pendingStraightenCommitByPointer[pointerId] = _PendingStraightenCommit(
+        snappedPageExact: clampedSnappedPageExact,
+        destSize: destSize,
+        photoScale: photoScale,
       );
       final processedNormalized = Offset(
-        clampedEndPage.dx / destSize.width,
-        clampedEndPage.dy / destSize.height,
+        snappedPageRender.dx / destSize.width,
+        snappedPageRender.dy / destSize.height,
       );
       if (!processedNormalized.dx.isFinite ||
           !processedNormalized.dy.isFinite) {
@@ -2800,15 +2854,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
-    _straightenSnappedAngleByPointer.remove(pointerId);
-    _straightenStartPageByPointer.remove(pointerId);
     if (_activeStylusPointerId == pointerId) {
       _activeStylusPointerId = null;
     }
-    _handleFreeDrawEnd(pageNumber);
+    _handleFreeDrawEnd(pageNumber, pointerId: pointerId);
+    _straightenSnappedAngleByPointer.remove(pointerId);
+    _straightenStartPageByPointer.remove(pointerId);
+    _pendingStraightenCommitByPointer.remove(pointerId);
   }
 
-  void _handleFreeDrawEnd(int pageNumber) {
+  void _handleFreeDrawEnd(int pageNumber, {required int pointerId}) {
     final inProgressStroke = _inProgressStroke;
     if (inProgressStroke == null ||
         inProgressStroke.pointsNorm.isEmpty ||
@@ -2816,11 +2871,31 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _safeSetState(() {
+      var committedPoints = List<Offset>.from(inProgressStroke.pointsNorm);
+      final pendingStraightenCommit =
+          _pendingStraightenCommitByPointer[pointerId];
+      if (pendingStraightenCommit != null &&
+          pendingStraightenCommit.destSize.width > 0 &&
+          pendingStraightenCommit.destSize.height > 0) {
+        final startNorm = inProgressStroke.pointsNorm.first;
+        final endNormExact = Offset(
+          pendingStraightenCommit.snappedPageExact.dx /
+              pendingStraightenCommit.destSize.width,
+          pendingStraightenCommit.snappedPageExact.dy /
+              pendingStraightenCommit.destSize.height,
+        );
+        committedPoints = _buildStraightLinePointsNorm(
+          startNorm: startNorm,
+          endNorm: endNormExact,
+          destSize: pendingStraightenCommit.destSize,
+          photoScale: pendingStraightenCommit.photoScale,
+        );
+      }
       final committedStroke = DrawingStroke(
         id: inProgressStroke.id,
         pageNumber: pageNumber,
         style: inProgressStroke.style,
-        pointsNorm: List<Offset>.from(inProgressStroke.pointsNorm),
+        pointsNorm: committedPoints,
       );
       _historyManager.execute(
         AddStrokeCommand(
