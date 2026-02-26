@@ -211,7 +211,7 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      ...widget.recentColors.take(7).map(colorChip),
+                      ...widget.recentColors.take(8).map(colorChip),
                       ...widget.standardPaletteColors.take(8).map(colorChip),
                       SizedBox(
                         width: 32,
