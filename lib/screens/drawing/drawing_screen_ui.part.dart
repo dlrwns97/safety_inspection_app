@@ -554,16 +554,29 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }
 
   void _activateStrokeKind(StrokeToolKind kind) {
-    final currentIndex = _activePresetIndex;
-    if (currentIndex != null && _presets[_clampPresetIndex(currentIndex)].kind == kind) {
-      return;
-    }
-    final index = _presets.indexWhere((style) => style.kind == kind);
-    if (index < 0) {
-      return;
-    }
+    final family = kind == StrokeToolKind.highlighter
+        ? ToolFamily.highlighter
+        : ToolFamily.pen;
+    final targetVariant =
+        family == _activeFamily ? _activeVariant : _defaultVariantForFamily(family);
+    _saveVariantSettings(_activeVariant);
     _safeSetState(() {
-      _activePresetIndex = index;
+      _activeFamily = family;
+      _activeVariant = targetVariant;
+      _loadVariantSettings(_activeVariant);
+      final index = _presets.indexWhere((style) => style.kind == kind);
+      if (index >= 0) {
+        _activePresetIndex = index;
+        _presets[index] = _presets[index].copyWith(
+          kind: kind,
+          variant: _activeVariant,
+          widthPx: _currentWidth,
+          opacity: family == ToolFamily.highlighter
+              ? _currentOpacity
+              : _presets[index].opacity,
+          argbColor: _currentColor.value,
+        );
+      }
     });
   }
 
@@ -597,14 +610,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
     final activeStyle = _activeStrokeStyleOrFallback;
-    final variant = _isHighlighterFamilyVariant(activeStyle.variant)
-        ? activeStyle.variant
+    final variant = _activeFamily == ToolFamily.highlighter
+        ? _activeVariant
         : PenVariant.highlighter;
     final style = activeStyle.copyWith(
       kind: StrokeToolKind.highlighter,
       variant: variant,
-      widthPx: _currentHighlighterWidth,
-      opacity: _currentHighlighterOpacity,
+      widthPx: _currentWidth,
+      opacity: _currentOpacity,
       argbColor: _currentColor.value,
     );
 
@@ -622,10 +635,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
           _switchVariant(variant);
         },
         onWidthChanged: (width) {
-          _applyCurrentStyleValues(highlighterWidth: width);
+          _applyCurrentStyleValues(width: width);
         },
         onOpacityChanged: (opacity) {
-          _applyCurrentStyleValues(highlighterOpacity: opacity);
+          _applyCurrentStyleValues(opacity: opacity);
         },
         onColorChanged: (color) {
           _applyCurrentStyleValues(color: color, pushRecentColor: true);
@@ -662,17 +675,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
     final activeStyle = _activeStrokeStyleOrFallback;
-    final variant = _isPenFamilyVariant(activeStyle.variant)
-        ? activeStyle.variant
-        : PenVariant.pen;
+    final variant = _activeFamily == ToolFamily.pen ? _activeVariant : PenVariant.pen;
     final style = activeStyle.copyWith(
       kind: StrokeToolKind.pen,
       variant: variant,
-      widthPx: _currentPenWidth,
+      widthPx: _currentWidth,
       argbColor: _currentColor.value,
     );
     _showPopover(
-      link: style.kind == StrokeToolKind.highlighter ? _highlighterLink : _penLink,
+      link: _penLink,
       child: PenSettingsPopup(
         currentStyle: style,
         recentColors: _recentArgb.map(Color.new).toList(growable: false),
@@ -686,7 +697,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             _switchVariant(next.variant);
             return;
           }
-          _applyCurrentStyleValues(penWidth: next.widthPx, color: Color(next.argbColor));
+          _applyCurrentStyleValues(width: next.widthPx, color: Color(next.argbColor));
         },
         onPresetCommitted: (next) {
           if (next.variant != _currentVariant) {
@@ -694,7 +705,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
             return;
           }
           _applyCurrentStyleValues(
-            penWidth: next.widthPx,
+            width: next.widthPx,
             color: Color(next.argbColor),
             pushRecentColor: true,
           );
