@@ -2863,7 +2863,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _pendingStraightenCommitByPointer.remove(pointerId);
   }
 
-  void _handleFreeDrawEnd(int pageNumber, {required int pointerId}) {
+  void _handleFreeDrawEnd(int pageNumber, {int? pointerId}) {
     final inProgressStroke = _inProgressStroke;
     if (inProgressStroke == null ||
         inProgressStroke.pointsNorm.isEmpty ||
@@ -2873,7 +2873,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       var committedPoints = List<Offset>.from(inProgressStroke.pointsNorm);
       final pendingStraightenCommit =
-          _pendingStraightenCommitByPointer[pointerId];
+          pointerId != null ? _pendingStraightenCommitByPointer[pointerId] : null;
       if (pendingStraightenCommit != null &&
           pendingStraightenCommit.destSize.width > 0 &&
           pendingStraightenCommit.destSize.height > 0) {
