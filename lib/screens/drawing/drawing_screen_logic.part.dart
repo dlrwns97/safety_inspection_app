@@ -2402,18 +2402,56 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         !isHighlighterFamily;
     final shouldRenderStraightPreview =
         _isStraightenModeEnabled && (isPenFamily || isHighlighterFamily);
-
-    final processedNormalized = _applyStraightenSamsungLike(
-      pointerId: pointerId,
-      inProgressStroke: inProgressStroke,
-      normalized: normalized,
-      destSize: destSize,
-      applyToHighlighter: isHighlighterFamily,
-    );
     if (shouldRenderStraightPreview) {
       if (destSize.shortestSide <= 0) {
         return;
       }
+      final startNorm = inProgressStroke.pointsNorm.first;
+      final startPage = Offset(
+        startNorm.dx * destSize.width,
+        startNorm.dy * destSize.height,
+      );
+      final rawPage = Offset(
+        normalized.dx * destSize.width,
+        normalized.dy * destSize.height,
+      );
+      final dx = rawPage.dx - startPage.dx;
+      final dy = rawPage.dy - startPage.dy;
+      final rawAngle = math.atan2(dy, dx);
+      final snapToleranceRad = _degToRad(12);
+      const targetAngles = <double>[
+        0,
+        math.pi / 4,
+        math.pi / 2,
+        3 * math.pi / 4,
+        math.pi,
+        5 * math.pi / 4,
+        3 * math.pi / 2,
+        7 * math.pi / 4,
+      ];
+
+      var nearestTarget = targetAngles.first;
+      var nearestDiff = _wrapAngleDiff(rawAngle, nearestTarget).abs();
+      for (final candidate in targetAngles.skip(1)) {
+        final candidateDiff = _wrapAngleDiff(rawAngle, candidate).abs();
+        if (candidateDiff < nearestDiff) {
+          nearestDiff = candidateDiff;
+          nearestTarget = candidate;
+        }
+      }
+
+      final endPage =
+          nearestDiff <= snapToleranceRad
+              ? Offset(
+                startPage.dx + math.cos(nearestTarget) * math.hypot(dx, dy),
+                startPage.dy + math.sin(nearestTarget) * math.hypot(dx, dy),
+              )
+              : rawPage;
+      final processedNormalized = Offset(
+        endPage.dx / destSize.width,
+        endPage.dy / destSize.height,
+      );
+
       const double straightenAppendEpsilonPx = 0.5;
       final double straightenAppendEpsilonNorm =
           straightenAppendEpsilonPx / destSize.shortestSide;
@@ -2437,7 +2475,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       if (!didAppend) {
         return;
       }
-      final startNorm = inProgressStroke.pointsNorm.first;
       final newPoints = _buildStraightLinePointsNorm(
         startNorm: startNorm,
         endNorm: processedNormalized,
@@ -2451,6 +2488,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
       return;
     }
+
+    final processedNormalized = normalized;
 
     final candidates = shouldInterpolateFromLastPoint
         ? _interpolateNormalizedPoints(
@@ -2485,6 +2524,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
       );
     }
+  }
+
+  double _degToRad(double deg) => deg * math.pi / 180.0;
+
+  double _wrapAngleDiff(double a, double b) {
+    final twoPi = 2 * math.pi;
+    var diff = (a - b) % twoPi;
+    if (diff > math.pi) {
+      diff -= twoPi;
+    } else if (diff < -math.pi) {
+      diff += twoPi;
+    }
+    return diff;
   }
 
   List<Offset> _buildStraightLinePointsNorm({
