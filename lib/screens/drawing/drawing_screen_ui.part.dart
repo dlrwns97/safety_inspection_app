@@ -609,18 +609,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
             .toList(growable: false),
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
-        onVariantChanged: (variant) {
-          _switchHighlighterType(_highlighterUiTypeFromVariant(variant));
-        },
-        onWidthChanged: (width) {
-          _applyCurrentStyleValues(width: width);
-        },
-        onOpacityChanged: (opacity) {
-          _applyCurrentStyleValues(opacity: opacity);
-        },
-        onColorChanged: (color) {
-          _applyCurrentStyleValues(color: color, pushRecentColor: true);
-        },
+        onVariantChanged: _handleHighlighterVariantChanged,
+        onWidthChanged: _handleHighlighterWidthChanged,
+        onOpacityChanged: _handleHighlighterOpacityChanged,
+        onColorChanged: _handleHighlighterColorChanged,
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {
             _isStraightenModeEnabled = enabled;
@@ -664,15 +656,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
             .toList(growable: false),
         isStraightenModeEnabled: _isStraightenModeEnabled,
         straightenSnapEnabled: _isStraightenSnapEnabled,
-        onVariantChanged: (variant) {
-          _switchPenType(_penUiTypeFromVariant(variant));
-        },
-        onWidthChanged: (width) {
-          _applyCurrentStyleValues(width: width);
-        },
-        onColorChanged: (color) {
-          _applyCurrentStyleValues(color: color, pushRecentColor: true);
-        },
+        onVariantChanged: _handlePenVariantChanged,
+        onWidthChanged: _handlePenWidthChanged,
+        onColorChanged: _handlePenColorChanged,
         onStraightenModeChanged: (enabled) {
           _safeSetState(() {
             _isStraightenModeEnabled = enabled;
