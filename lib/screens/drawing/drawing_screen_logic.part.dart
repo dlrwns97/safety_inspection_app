@@ -2443,8 +2443,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final endPage =
           nearestDiff <= snapToleranceRad
               ? Offset(
-                startPage.dx + math.cos(nearestTarget) * math.hypot(dx, dy),
-                startPage.dy + math.sin(nearestTarget) * math.hypot(dx, dy),
+                startPage.dx + math.cos(nearestTarget) * math.sqrt(dx * dx + dy * dy),
+                startPage.dy + math.sin(nearestTarget) * math.sqrt(dx * dx + dy * dy),
               )
               : rawPage;
       final processedNormalized = Offset(
