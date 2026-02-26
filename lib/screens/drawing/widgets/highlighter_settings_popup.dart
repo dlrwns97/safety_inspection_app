@@ -76,7 +76,7 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   StrokeStyle _normalizedStyle(StrokeStyle style) {
     final normalizedVariant = switch (style.variant) {
       PenVariant.highlighter => PenVariant.highlighter,
-      PenVariant.highlighterChisel => PenVariant.highlighterChisel,
+      PenVariant.marker => PenVariant.marker,
       _ => PenVariant.highlighter,
     };
     if (normalizedVariant == style.variant) {
@@ -132,8 +132,8 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
   Widget build(BuildContext context) {
     final selectedColor = Color(_style.argbColor);
     const highlighterVariants = <({PenVariant variant, String label})>[
-      (variant: PenVariant.highlighter, label: '형광펜 라운드'),
-      (variant: PenVariant.highlighterChisel, label: '형광펜 치즐'),
+      (variant: PenVariant.highlighter, label: '형광펜'),
+      (variant: PenVariant.marker, label: '마커'),
     ];
 
     Widget colorChip(Color value) {
