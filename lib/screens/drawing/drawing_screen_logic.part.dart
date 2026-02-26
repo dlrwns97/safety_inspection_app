@@ -2397,21 +2397,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final isHighlighterFamily = _isHighlighterFamilyVariant(
       inProgressStroke.style.variant,
     );
-    final bool isHighlighterStraightened =
-        _isStraightenModeEnabled && isHighlighterFamily;
-    final shouldRenderStraightPreview =
-        _isStraightenModeEnabled &&
+    final isPenFamily =
         inProgressStroke.style.kind == StrokeToolKind.pen &&
         !isHighlighterFamily;
+    final shouldRenderStraightPreview =
+        _isStraightenModeEnabled && (isPenFamily || isHighlighterFamily);
 
     final processedNormalized = _applyStraightenSamsungLike(
       pointerId: pointerId,
       inProgressStroke: inProgressStroke,
       normalized: normalized,
       destSize: destSize,
-      applyToHighlighter: isHighlighterStraightened,
+      applyToHighlighter: isHighlighterFamily,
     );
 
+<<<<<<< HEAD
     if (isHighlighterStraightened) {
       if (destSize.shortestSide <= 0) {
         return;
@@ -2472,6 +2472,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
+=======
+>>>>>>> fa853c7 (Unify straighten preview path for pen and highlighter families)
     if (shouldRenderStraightPreview) {
       if (destSize.shortestSide <= 0) {
         return;
