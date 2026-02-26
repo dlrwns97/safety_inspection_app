@@ -598,44 +598,52 @@ extension _DrawingScreenUi on _DrawingScreenState {
     }
     _showPopover(
       link: _highlighterLink,
-      child: HighlighterSettingsPopup(
-        currentVariant: _highlighterVariantFromUiType(_activeHighlighterType),
-        currentHighlighterWidth: _currentHlWidth,
-        currentHighlighterOpacity: _currentHlOpacity,
-        currentHighlighterColor: _currentHlColor,
-        recentColors: _recentArgb.map(Color.new).toList(growable: false),
-        standardPaletteColors: _standardPaletteArgb
-            .map(Color.new)
-            .toList(growable: false),
-        isStraightenModeEnabled: _isStraightenModeEnabled,
-        straightenSnapEnabled: _isStraightenSnapEnabled,
-        onVariantChanged: _handleHighlighterVariantChanged,
-        onWidthChanged: _handleHighlighterWidthChanged,
-        onOpacityChanged: _handleHighlighterOpacityChanged,
-        onColorChanged: _handleHighlighterColorChanged,
-        onStraightenModeChanged: (enabled) {
-          _safeSetState(() {
-            _isStraightenModeEnabled = enabled;
-            if (!enabled) {
-              _straightenSnappedAngleByPointer.clear();
-              _straightenStartPageByPointer.clear();
-              _resetHighlighterStraightenState();
-            }
-          });
-        },
-        onStraightenSnapChanged: (enabled) {
-          _safeSetState(() {
-            _isStraightenSnapEnabled = enabled;
-            if (!enabled) {
-              _straightenSnappedAngleByPointer.clear();
-            }
-          });
-        },
-        onOpenAllColors: () {
-          _settingsPopover.hide();
-          _openEyedropperColorDialog();
-        },
-        onClose: _settingsPopover.hide,
+      child: ListenableBuilder(
+        listenable: Listenable.merge(<Listenable>[
+          _highlighterVariantNotifier,
+          _highlighterWidthNotifier,
+          _highlighterOpacityNotifier,
+          _highlighterColorNotifier,
+        ]),
+        builder: (context, _) => HighlighterSettingsPopup(
+          currentVariant: _highlighterVariantNotifier.value,
+          currentHighlighterWidth: _highlighterWidthNotifier.value,
+          currentHighlighterOpacity: _highlighterOpacityNotifier.value,
+          currentHighlighterColor: _highlighterColorNotifier.value,
+          recentColors: _recentArgb.map(Color.new).toList(growable: false),
+          standardPaletteColors: _standardPaletteArgb
+              .map(Color.new)
+              .toList(growable: false),
+          isStraightenModeEnabled: _isStraightenModeEnabled,
+          straightenSnapEnabled: _isStraightenSnapEnabled,
+          onVariantChanged: _handleHighlighterVariantChanged,
+          onWidthChanged: _handleHighlighterWidthChanged,
+          onOpacityChanged: _handleHighlighterOpacityChanged,
+          onColorChanged: _handleHighlighterColorChanged,
+          onStraightenModeChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenModeEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+                _straightenStartPageByPointer.clear();
+                _resetHighlighterStraightenState();
+              }
+            });
+          },
+          onStraightenSnapChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenSnapEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+              }
+            });
+          },
+          onOpenAllColors: () {
+            _settingsPopover.hide();
+            _openEyedropperColorDialog();
+          },
+          onClose: _settingsPopover.hide,
+        ),
       ),
     );
   }
@@ -646,42 +654,49 @@ extension _DrawingScreenUi on _DrawingScreenState {
     }
     _showPopover(
       link: _penLink,
-      child: PenSettingsPopup(
-        currentVariant: _penVariantFromUiType(_activePenType),
-        currentPenWidth: _currentPenWidth,
-        currentPenColor: _currentPenColor,
-        recentColors: _recentArgb.map(Color.new).toList(growable: false),
-        standardPaletteColors: _standardPaletteArgb
-            .map(Color.new)
-            .toList(growable: false),
-        isStraightenModeEnabled: _isStraightenModeEnabled,
-        straightenSnapEnabled: _isStraightenSnapEnabled,
-        onVariantChanged: _handlePenVariantChanged,
-        onWidthChanged: _handlePenWidthChanged,
-        onColorChanged: _handlePenColorChanged,
-        onStraightenModeChanged: (enabled) {
-          _safeSetState(() {
-            _isStraightenModeEnabled = enabled;
-            if (!enabled) {
-              _straightenSnappedAngleByPointer.clear();
-              _straightenStartPageByPointer.clear();
-              _resetHighlighterStraightenState();
-            }
-          });
-        },
-        onStraightenSnapChanged: (enabled) {
-          _safeSetState(() {
-            _isStraightenSnapEnabled = enabled;
-            if (!enabled) {
-              _straightenSnappedAngleByPointer.clear();
-            }
-          });
-        },
-        onOpenAllColors: () {
-          _settingsPopover.hide();
-          _openEyedropperColorDialog();
-        },
-        onClose: _settingsPopover.hide,
+      child: ListenableBuilder(
+        listenable: Listenable.merge(<Listenable>[
+          _penVariantNotifier,
+          _penWidthNotifier,
+          _penColorNotifier,
+        ]),
+        builder: (context, _) => PenSettingsPopup(
+          currentVariant: _penVariantNotifier.value,
+          currentPenWidth: _penWidthNotifier.value,
+          currentPenColor: _penColorNotifier.value,
+          recentColors: _recentArgb.map(Color.new).toList(growable: false),
+          standardPaletteColors: _standardPaletteArgb
+              .map(Color.new)
+              .toList(growable: false),
+          isStraightenModeEnabled: _isStraightenModeEnabled,
+          straightenSnapEnabled: _isStraightenSnapEnabled,
+          onVariantChanged: _handlePenVariantChanged,
+          onWidthChanged: _handlePenWidthChanged,
+          onColorChanged: _handlePenColorChanged,
+          onStraightenModeChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenModeEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+                _straightenStartPageByPointer.clear();
+                _resetHighlighterStraightenState();
+              }
+            });
+          },
+          onStraightenSnapChanged: (enabled) {
+            _safeSetState(() {
+              _isStraightenSnapEnabled = enabled;
+              if (!enabled) {
+                _straightenSnappedAngleByPointer.clear();
+              }
+            });
+          },
+          onOpenAllColors: () {
+            _settingsPopover.hide();
+            _openEyedropperColorDialog();
+          },
+          onClose: _settingsPopover.hide,
+        ),
       ),
     );
   }
