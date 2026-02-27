@@ -114,6 +114,42 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
       );
     }
 
+    const fixedPalette = <Color>[
+      Color(0xFFE53935), // red
+      Color(0xFFFF9800), // orange
+      Color(0xFFFFEB3B), // yellow
+      Color(0xFF43A047), // green
+      Color(0xFF1E88E5), // blue
+    ];
+    final fixedRgb = fixedPalette
+        .map((color) => color.withAlpha(0xFF).value)
+        .toSet();
+    final recentPalette = <Color>[];
+    for (final color in widget.recentColors) {
+      final rgb = color.withAlpha(0xFF).value;
+      if (fixedRgb.contains(rgb)) {
+        continue;
+      }
+      recentPalette.add(color);
+      if (recentPalette.length == 2) {
+        break;
+      }
+    }
+    const fallbackRecent = <Color>[Color(0xFF000000), Color(0xFFFFFFFF)];
+    for (final color in fallbackRecent) {
+      if (recentPalette.length == 2) {
+        break;
+      }
+      final rgb = color.withAlpha(0xFF).value;
+      final exists = recentPalette.any(
+        (entry) => entry.withAlpha(0xFF).value == rgb,
+      );
+      if (!fixedRgb.contains(rgb) && !exists) {
+        recentPalette.add(color);
+      }
+    }
+    final displayPalette = <Color>[...fixedPalette, ...recentPalette];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -182,8 +218,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final paletteColor in widget.standardPaletteColors.take(8)) colorChip(paletteColor),
-            if (widget.recentColors.isNotEmpty) ...widget.recentColors.take(8).map(colorChip),
+            for (final paletteColor in displayPalette) colorChip(paletteColor),
             SizedBox(
               width: 32,
               height: 32,
