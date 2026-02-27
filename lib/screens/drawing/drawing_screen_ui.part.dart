@@ -1450,6 +1450,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 onPressed: () async {
                                   final originalStroke = _currentShapeStrokeColor;
                                   _settingsPopover.hide();
+                                  await Future<void>.delayed(
+                                    const Duration(milliseconds: 16),
+                                  );
+                                  if (!mounted) {
+                                    return;
+                                  }
                                   final kept = await showDrawingColorPickerDialog(
                                     Navigator.of(
                                       this.context,
@@ -1480,7 +1486,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   }
                                   _saveShapeType(_activeShapeType);
                                   if (mounted) {
-                                    _showShapeSettingsPopover();
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      if (mounted) {
+                                        _showShapeSettingsPopover();
+                                      }
+                                    });
                                   }
                                 },
                                 icon: const Icon(Icons.colorize),
@@ -1551,6 +1563,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                             _currentShapeStrokeColor.value,
                                       );
                                       _settingsPopover.hide();
+                                      await Future<void>.delayed(
+                                        const Duration(milliseconds: 16),
+                                      );
+                                      if (!mounted) {
+                                        return;
+                                      }
                                       final kept =
                                           await showDrawingColorPickerDialog(
                                         Navigator.of(
@@ -1588,7 +1606,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       }
                                       _saveShapeType(_activeShapeType);
                                       if (mounted) {
-                                        _showShapeSettingsPopover();
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (mounted) {
+                                            _showShapeSettingsPopover();
+                                          }
+                                        });
                                       }
                                     },
                                     icon: const Icon(Icons.colorize),
