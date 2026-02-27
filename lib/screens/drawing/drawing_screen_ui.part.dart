@@ -1,4 +1,4 @@
-part of 'drawing_screen.dart';
+﻿part of 'drawing_screen.dart';
 
 extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildMarkerWidgetsForPage({
@@ -182,28 +182,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.edit,
                     selected: isPenSelected,
-                    tooltip: '그리기',
+                    tooltip: 'Pen',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '선 지우개',
+                    tooltip: '??筌왖?怨뚯뻣',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '범위 지우개',
+                    tooltip: '甕곕뗄??筌왖?怨뚯뻣',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: '직교 모드',
+                    tooltip: 'Straighten',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -227,9 +227,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: '지우개 크기 조절',
+                            message: 'Area eraser radius',
                             child: const Text(
-                              '지우개 크기',
+                              'Area eraser radius',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -342,7 +342,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '전체 지우기',
+                    tooltip: '?袁⑷퍥 筌왖?怨뚮┛',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -354,7 +354,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '형광펜만 전체 지우기',
+                    tooltip: '?類?굝??뺤춸 ?袁⑷퍥 筌왖?怨뚮┛',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -366,12 +366,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '펜만 전체 지우기',
+                    tooltip: '??뺤춸 ?袁⑷퍥 筌왖?怨뚮┛',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '닫기',
+                    tooltip: '??る┛',
                   ),
                 ],
               ),
@@ -409,7 +409,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Row(
                 children: [
                   const SizedBox(width: 8),
-                  const Text('투명도'),
+                  const Text('Opacity'),
                   Expanded(
                     child: Slider(
                       value: style.opacity.clamp(0.05, 1.0),
@@ -466,7 +466,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _showPenSettingsPopover();
                         },
                   icon: const Icon(Icons.tune),
-                  tooltip: '펜 설정',
+                  tooltip: '????쇱젟',
                 ),
               ],
             ),
@@ -492,14 +492,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForVariant(PenVariant variant) {
     return switch (variant) {
-      PenVariant.pen => '펜',
-      PenVariant.fountainPen => '만년필',
-      PenVariant.calligraphyPen => '캘리그래피',
-      PenVariant.pencil => '연필',
-      PenVariant.highlighter => '형광펜',
-      PenVariant.marker => '마커',
-      PenVariant.highlighterChisel => '형광펜',
-      PenVariant.markerChisel => '마커',
+      PenVariant.pen => 'Pen',
+      PenVariant.fountainPen => 'Fountain Pen',
+      PenVariant.calligraphyPen => 'Calligraphy Pen',
+      PenVariant.pencil => 'Pencil',
+      PenVariant.highlighter => 'Highlighter',
+      PenVariant.marker => 'Marker',
+      PenVariant.highlighterChisel => 'Highlighter Chisel',
+      PenVariant.markerChisel => 'Marker Chisel',
     };
   }
 
@@ -806,9 +806,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: tabButton('표준', useStandardTab, () => setD(() => useStandardTab = true))),
+                        Expanded(child: tabButton('Palette', useStandardTab, () => setD(() => useStandardTab = true))),
                         const SizedBox(width: 8),
-                        Expanded(child: tabButton('사용자 지정', !useStandardTab, () => setD(() => useStandardTab = false))),
+                        Expanded(child: tabButton('Custom', !useStandardTab, () => setD(() => useStandardTab = false))),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -829,7 +829,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       if (_recentArgb.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        Align(alignment: Alignment.centerLeft, child: Text('최근', style: Theme.of(ctx).textTheme.labelLarge)),
+                        Align(alignment: Alignment.centerLeft, child: Text('Recent', style: Theme.of(ctx).textTheme.labelLarge)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 10,
@@ -871,7 +871,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('투명도'),
+                          const Text('Opacity'),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -898,7 +898,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('취소'),
+                            child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -908,7 +908,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('완료'),
+                            child: const Text('Apply'),
                           ),
                         ),
                       ],
@@ -1342,38 +1342,166 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    final palette = <int>[
+      ..._standardPaletteArgb.take(8),
+      ..._recentArgb.take(2),
+    ];
+    var draftStrokeColor = _activeStrokeStyleOrFallback.argbColor;
+    int? draftFillColor;
+    var draftWidth = _activeStrokeStyleOrFallback.widthPx.clamp(1.0, 48.0);
+    var draftOpacity = _activeStrokeStyleOrFallback.opacity.clamp(0.05, 1.0);
+
     _showPopover(
       link: _shapeLink,
-      child: Material(
-        elevation: 2,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 6,
-            children: ShapeType.values.map((shapeType) {
-              return ChoiceChip(
-                label: Text(_labelForShapeType(shapeType)),
-                selected: _activeShapeType == shapeType,
-                onSelected: (_) {
-                  _safeSetState(() => _activeShapeType = shapeType);
-                  _settingsPopover.hide();
-                },
-              );
-            }).toList(growable: false),
-          ),
-        ),
+      child: StatefulBuilder(
+        builder: (context, setPopupState) {
+          return Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(14),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 360, maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ShapeType.values.map((shapeType) {
+                        return ChoiceChip(
+                          label: Text(_labelForShapeType(shapeType)),
+                          selected: _activeShapeType == shapeType,
+                          onSelected: (_) {
+                            _safeSetState(() => _activeShapeType = shapeType);
+                            setPopupState(() {});
+                          },
+                        );
+                      }).toList(growable: false),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const SizedBox(width: 72, child: Text('Stroke')),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                for (final argb in palette)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: _colorCircle(
+                                      argb,
+                                      selected: draftStrokeColor == argb,
+                                      onTap: () {
+                                        setPopupState(() {
+                                          draftStrokeColor = argb;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const SizedBox(width: 72, child: Text('Fill')),
+                        ChoiceChip(
+                          label: const Text('None'),
+                          selected: draftFillColor == null,
+                          onSelected: (_) {
+                            setPopupState(() {
+                              draftFillColor = null;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                for (final argb in palette)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: _colorCircle(
+                                      argb,
+                                      selected: draftFillColor == argb,
+                                      onTap: () {
+                                        setPopupState(() {
+                                          draftFillColor = argb;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const SizedBox(width: 72, child: Text('Width')),
+                        Expanded(
+                          child: Slider(
+                            value: draftWidth,
+                            min: 1,
+                            max: 48,
+                            divisions: 47,
+                            label: draftWidth.round().toString(),
+                            onChanged: (value) {
+                              setPopupState(() {
+                                draftWidth = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 72, child: Text('Opacity')),
+                        Expanded(
+                          child: Slider(
+                            value: draftOpacity,
+                            min: 0.05,
+                            max: 1.0,
+                            divisions: 19,
+                            label: '${(draftOpacity * 100).round()}%',
+                            onChanged: (value) {
+                              setPopupState(() {
+                                draftOpacity = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.line => '직선',
-      ShapeType.arrow => '화살표',
-      ShapeType.rectangle => '사각형',
-      ShapeType.circle => '원형',
-      ShapeType.triangle => '삼각형',
+      ShapeType.line => 'Line',
+      ShapeType.arrow => 'Arrow',
+      ShapeType.rectangle => 'Rectangle',
+      ShapeType.circle => 'Circle',
+      ShapeType.triangle => 'Triangle',
     };
   }
 
@@ -1392,14 +1520,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('취소'),
+                  child: const Text('Cancel'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('변경'),
+                  child: const Text('Apply'),
                 ),
               ),
             ],
