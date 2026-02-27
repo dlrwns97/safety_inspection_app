@@ -1182,6 +1182,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           eraserRadius: _areaEraserRadiusPx,
                         ),
                       ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: _buildTextBoxesOverlay(
+                            pageSize: pageSize,
+                            pageNumber: pageNumber,
+                          ),
+                        ),
+                      ),
                       if (_activeTool == DrawingTool.shape &&
                           _activeShapeManipulator != null)
                         Positioned.fill(
@@ -1324,6 +1332,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 ),
               ),
             ),
+            IgnorePointer(
+              child: _buildTextBoxesOverlay(
+                pageSize: DrawingCanvasSize,
+                pageNumber: _currentPage,
+              ),
+            ),
             if (_activeTool == DrawingTool.shape &&
                 _activeShapeManipulator != null)
               IgnorePointer(
@@ -1335,6 +1349,73 @@ extension _DrawingScreenUi on _DrawingScreenState {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTextBoxesOverlay({
+    required Size pageSize,
+    required int pageNumber,
+  }) {
+    final strokes = _canvasController.getStrokes(pageNumber);
+    final textStrokes = strokes.where(
+      (stroke) => stroke.toolType == DrawingTool.textBox && stroke.textBoxData != null,
+    );
+    return Stack(
+      children: textStrokes.map((stroke) {
+        final boundsNorm = _effectiveTextBoundsForStroke(stroke);
+        if (boundsNorm == null || boundsNorm.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final textData = stroke.textBoxData!;
+        final isSelected = _selectedTextStrokeId == stroke.id;
+        final left = boundsNorm.left * pageSize.width;
+        final top = boundsNorm.top * pageSize.height;
+        final width = boundsNorm.width * pageSize.width;
+        final height = boundsNorm.height * pageSize.height;
+        return Positioned(
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+          child: Container(
+            alignment: Alignment.topLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              border: Border.all(
+                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                width: isSelected ? 1.5 : 0.0,
+              ),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Text(
+                  _textStrokeText(stroke),
+                  textAlign: textData.textAlign,
+                  style: TextStyle(
+                    fontSize: textData.fontSize,
+                    color: Color(textData.argbColor),
+                  ),
+                ),
+                if (isSelected)
+                  Positioned(
+                    right: -5,
+                    bottom: -5,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }).toList(growable: false),
     );
   }
 

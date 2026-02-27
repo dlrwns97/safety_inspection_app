@@ -14,6 +14,7 @@ import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/models/drawing/text_box_data.dart';
 import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_commands.dart';
@@ -94,6 +95,12 @@ enum _ShapeEditOperation {
   rotate,
 }
 
+enum _TextEditOperation {
+  none,
+  translate,
+  resize,
+}
+
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
   final DrawingController _controller = DrawingController();
@@ -131,11 +138,15 @@ class _DrawingScreenState extends State<DrawingScreen>
   String? _selectedEquipmentId;
   Offset? _selectedMarkerScenePosition;
   String? _selectedShapeStrokeId;
+  String? _selectedTextStrokeId;
   ShapeManipulator? _activeShapeManipulator;
   ShapeHandle _activeShapeHandle = ShapeHandle.none;
   _ShapeEditOperation _activeShapeEditOp = _ShapeEditOperation.none;
+  _TextEditOperation _activeTextEditOp = _TextEditOperation.none;
   Offset? _shapeInteractionStartNorm;
   Offset? _shapeInteractionLastNorm;
+  Offset? _textInteractionLastNorm;
+  Rect? _activeTextDraftBoundsNorm;
   double _shapeCreateThresholdNorm = 0.0;
   bool _shapeCreateHasMoved = false;
   Offset? _pointerDownPosition;
@@ -256,6 +267,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _currentShapeOpacity = 1.0;
   Color _currentShapeStrokeColor = const Color(0xFF000000);
   Color? _currentShapeFillColor;
+  double _currentTextFontSize = 14.0;
+  Color _currentTextColor = const Color(0xFF000000);
   late final ValueNotifier<PenVariant> _penVariantNotifier;
   late final ValueNotifier<double> _penWidthNotifier;
   late final ValueNotifier<Color> _penColorNotifier;

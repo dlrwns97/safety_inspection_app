@@ -42,6 +42,20 @@ class _PendingStraightenCommit {
   final double photoScale;
 }
 
+enum _TextHitTarget { none, body, resize }
+
+class _TextStrokeHit {
+  const _TextStrokeHit({
+    required this.stroke,
+    required this.boundsNorm,
+    required this.target,
+  });
+
+  final DrawingStroke stroke;
+  final Rect boundsNorm;
+  final _TextHitTarget target;
+}
+
 class _AreaEraserSession {
   const _AreaEraserSession({
     required this.radius,
@@ -450,6 +464,21 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   Future<void> _handleCanvasTap(TapUpDetails details) async {
     if (_isMoveMode) {
+      return;
+    }
+    if (_activeTool == DrawingTool.textBox) {
+      final tapInfo = _resolveTapPosition(
+        _canvasTapRegionKey.currentContext,
+        details.globalPosition,
+      );
+      final localPosition = tapInfo?.localPosition ?? details.localPosition;
+      final scenePoint = _transformationController.toScene(localPosition);
+      final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+      await _handleTextBoxTap(
+        normPoint: normalized,
+        pageNumber: _currentPage,
+        pageSize: DrawingCanvasSize,
+      );
       return;
     }
     if (_activeTool == DrawingTool.shape) {
@@ -896,6 +925,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size pageSize,
     int pageIndex,
   ) async {
+    if (_activeTool == DrawingTool.textBox) {
+      final normalized = toNormalized(pageLocal, pageSize);
+      await _handleTextBoxTap(
+        normPoint: normalized,
+        pageNumber: pageIndex,
+        pageSize: pageSize,
+      );
+      return;
+    }
     if (_activeTool == DrawingTool.shape) {
       final normalized = toNormalized(pageLocal, pageSize);
       _handleShapeTapSelection(
@@ -1007,6 +1045,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       );
       if (hitBounds.contains(normPoint)) {
         _safeSetState(() {
+          _selectedTextStrokeId = null;
+          _activeTextEditOp = _TextEditOperation.none;
+          _activeTextDraftBoundsNorm = null;
+          _textInteractionLastNorm = null;
           _selectedShapeStrokeId = stroke.id;
           _activeShapeManipulator = ShapeManipulator(
             boundsNorm: rawBounds,
@@ -1022,6 +1064,333 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         return;
       }
     }
+  }
+
+  Rect _clampNormRect(Rect rect) {
+    final left = rect.left.clamp(0.0, 1.0).toDouble();
+    final top = rect.top.clamp(0.0, 1.0).toDouble();
+    final right = rect.right.clamp(0.0, 1.0).toDouble();
+    final bottom = rect.bottom.clamp(0.0, 1.0).toDouble();
+    return Rect.fromLTRB(
+      left < right ? left : right,
+      top < bottom ? top : bottom,
+      left < right ? right : left,
+      top < bottom ? bottom : top,
+    );
+  }
+
+  Rect? _textStrokeBounds(DrawingStroke stroke) {
+    final data = stroke.textBoxData;
+    if (data == null) {
+      return null;
+    }
+    final rect = Rect.fromLTWH(
+      data.positionNorm.dx,
+      data.positionNorm.dy,
+      data.sizeNorm.width,
+      data.sizeNorm.height,
+    );
+    return _clampNormRect(rect);
+  }
+
+  Rect? _effectiveTextBoundsForStroke(DrawingStroke stroke) {
+    if (_selectedTextStrokeId == stroke.id && _activeTextDraftBoundsNorm != null) {
+      return _activeTextDraftBoundsNorm;
+    }
+    return _textStrokeBounds(stroke);
+  }
+
+  String _textStrokeText(DrawingStroke stroke) {
+    return stroke.textBoxData?.text ?? '';
+  }
+
+  _TextStrokeHit? _findTopmostTextStrokeHit({
+    required int pageNumber,
+    required Offset normPoint,
+    required Size pageSize,
+  }) {
+    final pageStrokes = _canvasController.getStrokes(pageNumber);
+    final hitPaddingNorm = (12.0 / pageSize.shortestSide).clamp(0.005, 0.04);
+    final resizeRadiusNorm = (16.0 / pageSize.shortestSide).clamp(0.01, 0.05);
+    for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
+      final stroke = pageStrokes[i];
+      if (stroke.toolType != DrawingTool.textBox || stroke.textBoxData == null) {
+        continue;
+      }
+      final bounds = _textStrokeBounds(stroke);
+      if (bounds == null) {
+        continue;
+      }
+      if ((bounds.bottomRight - normPoint).distance <= resizeRadiusNorm) {
+        return _TextStrokeHit(
+          stroke: stroke,
+          boundsNorm: bounds,
+          target: _TextHitTarget.resize,
+        );
+      }
+      final padded = Rect.fromLTRB(
+        (bounds.left - hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.top - hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.right + hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
+      );
+      if (padded.contains(normPoint)) {
+        return _TextStrokeHit(
+          stroke: stroke,
+          boundsNorm: bounds,
+          target: _TextHitTarget.body,
+        );
+      }
+    }
+    return null;
+  }
+
+  Future<String?> _showTextBoxInputDialog({String initialText = ''}) async {
+    final controller = TextEditingController(text: initialText);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('텍스트 입력'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 4,
+            decoration: const InputDecoration(hintText: '텍스트를 입력하세요'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    return result;
+  }
+
+  DrawingStroke _buildTextStroke({
+    required int pageNumber,
+    required String text,
+    required Rect boundsNorm,
+  }) {
+    final clamped = _clampNormRect(boundsNorm);
+    return DrawingStroke(
+      id: DrawingStroke.generateId(),
+      pageNumber: pageNumber,
+      style: StrokeStyle(
+        kind: StrokeToolKind.pen,
+        variant: PenVariant.pen,
+        widthPx: 1.0,
+        argbColor: _currentTextColor.toARGB32(),
+        opacity: 1.0,
+      ),
+      pointsNorm: <Offset>[clamped.topLeft, clamped.bottomRight],
+      toolType: DrawingTool.textBox,
+      opacity: 1.0,
+      textBoxData: TextBoxData(
+        text: text,
+        positionNorm: clamped.topLeft,
+        sizeNorm: clamped.size,
+        fontSize: _currentTextFontSize,
+        argbColor: _currentTextColor.toARGB32(),
+        textAlign: TextAlign.left,
+      ),
+    );
+  }
+
+  Future<void> _handleTextBoxTap({
+    required Offset normPoint,
+    required int pageNumber,
+    required Size pageSize,
+  }) async {
+    final hit = _findTopmostTextStrokeHit(
+      pageNumber: pageNumber,
+      normPoint: normPoint,
+      pageSize: pageSize,
+    );
+    if (hit != null) {
+      _safeSetState(() {
+        _selectedShapeStrokeId = null;
+        _activeShapeManipulator = null;
+        _selectedTextStrokeId = hit.stroke.id;
+        _activeTextEditOp = _TextEditOperation.none;
+        _activeTextDraftBoundsNorm = hit.boundsNorm;
+        _textInteractionLastNorm = null;
+      });
+      return;
+    }
+
+    final text = await _showTextBoxInputDialog();
+    if (text == null || text.isEmpty) {
+      return;
+    }
+
+    const defaultSize = Size(0.24, 0.10);
+    final left =
+        (normPoint.dx - defaultSize.width / 2).clamp(0.0, 1.0 - defaultSize.width);
+    final top =
+        (normPoint.dy - defaultSize.height / 2).clamp(0.0, 1.0 - defaultSize.height);
+    final created = _buildTextStroke(
+      pageNumber: pageNumber,
+      text: text,
+      boundsNorm: Rect.fromLTWH(left, top, defaultSize.width, defaultSize.height),
+    );
+    _historyManager.execute(
+      AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
+      _canvasController,
+    );
+    _safeSetState(() {
+      _selectedShapeStrokeId = null;
+      _activeShapeManipulator = null;
+      _selectedTextStrokeId = created.id;
+      _activeTextEditOp = _TextEditOperation.none;
+      _activeTextDraftBoundsNorm = _textStrokeBounds(created);
+      _textInteractionLastNorm = null;
+    });
+    _syncStrokesByPageFromControllerPage(pageNumber);
+    _updateDrawingHistoryAvailabilityState();
+    _requestPersistDrawing();
+  }
+
+  void _clearTextSelection() {
+    _safeSetState(() {
+      _selectedTextStrokeId = null;
+      _activeTextEditOp = _TextEditOperation.none;
+      _activeTextDraftBoundsNorm = null;
+      _textInteractionLastNorm = null;
+    });
+  }
+
+  void _clearTextInteractionState() {
+    _safeSetState(() {
+      _activeTextEditOp = _TextEditOperation.none;
+      _activeTextDraftBoundsNorm = null;
+      _textInteractionLastNorm = null;
+    });
+  }
+
+  void _handleTextStrokeInteractionStart({
+    required int pointerId,
+    required int pageNumber,
+    required Size pageSize,
+    required Offset startNorm,
+  }) {
+    if (_activeStylusPointerId == null || _activeStylusPointerId != pointerId) {
+      return;
+    }
+    final hit = _findTopmostTextStrokeHit(
+      pageNumber: pageNumber,
+      normPoint: startNorm,
+      pageSize: pageSize,
+    );
+    if (hit == null) {
+      _clearTextSelection();
+      return;
+    }
+    _safeSetState(() {
+      _selectedTextStrokeId = hit.stroke.id;
+      _activeTextEditOp = hit.target == _TextHitTarget.resize
+          ? _TextEditOperation.resize
+          : _TextEditOperation.translate;
+      _activeTextDraftBoundsNorm = hit.boundsNorm;
+      _textInteractionLastNorm = startNorm;
+    });
+  }
+
+  void _handleTextStrokeInteractionUpdate({
+    required int pointerId,
+    required Offset norm,
+  }) {
+    if (_activeStylusPointerId != pointerId ||
+        _selectedTextStrokeId == null ||
+        _activeTextDraftBoundsNorm == null ||
+        _textInteractionLastNorm == null) {
+      return;
+    }
+    final last = _textInteractionLastNorm!;
+    final delta = norm - last;
+    const minWidth = 0.08;
+    const minHeight = 0.04;
+    var next = _activeTextDraftBoundsNorm!;
+    _safeSetState(() {
+      if (_activeTextEditOp == _TextEditOperation.translate) {
+        final left = (next.left + delta.dx).clamp(0.0, 1.0 - next.width);
+        final top = (next.top + delta.dy).clamp(0.0, 1.0 - next.height);
+        next = Rect.fromLTWH(left, top, next.width, next.height);
+      } else if (_activeTextEditOp == _TextEditOperation.resize) {
+        final right = (next.right + delta.dx).clamp(next.left + minWidth, 1.0);
+        final bottom = (next.bottom + delta.dy).clamp(next.top + minHeight, 1.0);
+        next = Rect.fromLTRB(next.left, next.top, right, bottom);
+      }
+      _activeTextDraftBoundsNorm = _clampNormRect(next);
+      _textInteractionLastNorm = norm;
+    });
+  }
+
+  void _handleTextStrokeInteractionEnd({
+    required int pointerId,
+    required int pageNumber,
+  }) {
+    if (_activeStylusPointerId != pointerId) {
+      return;
+    }
+    final selectedId = _selectedTextStrokeId;
+    final draft = _activeTextDraftBoundsNorm;
+    if (selectedId == null || draft == null) {
+      _clearTextInteractionState();
+      return;
+    }
+    final before = _canvasController.findStrokeById(pageNumber, selectedId);
+    if (before == null || before.textBoxData == null) {
+      _clearTextInteractionState();
+      return;
+    }
+    final textData = before.textBoxData!;
+    final after = DrawingStroke(
+      id: before.id,
+      pageNumber: before.pageNumber,
+      style: before.style,
+      pointsNorm: <Offset>[draft.topLeft, draft.bottomRight],
+      toolType: before.toolType,
+      opacity: before.opacity,
+      isStraightened: before.isStraightened,
+      penVariant: before.penVariant,
+      highlighterVariant: before.highlighterVariant,
+      shapeType: before.shapeType,
+      shapeFillArgb: before.shapeFillArgb,
+      textBoxData: textData.copyWith(
+        positionNorm: draft.topLeft,
+        sizeNorm: draft.size,
+      ),
+      erasedMaskVersion: before.erasedMaskVersion,
+      erasedMask: before.erasedMask == null ? null : List<int>.from(before.erasedMask!),
+      erasedSegments:
+          before.erasedSegments == null ? null : List<dynamic>.from(before.erasedSegments!),
+    );
+    _historyManager.execute(
+      ReplaceStrokeCommand(
+        page: pageNumber,
+        beforeSnapshot: before.deepCopy(),
+        afterSnapshot: after,
+      ),
+      _canvasController,
+    );
+    _safeSetState(() {
+      _activeTextEditOp = _TextEditOperation.none;
+      _activeTextDraftBoundsNorm = _textStrokeBounds(after);
+      _textInteractionLastNorm = null;
+    });
+    _syncStrokesByPageFromControllerPage(pageNumber);
+    _updateDrawingHistoryAvailabilityState();
+    _requestPersistDrawing();
   }
 
   Rect? _shapeStrokeBounds(List<Offset> pointsNorm) {
@@ -1802,6 +2171,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isStylusKind(event.kind)) {
       return;
     }
+    if (_activeTool == DrawingTool.textBox) {
+      _activeStylusPointerId = event.pointer;
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final downNorm = _overlayToNormalizedPoint(
+        overlayLocal: pageLocal,
+        destSize: pageSize,
+      );
+      if (downNorm == null) {
+        return;
+      }
+      _handleTextStrokeInteractionStart(
+        pointerId: event.pointer,
+        pageNumber: pageNumber,
+        pageSize: pageSize,
+        startNorm: downNorm,
+      );
+      return;
+    }
     if (_activeTool == DrawingTool.shape) {
       _activeStylusPointerId = event.pointer;
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
@@ -1860,6 +2250,26 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
+    if (_activeTool == DrawingTool.textBox) {
+      if (_activeStylusPointerId == null ||
+          event.pointer != _activeStylusPointerId ||
+          !_isStylusKind(event.kind)) {
+        return;
+      }
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final norm = _overlayToNormalizedPoint(
+        overlayLocal: pageLocal,
+        destSize: pageSize,
+      );
+      if (norm == null) {
+        return;
+      }
+      _handleTextStrokeInteractionUpdate(pointerId: event.pointer, norm: norm);
+      return;
+    }
     if (_activeTool == DrawingTool.shape) {
       if (_activeStylusPointerId == null ||
           event.pointer != _activeStylusPointerId ||
@@ -2006,6 +2416,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size pageSize,
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
+    if (_activeTool == DrawingTool.textBox &&
+        (event is PointerUpEvent || event is PointerCancelEvent)) {
+      final wasTextStylus = _activeStylusPointerId == event.pointer;
+      if (!wasTextStylus) {
+        return;
+      }
+      _handleTextStrokeInteractionEnd(
+        pointerId: event.pointer,
+        pageNumber: pageNumber,
+      );
+      return;
+    }
     if (_activeTool == DrawingTool.shape &&
         (event is PointerUpEvent || event is PointerCancelEvent)) {
       final wasShapeStylus = _activeStylusPointerId == event.pointer;
@@ -2283,6 +2705,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       _activeTool = tool;
+      if (tool != DrawingTool.textBox) {
+        _selectedTextStrokeId = null;
+        _activeTextEditOp = _TextEditOperation.none;
+        _textInteractionLastNorm = null;
+        _activeTextDraftBoundsNorm = null;
+      }
       if (tool == DrawingTool.shape) {
         _loadShapeType(_activeShapeType);
       }
