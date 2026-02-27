@@ -1346,19 +1346,58 @@ extension _DrawingScreenUi on _DrawingScreenState {
       link: _shapeLink,
       child: Material(
         elevation: 2,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 210),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Wrap(
-            spacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: ShapeType.values.map((shapeType) {
-              return ChoiceChip(
-                label: Text(_labelForShapeType(shapeType)),
-                selected: _activeShapeType == shapeType,
-                onSelected: (_) {
+              final isSelected = _activeShapeType == shapeType;
+              return InkWell(
+                onTap: () {
                   _safeSetState(() => _activeShapeType = shapeType);
                   _settingsPopover.hide();
                 },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 84,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.secondaryContainer
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.secondary
+                          : Theme.of(context).colorScheme.outline.withOpacity(0.35),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _iconForShapeType(shapeType),
+                        size: 18,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.onSecondaryContainer
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _labelForShapeType(shapeType),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.onSecondaryContainer
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               );
             }).toList(growable: false),
           ),
@@ -1374,6 +1413,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ShapeType.rectangle => '사각형',
       ShapeType.circle => '원형',
       ShapeType.triangle => '삼각형',
+    };
+  }
+
+  IconData _iconForShapeType(ShapeType type) {
+    return switch (type) {
+      ShapeType.line => Icons.remove,
+      ShapeType.arrow => Icons.arrow_forward,
+      ShapeType.rectangle => Icons.crop_square,
+      ShapeType.circle => Icons.circle_outlined,
+      ShapeType.triangle => Icons.change_history,
     };
   }
 
