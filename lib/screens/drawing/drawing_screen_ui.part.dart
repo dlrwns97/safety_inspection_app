@@ -980,8 +980,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final int touchCount = _activeTouchPointerCount;
     final bool isTwoFingerTouch = touchCount >= 2;
     final bool isStylusActive = _isStylusActive;
-    final bool enablePdfPanGestures = !_isFreeDrawMode;
-    final bool enablePdfScaleGestures = !_isFreeDrawMode;
+    final bool enablePdfPanGestures = !_isStylusActive;
+    final bool enablePdfScaleGestures = !_isStylusActive;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe =
@@ -1308,6 +1308,24 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }
 
   Widget _buildCanvasViewer(ThemeData theme) {
+    Offset? drawingLocalToPageLocal(Offset local) {
+      if (local.dx < 0 ||
+          local.dy < 0 ||
+          local.dx > DrawingCanvasSize.width ||
+          local.dy > DrawingCanvasSize.height) {
+        return null;
+      }
+      return local;
+    }
+
+    double currentCanvasPhotoScale() {
+      final scale = _transformationController.value.getMaxScaleOnAxis();
+      if (!scale.isFinite || scale <= 0) {
+        return 1.0;
+      }
+      return scale;
+    }
+
     return InteractiveViewer(
       transformationController: _transformationController,
       minScale: DrawingCanvasMinScale,
@@ -1321,6 +1339,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
         height: DrawingCanvasSize.height,
         child: Stack(
           children: [
+            Positioned.fill(
+              child: DrawingCanvasWidget(
+                controller: _canvasController,
+                cacheManager: _strokeCacheManager,
+                page: _currentPage,
+                canvasSize: DrawingCanvasSize,
+                devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                eraserRadius: _areaEraserRadiusPx,
+              ),
+            ),
             _buildMarkerLayer(
               size: DrawingCanvasSize,
               pageIndex: _currentPage,
@@ -1334,6 +1362,57 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     lineColor: theme.colorScheme.outlineVariant,
                   ),
                 ),
+              ),
+            ),
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (e) {
+                  if (e.kind == PointerDeviceKind.touch) {
+                    return;
+                  }
+                  _handleOverlayPointerDownWithStylusDrawing(
+                    e,
+                    pageNumber: _currentPage,
+                    pageSize: DrawingCanvasSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    photoScale: currentCanvasPhotoScale(),
+                  );
+                },
+                onPointerMove: (e) {
+                  if (e.kind == PointerDeviceKind.touch) {
+                    return;
+                  }
+                  _handleOverlayPointerMoveWithStylusDrawing(
+                    e,
+                    pageNumber: _currentPage,
+                    pageSize: DrawingCanvasSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    photoScale: currentCanvasPhotoScale(),
+                  );
+                },
+                onPointerUp: (e) {
+                  if (e.kind == PointerDeviceKind.touch) {
+                    return;
+                  }
+                  _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                    e,
+                    pageNumber: _currentPage,
+                    pageSize: DrawingCanvasSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                  );
+                },
+                onPointerCancel: (e) {
+                  if (e.kind == PointerDeviceKind.touch) {
+                    return;
+                  }
+                  _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                    e,
+                    pageNumber: _currentPage,
+                    pageSize: DrawingCanvasSize,
+                    drawingLocalToPageLocal: drawingLocalToPageLocal,
+                  );
+                },
               ),
             ),
             IgnorePointer(
@@ -1421,7 +1500,20 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('텍스트 설정'),
+                  Row(
+                    children: [
+                      const Expanded(child: Text('텍스트 설정')),
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: IconButton(
+                          onPressed: _settingsPopover.hide,
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.close, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -1731,6 +1823,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Text('도형 설정')),
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: IconButton(
+                            onPressed: _settingsPopover.hide,
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.close, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -2057,7 +2164,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
     HitTestBehavior behavior = HitTestBehavior.opaque,
     Key? tapRegionKey,
   }) {
-    final GestureTapUpCallback? tapHandler = (_isMoveMode || _isFreeDrawMode)
+    final bool allowTapInFreeDraw =
+        _isFreeDrawMode &&
+        (_activeTool == DrawingTool.textBox || _activeTool == DrawingTool.shape);
+    final GestureTapUpCallback? tapHandler = (_isMoveMode ||
+            (_isFreeDrawMode && !allowTapInFreeDraw))
         ? null
         : onTapUp;
     final GestureLongPressStartCallback? longPressHandler =

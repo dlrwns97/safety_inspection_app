@@ -215,7 +215,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _isFreeDrawConsumingOneFinger) {
       return false;
     }
-    return _activeTouchPointerCount >= 1;
+    return true;
   }
 
   bool _isStylusKind(PointerDeviceKind kind) {
