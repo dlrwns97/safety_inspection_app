@@ -1375,6 +1375,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           selected: _activeShapeType == shapeType,
                           onSelected: (_) {
                             _safeSetState(() => _activeShapeType = shapeType);
+                            _saveShapeType(shapeType);
                             setPopupState(() {});
                           },
                         );
