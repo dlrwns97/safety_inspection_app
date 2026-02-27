@@ -550,6 +550,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _handleDrawingToolChanged(DrawingTool.shape);
         _showShapeSettingsPopover();
         return;
+      case StrokeToolKind.textBox:
+        _handleDrawingToolChanged(DrawingTool.textBox);
+        _showTextSettingsPopover();
+        return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
             ? DrawingTool.strokeEraser
@@ -1348,6 +1352,159 @@ extension _DrawingScreenUi on _DrawingScreenState {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  String _labelForTextAlign(TextAlign align) {
+    return switch (align) {
+      TextAlign.left || TextAlign.start => '왼쪽',
+      TextAlign.center => '가운데',
+      TextAlign.right || TextAlign.end => '오른쪽',
+      TextAlign.justify => '양쪽',
+    };
+  }
+
+  void _showTextSettingsPopover() {
+    if (!mounted) {
+      return;
+    }
+    final selectedStroke = _resolveSelectedTextStroke();
+    final selectedData = selectedStroke?.stroke.textBoxData;
+    var draftFontSize =
+        (selectedData?.fontSize ?? _currentTextFontSize).clamp(10.0, 64.0);
+    var draftColor = selectedData?.argbColor ?? _currentTextColor.value;
+    var draftAlign = selectedData?.textAlign ?? _currentTextAlign;
+    final palette = <int>[
+      ..._standardPaletteArgb.take(8),
+      ..._recentArgb.take(2),
+    ];
+
+    _showPopover(
+      link: _textLink,
+      child: StatefulBuilder(
+        builder: (context, setPopupState) {
+          return Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(14),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('텍스트 설정'),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const SizedBox(width: 72, child: Text('크기')),
+                        Expanded(
+                          child: Slider(
+                            value: draftFontSize,
+                            min: 10.0,
+                            max: 64.0,
+                            divisions: 54,
+                            label: draftFontSize.round().toString(),
+                            onChanged: (value) {
+                              setPopupState(() {
+                                draftFontSize = value;
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: 48,
+                          child: Text('${draftFontSize.round()}'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 72, child: Text('색상')),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final argb in palette)
+                                _colorCircle(
+                                  argb,
+                                  selected: draftColor == argb,
+                                  onTap: () {
+                                    setPopupState(() {
+                                      draftColor = argb;
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 72, child: Text('정렬')),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final align in const <TextAlign>[
+                                TextAlign.left,
+                                TextAlign.center,
+                                TextAlign.right,
+                              ])
+                                ChoiceChip(
+                                  label: Text(_labelForTextAlign(align)),
+                                  selected: draftAlign == align,
+                                  onSelected: (_) {
+                                    setPopupState(() {
+                                      draftAlign = align;
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _settingsPopover.hide,
+                            child: const Text('취소'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              _applyTextStyle(
+                                fontSize: draftFontSize,
+                                argbColor: draftColor,
+                                textAlign: draftAlign,
+                              );
+                              _settingsPopover.hide();
+                            },
+                            child: const Text('적용'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

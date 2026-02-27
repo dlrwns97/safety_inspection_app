@@ -28,6 +28,7 @@ class ToolDetailRow extends StatelessWidget {
     this.highlighterToolLink,
     this.eraserToolLink,
     this.shapeToolLink,
+    this.textToolLink,
   });
 
   final DrawMode mode;
@@ -51,6 +52,7 @@ class ToolDetailRow extends StatelessWidget {
   final LayerLink? highlighterToolLink;
   final LayerLink? eraserToolLink;
   final LayerLink? shapeToolLink;
+  final LayerLink? textToolLink;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +78,7 @@ class ToolDetailRow extends StatelessWidget {
       highlighterToolLink: highlighterToolLink,
       eraserToolLink: eraserToolLink,
       shapeToolLink: shapeToolLink,
+      textToolLink: textToolLink,
     );
   }
 }

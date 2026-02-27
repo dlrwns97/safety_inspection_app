@@ -1104,6 +1104,119 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return stroke.textBoxData?.text ?? '';
   }
 
+  ({int pageNumber, DrawingStroke stroke})? _resolveSelectedTextStroke() {
+    final selectedId = _selectedTextStrokeId;
+    if (selectedId == null) {
+      return null;
+    }
+    final currentPageStroke = _canvasController.findStrokeById(
+      _currentPage,
+      selectedId,
+    );
+    if (currentPageStroke != null) {
+      return (pageNumber: _currentPage, stroke: currentPageStroke);
+    }
+    for (final entry in _canvasController.strokesByPage.entries) {
+      final page = entry.key;
+      if (page == _currentPage) {
+        continue;
+      }
+      for (final stroke in entry.value) {
+        if (stroke.id == selectedId) {
+          return (pageNumber: page, stroke: stroke);
+        }
+      }
+    }
+    return null;
+  }
+
+  DrawingStroke _copyTextStrokeWith({
+    required DrawingStroke before,
+    required TextBoxData nextTextData,
+    Rect? boundsNorm,
+  }) {
+    final nextBounds = boundsNorm ?? _textStrokeBounds(before);
+    final points =
+        nextBounds == null
+            ? List<Offset>.from(before.pointsNorm)
+            : <Offset>[nextBounds.topLeft, nextBounds.bottomRight];
+    return DrawingStroke(
+      id: before.id,
+      pageNumber: before.pageNumber,
+      style: before.style,
+      pointsNorm: points,
+      toolType: before.toolType,
+      opacity: before.opacity,
+      isStraightened: before.isStraightened,
+      penVariant: before.penVariant,
+      highlighterVariant: before.highlighterVariant,
+      shapeType: before.shapeType,
+      shapeFillArgb: before.shapeFillArgb,
+      textBoxData: nextTextData,
+      erasedMaskVersion: before.erasedMaskVersion,
+      erasedMask:
+          before.erasedMask == null ? null : List<int>.from(before.erasedMask!),
+      erasedSegments:
+          before.erasedSegments == null
+              ? null
+              : List<dynamic>.from(before.erasedSegments!),
+    );
+  }
+
+  void _applyTextStyle({
+    required double fontSize,
+    required int argbColor,
+    required TextAlign textAlign,
+  }) {
+    final normalizedFontSize = fontSize.clamp(10.0, 64.0).toDouble();
+    _safeSetState(() {
+      _currentTextFontSize = normalizedFontSize;
+      _currentTextColor = Color(argbColor);
+      _currentTextAlign = textAlign;
+    });
+    _pushRecentColor(argbColor);
+    unawaited(_saveDrawingSettings());
+
+    final selected = _resolveSelectedTextStroke();
+    if (selected == null) {
+      return;
+    }
+    final before = selected.stroke;
+    final textData = before.textBoxData;
+    if (textData == null) {
+      return;
+    }
+    final nextTextData = textData.copyWith(
+      fontSize: normalizedFontSize,
+      argbColor: argbColor,
+      textAlign: textAlign,
+    );
+    if (nextTextData.fontSize == textData.fontSize &&
+        nextTextData.argbColor == textData.argbColor &&
+        nextTextData.textAlign == textData.textAlign) {
+      return;
+    }
+    final after = _copyTextStrokeWith(
+      before: before,
+      nextTextData: nextTextData,
+    );
+    _historyManager.execute(
+      ReplaceStrokeCommand(
+        page: selected.pageNumber,
+        beforeSnapshot: before.deepCopy(),
+        afterSnapshot: after,
+      ),
+      _canvasController,
+    );
+    _safeSetState(() {
+      _activeTextDraftBoundsNorm = _textStrokeBounds(after);
+      _textInteractionLastNorm = null;
+    });
+    _syncStrokesByPageFromControllerPage(selected.pageNumber);
+    _updateDrawingHistoryAvailabilityState();
+    _requestPersistDrawing();
+  }
+
   _TextStrokeHit? _findTopmostTextStrokeHit({
     required int pageNumber,
     required Offset normPoint,
@@ -1201,7 +1314,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         sizeNorm: clamped.size,
         fontSize: _currentTextFontSize,
         argbColor: _currentTextColor.toARGB32(),
-        textAlign: TextAlign.left,
+        textAlign: _currentTextAlign,
       ),
     );
   }
@@ -1217,6 +1330,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageSize: pageSize,
     );
     if (hit != null) {
+      final textData = hit.stroke.textBoxData;
       _safeSetState(() {
         _selectedShapeStrokeId = null;
         _activeShapeManipulator = null;
@@ -1224,6 +1338,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activeTextEditOp = _TextEditOperation.none;
         _activeTextDraftBoundsNorm = hit.boundsNorm;
         _textInteractionLastNorm = null;
+        if (textData != null) {
+          _currentTextFontSize = textData.fontSize;
+          _currentTextColor = Color(textData.argbColor);
+          _currentTextAlign = textData.textAlign;
+        }
       });
       return;
     }
@@ -1354,26 +1473,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final textData = before.textBoxData!;
-    final after = DrawingStroke(
-      id: before.id,
-      pageNumber: before.pageNumber,
-      style: before.style,
-      pointsNorm: <Offset>[draft.topLeft, draft.bottomRight],
-      toolType: before.toolType,
-      opacity: before.opacity,
-      isStraightened: before.isStraightened,
-      penVariant: before.penVariant,
-      highlighterVariant: before.highlighterVariant,
-      shapeType: before.shapeType,
-      shapeFillArgb: before.shapeFillArgb,
-      textBoxData: textData.copyWith(
+    final after = _copyTextStrokeWith(
+      before: before,
+      nextTextData: textData.copyWith(
         positionNorm: draft.topLeft,
         sizeNorm: draft.size,
       ),
-      erasedMaskVersion: before.erasedMaskVersion,
-      erasedMask: before.erasedMask == null ? null : List<int>.from(before.erasedMask!),
-      erasedSegments:
-          before.erasedSegments == null ? null : List<dynamic>.from(before.erasedSegments!),
+      boundsNorm: draft,
     );
     _historyManager.execute(
       ReplaceStrokeCommand(
