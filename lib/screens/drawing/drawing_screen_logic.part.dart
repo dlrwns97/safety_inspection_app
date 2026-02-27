@@ -4236,6 +4236,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _mode = toggledMode;
       _isFreeDrawMode = enableFreeDraw;
+      _activePointerIds.clear();
+      _activePointerKinds.clear();
+      _activeStylusPointerId = null;
       if (previousMode == DrawMode.defect && toggledMode == DrawMode.hand) {
         _activeCategory = null;
         _sidePanelDefectCategory = null;
@@ -4249,7 +4252,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             ? DrawingTool.strokeEraser
             : DrawingTool.pen;
       } else {
-        _activePointerIds.clear();
         _inProgressStroke = null;
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
@@ -4954,6 +4956,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handlePdfPageChanged(int page) {
     _setPdfState(() {
       _currentPage = page;
+      _activePointerIds.clear();
+      _activePointerKinds.clear();
+      _activeStylusPointerId = null;
+      _isFreeDrawConsumingOneFinger = false;
+      _pendingDraw = false;
+      _pendingDrawDownViewportLocal = null;
+      _canvasController.setLiveStroke(null);
       _canvasController.setEraserCursor(
         _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
       );

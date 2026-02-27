@@ -1047,8 +1047,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final int touchCount = _activeTouchPointerCount;
     final bool isTwoFingerTouch = touchCount >= 2;
     final bool isStylusActive = _isStylusActive;
-    final bool enablePdfPanGestures = !_isStylusActive;
-    final bool enablePdfScaleGestures = !_isStylusActive;
+    final bool enablePdfPanGestures = true;
+    final bool enablePdfScaleGestures = true;
     // Keep page swipe disabled while drawing with 1 finger to prevent
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe =

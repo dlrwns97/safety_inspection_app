@@ -8,6 +8,7 @@ import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/centerline_style_utils.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
 /// Builds and stores a per-page raster cache image for committed drawing strokes.
 class StrokeCacheManager extends ChangeNotifier {
@@ -75,7 +76,9 @@ class StrokeCacheManager extends ChangeNotifier {
       _cacheByPage[page] = image;
       previous?.dispose();
     } catch (error) {
-      debugPrint('StrokeCacheManager: cache rebuild failed for page $page: $error');
+      debugPrint(
+        'StrokeCacheManager: cache rebuild failed for page $page: $error',
+      );
     } finally {
       _buildingPages.remove(page);
       notifyListeners();
@@ -115,10 +118,8 @@ class StrokeCacheManager extends ChangeNotifier {
 
     final points = pointsNorm
         .map(
-          (point) => Offset(
-            point.dx * pageSize.width,
-            point.dy * pageSize.height,
-          ),
+          (point) =>
+              Offset(point.dx * pageSize.width, point.dy * pageSize.height),
         )
         .toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
@@ -130,6 +131,13 @@ class StrokeCacheManager extends ChangeNotifier {
         'variant=${style.variant.name}',
       );
     }
+
+    _drawShapeFillIfNeeded(
+      canvas: canvas,
+      stroke: stroke,
+      points: points,
+      erasedMask: erasedMask,
+    );
 
     for (var i = 0; i < points.length; i += 1) {
       if (erasedMask[i] != 0) {
@@ -152,7 +160,44 @@ class StrokeCacheManager extends ChangeNotifier {
       _drawPenSegment(canvas, style, stroke.opacity, points);
       return;
     }
-    _drawCenterlineSegment(canvas, style, stroke.opacity, points);
+    _drawCenterlineSegment(canvas, stroke, style, stroke.opacity, points);
+  }
+
+  void _drawShapeFillIfNeeded({
+    required Canvas canvas,
+    required DrawingStroke stroke,
+    required List<Offset> points,
+    required List<int> erasedMask,
+  }) {
+    if (stroke.toolType != DrawingTool.shape || stroke.shapeFillArgb == null) {
+      return;
+    }
+    if (erasedMask.any((value) => value != 0)) {
+      return;
+    }
+    if (points.length < 3) {
+      return;
+    }
+    final shapeType = stroke.shapeType ?? '';
+    if (shapeType != 'rectangle' &&
+        shapeType != 'circle' &&
+        shapeType != 'triangle') {
+      return;
+    }
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length; i += 1) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    path.close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..color = Color(
+          stroke.shapeFillArgb!,
+        ).withValues(alpha: stroke.style.opacity.clamp(0.0, 1.0))
+        ..blendMode = BlendMode.srcOver,
+    );
   }
 
   void _drawPenSegment(
@@ -201,12 +246,24 @@ class StrokeCacheManager extends ChangeNotifier {
 
   void _drawCenterlineSegment(
     Canvas canvas,
+    DrawingStroke stroke,
     StrokeStyle style,
     double strokeOpacity,
     List<Offset> points,
   ) {
-    final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
+    final resolved = resolveCenterlineStyle(
+      style: style,
+      strokeOpacity: strokeOpacity,
+    );
     final paint = resolved.paint;
+    final isShapeArrow =
+        stroke.toolType == DrawingTool.shape && stroke.shapeType == 'arrow';
+    if (isShapeArrow) {
+      paint
+        ..strokeCap = StrokeCap.butt
+        ..strokeJoin = StrokeJoin.miter
+        ..strokeMiterLimit = 6.0;
+    }
     if (shouldRenderCenterlineAsDot(points)) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;
