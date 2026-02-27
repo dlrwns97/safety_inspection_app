@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/models/drawing/text_box_data.dart';
 
 double _asDouble(dynamic value, double fallback) {
   if (value is num) {
@@ -174,6 +175,7 @@ class DrawingStroke {
     this.highlighterVariant,
     this.shapeType,
     this.shapeFillArgb,
+    this.textBoxData,
     this.erasedMaskVersion,
     this.erasedMask,
     this.erasedSegments,
@@ -197,6 +199,7 @@ class DrawingStroke {
   final String? highlighterVariant;
   final String? shapeType;
   final int? shapeFillArgb;
+  final TextBoxData? textBoxData;
   final int? erasedMaskVersion;
   final List<int>? erasedMask;
   final List<dynamic>? erasedSegments;
@@ -236,6 +239,7 @@ class DrawingStroke {
       highlighterVariant: highlighterVariant,
       shapeType: shapeType,
       shapeFillArgb: shapeFillArgb,
+      textBoxData: textBoxData,
       erasedMaskVersion: erasedMaskVersion,
       erasedMask: erasedMask == null ? null : List<int>.from(erasedMask!),
       erasedSegments:
@@ -266,6 +270,9 @@ class DrawingStroke {
     }
     if (shapeFillArgb != null) {
       json['shapeFillArgb'] = shapeFillArgb;
+    }
+    if (textBoxData != null) {
+      json['textBoxData'] = textBoxData!.toJson();
     }
     if (erasedMaskVersion != null) {
       json['erasedMaskVersion'] = erasedMaskVersion;
@@ -328,6 +335,12 @@ class DrawingStroke {
       shapeFillArgb:
           json.containsKey('shapeFillArgb')
               ? _asInt(json['shapeFillArgb'], 0)
+              : null,
+      textBoxData:
+          json['textBoxData'] is Map
+              ? TextBoxData.fromJson(
+                (json['textBoxData'] as Map).cast<String, dynamic>(),
+              )
               : null,
       erasedMaskVersion:
           json.containsKey('erasedMaskVersion')
