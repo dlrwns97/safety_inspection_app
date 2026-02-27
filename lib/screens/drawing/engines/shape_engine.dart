@@ -5,7 +5,6 @@ import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
 enum ShapeType {
-  line,
   arrow,
   rectangle,
   circle,
@@ -51,10 +50,6 @@ class ShapeEngine {
     final path = Path();
 
     switch (type) {
-      case ShapeType.line:
-        path.moveTo(startPx.dx, startPx.dy);
-        path.lineTo(endPx.dx, endPx.dy);
-        return path;
       case ShapeType.arrow: {
         final vector = startPx - endPx;
         final len = vector.distance.clamp(1e-6, double.infinity);
@@ -121,11 +116,6 @@ class ShapeEngine {
     }
 
     switch (type) {
-      case ShapeType.line:
-        return <Offset>[
-          clampedStart,
-          clampedEnd,
-        ];
       case ShapeType.rectangle: {
         final left = clampedStart.dx < clampedEnd.dx
             ? clampedStart.dx

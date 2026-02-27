@@ -207,7 +207,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
-  static const int _kMaxRecentColors = 8;
+  static const int _kMaxRecentColors = 5;
   final List<int> _standardPaletteArgb = const <int>[
     0xFF000000,
     0xFFFFFFFF,

@@ -1342,17 +1342,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final shapeTypes = ShapeType.values
-        .where((shapeType) => shapeType != ShapeType.line)
-        .toList(growable: false);
+    final shapeTypes = ShapeType.values.toList(growable: false);
     final palette = _standardPaletteArgb.take(7).toList(growable: false);
-
-    if (_activeShapeType == ShapeType.line) {
-      _safeSetState(() {
-        _activeShapeType = ShapeType.arrow;
-        _loadShapeType(_activeShapeType);
-      });
-    }
 
     var draftStrokeColor = _currentShapeStrokeColor.value;
     int? draftFillColor = _currentShapeFillColor?.value;
@@ -1425,52 +1416,37 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 tooltip: '색상 선택',
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
-                                  Color selected = Color(draftStrokeColor);
+                                  final originalStroke = _currentShapeStrokeColor;
+                                  _settingsPopover.hide();
                                   final kept = await showDrawingColorPickerDialog(
-                                    context,
-                                    initialColor: selected,
+                                    this.context,
+                                    initialColor: originalStroke,
                                     recentColors: _recentArgb
+                                        .take(5)
                                         .map((argb) => Color(argb))
                                         .toList(growable: false),
                                     onLiveChanged: (color) {
-                                      selected = color;
-                                      setPopupState(() {
-                                        draftStrokeColor =
-                                            color.withAlpha(0xFF).value;
-                                      });
                                       _safeSetState(() {
-                                        _currentShapeStrokeColor = Color(
-                                          draftStrokeColor,
-                                        );
+                                        _currentShapeStrokeColor = Color(color.withAlpha(0xFF).value);
                                       });
                                     },
                                     onCommitChanged: (color) {
-                                      selected = color;
-                                      setPopupState(() {
-                                        draftStrokeColor =
-                                            color.withAlpha(0xFF).value;
-                                      });
+                                      final picked = color.withAlpha(0xFF).value;
                                       _safeSetState(() {
-                                        _currentShapeStrokeColor = Color(
-                                          draftStrokeColor,
-                                        );
+                                        _currentShapeStrokeColor = Color(picked);
                                       });
-                                      _pushRecentColor(draftStrokeColor);
+                                      _pushRecentColor(picked);
                                       _saveShapeType(_activeShapeType);
                                     },
                                   );
                                   if (!kept) {
-                                    setPopupState(() {
-                                      draftStrokeColor = _currentShapeStrokeColor
-                                          .value;
-                                    });
-                                  } else {
                                     _safeSetState(() {
-                                      _currentShapeStrokeColor = Color(
-                                        selected.withAlpha(0xFF).value,
-                                      );
+                                      _currentShapeStrokeColor = originalStroke;
                                     });
-                                    _saveShapeType(_activeShapeType);
+                                  }
+                                  _saveShapeType(_activeShapeType);
+                                  if (mounted) {
+                                    _showShapeSettingsPopover();
                                   }
                                 },
                                 icon: const Icon(Icons.colorize),
@@ -1484,25 +1460,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     Row(
                       children: [
                         const SizedBox(width: 72, child: Text('채우기 색')),
-                        ChoiceChip(
-                          label: const Text('없음'),
-                          selected: draftFillColor == null,
-                          onSelected: (_) {
-                            setPopupState(() {
-                              draftFillColor = null;
-                            });
-                            _safeSetState(() {
-                              _currentShapeFillColor = null;
-                            });
-                            _saveShapeType(_activeShapeType);
-                          },
-                        ),
-                        const SizedBox(width: 8),
                         Expanded(
                           child: Wrap(
                             spacing: 6,
                             runSpacing: 6,
                             children: [
+                              FilterChip(
+                                label: const Text('없음'),
+                                selected: draftFillColor == null,
+                                showCheckmark: true,
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                onSelected: (_) {
+                                  setPopupState(() {
+                                    draftFillColor = null;
+                                  });
+                                  _safeSetState(() {
+                                    _currentShapeFillColor = null;
+                                  });
+                                  _saveShapeType(_activeShapeType);
+                                },
+                              ),
                               for (final argb in palette)
                                 _colorCircle(
                                   argb,
@@ -1522,56 +1501,41 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 tooltip: '채우기 색상 선택',
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
+                                  final originalFill = _currentShapeFillColor;
                                   final seedColor = Color(
                                     draftFillColor ??
                                         _currentShapeStrokeColor.value,
                                   );
-                                  Color selected = seedColor;
+                                  _settingsPopover.hide();
                                   final kept = await showDrawingColorPickerDialog(
-                                    context,
+                                    this.context,
                                     initialColor: seedColor,
                                     recentColors: _recentArgb
+                                        .take(5)
                                         .map((argb) => Color(argb))
                                         .toList(growable: false),
                                     onLiveChanged: (color) {
-                                      selected = color;
-                                      setPopupState(() {
-                                        draftFillColor =
-                                            color.withAlpha(0xFF).value;
-                                      });
                                       _safeSetState(() {
-                                        _currentShapeFillColor = Color(
-                                          draftFillColor!,
-                                        );
+                                        _currentShapeFillColor = Color(color.withAlpha(0xFF).value);
                                       });
                                     },
                                     onCommitChanged: (color) {
-                                      selected = color;
-                                      setPopupState(() {
-                                        draftFillColor =
-                                            color.withAlpha(0xFF).value;
-                                      });
+                                      final picked = color.withAlpha(0xFF).value;
                                       _safeSetState(() {
-                                        _currentShapeFillColor = Color(
-                                          draftFillColor!,
-                                        );
+                                        _currentShapeFillColor = Color(picked);
                                       });
-                                      _pushRecentColor(draftFillColor!);
+                                      _pushRecentColor(picked);
                                       _saveShapeType(_activeShapeType);
                                     },
                                   );
                                   if (!kept) {
-                                    setPopupState(() {
-                                      draftFillColor =
-                                          _currentShapeFillColor?.value;
-                                    });
-                                  } else {
                                     _safeSetState(() {
-                                      _currentShapeFillColor = Color(
-                                        selected.withAlpha(0xFF).value,
-                                      );
+                                      _currentShapeFillColor = originalFill;
                                     });
-                                    _saveShapeType(_activeShapeType);
+                                  }
+                                  _saveShapeType(_activeShapeType);
+                                  if (mounted) {
+                                    _showShapeSettingsPopover();
                                   }
                                 },
                                 icon: const Icon(Icons.colorize),
@@ -1640,7 +1604,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.line => '직선',
       ShapeType.arrow => '화살표',
       ShapeType.rectangle => '사각형',
       ShapeType.circle => '원형',
