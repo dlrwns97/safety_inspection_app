@@ -1435,16 +1435,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
         height: DrawingCanvasSize.height,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: DrawingCanvasWidget(
-                controller: _canvasController,
-                cacheManager: _strokeCacheManager,
-                page: _currentPage,
-                canvasSize: DrawingCanvasSize,
-                devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-                eraserRadius: _areaEraserRadiusPx,
-              ),
-            ),
             _buildMarkerLayer(
               size: DrawingCanvasSize,
               pageIndex: _currentPage,
@@ -1458,6 +1448,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     lineColor: theme.colorScheme.outlineVariant,
                   ),
                 ),
+              ),
+            ),
+            Positioned.fill(
+              child: DrawingCanvasWidget(
+                controller: _canvasController,
+                cacheManager: _strokeCacheManager,
+                page: _currentPage,
+                canvasSize: DrawingCanvasSize,
+                devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                eraserRadius: _areaEraserRadiusPx,
               ),
             ),
             Positioned.fill(

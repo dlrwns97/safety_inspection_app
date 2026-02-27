@@ -225,7 +225,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   bool _isStylusKind(PointerDeviceKind kind) {
     return kind == PointerDeviceKind.stylus ||
-        kind == PointerDeviceKind.invertedStylus;
+        kind == PointerDeviceKind.invertedStylus ||
+        kind == PointerDeviceKind.unknown;
   }
 
   int get _activeTouchPointerCount => _activePointerKinds.values
@@ -1658,6 +1659,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleShapeStrokeInteractionUpdate({
     required int pointerId,
     required int pageNumber,
+    required Size pageSize,
     required Offset norm,
     required StrokeStyle style,
   }) {
@@ -1674,7 +1676,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         final start = _shapeInteractionStartNorm ?? norm;
-        final adjustedEnd = _constrainShapeCreateEndNorm(start, norm);
+        final adjustedEnd = _constrainShapeCreateEndNorm(
+          start,
+          norm,
+          pageSize: pageSize,
+        );
         final bounds = Rect.fromPoints(start, adjustedEnd);
         manipulator.boundsNorm = Rect.fromLTRB(
           bounds.left.clamp(0.0, 1.0),
@@ -1711,6 +1717,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _handleShapeStrokeInteractionEnd({
     required int pointerId,
     required int pageNumber,
+    required Size pageSize,
     required Offset pageLocalNorm,
   }) {
     if (_activeStylusPointerId != pointerId) {
@@ -1725,7 +1732,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeShapeEditOp == _ShapeEditOperation.create ||
         _activeShapeEditOp == _ShapeEditOperation.none) {
       final start = _shapeInteractionStartNorm ?? pageLocalNorm;
-      final constrainedEnd = _constrainShapeCreateEndNorm(start, pageLocalNorm);
+      final constrainedEnd = _constrainShapeCreateEndNorm(
+        start,
+        pageLocalNorm,
+        pageSize: pageSize,
+      );
       final createBounds = manipulator.boundsNorm;
       final createStart = createBounds.topLeft;
       final createEnd = createBounds.bottomRight;
@@ -1741,7 +1752,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         effectiveStart,
         effectiveEnd,
         _activeShapeStrokeStyle,
-        fillArgb: _activeShapeFillColor?.value,
+        fillArgb: _currentShapeFillColor?.value,
       );
       _historyManager.execute(
         AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
@@ -1832,7 +1843,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _requestPersistDrawing();
   }
 
-  Offset _constrainShapeCreateEndNorm(Offset start, Offset current) {
+  Offset _constrainShapeCreateEndNorm(
+    Offset start,
+    Offset current, {
+    required Size pageSize,
+  }) {
     if (!_isShapeAspectLocked || _activeShapeType == ShapeType.arrow) {
       return current;
     }
@@ -1841,11 +1856,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (dx.abs() < 1e-6 || dy.abs() < 1e-6) {
       return current;
     }
-    final locked = math.max(dx.abs(), dy.abs());
-    final adjusted = Offset(
-      start.dx + (dx.isNegative ? -locked : locked),
-      start.dy + (dy.isNegative ? -locked : locked),
-    );
+    final dxPx = dx * pageSize.width;
+    final dyPx = dy * pageSize.height;
+    final lockedPx = math.max(dxPx.abs(), dyPx.abs());
+    final lockedDx = (lockedPx / pageSize.width) * (dx.isNegative ? -1.0 : 1.0);
+    final lockedDy =
+        (lockedPx / pageSize.height) * (dy.isNegative ? -1.0 : 1.0);
+    final adjusted = Offset(start.dx + lockedDx, start.dy + lockedDy);
     return Offset(adjusted.dx.clamp(0.0, 1.0), adjusted.dy.clamp(0.0, 1.0));
   }
 
@@ -2438,6 +2455,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       this._handleShapeStrokeInteractionUpdate(
         pointerId: event.pointer,
         pageNumber: pageNumber,
+        pageSize: pageSize,
         norm: norm,
         style: _activeShapeStrokeStyle,
       );
@@ -2592,6 +2610,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           this._handleShapeStrokeInteractionEnd(
             pointerId: event.pointer,
             pageNumber: pageNumber,
+            pageSize: pageSize,
             pageLocalNorm: norm,
           );
         }

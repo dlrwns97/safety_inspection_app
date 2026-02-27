@@ -124,14 +124,19 @@ class TempPolylinePainter extends CustomPainter {
     }
 
     Offset toPageLocal(Offset normPoint) {
-      return Offset(normPoint.dx * pageSize.width, normPoint.dy * pageSize.height);
+      return Offset(
+        normPoint.dx * pageSize.width,
+        normPoint.dy * pageSize.height,
+      );
     }
 
     final points = pointsNorm.map(toPageLocal).toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
     final style = stroke.style;
     if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
-      debugPrint('[Drawing] TempPolylinePainter stroke=${stroke.id} variant=${style.variant.name}');
+      debugPrint(
+        '[Drawing] TempPolylinePainter stroke=${stroke.id} variant=${style.variant.name}',
+      );
     }
 
     _drawShapeFillIfNeeded(
@@ -154,7 +159,7 @@ class TempPolylinePainter extends CustomPainter {
       if (style.kind == StrokeToolKind.pen) {
         _drawPenStroke(canvas, segmentPoints, style);
       } else {
-        _drawCenterlineStroke(canvas, segmentPoints, style);
+        _drawCenterlineStroke(canvas, segmentPoints, style, stroke);
       }
       i = end;
     }
@@ -191,9 +196,9 @@ class TempPolylinePainter extends CustomPainter {
 
     final fillPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Color(stroke.shapeFillArgb!).withOpacity(
-        stroke.style.opacity.clamp(0.0, 1.0),
-      )
+      ..color = Color(
+        stroke.shapeFillArgb!,
+      ).withOpacity(stroke.style.opacity.clamp(0.0, 1.0))
       ..blendMode = BlendMode.srcOver;
     canvas.drawPath(path, fillPaint);
   }
@@ -204,7 +209,9 @@ class TempPolylinePainter extends CustomPainter {
     if (points.length == 1) {
       final paint = Paint()
         ..style = PaintingStyle.fill
-        ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
+        ..color = Color(
+          style.argbColor,
+        ).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
         ..blendMode = BlendMode.srcOver;
       canvas.drawCircle(points.first, style.widthPx / 2, paint);
       return;
@@ -214,10 +221,7 @@ class TempPolylinePainter extends CustomPainter {
         .map((o) => PointVector(o.dx, o.dy))
         .toList(growable: false);
 
-    final outline = getStroke(
-      strokeInput,
-      options: _optionsForPen(style),
-    );
+    final outline = getStroke(strokeInput, options: _optionsForPen(style));
 
     if (outline.isEmpty) {
       return;
@@ -226,7 +230,9 @@ class TempPolylinePainter extends CustomPainter {
     final fillPath = _outlineToPath(outline);
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
+      ..color = Color(
+        style.argbColor,
+      ).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
       ..blendMode = BlendMode.srcOver;
 
     canvas.drawPath(fillPath, paint);
@@ -265,7 +271,12 @@ class TempPolylinePainter extends CustomPainter {
     return path;
   }
 
-  void _drawCenterlineStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {
+  void _drawCenterlineStroke(
+    Canvas canvas,
+    List<Offset> points,
+    StrokeStyle style,
+    DrawingStroke stroke,
+  ) {
     var resolvedOpacity = style.opacity;
     var resolvedStrokeWidth = style.widthPx;
     var resolvedStrokeCap = StrokeCap.round;
@@ -311,11 +322,21 @@ class TempPolylinePainter extends CustomPainter {
         break;
     }
 
+    final isShapeArrow =
+        stroke.toolType == DrawingTool.shape && stroke.shapeType == 'arrow';
+    if (isShapeArrow) {
+      resolvedStrokeCap = StrokeCap.butt;
+      resolvedStrokeJoin = StrokeJoin.miter;
+    }
+
     final paint = Paint()
-      ..color = Color(style.argbColor).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
+      ..color = Color(
+        style.argbColor,
+      ).withOpacity(resolvedOpacity.clamp(0.0, 1.0))
       ..strokeWidth = resolvedStrokeWidth
       ..strokeCap = resolvedStrokeCap
       ..strokeJoin = resolvedStrokeJoin
+      ..strokeMiterLimit = isShapeArrow ? 6.0 : 4.0
       ..style = PaintingStyle.stroke
       ..blendMode = resolvedBlendMode;
 
@@ -394,7 +415,11 @@ class _DrawingUiPerfProbe {
     }
   }
 
-  void recordCache({required int hit, required int miss, required int strokeCount}) {
+  void recordCache({
+    required int hit,
+    required int miss,
+    required int strokeCount,
+  }) {
     if (kReleaseMode) {
       return;
     }
@@ -416,8 +441,12 @@ class _DrawingUiPerfProbe {
     }
 
     if (_paintCalls > 0 || _buildCalls > 0) {
-      final paintAvgMs = _paintCalls == 0 ? 0.0 : (_paintTotalMicros / _paintCalls) / 1000;
-      final buildAvgMs = _buildCalls == 0 ? 0.0 : (_buildTotalMicros / _buildCalls) / 1000;
+      final paintAvgMs = _paintCalls == 0
+          ? 0.0
+          : (_paintTotalMicros / _paintCalls) / 1000;
+      final buildAvgMs = _buildCalls == 0
+          ? 0.0
+          : (_buildTotalMicros / _buildCalls) / 1000;
       debugPrint(
         '[PerfUI] paint: avgMs=${paintAvgMs.toStringAsFixed(1)} '
         'maxMs=${(_paintMaxMicros / 1000).toStringAsFixed(1)} '
