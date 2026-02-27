@@ -1369,138 +1369,206 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    _settingsPopover.hide();
     final selectedStroke = _resolveSelectedTextStroke();
     final selectedData = selectedStroke?.stroke.textBoxData;
     var draftFontSize =
         (selectedData?.fontSize ?? _currentTextFontSize).clamp(10.0, 64.0);
     var draftColor = selectedData?.argbColor ?? _currentTextColor.value;
     var draftAlign = selectedData?.textAlign ?? _currentTextAlign;
-    final palette = <int>[
-      ..._standardPaletteArgb.take(8),
-      ..._recentArgb.take(2),
+
+    const fixedPalette = <int>[
+      0xFFE53935, // red
+      0xFFFF9800, // orange
+      0xFFFFEB3B, // yellow
+      0xFF43A047, // green
+      0xFF1E88E5, // blue
     ];
+
+    List<int> buildPalette() {
+      final recent = <int>[];
+      for (final argb in _recentArgb) {
+        if (fixedPalette.contains(argb)) {
+          continue;
+        }
+        recent.add(argb);
+        if (recent.length == 3) {
+          break;
+        }
+      }
+      const fallback = <int>[0xFF000000, 0xFFFFFFFF];
+      for (final argb in fallback) {
+        if (recent.length == 3) {
+          break;
+        }
+        if (!recent.contains(argb) && !fixedPalette.contains(argb)) {
+          recent.add(argb);
+        }
+      }
+      return <int>[...fixedPalette, ...recent.take(3)];
+    }
 
     _showPopover(
       link: _textLink,
       child: StatefulBuilder(
         builder: (context, setPopupState) {
-          return Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(14),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 340, maxWidth: 440),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('텍스트 설정'),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const SizedBox(width: 72, child: Text('크기')),
-                        Expanded(
-                          child: Slider(
-                            value: draftFontSize,
-                            min: 10.0,
-                            max: 64.0,
-                            divisions: 54,
-                            label: draftFontSize.round().toString(),
-                            onChanged: (value) {
-                              setPopupState(() {
-                                draftFontSize = value;
-                              });
-                            },
-                          ),
+          final palette = buildPalette();
+          return ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 340, maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('텍스트 설정'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const SizedBox(width: 72, child: Text('크기')),
+                      Expanded(
+                        child: Slider(
+                          value: draftFontSize,
+                          min: 10.0,
+                          max: 64.0,
+                          divisions: 54,
+                          label: draftFontSize.round().toString(),
+                          onChanged: (value) {
+                            setPopupState(() {
+                              draftFontSize = value;
+                            });
+                          },
                         ),
-                        SizedBox(
-                          width: 48,
-                          child: Text('${draftFontSize.round()}'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(width: 72, child: Text('색상')),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              for (final argb in palette)
-                                _colorCircle(
-                                  argb,
-                                  selected: draftColor == argb,
-                                  onTap: () {
-                                    setPopupState(() {
-                                      draftColor = argb;
-                                    });
+                      ),
+                      SizedBox(
+                        width: 48,
+                        child: Text('${draftFontSize.round()}'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const SizedBox(width: 72, child: Text('색상')),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final argb in palette)
+                              _colorCircle(
+                                argb,
+                                selected: draftColor == argb,
+                                onTap: () {
+                                  setPopupState(() {
+                                    draftColor = argb;
+                                  });
+                                },
+                              ),
+                            IconButton(
+                              tooltip: '색상 선택',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () async {
+                                final originalColor = draftColor;
+                                _settingsPopover.hide();
+                                await Future<void>.delayed(
+                                  const Duration(milliseconds: 16),
+                                );
+                                if (!mounted) {
+                                  return;
+                                }
+                                var liveColor = originalColor;
+                                final kept = await showDrawingColorPickerDialog(
+                                  Navigator.of(
+                                    this.context,
+                                    rootNavigator: true,
+                                  ).context,
+                                  initialColor: Color(originalColor),
+                                  recentColors: _recentArgb
+                                      .map((argb) => Color(argb))
+                                      .toList(growable: false),
+                                  onLiveChanged: (color) {
+                                    liveColor = color.withAlpha(0xFF).toARGB32();
                                   },
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(width: 72, child: Text('정렬')),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final align in const <TextAlign>[
-                                TextAlign.left,
-                                TextAlign.center,
-                                TextAlign.right,
-                              ])
-                                ChoiceChip(
-                                  label: Text(_labelForTextAlign(align)),
-                                  selected: draftAlign == align,
-                                  onSelected: (_) {
-                                    setPopupState(() {
-                                      draftAlign = align;
-                                    });
+                                  onCommitChanged: (color) {
+                                    liveColor = color.withAlpha(0xFF).toARGB32();
                                   },
-                                ),
-                            ],
-                          ),
+                                );
+                                if (mounted) {
+                                  setPopupState(() {
+                                    draftColor = kept ? liveColor : originalColor;
+                                  });
+                                }
+                                if (mounted) {
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      _showTextSettingsPopover();
+                                    }
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.colorize),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _settingsPopover.hide,
-                            child: const Text('취소'),
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(width: 72, child: Text('정렬')),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final align in const <TextAlign>[
+                              TextAlign.left,
+                              TextAlign.center,
+                              TextAlign.right,
+                            ])
+                              ChoiceChip(
+                                label: Text(_labelForTextAlign(align)),
+                                selected: draftAlign == align,
+                                onSelected: (_) {
+                                  setPopupState(() {
+                                    draftAlign = align;
+                                  });
+                                },
+                              ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              _applyTextStyle(
-                                fontSize: draftFontSize,
-                                argbColor: draftColor,
-                                textAlign: draftAlign,
-                              );
-                              _settingsPopover.hide();
-                            },
-                            child: const Text('적용'),
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _settingsPopover.hide,
+                          child: const Text('취소'),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            _applyTextStyle(
+                              fontSize: draftFontSize,
+                              argbColor: draftColor,
+                              textAlign: draftAlign,
+                            );
+                            _settingsPopover.hide();
+                          },
+                          child: const Text('적용'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           );
@@ -1655,17 +1723,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
       child: StatefulBuilder(
         builder: (context, setPopupState) {
           final palette = buildPalette();
-          return Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(14),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 360, maxWidth: 520),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          return ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 360, maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -1934,8 +1999,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         _saveShapeType(_activeShapeType);
                       },
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
           );
