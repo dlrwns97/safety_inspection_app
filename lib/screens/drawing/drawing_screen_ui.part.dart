@@ -187,14 +187,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.edit,
                     selected: isPenSelected,
-                    tooltip: 'Pen',
+                    tooltip: '펜',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: 'Stroke eraser',
+                    tooltip: '획 지우개',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
@@ -202,7 +202,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: 'Area eraser',
+                    tooltip: '영역 지우개',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
@@ -210,7 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: 'Straighten',
+                    tooltip: '직선 보정',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -234,9 +234,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: 'Area eraser radius',
+                            message: '영역 지우개 반경',
                             child: const Text(
-                              'Area eraser radius',
+                              '영역 지우개 반경',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -362,7 +362,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: 'Clear all on page',
+                    tooltip: '현재 페이지 전체 지우기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -374,7 +374,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: 'Clear highlighter on page',
+                    tooltip: '현재 페이지 형광펜만 지우기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -386,12 +386,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: 'Clear pen on page',
+                    tooltip: '현재 페이지 펜만 지우기',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: 'Close',
+                    tooltip: '닫기',
                   ),
                 ],
               ),
@@ -444,7 +444,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Row(
                   children: [
                     const SizedBox(width: 8),
-                    const Text('Opacity'),
+                    const Text('투명도'),
                     Expanded(
                       child: Slider(
                         value: style.opacity.clamp(0.05, 1.0),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: 'Detailed settings',
+                    tooltip: '세부 설정',
                   ),
                 ],
               ),
@@ -926,7 +926,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Text('Hue'),
+                          const Text('색조'),
                           Expanded(
                             child: Slider(
                               min: 0,
@@ -942,7 +942,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('Opacity'),
+                          const Text('투명도'),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -969,7 +969,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel'),
+                            child: const Text('취소'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -979,7 +979,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('Apply'),
+                            child: const Text('적용'),
                           ),
                         ),
                       ],
@@ -1619,7 +1619,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('Text settings')),
+                      const Expanded(child: Text('텍스트 설정')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1634,7 +1634,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('Size')),
+                      const SizedBox(width: 72, child: Text('크기')),
                       Expanded(
                         child: Slider(
                           value: draftFontSize,
@@ -1658,7 +1658,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('Color')),
+                      const SizedBox(width: 72, child: Text('색상')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1675,7 +1675,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: 'Pick color',
+                              tooltip: '색상 선택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalColor = draftColor;
@@ -1735,7 +1735,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(width: 72, child: Text('Align')),
+                      const SizedBox(width: 72, child: Text('정렬')),
                       Expanded(
                         child: Wrap(
                           spacing: 8,
@@ -1766,7 +1766,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _settingsPopover.hide,
-                          child: const Text('Cancel'),
+                          child: const Text('취소'),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1780,7 +1780,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             );
                             _settingsPopover.hide();
                           },
-                          child: const Text('Apply'),
+                          child: const Text('적용'),
                         ),
                       ),
                     ],
@@ -1956,7 +1956,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('Shape settings')),
+                      const Expanded(child: Text('도형 설정')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -2063,7 +2063,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: 'Pick color',
+                              tooltip: '색상 선택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -2176,7 +2176,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: 'Pick fill color',
+                                  tooltip: '채우기 색상 선택',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -2251,7 +2251,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: 'Line width',
+                    label: '선 굵기',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -2329,14 +2329,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('Cancel'),
+                  child: const Text('취소'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('Apply'),
+                  child: const Text('적용'),
                 ),
               ),
             ],
