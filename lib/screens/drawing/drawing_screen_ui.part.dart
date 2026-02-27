@@ -1342,6 +1342,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    _settingsPopover.hide();
     final shapeTypes = ShapeType.values.toList(growable: false);
     const fixedPalette = <int>[
       0xFFE53935, // red
@@ -1448,6 +1449,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
                                   final originalStroke = _currentShapeStrokeColor;
+                                  _settingsPopover.hide();
                                   final kept = await showDrawingColorPickerDialog(
                                     Navigator.of(
                                       this.context,
@@ -1467,9 +1469,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       _safeSetState(() {
                                         _currentShapeStrokeColor = Color(picked);
                                       });
-                                      setPopupState(() {
-                                        draftStrokeColor = picked;
-                                      });
                                       _pushRecentColor(picked);
                                       _saveShapeType(_activeShapeType);
                                     },
@@ -1480,7 +1479,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     });
                                   }
                                   _saveShapeType(_activeShapeType);
-                                  setPopupState(() {});
+                                  if (mounted) {
+                                    _showShapeSettingsPopover();
+                                  }
                                 },
                                 icon: const Icon(Icons.colorize),
                               ),
@@ -1549,6 +1550,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         draftFillColor ??
                                             _currentShapeStrokeColor.value,
                                       );
+                                      _settingsPopover.hide();
                                       final kept =
                                           await showDrawingColorPickerDialog(
                                         Navigator.of(
@@ -1575,10 +1577,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                               picked,
                                             );
                                           });
-                                          setPopupState(() {
-                                            draftFillColor = picked;
-                                            fillEnabled = true;
-                                          });
                                           _pushRecentColor(picked);
                                           _saveShapeType(_activeShapeType);
                                         },
@@ -1589,7 +1587,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         });
                                       }
                                       _saveShapeType(_activeShapeType);
-                                      setPopupState(() {});
+                                      if (mounted) {
+                                        _showShapeSettingsPopover();
+                                      }
                                     },
                                     icon: const Icon(Icons.colorize),
                                   ),
