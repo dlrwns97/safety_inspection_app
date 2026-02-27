@@ -43,7 +43,14 @@ class _ShapeHandlesPainter extends CustomPainter {
       ..color = Colors.blueAccent
       ..style = PaintingStyle.fill;
     final path = Path()
-      ..addRect(manipulator.boundsNorm.scaleToCanvas(size));
+      ..addRect(
+        Rect.fromLTWH(
+          manipulator.boundsNorm.left * size.width,
+          manipulator.boundsNorm.top * size.height,
+          manipulator.boundsNorm.width * size.width,
+          manipulator.boundsNorm.height * size.height,
+        ),
+      );
     canvas.drawPath(path, paint);
 
     final centerPoints = handlePositions
@@ -83,16 +90,5 @@ class _ShapeHandlesPainter extends CustomPainter {
   bool shouldRepaint(_ShapeHandlesPainter oldDelegate) {
     return oldDelegate.manipulator.boundsNorm != manipulator.boundsNorm ||
         oldDelegate.manipulator.rotationRad != manipulator.rotationRad;
-  }
-}
-
-extension _ShapeBoundsCanvas on Rect {
-  Rect scaleToCanvas(Size size) {
-    return Rect.fromLTWH(
-      left * size.width,
-      top * size.height,
-      width * size.width,
-      height * size.height,
-    );
   }
 }
