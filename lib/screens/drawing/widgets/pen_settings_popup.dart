@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/widgets/drawing/temp_polyline_painter.dart';
 
@@ -84,7 +84,7 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
       kind: StrokeToolKind.pen,
       variant: widget.currentVariant,
       widthPx: widget.currentPenWidth,
-      argbColor: widget.currentPenColor.value,
+      argbColor: widget.currentPenColor.toARGB32(),
     );
     final penVariants = const <PenVariant>[
       PenVariant.pen,
@@ -94,7 +94,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     ];
 
     Widget colorChip(Color value) {
-      final selected = value.withAlpha(0xFF).value == widget.currentPenColor.withAlpha(0xFF).value;
+      final selected =
+          value.withAlpha(0xFF).toARGB32() ==
+          widget.currentPenColor.withAlpha(0xFF).toARGB32();
       return GestureDetector(
         onTap: () => widget.onColorChanged(value),
         child: Container(
@@ -115,18 +117,18 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
     }
 
     const fixedPalette = <Color>[
-      Color(0xFFE53935), // red
-      Color(0xFFFF9800), // orange
-      Color(0xFFFFEB3B), // yellow
-      Color(0xFF43A047), // green
-      Color(0xFF1E88E5), // blue
+      Color(0xFFE53935),
+      Color(0xFFFF9800),
+      Color(0xFFFFEB3B),
+      Color(0xFF43A047),
+      Color(0xFF1E88E5),
     ];
     final fixedRgb = fixedPalette
-        .map((color) => color.withAlpha(0xFF).value)
+        .map((color) => color.withAlpha(0xFF).toARGB32())
         .toSet();
     final recentPalette = <Color>[];
     for (final color in widget.recentColors) {
-      final rgb = color.withAlpha(0xFF).value;
+      final rgb = color.withAlpha(0xFF).toARGB32();
       if (fixedRgb.contains(rgb)) {
         continue;
       }
@@ -140,9 +142,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
       if (recentPalette.length == 2) {
         break;
       }
-      final rgb = color.withAlpha(0xFF).value;
+      final rgb = color.withAlpha(0xFF).toARGB32();
       final exists = recentPalette.any(
-        (entry) => entry.withAlpha(0xFF).value == rgb,
+        (entry) => entry.withAlpha(0xFF).toARGB32() == rgb,
       );
       if (!fixedRgb.contains(rgb) && !exists) {
         recentPalette.add(color);
@@ -159,7 +161,9 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
             Expanded(
               child: Text(
                 '펜 설정',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: kTitleFont),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: kTitleFont,
+                ),
               ),
             ),
             SizedBox(
@@ -191,11 +195,20 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
               SizedBox(
                 height: kChipH,
                 child: ChoiceChip(
-                  label: Text(_variantLabel(variant), style: const TextStyle(fontSize: kBodyFont)),
+                  label: Text(
+                    _variantLabel(variant),
+                    style: const TextStyle(fontSize: kBodyFont),
+                  ),
                   selected: widget.currentVariant == variant,
                   visualDensity: VisualDensity.compact,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 2,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   onSelected: (_) => widget.onVariantChanged(variant),
                 ),
               ),
@@ -238,6 +251,18 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
         Row(
           children: [
             Checkbox(
+              value: _isStraightenModeEnabled,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() => _isStraightenModeEnabled = value);
+                widget.onStraightenModeChanged(value);
+              },
+            ),
+            const Text('직교', style: TextStyle(fontSize: kBodyFont)),
+            const SizedBox(width: 12),
+            Checkbox(
               value: _isStraightenSnapEnabled,
               onChanged: (value) {
                 if (value == null) {
@@ -248,19 +273,6 @@ class _PenSettingsPopupState extends State<PenSettingsPopup> {
               },
             ),
             const Text('스냅', style: TextStyle(fontSize: kBodyFont)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                title: const Text('직교 모드', style: TextStyle(fontSize: kBodyFont)),
-                value: _isStraightenModeEnabled,
-                onChanged: (enabled) {
-                  setState(() => _isStraightenModeEnabled = enabled);
-                  widget.onStraightenModeChanged(enabled);
-                },
-              ),
-            ),
           ],
         ),
       ],

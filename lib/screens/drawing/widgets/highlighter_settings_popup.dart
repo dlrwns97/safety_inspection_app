@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/highlighter_engine.dart';
 
@@ -79,7 +79,7 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
       variant: widget.currentVariant,
       widthPx: widget.currentHighlighterWidth,
       opacity: widget.currentHighlighterOpacity,
-      argbColor: widget.currentHighlighterColor.value,
+      argbColor: widget.currentHighlighterColor.toARGB32(),
     );
     const highlighterVariants = <({PenVariant variant, String label})>[
       (variant: PenVariant.highlighter, label: '형광펜'),
@@ -87,7 +87,8 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
     ];
 
     Widget colorChip(Color value) {
-      final selected = value.withAlpha(0xFF).value == selectedColor.withAlpha(0xFF).value;
+      final selected =
+          value.withAlpha(0xFF).toARGB32() == selectedColor.withAlpha(0xFF).toARGB32();
       return Semantics(
         label: '색상 선택',
         button: true,
@@ -112,18 +113,18 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
     }
 
     const fixedPalette = <Color>[
-      Color(0xFFE53935), // red
-      Color(0xFFFF9800), // orange
-      Color(0xFFFFEB3B), // yellow
-      Color(0xFF43A047), // green
-      Color(0xFF1E88E5), // blue
+      Color(0xFFE53935),
+      Color(0xFFFF9800),
+      Color(0xFFFFEB3B),
+      Color(0xFF43A047),
+      Color(0xFF1E88E5),
     ];
     final fixedRgb = fixedPalette
-        .map((color) => color.withAlpha(0xFF).value)
+        .map((color) => color.withAlpha(0xFF).toARGB32())
         .toSet();
     final recentPalette = <Color>[];
     for (final color in widget.recentColors) {
-      final rgb = color.withAlpha(0xFF).value;
+      final rgb = color.withAlpha(0xFF).toARGB32();
       if (fixedRgb.contains(rgb)) {
         continue;
       }
@@ -137,9 +138,9 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
       if (recentPalette.length == 2) {
         break;
       }
-      final rgb = color.withAlpha(0xFF).value;
+      final rgb = color.withAlpha(0xFF).toARGB32();
       final exists = recentPalette.any(
-        (entry) => entry.withAlpha(0xFF).value == rgb,
+        (entry) => entry.withAlpha(0xFF).toARGB32() == rgb,
       );
       if (!fixedRgb.contains(rgb) && !exists) {
         recentPalette.add(color);
@@ -267,6 +268,18 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                   Row(
                     children: [
                       Checkbox(
+                        value: _isStraightenModeEnabled,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() => _isStraightenModeEnabled = value);
+                          widget.onStraightenModeChanged(value);
+                        },
+                      ),
+                      const Text('직교', style: TextStyle(fontSize: _kBodyFont)),
+                      const SizedBox(width: 12),
+                      Checkbox(
                         value: _isStraightenSnapEnabled,
                         onChanged: (value) {
                           if (value == null) {
@@ -277,23 +290,6 @@ class _HighlighterSettingsPopupState extends State<HighlighterSettingsPopup> {
                         },
                       ),
                       const Text('스냅', style: TextStyle(fontSize: _kBodyFont)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Semantics(
-                          label: '직교 모드',
-                          toggled: _isStraightenModeEnabled,
-                          child: SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: const Text('직교 모드', style: TextStyle(fontSize: _kBodyFont)),
-                            value: _isStraightenModeEnabled,
-                            onChanged: (enabled) {
-                              setState(() => _isStraightenModeEnabled = enabled);
-                              widget.onStraightenModeChanged(enabled);
-                            },
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ],
