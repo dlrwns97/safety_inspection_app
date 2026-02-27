@@ -87,19 +87,9 @@ enum PenUiType { pen, fountainPen, calligraphy, pencil }
 
 enum HighlighterUiType { highlighter, marker }
 
-enum _ShapeEditOperation {
-  none,
-  create,
-  translate,
-  resize,
-  rotate,
-}
+enum _ShapeEditOperation { none, create, translate, resize, rotate }
 
-enum _TextEditOperation {
-  none,
-  translate,
-  resize,
-}
+enum _TextEditOperation { none, translate, resize }
 
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
@@ -128,8 +118,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   EquipmentCategory? _activeEquipmentCategory;
   DefectCategory? _sidePanelDefectCategory;
   EquipmentCategory? _sidePanelEquipmentCategory;
-  final Set<DefectCategory> _visibleDefectCategories =
-      DefectCategory.values.toSet();
+  final Set<DefectCategory> _visibleDefectCategories = DefectCategory.values
+      .toSet();
   final Set<EquipmentCategory> _visibleEquipmentCategories = {};
   final List<DefectCategory> _defectTabs = [];
   int _currentPage = 1;
@@ -182,8 +172,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   int? _activeStylusPointerId;
   bool _isStraightenModeEnabled = false;
   bool _isStraightenSnapEnabled = true;
-  final Map<int, double?> _straightenSnappedAngleByPointer =
-      <int, double?>{};
+  final Map<int, double?> _straightenSnappedAngleByPointer = <int, double?>{};
   final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
   static const double kMinDragToConsiderSnapPx = 12.0;
   static const double kEnterSnapDeg = 7.0;
@@ -198,14 +187,17 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   bool _didShowFreeDrawGuide = false;
-  final SettingsPopoverController _settingsPopover = SettingsPopoverController();
+  final SettingsPopoverController _settingsPopover =
+      SettingsPopoverController();
   final LayerLink _penLink = LayerLink();
   final LayerLink _highlighterLink = LayerLink();
   final LayerLink _eraserLink = LayerLink();
   final LayerLink _shapeLink = LayerLink();
   final LayerLink _textLink = LayerLink();
-  final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
-  final Map<int, SpatialIndex> _strokeSpatialIndexByPage = <int, SpatialIndex>{};
+  final Map<int, List<DrawingStroke>> _strokesByPage =
+      <int, List<DrawingStroke>>{};
+  final Map<int, SpatialIndex> _strokeSpatialIndexByPage =
+      <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
   final Set<int> _strokeSpatialIndexDirtyPages = <int>{};
   final DrawingPersistenceStore _drawingPersistenceStore =
@@ -252,9 +244,12 @@ class _DrawingScreenState extends State<DrawingScreen>
   HighlighterUiType _activeHighlighterType = HighlighterUiType.highlighter;
   final Map<PenUiType, double> _penWidthByType = <PenUiType, double>{};
   final Map<PenUiType, Color> _penColorByType = <PenUiType, Color>{};
-  final Map<HighlighterUiType, double> _hlWidthByType = <HighlighterUiType, double>{};
-  final Map<HighlighterUiType, double> _hlOpacityByType = <HighlighterUiType, double>{};
-  final Map<HighlighterUiType, Color> _hlColorByType = <HighlighterUiType, Color>{};
+  final Map<HighlighterUiType, double> _hlWidthByType =
+      <HighlighterUiType, double>{};
+  final Map<HighlighterUiType, double> _hlOpacityByType =
+      <HighlighterUiType, double>{};
+  final Map<HighlighterUiType, Color> _hlColorByType =
+      <HighlighterUiType, Color>{};
   final Map<ShapeType, double> _shapeWidthByType = <ShapeType, double>{};
   final Map<ShapeType, double> _shapeOpacityByType = <ShapeType, double>{};
   final Map<ShapeType, Color> _shapeStrokeColorByType = <ShapeType, Color>{};
@@ -268,6 +263,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _currentShapeOpacity = 1.0;
   Color _currentShapeStrokeColor = const Color(0xFF000000);
   Color? _currentShapeFillColor;
+  bool _isShapeAspectLocked = false;
   double _currentTextFontSize = 14.0;
   Color _currentTextColor = const Color(0xFF000000);
   TextAlign _currentTextAlign = TextAlign.left;
@@ -282,8 +278,9 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
   static const String _kDrawingSettingsPrefix = 'drawing';
-  late final HistoryManager _historyManager =
-      HistoryManager(maxHistory: kMaxHistory);
+  late final HistoryManager _historyManager = HistoryManager(
+    maxHistory: kMaxHistory,
+  );
   String? _moveTargetDefectId;
   String? _moveTargetEquipmentId;
   double? _moveOriginNormalizedX;
@@ -292,25 +289,21 @@ class _DrawingScreenState extends State<DrawingScreen>
   double? _movePreviewNormalizedY;
   Offset? _moveLastGlobalPosition;
 
-  Defect? get _selectedDefect =>
-      _selectedDefectId == null
-          ? null
-          : _findDefectById(_site, _selectedDefectId!);
+  Defect? get _selectedDefect => _selectedDefectId == null
+      ? null
+      : _findDefectById(_site, _selectedDefectId!);
 
-  EquipmentMarker? get _selectedEquipment =>
-      _selectedEquipmentId == null
-          ? null
-          : _findEquipmentById(_site, _selectedEquipmentId!);
+  EquipmentMarker? get _selectedEquipment => _selectedEquipmentId == null
+      ? null
+      : _findEquipmentById(_site, _selectedEquipmentId!);
 
-  Defect? get _moveTargetDefect =>
-      _moveTargetDefectId == null
-          ? null
-          : _findDefectById(_site, _moveTargetDefectId!);
+  Defect? get _moveTargetDefect => _moveTargetDefectId == null
+      ? null
+      : _findDefectById(_site, _moveTargetDefectId!);
 
-  EquipmentMarker? get _moveTargetEquipment =>
-      _moveTargetEquipmentId == null
-          ? null
-          : _findEquipmentById(_site, _moveTargetEquipmentId!);
+  EquipmentMarker? get _moveTargetEquipment => _moveTargetEquipmentId == null
+      ? null
+      : _findEquipmentById(_site, _moveTargetEquipmentId!);
 
   int _clampPresetIndex(int index) {
     return index.clamp(0, _presets.length - 1).toInt();
@@ -328,12 +321,12 @@ class _DrawingScreenState extends State<DrawingScreen>
       _activeStrokeStyle ?? _presets.first;
 
   StrokeStyle get _activeShapeStrokeStyle => StrokeStyle(
-        kind: StrokeToolKind.shape,
-        variant: PenVariant.pen,
-        widthPx: _currentShapeWidth,
-        argbColor: _currentShapeStrokeColor.value,
-        opacity: _currentShapeOpacity,
-      );
+    kind: StrokeToolKind.shape,
+    variant: PenVariant.pen,
+    widthPx: _currentShapeWidth,
+    argbColor: _currentShapeStrokeColor.value,
+    opacity: _currentShapeOpacity,
+  );
 
   Color? get _activeShapeFillColor => _shapeFillColorByType[_activeShapeType];
 
@@ -378,10 +371,7 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   List<int> _buildRecentColors(List<int> current, int nextArgb) {
     final nextRgb = Color(nextArgb).withAlpha(0xFF).value;
-    final updated = <int>[
-      nextRgb,
-      ...current.where((argb) => argb != nextRgb),
-    ];
+    final updated = <int>[nextRgb, ...current.where((argb) => argb != nextRgb)];
     return updated.take(_kMaxRecentColors).toList(growable: false);
   }
 
@@ -454,11 +444,17 @@ class _DrawingScreenState extends State<DrawingScreen>
     );
     for (final type in PenUiType.values) {
       _penWidthByType.putIfAbsent(type, () => initialPenPreset.widthPx);
-      _penColorByType.putIfAbsent(type, () => Color(initialPenPreset.argbColor));
+      _penColorByType.putIfAbsent(
+        type,
+        () => Color(initialPenPreset.argbColor),
+      );
     }
     for (final type in HighlighterUiType.values) {
       _hlWidthByType.putIfAbsent(type, () => initialHighlighterPreset.widthPx);
-      _hlColorByType.putIfAbsent(type, () => Color(initialHighlighterPreset.argbColor));
+      _hlColorByType.putIfAbsent(
+        type,
+        () => Color(initialHighlighterPreset.argbColor),
+      );
       _hlOpacityByType.putIfAbsent(
         type,
         () => type == HighlighterUiType.marker
@@ -472,7 +468,9 @@ class _DrawingScreenState extends State<DrawingScreen>
         ? ToolFamily.highlighter
         : ToolFamily.pen;
     _activePenType = _penUiTypeFromVariant(initialStyle.variant);
-    _activeHighlighterType = _highlighterUiTypeFromVariant(initialStyle.variant);
+    _activeHighlighterType = _highlighterUiTypeFromVariant(
+      initialStyle.variant,
+    );
     _loadPenType(_activePenType);
     _loadHighlighterType(_activeHighlighterType);
     _seedShapeTypeMaps(initialPenPreset);
@@ -496,8 +494,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     _penVariantNotifier.value = _penVariantFromUiType(_activePenType);
     _penWidthNotifier.value = _currentPenWidth;
     _penColorNotifier.value = _currentPenColor;
-    _highlighterVariantNotifier.value =
-        _highlighterVariantFromUiType(_activeHighlighterType);
+    _highlighterVariantNotifier.value = _highlighterVariantFromUiType(
+      _activeHighlighterType,
+    );
     _highlighterWidthNotifier.value = _currentHlWidth;
     _highlighterOpacityNotifier.value = _currentHlOpacity;
     _highlighterColorNotifier.value = _currentHlColor;
@@ -626,7 +625,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       final opacity = prefs.getDouble(_shapeOpacityKey(type));
       final strokeColorArgb = prefs.getInt(_shapeStrokeColorKey(type));
       final hasFillKey = prefs.containsKey(_shapeFillColorKey(type));
-      final fillColorArgb = hasFillKey ? prefs.getInt(_shapeFillColorKey(type)) : null;
+      final fillColorArgb = hasFillKey
+          ? prefs.getInt(_shapeFillColorKey(type))
+          : null;
       if (width != null) {
         loadedShapeWidthByType[type] = width;
       }
@@ -1061,13 +1062,11 @@ class _DrawingScreenState extends State<DrawingScreen>
         normalizedY: selectedDefect.normalizedY,
         details: detailsResult,
       );
-      final updatedDefects =
-          _site.defects
-              .map(
-                (defect) =>
-                    defect.id == updatedDefect.id ? updatedDefect : defect,
-              )
-              .toList();
+      final updatedDefects = _site.defects
+          .map(
+            (defect) => defect.id == updatedDefect.id ? updatedDefect : defect,
+          )
+          .toList();
       final updatedSite = _site.copyWith(defects: updatedDefects);
       await _applyUpdatedSite(
         updatedSite,
@@ -1083,13 +1082,11 @@ class _DrawingScreenState extends State<DrawingScreen>
       if (updatedMarker == null) {
         return;
       }
-      final updatedMarkers =
-          _site.equipmentMarkers
-              .map(
-                (marker) =>
-                    marker.id == updatedMarker.id ? updatedMarker : marker,
-              )
-              .toList();
+      final updatedMarkers = _site.equipmentMarkers
+          .map(
+            (marker) => marker.id == updatedMarker.id ? updatedMarker : marker,
+          )
+          .toList();
       final updatedSite = _site.copyWith(equipmentMarkers: updatedMarkers);
       await _applyUpdatedSite(
         updatedSite,
@@ -1101,9 +1098,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
   }
 
-  Future<EquipmentMarker?> _editEquipmentMarker(
-    EquipmentMarker marker,
-  ) async {
+  Future<EquipmentMarker?> _editEquipmentMarker(EquipmentMarker marker) async {
     if (marker.category == EquipmentCategory.equipment8) {
       final nextIndexByDirection = {
         'Lx': nextSettlementIndex(_site, 'Lx'),
@@ -1125,10 +1120,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       );
     }
     final siteWithoutMarker = _site.copyWith(
-      equipmentMarkers:
-          _site.equipmentMarkers
-              .where((item) => item.id != marker.id)
-              .toList(),
+      equipmentMarkers: _site.equipmentMarkers
+          .where((item) => item.id != marker.id)
+          .toList(),
     );
     final updatedSite = await createEquipmentUpdatedSite(
       context: context,
@@ -1250,10 +1244,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       return;
     }
     if (selectedDefect != null) {
-      final updatedDefects =
-          _site.defects
-              .where((defect) => defect.id != selectedDefect.id)
-              .toList();
+      final updatedDefects = _site.defects
+          .where((defect) => defect.id != selectedDefect.id)
+          .toList();
       await _applyUpdatedSite(
         _site.copyWith(defects: updatedDefects),
         onStateUpdated: () {
@@ -1263,10 +1256,9 @@ class _DrawingScreenState extends State<DrawingScreen>
       return;
     }
     if (selectedEquipment != null) {
-      final updatedMarkers =
-          _site.equipmentMarkers
-              .where((marker) => marker.id != selectedEquipment.id)
-              .toList();
+      final updatedMarkers = _site.equipmentMarkers
+          .where((marker) => marker.id != selectedEquipment.id)
+          .toList();
       await _applyUpdatedSite(
         _site.copyWith(equipmentMarkers: updatedMarkers),
         onStateUpdated: () {
@@ -1279,6 +1271,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   GlobalKey _pdfTapRegionKeyForPage(int pageNumber) {
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
   }
+
   @override
   void initState() {
     super.initState();
@@ -1300,7 +1293,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     _penVariantNotifier = ValueNotifier<PenVariant>(PenVariant.pen);
     _penWidthNotifier = ValueNotifier<double>(_currentPenWidth);
     _penColorNotifier = ValueNotifier<Color>(_currentPenColor);
-    _highlighterVariantNotifier = ValueNotifier<PenVariant>(PenVariant.highlighter);
+    _highlighterVariantNotifier = ValueNotifier<PenVariant>(
+      PenVariant.highlighter,
+    );
     _highlighterWidthNotifier = ValueNotifier<double>(_currentHlWidth);
     _highlighterOpacityNotifier = ValueNotifier<double>(_currentHlOpacity);
     _highlighterColorNotifier = ValueNotifier<Color>(_currentHlColor);
@@ -1315,6 +1310,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _loadPdfController();
     _loadScalePreferences();
   }
+
   @override
   void didUpdateWidget(covariant DrawingScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -1353,6 +1349,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     return null;
   }
+
   @override
   void dispose() {
     _persistDebounce?.cancel();
@@ -1381,6 +1378,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     setState(fn);
     _syncPopupNotifiers();
   }
+
   MarkerHitResult? _hitTestMarker({
     required Offset point,
     required Size size,
@@ -1474,6 +1472,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     return results;
   }
+
   List<Widget> _buildMarkersForPage<T extends Object>({
     required Iterable<T> items,
     required int pageIndex,
@@ -1486,51 +1485,48 @@ class _DrawingScreenState extends State<DrawingScreen>
   }) {
     const double baseMarkerSize = 30.0;
     const double dragHitBoxSize = 56.0;
-    final scaledSize = (baseMarkerSize * markerScale)
-        .clamp(baseMarkerSize * 0.2, 44.0);
+    final scaledSize = (baseMarkerSize * markerScale).clamp(
+      baseMarkerSize * 0.2,
+      44.0,
+    );
     final centerOffset = scaledSize / 2;
     final filteredItems = items
         .where((item) => (item as dynamic).pageIndex == pageIndex)
         .toList();
-    return filteredItems
-        .map(
-          (item) {
-            final isTarget = _isMoveTargetItem(item);
-            final isDraggable = isTarget && isSelected(item);
-            final effectiveCenterOffset =
-                isDraggable ? dragHitBoxSize / 2 : centerOffset;
-            final resolvedX =
-                isTarget && _movePreviewNormalizedX != null
-                    ? _movePreviewNormalizedX!
-                    : nx(item);
-            final resolvedY =
-                isTarget && _movePreviewNormalizedY != null
-                    ? _movePreviewNormalizedY!
-                    : ny(item);
-            Widget markerChild = buildMarker(item, isSelected(item));
-            if (isDraggable) {
-              markerChild = GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: (_) => _handleMovePanStart(item),
-                onPanUpdate:
-                    (details) => _handleMovePanUpdate(details, pageSize),
-                onPanEnd: (_) => _handleMovePanEnd(),
-                onPanCancel: _handleMovePanCancel,
-                child: SizedBox.square(
-                  dimension: dragHitBoxSize,
-                  child: Center(child: markerChild),
-                ),
-              );
-            }
-            return Positioned(
-              left: resolvedX * pageSize.width - effectiveCenterOffset,
-              top: resolvedY * pageSize.height - effectiveCenterOffset,
-              child: markerChild,
-            );
-          },
-        )
-        .toList();
+    return filteredItems.map((item) {
+      final isTarget = _isMoveTargetItem(item);
+      final isDraggable = isTarget && isSelected(item);
+      final effectiveCenterOffset = isDraggable
+          ? dragHitBoxSize / 2
+          : centerOffset;
+      final resolvedX = isTarget && _movePreviewNormalizedX != null
+          ? _movePreviewNormalizedX!
+          : nx(item);
+      final resolvedY = isTarget && _movePreviewNormalizedY != null
+          ? _movePreviewNormalizedY!
+          : ny(item);
+      Widget markerChild = buildMarker(item, isSelected(item));
+      if (isDraggable) {
+        markerChild = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (_) => _handleMovePanStart(item),
+          onPanUpdate: (details) => _handleMovePanUpdate(details, pageSize),
+          onPanEnd: (_) => _handleMovePanEnd(),
+          onPanCancel: _handleMovePanCancel,
+          child: SizedBox.square(
+            dimension: dragHitBoxSize,
+            child: Center(child: markerChild),
+          ),
+        );
+      }
+      return Positioned(
+        left: resolvedX * pageSize.width - effectiveCenterOffset,
+        top: resolvedY * pageSize.height - effectiveCenterOffset,
+        child: markerChild,
+      );
+    }).toList();
   }
+
   EquipmentCategory? _nextActiveEquipmentCategory(
     EquipmentCategory? current,
     Set<EquipmentCategory> visibleCategories,
@@ -1544,7 +1540,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (visibleCategories.contains(current)) {
       return current;
     }
-    final orderedVisible = _orderedVisibleEquipmentCategories(visibleCategories);
+    final orderedVisible = _orderedVisibleEquipmentCategories(
+      visibleCategories,
+    );
     return orderedVisible.isNotEmpty ? orderedVisible.first : current;
   }
 
@@ -1559,6 +1557,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _isDetailDialogOpen = false;
     }
   }
+
   DrawingTopBar _buildDrawingTopBar() => DrawingTopBar(
     mode: _mode,
     isToolSelectionMode: _controller.isToolSelectionMode(_mode),
@@ -1627,6 +1626,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       ),
     );
   }
+
   Future<Map<int, Size>> _prefetchPdfPageSizes(PdfDocument document) async {
     const double baseWidth = 1000;
     final Map<int, Size> sizes = {};
@@ -1647,6 +1647,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     return sizes;
   }
+
   @override
   Widget build(BuildContext context) {
     const double sidePanelWidthRatio = 0.20;
@@ -1662,38 +1663,36 @@ class _DrawingScreenState extends State<DrawingScreen>
       },
       child: Scaffold(
         appBar: _buildAppBar(),
-        bottomNavigationBar:
-            _isMoveMode ? _buildMoveModeBottomBar() : null,
+        bottomNavigationBar: _isMoveMode ? _buildMoveModeBottomBar() : null,
         body: LayoutBuilder(
-        builder: (context, constraints) {
-          final showSidePanel = constraints.maxWidth >= 900;
-          final drawingStack = SizedBox.expand(
-            key: _pdfViewerKey,
-            child: Stack(children: _buildDrawingStackChildren()),
-          );
-          if (!showSidePanel) {
-            return drawingStack;
-          }
-          final panelWidth = (constraints.maxWidth * sidePanelWidthRatio)
-              .clamp(sidePanelMinWidth, sidePanelMaxWidth)
-              .toDouble();
-          final defectFilter = _sidePanelDefectCategory ?? _activeCategory;
-          final equipmentFilter =
-              _sidePanelEquipmentCategory ?? _activeEquipmentCategory;
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: drawingStack),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOut,
-                    width: _isRightPanelCollapsed ? 0 : panelWidth,
-                    child:
-                        _isRightPanelCollapsed
-                            ? null
-                            : MarkerSidePanel(
+          builder: (context, constraints) {
+            final showSidePanel = constraints.maxWidth >= 900;
+            final drawingStack = SizedBox.expand(
+              key: _pdfViewerKey,
+              child: Stack(children: _buildDrawingStackChildren()),
+            );
+            if (!showSidePanel) {
+              return drawingStack;
+            }
+            final panelWidth = (constraints.maxWidth * sidePanelWidthRatio)
+                .clamp(sidePanelMinWidth, sidePanelMaxWidth)
+                .toDouble();
+            final defectFilter = _sidePanelDefectCategory ?? _activeCategory;
+            final equipmentFilter =
+                _sidePanelEquipmentCategory ?? _activeEquipmentCategory;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: drawingStack),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      width: _isRightPanelCollapsed ? 0 : panelWidth,
+                      child: _isRightPanelCollapsed
+                          ? null
+                          : MarkerSidePanel(
                               tabController: _sidePanelController,
                               currentPage: _currentPage,
                               defects: _site.defects,
@@ -1704,43 +1703,37 @@ class _DrawingScreenState extends State<DrawingScreen>
                               selectedEquipmentCategory: equipmentFilter,
                               onSelectDefect: _selectDefectFromPanel,
                               onSelectEquipment: _selectEquipmentFromPanel,
-                              onDefectCategorySelected: (category) => setState(
-                                () {
-                                  if (_activeCategory == category) {
-                                    _activeCategory = null;
-                                    _sidePanelDefectCategory = null;
-                                  } else {
-                                    _activeCategory = category;
-                                    _sidePanelDefectCategory = category;
-                                  }
-                                },
-                              ),
-                              onEquipmentCategorySelected:
-                                  (category) => setState(
-                                    () {
-                                      if (_activeEquipmentCategory ==
-                                          category) {
-                                        _activeEquipmentCategory = null;
-                                        _sidePanelEquipmentCategory = null;
-                                      } else {
-                                        _activeEquipmentCategory = category;
-                                        _sidePanelEquipmentCategory = category;
-                                      }
-                                    },
-                                  ),
+                              onDefectCategorySelected: (category) =>
+                                  setState(() {
+                                    if (_activeCategory == category) {
+                                      _activeCategory = null;
+                                      _sidePanelDefectCategory = null;
+                                    } else {
+                                      _activeCategory = category;
+                                      _sidePanelDefectCategory = category;
+                                    }
+                                  }),
+                              onEquipmentCategorySelected: (category) =>
+                                  setState(() {
+                                    if (_activeEquipmentCategory == category) {
+                                      _activeEquipmentCategory = null;
+                                      _sidePanelEquipmentCategory = null;
+                                    } else {
+                                      _activeEquipmentCategory = category;
+                                      _sidePanelEquipmentCategory = category;
+                                    }
+                                  }),
                               visibleDefectCategories: _visibleDefectCategories,
                               visibleEquipmentCategories:
                                   _visibleEquipmentCategories,
-                              onDefectVisibilityChanged:
-                                  (category, visible) => setState(
-                                    () {
-                                      if (visible) {
-                                        _visibleDefectCategories.add(category);
-                                      } else {
-                                        _visibleDefectCategories.remove(category);
-                                      }
-                                    },
-                                  ),
+                              onDefectVisibilityChanged: (category, visible) =>
+                                  setState(() {
+                                    if (visible) {
+                                      _visibleDefectCategories.add(category);
+                                    } else {
+                                      _visibleDefectCategories.remove(category);
+                                    }
+                                  }),
                               onEquipmentVisibilityChanged:
                                   _handleEquipmentVisibilityChanged,
                               markerScale: _markerScale,
@@ -1753,25 +1746,25 @@ class _DrawingScreenState extends State<DrawingScreen>
                               onMovePressed: _handleMovePressed,
                               onDeletePressed: _handleDeletePressed,
                             ),
-                  ),
-                ],
-              ),
-              Positioned(
-                right: _isRightPanelCollapsed ? -16 : panelWidth - 16,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: _buildRightPanelOverlayToggle(
-                    isCollapsed: _isRightPanelCollapsed,
-                    onToggle: () => setState(
-                      () => _isRightPanelCollapsed = !_isRightPanelCollapsed,
+                    ),
+                  ],
+                ),
+                Positioned(
+                  right: _isRightPanelCollapsed ? -16 : panelWidth - 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _buildRightPanelOverlayToggle(
+                      isCollapsed: _isRightPanelCollapsed,
+                      onToggle: () => setState(
+                        () => _isRightPanelCollapsed = !_isRightPanelCollapsed,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
         ),
       ),
     );

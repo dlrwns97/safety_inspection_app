@@ -1,4 +1,4 @@
-﻿part of 'drawing_screen.dart';
+part of 'drawing_screen.dart';
 
 extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildMarkerWidgetsForPage({
@@ -121,7 +121,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
             }
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(tooltip), duration: const Duration(milliseconds: 800)));
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(tooltip),
+                  duration: const Duration(milliseconds: 800),
+                ),
+              );
           },
           child: Container(
             width: 40,
@@ -190,14 +195,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
                     tooltip: '획 지우개',
-                    onTap: () => _handleDrawingToolChanged(DrawingTool.strokeEraser),
+                    onTap: () =>
+                        _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
                     tooltip: '영역 지우개',
-                    onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
+                    onTap: () =>
+                        _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
@@ -261,7 +268,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               height: 10,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: theme.colorScheme.outline),
+                                border: Border.all(
+                                  color: theme.colorScheme.outline,
+                                ),
                               ),
                             ),
                           ),
@@ -270,7 +279,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
                               trackHeight: 4,
-                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 14,
+                              ),
                               showValueIndicator: ShowValueIndicator.always,
                             ),
                             child: Slider(
@@ -292,7 +303,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               height: 18,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: theme.colorScheme.outline),
+                                border: Border.all(
+                                  color: theme.colorScheme.outline,
+                                ),
                               ),
                             ),
                           ),
@@ -307,7 +320,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               height: previewDiameter,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -324,11 +340,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          for (final index in toolIndexes.where((i) => i < _presets.length)) ...[
+                          for (final index in toolIndexes.where(
+                            (i) => i < _presets.length,
+                          )) ...[
                             panelButton(
                               icon: _iconForVariant(_presets[index].variant),
                               selected: _activePresetIndex == index,
-                              tooltip: _labelForVariant(_presets[index].variant),
+                              tooltip: _labelForVariant(
+                                _presets[index].variant,
+                              ),
                               onTap: () => _toggleActivePreset(index),
                             ),
                             const SizedBox(width: 8),
@@ -375,101 +395,117 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ],
               ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                IconButton(
-                  onPressed: !hasActiveTool || style.widthPx <= 1
-                      || !canAdjustStrokeStyle
-                      ? null
-                      : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx - 1).clamp(1, 48).toDouble())),
-                  icon: const Icon(Icons.remove),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: style.widthPx.clamp(1.0, 48.0),
-                    min: 1,
-                    max: 48,
-                    divisions: 47,
-                    label: style.widthPx.round().toString(),
-                    onChanged: canAdjustStrokeStyle
-                        ? (v) => _updateActivePreset(style.copyWith(widthPx: v))
-                        : null,
-                  ),
-                ),
-                IconButton(
-                  onPressed: !canAdjustStrokeStyle || style.widthPx >= 48
-                      ? null
-                      : () => _updateActivePreset(style.copyWith(widthPx: (style.widthPx + 1).clamp(1, 48).toDouble())),
-                  icon: const Icon(Icons.add),
-                ),
-              ],
-            ),
-            if (showOpacity)
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  const SizedBox(width: 8),
-                  const Text('Opacity'),
+                  IconButton(
+                    onPressed:
+                        !hasActiveTool ||
+                            style.widthPx <= 1 ||
+                            !canAdjustStrokeStyle
+                        ? null
+                        : () => _updateActivePreset(
+                            style.copyWith(
+                              widthPx: (style.widthPx - 1)
+                                  .clamp(1, 48)
+                                  .toDouble(),
+                            ),
+                          ),
+                    icon: const Icon(Icons.remove),
+                  ),
                   Expanded(
                     child: Slider(
-                      value: style.opacity.clamp(0.05, 1.0),
-                      min: 0.05,
-                      max: 1.0,
+                      value: style.widthPx.clamp(1.0, 48.0),
+                      min: 1,
+                      max: 48,
+                      divisions: 47,
+                      label: style.widthPx.round().toString(),
                       onChanged: canAdjustStrokeStyle
                           ? (v) =>
-                              _updateActivePreset(style.copyWith(opacity: v))
+                                _updateActivePreset(style.copyWith(widthPx: v))
                           : null,
                     ),
                   ),
-                  SizedBox(
-                    width: 44,
-                    child: Text('${(style.opacity * 100).round()}%'),
+                  IconButton(
+                    onPressed: !canAdjustStrokeStyle || style.widthPx >= 48
+                        ? null
+                        : () => _updateActivePreset(
+                            style.copyWith(
+                              widthPx: (style.widthPx + 1)
+                                  .clamp(1, 48)
+                                  .toDouble(),
+                            ),
+                          ),
+                    icon: const Icon(Icons.add),
                   ),
                 ],
               ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final argb in colorRow)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _colorCircle(
-                              argb,
-                              selected: style.argbColor == argb,
-                              onTap: !canAdjustStrokeStyle
-                                  ? () {}
-                                  : () {
-                                      _updateActivePreset(
-                                        style.copyWith(argbColor: argb),
-                                      );
-                                      _pushRecentColor(argb);
-                                    },
+              if (showOpacity)
+                Row(
+                  children: [
+                    const SizedBox(width: 8),
+                    const Text('Opacity'),
+                    Expanded(
+                      child: Slider(
+                        value: style.opacity.clamp(0.05, 1.0),
+                        min: 0.05,
+                        max: 1.0,
+                        onChanged: canAdjustStrokeStyle
+                            ? (v) => _updateActivePreset(
+                                style.copyWith(opacity: v),
+                              )
+                            : null,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 44,
+                      child: Text('${(style.opacity * 100).round()}%'),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final argb in colorRow)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _colorCircle(
+                                argb,
+                                selected: style.argbColor == argb,
+                                onTap: !canAdjustStrokeStyle
+                                    ? () {}
+                                    : () {
+                                        _updateActivePreset(
+                                          style.copyWith(argbColor: argb),
+                                        );
+                                        _pushRecentColor(argb);
+                                      },
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
+                  IconButton(
                     onPressed: !canAdjustStrokeStyle
-                      ? null
-                      : () {
-                          if (style.kind == StrokeToolKind.highlighter) {
-                            _showHighlighterSettingsPopover();
-                            return;
-                          }
-                          _showPenSettingsPopover();
-                        },
-                  icon: const Icon(Icons.tune),
-                  tooltip: '세부 설정',
-                ),
-              ],
-            ),
+                        ? null
+                        : () {
+                            if (style.kind == StrokeToolKind.highlighter) {
+                              _showHighlighterSettingsPopover();
+                              return;
+                            }
+                            _showPenSettingsPopover();
+                          },
+                    icon: const Icon(Icons.tune),
+                    tooltip: '세부 설정',
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -503,7 +539,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
     };
   }
 
-  Widget _colorCircle(int argb, {required bool selected, required VoidCallback onTap}) {
+  Widget _colorCircle(
+    int argb, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -514,13 +554,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
           color: Color(argb),
           border: Border.all(
             width: selected ? 3 : 1,
-            color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outline,
           ),
         ),
       ),
     );
   }
-
 
   Future<void> _selectToolAndOpenSettings(StrokeToolKind kind) async {
     if (!mounted) {
@@ -535,7 +576,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
 
-      switch (kind) {
+    switch (kind) {
       case StrokeToolKind.pen:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
@@ -771,7 +812,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
       barrierDismissible: true,
       builder: (ctx) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: StatefulBuilder(
             builder: (ctx, setD) {
               void applyColor(Color c) {
@@ -794,7 +837,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: active ? Theme.of(ctx).colorScheme.primaryContainer : Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                      color: active
+                          ? Theme.of(ctx).colorScheme.primaryContainer
+                          : Theme.of(ctx).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
@@ -810,9 +855,21 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: tabButton('Palette', useStandardTab, () => setD(() => useStandardTab = true))),
+                        Expanded(
+                          child: tabButton(
+                            'Palette',
+                            useStandardTab,
+                            () => setD(() => useStandardTab = true),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: tabButton('Custom', !useStandardTab, () => setD(() => useStandardTab = false))),
+                        Expanded(
+                          child: tabButton(
+                            'Custom',
+                            !useStandardTab,
+                            () => setD(() => useStandardTab = false),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -833,7 +890,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       if (_recentArgb.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        Align(alignment: Alignment.centerLeft, child: Text('Recent', style: Theme.of(ctx).textTheme.labelLarge)),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Recent',
+                            style: Theme.of(ctx).textTheme.labelLarge,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 10,
@@ -842,8 +905,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             for (final argb in _recentArgb)
                               _colorCircle(
                                 argb,
-                                selected: selected.withAlpha(0xFF).value == Color(argb).withAlpha(0xFF).value,
-                                onTap: () => applyColor(Color(argb).withAlpha(selected.alpha)),
+                                selected:
+                                    selected.withAlpha(0xFF).value ==
+                                    Color(argb).withAlpha(0xFF).value,
+                                onTap: () => applyColor(
+                                  Color(argb).withAlpha(selected.alpha),
+                                ),
                               ),
                           ],
                         ),
@@ -916,7 +983,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               );
@@ -999,36 +1066,36 @@ extension _DrawingScreenUi on _DrawingScreenState {
     return LayoutBuilder(
       builder: (context, constraints) {
         return PdfDrawingView(
-            pdfController: _pdfController,
-            pdfLoadError: _pdfLoadError,
-            sitePdfName: _site.pdfName,
-            onPageChanged: _handlePdfPageChanged,
-            onDocumentLoaded: _handlePdfDocumentLoaded,
-            onDocumentError: _handlePdfDocumentError,
-            pageSizes: _pdfPageSizes,
-            pdfViewVersion: _pdfViewVersion,
-            onUpdatePageSize: _handleUpdatePageSize,
-            photoControllerForPage: _photoControllerForPage,
-            scaleStateControllerForPage: _scaleStateControllerForPage,
-            enablePdfPanGestures: enablePdfPanGestures,
-            enablePdfScaleGestures: enablePdfScaleGestures,
-            disablePageSwipe: disablePageSwipe,
-            viewportSize: constraints.biggest,
-            pageContentKeyForPage: _pdfPageContentKeyForPage,
-            buildPageOverlay:
-                ({
-                  required pageSize,
-                  required renderSize,
-                  required pageNumber,
-                  required imageProvider,
-                  required pageContentKey,
-                }) => _buildPdfPageOverlay(
-                  pageSize: pageSize,
-                  renderSize: renderSize,
-                  pageNumber: pageNumber,
-                  imageProvider: imageProvider,
-                  pageContentKey: pageContentKey,
-                ),
+          pdfController: _pdfController,
+          pdfLoadError: _pdfLoadError,
+          sitePdfName: _site.pdfName,
+          onPageChanged: _handlePdfPageChanged,
+          onDocumentLoaded: _handlePdfDocumentLoaded,
+          onDocumentError: _handlePdfDocumentError,
+          pageSizes: _pdfPageSizes,
+          pdfViewVersion: _pdfViewVersion,
+          onUpdatePageSize: _handleUpdatePageSize,
+          photoControllerForPage: _photoControllerForPage,
+          scaleStateControllerForPage: _scaleStateControllerForPage,
+          enablePdfPanGestures: enablePdfPanGestures,
+          enablePdfScaleGestures: enablePdfScaleGestures,
+          disablePageSwipe: disablePageSwipe,
+          viewportSize: constraints.biggest,
+          pageContentKeyForPage: _pdfPageContentKeyForPage,
+          buildPageOverlay:
+              ({
+                required pageSize,
+                required renderSize,
+                required pageNumber,
+                required imageProvider,
+                required pageContentKey,
+              }) => _buildPdfPageOverlay(
+                pageSize: pageSize,
+                renderSize: renderSize,
+                pageNumber: pageNumber,
+                imageProvider: imageProvider,
+                pageContentKey: pageContentKey,
+              ),
         );
       },
     );
@@ -1145,70 +1212,100 @@ extension _DrawingScreenUi on _DrawingScreenState {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-            KeyedSubtree(
-              key: pageContentKey,
-              child: SizedBox.expand(
+              KeyedSubtree(
+                key: pageContentKey,
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: SizedBox(
+                      width: pageSize.width,
+                      height: pageSize.height,
+                      child: Image(image: imageProvider, fit: BoxFit.fill),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: destRect.left,
+                top: destRect.top,
+                width: destRect.width,
+                height: destRect.height,
                 child: FittedBox(
-                  fit: BoxFit.contain,
+                  fit: BoxFit.fill,
+                  alignment: Alignment.topLeft,
                   child: SizedBox(
                     width: pageSize.width,
                     height: pageSize.height,
-                    child: Image(image: imageProvider, fit: BoxFit.fill),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: destRect.left,
-              top: destRect.top,
-              width: destRect.width,
-              height: destRect.height,
-              child: FittedBox(
-                fit: BoxFit.fill,
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: pageSize.width,
-                  height: pageSize.height,
-                  child: Stack(
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      ..._buildMarkerWidgetsForPage(
-                        size: pageSize,
-                        pageIndex: pageNumber,
-                      ),
-                      Positioned.fill(
-                        child: DrawingCanvasWidget(
-                          controller: _canvasController,
-                          cacheManager: _strokeCacheManager,
-                          page: pageNumber,
-                          canvasSize: pageSize,
-                          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-                          eraserRadius: _areaEraserRadiusPx,
+                    child: Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        ..._buildMarkerWidgetsForPage(
+                          size: pageSize,
+                          pageIndex: pageNumber,
                         ),
-                      ),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: _buildTextBoxesOverlay(
-                            pageSize: pageSize,
-                            pageNumber: pageNumber,
+                        Positioned.fill(
+                          child: DrawingCanvasWidget(
+                            controller: _canvasController,
+                            cacheManager: _strokeCacheManager,
+                            page: pageNumber,
+                            canvasSize: pageSize,
+                            devicePixelRatio: MediaQuery.devicePixelRatioOf(
+                              context,
+                            ),
+                            eraserRadius: _areaEraserRadiusPx,
                           ),
                         ),
-                      ),
-                      if (_activeTool == DrawingTool.shape &&
-                          _activeShapeManipulator != null)
                         Positioned.fill(
                           child: IgnorePointer(
-                            child: ShapeHandlesOverlay(
-                              manipulator: _activeShapeManipulator!,
-                              canvasSize: pageSize,
+                            child: _buildTextBoxesOverlay(
+                              pageSize: pageSize,
+                              pageNumber: pageNumber,
                             ),
                           ),
                         ),
-                    ],
+                        if (_activeTool == DrawingTool.shape &&
+                            _activeShapeManipulator != null)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: ShapeHandlesOverlay(
+                                manipulator: _activeShapeManipulator!,
+                                canvasSize: pageSize,
+                                previewType:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _activeShapeType
+                                    : null,
+                                previewStroke:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _activeShapeStrokeStyle
+                                    : null,
+                                previewFillArgb:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _activeShapeFillColor?.value
+                                    : null,
+                                createStartNorm:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _shapeInteractionStartNorm
+                                    : null,
+                                createCurrentNorm:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _shapeInteractionLastNorm
+                                    : null,
+                                showBounds:
+                                    _activeShapeEditOp !=
+                                    _ShapeEditOperation.create,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
               Positioned.fill(
                 child: RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -1216,35 +1313,34 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _TouchOnlyScaleGestureRecognizer:
                         GestureRecognizerFactoryWithHandlers<
                           _TouchOnlyScaleGestureRecognizer
-                        >(
-                          _TouchOnlyScaleGestureRecognizer.new,
-                          (_TouchOnlyScaleGestureRecognizer instance) {
-                            instance
-                              ..onStart = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                _handlePdfNavigationScaleStart(details);
+                        >(_TouchOnlyScaleGestureRecognizer.new, (
+                          _TouchOnlyScaleGestureRecognizer instance,
+                        ) {
+                          instance
+                            ..onStart = (details) {
+                              if (_isStylusActive) {
+                                return;
                               }
-                              ..onUpdate = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                if (kDebugMode) {
-                                  debugPrint(
-                                    'SCALE UPDATE pointerCount=${details.pointerCount}',
-                                  );
-                                }
-                                _handlePdfNavigationScaleUpdate(details);
+                              _handlePdfNavigationScaleStart(details);
+                            }
+                            ..onUpdate = (details) {
+                              if (_isStylusActive) {
+                                return;
                               }
-                              ..onEnd = (details) {
-                                if (_isStylusActive) {
-                                  return;
-                                }
-                                _handlePdfNavigationScaleEnd(details);
-                              };
-                          },
-                        ),
+                              if (kDebugMode) {
+                                debugPrint(
+                                  'SCALE UPDATE pointerCount=${details.pointerCount}',
+                                );
+                              }
+                              _handlePdfNavigationScaleUpdate(details);
+                            }
+                            ..onEnd = (details) {
+                              if (_isStylusActive) {
+                                return;
+                              }
+                              _handlePdfNavigationScaleEnd(details);
+                            };
+                        }),
                   },
                   child: const ColoredBox(color: Colors.transparent),
                 ),
@@ -1427,6 +1523,26 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 child: ShapeHandlesOverlay(
                   manipulator: _activeShapeManipulator!,
                   canvasSize: DrawingCanvasSize,
+                  previewType: _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _activeShapeType
+                      : null,
+                  previewStroke:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _activeShapeStrokeStyle
+                      : null,
+                  previewFillArgb:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _activeShapeFillColor?.value
+                      : null,
+                  createStartNorm:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _shapeInteractionStartNorm
+                      : null,
+                  createCurrentNorm:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _shapeInteractionLastNorm
+                      : null,
+                  showBounds: _activeShapeEditOp != _ShapeEditOperation.create,
                 ),
               ),
           ],
@@ -1451,8 +1567,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
     _settingsPopover.hide();
     final selectedStroke = _resolveSelectedTextStroke();
     final selectedData = selectedStroke?.stroke.textBoxData;
-    var draftFontSize =
-        (selectedData?.fontSize ?? _currentTextFontSize).clamp(10.0, 64.0);
+    var draftFontSize = (selectedData?.fontSize ?? _currentTextFontSize).clamp(
+      10.0,
+      64.0,
+    );
     var draftColor = selectedData?.argbColor ?? _currentTextColor.value;
     var draftAlign = selectedData?.textAlign ?? _currentTextAlign;
 
@@ -1580,19 +1698,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       .map((argb) => Color(argb))
                                       .toList(growable: false),
                                   onLiveChanged: (color) {
-                                    liveColor = color.withAlpha(0xFF).toARGB32();
+                                    liveColor = color
+                                        .withAlpha(0xFF)
+                                        .toARGB32();
                                   },
                                   onCommitChanged: (color) {
-                                    liveColor = color.withAlpha(0xFF).toARGB32();
+                                    liveColor = color
+                                        .withAlpha(0xFF)
+                                        .toARGB32();
                                   },
                                 );
                                 if (mounted) {
                                   setPopupState(() {
-                                    draftColor = kept ? liveColor : originalColor;
+                                    draftColor = kept
+                                        ? liveColor
+                                        : originalColor;
                                   });
                                 }
                                 if (mounted) {
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
                                     if (mounted) {
                                       _showTextSettingsPopover();
                                     }
@@ -1675,64 +1801,69 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final strokes = _canvasController.getStrokes(pageNumber);
     final textStrokes = strokes.where(
-      (stroke) => stroke.toolType == DrawingTool.textBox && stroke.textBoxData != null,
+      (stroke) =>
+          stroke.toolType == DrawingTool.textBox && stroke.textBoxData != null,
     );
     return Stack(
-      children: textStrokes.map((stroke) {
-        final boundsNorm = _effectiveTextBoundsForStroke(stroke);
-        if (boundsNorm == null || boundsNorm.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        final textData = stroke.textBoxData!;
-        final isSelected = _selectedTextStrokeId == stroke.id;
-        final left = boundsNorm.left * pageSize.width;
-        final top = boundsNorm.top * pageSize.height;
-        final width = boundsNorm.width * pageSize.width;
-        final height = boundsNorm.height * pageSize.height;
-        return Positioned(
-          left: left,
-          top: top,
-          width: width,
-          height: height,
-          child: Container(
-            alignment: Alignment.topLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              border: Border.all(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                width: isSelected ? 1.5 : 0.0,
-              ),
-            ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Text(
-                  _textStrokeText(stroke),
-                  textAlign: textData.textAlign,
-                  style: TextStyle(
-                    fontSize: textData.fontSize,
-                    color: Color(textData.argbColor),
+      children: textStrokes
+          .map((stroke) {
+            final boundsNorm = _effectiveTextBoundsForStroke(stroke);
+            if (boundsNorm == null || boundsNorm.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final textData = stroke.textBoxData!;
+            final isSelected = _selectedTextStrokeId == stroke.id;
+            final left = boundsNorm.left * pageSize.width;
+            final top = boundsNorm.top * pageSize.height;
+            final width = boundsNorm.width * pageSize.width;
+            final height = boundsNorm.height * pageSize.height;
+            return Positioned(
+              left: left,
+              top: top,
+              width: width,
+              height: height,
+              child: Container(
+                alignment: Alignment.topLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.transparent,
+                    width: isSelected ? 1.5 : 0.0,
                   ),
                 ),
-                if (isSelected)
-                  Positioned(
-                    right: -5,
-                    bottom: -5,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Text(
+                      _textStrokeText(stroke),
+                      textAlign: textData.textAlign,
+                      style: TextStyle(
+                        fontSize: textData.fontSize,
+                        color: Color(textData.argbColor),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      }).toList(growable: false),
+                    if (isSelected)
+                      Positioned(
+                        right: -5,
+                        bottom: -5,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -1775,14 +1906,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
     int colorToArgb(Color color) => color.toARGB32();
     var draftStrokeColor = colorToArgb(_currentShapeStrokeColor);
-    int? draftFillColor =
-        _currentShapeFillColor == null
-            ? null
-            : colorToArgb(_currentShapeFillColor!);
+    int? draftFillColor = _currentShapeFillColor == null
+        ? null
+        : colorToArgb(_currentShapeFillColor!);
     draftFillColor ??= draftStrokeColor;
     var fillEnabled = _currentShapeFillColor != null;
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
     var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
+    var lockAspect = _isShapeAspectLocked;
 
     Widget buildSliderRow({
       required String label,
@@ -1823,289 +1954,317 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                    Row(
-                      children: [
-                        const Expanded(child: Text('도형 설정')),
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: IconButton(
-                            onPressed: _settingsPopover.hide,
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.close, size: 18),
-                          ),
+                  Row(
+                    children: [
+                      const Expanded(child: Text('도형 설정')),
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: IconButton(
+                          onPressed: _settingsPopover.hide,
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.close, size: 18),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: shapeTypes.map((shapeType) {
-                        return ChoiceChip(
-                          label: Text(_labelForShapeType(shapeType)),
-                          selected: _activeShapeType == shapeType,
-                          onSelected: (_) {
-                            final previousType = _activeShapeType;
-                            _saveShapeType(previousType);
-                            _safeSetState(() {
-                              _activeShapeType = shapeType;
-                              _loadShapeType(shapeType);
-                            });
-                            draftStrokeColor = colorToArgb(_currentShapeStrokeColor);
-                            draftFillColor = _currentShapeFillColor == null
-                                ? null
-                                : colorToArgb(_currentShapeFillColor!);
-                            draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
-                            draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
-                            setPopupState(() {});
-                          },
-                        );
-                      }).toList(growable: false),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const SizedBox(width: 72, child: Text('테두리 색')),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              for (final argb in palette)
-                                _colorCircle(
-                                  argb,
-                                  selected: draftStrokeColor == argb,
-                                  onTap: () {
-                                    setPopupState(() {
-                                      draftStrokeColor = argb;
-                                    });
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: shapeTypes
+                        .map((shapeType) {
+                          return ChoiceChip(
+                            label: Text(_labelForShapeType(shapeType)),
+                            selected: _activeShapeType == shapeType,
+                            onSelected: (_) {
+                              final previousType = _activeShapeType;
+                              _saveShapeType(previousType);
+                              _safeSetState(() {
+                                _activeShapeType = shapeType;
+                                _loadShapeType(shapeType);
+                              });
+                              draftStrokeColor = colorToArgb(
+                                _currentShapeStrokeColor,
+                              );
+                              draftFillColor = _currentShapeFillColor == null
+                                  ? null
+                                  : colorToArgb(_currentShapeFillColor!);
+                              draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
+                              draftOpacity = _currentShapeOpacity.clamp(
+                                0.05,
+                                1.0,
+                              );
+                              setPopupState(() {});
+                            },
+                          );
+                        })
+                        .toList(growable: false),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: lockAspect,
+                    title: const Text('비율 고정 (정사각형/정원형)'),
+                    onChanged: (value) {
+                      final next = value ?? false;
+                      setPopupState(() {
+                        lockAspect = next;
+                      });
+                      _safeSetState(() {
+                        _isShapeAspectLocked = next;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const SizedBox(width: 72, child: Text('테두리 색')),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final argb in palette)
+                              _colorCircle(
+                                argb,
+                                selected: draftStrokeColor == argb,
+                                onTap: () {
+                                  setPopupState(() {
+                                    draftStrokeColor = argb;
+                                  });
+                                  _safeSetState(() {
+                                    _currentShapeStrokeColor = Color(argb);
+                                  });
+                                  _pushRecentColor(argb);
+                                  _saveShapeType(_activeShapeType);
+                                },
+                              ),
+                            IconButton(
+                              tooltip: '색상 선택',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () async {
+                                final originalStroke = _currentShapeStrokeColor;
+                                _settingsPopover.hide();
+                                await Future<void>.delayed(
+                                  const Duration(milliseconds: 16),
+                                );
+                                if (!mounted) {
+                                  return;
+                                }
+                                final kept = await showDrawingColorPickerDialog(
+                                  Navigator.of(
+                                    this.context,
+                                    rootNavigator: true,
+                                  ).context,
+                                  initialColor: originalStroke,
+                                  recentColors: _recentArgb
+                                      .map((argb) => Color(argb))
+                                      .toList(growable: false),
+                                  onLiveChanged: (color) {
                                     _safeSetState(() {
-                                      _currentShapeStrokeColor = Color(argb);
+                                      _currentShapeStrokeColor = Color(
+                                        color.withAlpha(0xFF).toARGB32(),
+                                      );
                                     });
-                                    _pushRecentColor(argb);
+                                  },
+                                  onCommitChanged: (color) {
+                                    final picked = color
+                                        .withAlpha(0xFF)
+                                        .toARGB32();
+                                    _safeSetState(() {
+                                      _currentShapeStrokeColor = Color(picked);
+                                    });
+                                    _pushRecentColor(picked);
                                     _saveShapeType(_activeShapeType);
                                   },
-                                ),
-                              IconButton(
-                                tooltip: '색상 선택',
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () async {
-                                  final originalStroke = _currentShapeStrokeColor;
-                                  _settingsPopover.hide();
-                                  await Future<void>.delayed(
-                                    const Duration(milliseconds: 16),
-                                  );
-                                  if (!mounted) {
-                                    return;
-                                  }
-                                  final kept = await showDrawingColorPickerDialog(
-                                    Navigator.of(
-                                      this.context,
-                                      rootNavigator: true,
-                                    ).context,
-                                    initialColor: originalStroke,
-                                    recentColors: _recentArgb
-                                        .map((argb) => Color(argb))
-                                        .toList(growable: false),
-                                    onLiveChanged: (color) {
-                                      _safeSetState(() {
-                                        _currentShapeStrokeColor = Color(
-                                          color.withAlpha(0xFF).toARGB32(),
-                                        );
-                                      });
-                                    },
-                                    onCommitChanged: (color) {
-                                      final picked = color.withAlpha(0xFF).toARGB32();
-                                      _safeSetState(() {
-                                        _currentShapeStrokeColor = Color(picked);
-                                      });
-                                      _pushRecentColor(picked);
-                                      _saveShapeType(_activeShapeType);
-                                    },
-                                  );
-                                  if (!kept) {
-                                    _safeSetState(() {
-                                      _currentShapeStrokeColor = originalStroke;
-                                    });
-                                  }
-                                  _saveShapeType(_activeShapeType);
-                                  if (mounted) {
-                                    WidgetsBinding.instance.addPostFrameCallback((
-                                      _,
-                                    ) {
-                                      if (mounted) {
-                                        _showShapeSettingsPopover();
-                                      }
-                                    });
-                                  }
-                                },
-                                icon: const Icon(Icons.colorize),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 72,
-                          child: InkWell(
-                            onTap: () {
-                              setPopupState(() {
-                                fillEnabled = !fillEnabled;
-                                if (fillEnabled && draftFillColor == null) {
-                                  draftFillColor = draftStrokeColor;
+                                );
+                                if (!kept) {
+                                  _safeSetState(() {
+                                    _currentShapeStrokeColor = originalStroke;
+                                  });
                                 }
-                              });
-                              _safeSetState(() {
-                                _currentShapeFillColor = fillEnabled
-                                    ? Color(draftFillColor ?? draftStrokeColor)
-                                    : null;
-                              });
-                              _saveShapeType(_activeShapeType);
-                            },
-                            child: Opacity(
-                              opacity: fillEnabled ? 1.0 : 0.45,
-                              child: const Text('채우기 색'),
+                                _saveShapeType(_activeShapeType);
+                                if (mounted) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) {
+                                      _showShapeSettingsPopover();
+                                    }
+                                  });
+                                }
+                              },
+                              icon: const Icon(Icons.colorize),
                             ),
-                          ),
+                          ],
                         ),
-                        Expanded(
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 72,
+                        child: InkWell(
+                          onTap: () {
+                            setPopupState(() {
+                              fillEnabled = !fillEnabled;
+                              if (fillEnabled && draftFillColor == null) {
+                                draftFillColor = draftStrokeColor;
+                              }
+                            });
+                            _safeSetState(() {
+                              _currentShapeFillColor = fillEnabled
+                                  ? Color(draftFillColor ?? draftStrokeColor)
+                                  : null;
+                            });
+                            _saveShapeType(_activeShapeType);
+                          },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: IgnorePointer(
-                              ignoring: !fillEnabled,
-                              child: Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: [
-                                  for (final argb in palette)
-                                    _colorCircle(
-                                      argb,
-                                      selected: draftFillColor == argb,
-                                      onTap: () {
-                                        setPopupState(() {
-                                          draftFillColor = argb;
-                                          fillEnabled = true;
-                                        });
-                                        _safeSetState(() {
-                                          _currentShapeFillColor = Color(argb);
-                                        });
-                                        _pushRecentColor(argb);
-                                        _saveShapeType(_activeShapeType);
-                                      },
-                                    ),
-                                  IconButton(
-                                    tooltip: '채우기 색상 선택',
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: () async {
-                                      final originalFill = _currentShapeFillColor;
-                                      final seedColor = Color(
-                                        draftFillColor ??
-                                            _currentShapeStrokeColor.value,
-                                      );
-                                      _settingsPopover.hide();
-                                      await Future<void>.delayed(
-                                        const Duration(milliseconds: 16),
-                                      );
-                                      if (!mounted) {
-                                        return;
-                                      }
-                                      final kept =
-                                          await showDrawingColorPickerDialog(
-                                        Navigator.of(
-                                          this.context,
-                                          rootNavigator: true,
-                                        ).context,
-                                        initialColor: seedColor,
-                                        recentColors: _recentArgb
-                                            .map((argb) => Color(argb))
-                                            .toList(growable: false),
-                                        onLiveChanged: (color) {
-                                          _safeSetState(() {
-                                            _currentShapeFillColor = Color(
-                                              color.withAlpha(0xFF).value,
-                                            );
-                                          });
-                                        },
-                                        onCommitChanged: (color) {
-                                          final picked = color.withAlpha(
-                                            0xFF,
-                                          ).value;
-                                          _safeSetState(() {
-                                            _currentShapeFillColor = Color(
-                                              picked,
-                                            );
-                                          });
-                                          _pushRecentColor(picked);
-                                          _saveShapeType(_activeShapeType);
-                                        },
-                                      );
-                                      if (!kept) {
-                                        _safeSetState(() {
-                                          _currentShapeFillColor = originalFill;
-                                        });
-                                      }
-                                      draftFillColor = _currentShapeFillColor == null
-                                          ? null
-                                          : colorToArgb(_currentShapeFillColor!);
+                            child: const Text('채우기 색'),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Opacity(
+                          opacity: fillEnabled ? 1.0 : 0.45,
+                          child: IgnorePointer(
+                            ignoring: !fillEnabled,
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final argb in palette)
+                                  _colorCircle(
+                                    argb,
+                                    selected: draftFillColor == argb,
+                                    onTap: () {
+                                      setPopupState(() {
+                                        draftFillColor = argb;
+                                        fillEnabled = true;
+                                      });
+                                      _safeSetState(() {
+                                        _currentShapeFillColor = Color(argb);
+                                      });
+                                      _pushRecentColor(argb);
                                       _saveShapeType(_activeShapeType);
-                                      if (mounted) {
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                          if (mounted) {
-                                            _showShapeSettingsPopover();
-                                          }
-                                        });
-                                      }
                                     },
-                                    icon: const Icon(Icons.colorize),
                                   ),
-                                ],
-                              ),
+                                IconButton(
+                                  tooltip: '채우기 색상 선택',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () async {
+                                    final originalFill = _currentShapeFillColor;
+                                    final seedColor = Color(
+                                      draftFillColor ??
+                                          _currentShapeStrokeColor.value,
+                                    );
+                                    _settingsPopover.hide();
+                                    await Future<void>.delayed(
+                                      const Duration(milliseconds: 16),
+                                    );
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    final kept =
+                                        await showDrawingColorPickerDialog(
+                                          Navigator.of(
+                                            this.context,
+                                            rootNavigator: true,
+                                          ).context,
+                                          initialColor: seedColor,
+                                          recentColors: _recentArgb
+                                              .map((argb) => Color(argb))
+                                              .toList(growable: false),
+                                          onLiveChanged: (color) {
+                                            _safeSetState(() {
+                                              _currentShapeFillColor = Color(
+                                                color.withAlpha(0xFF).value,
+                                              );
+                                            });
+                                          },
+                                          onCommitChanged: (color) {
+                                            final picked = color
+                                                .withAlpha(0xFF)
+                                                .value;
+                                            _safeSetState(() {
+                                              _currentShapeFillColor = Color(
+                                                picked,
+                                              );
+                                            });
+                                            _pushRecentColor(picked);
+                                            _saveShapeType(_activeShapeType);
+                                          },
+                                        );
+                                    if (!kept) {
+                                      _safeSetState(() {
+                                        _currentShapeFillColor = originalFill;
+                                      });
+                                    }
+                                    draftFillColor =
+                                        _currentShapeFillColor == null
+                                        ? null
+                                        : colorToArgb(_currentShapeFillColor!);
+                                    _saveShapeType(_activeShapeType);
+                                    if (mounted) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            if (mounted) {
+                                              _showShapeSettingsPopover();
+                                            }
+                                          });
+                                    }
+                                  },
+                                  icon: const Icon(Icons.colorize),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    buildSliderRow(
-                      label: '선 굵기',
-                      value: draftWidth,
-                      min: 1.0,
-                      max: 48.0,
-                      divisions: 47,
-                      valueLabel: draftWidth.round().toString(),
-                      onChanged: (value) {
-                        setPopupState(() {
-                          draftWidth = value;
-                        });
-                        _safeSetState(() {
-                          _currentShapeWidth = value;
-                        });
-                        _saveShapeType(_activeShapeType);
-                      },
-                    ),
-                    buildSliderRow(
-                      label: '투명도',
-                      value: draftOpacity,
-                      min: 0.05,
-                      max: 1.0,
-                      divisions: 19,
-                      valueLabel: '${(draftOpacity * 100).round()}%',
-                      onChanged: (value) {
-                        setPopupState(() {
-                          draftOpacity = value;
-                        });
-                        _safeSetState(() {
-                          _currentShapeOpacity = value;
-                        });
-                        _saveShapeType(_activeShapeType);
-                      },
-                    ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  buildSliderRow(
+                    label: '선 굵기',
+                    value: draftWidth,
+                    min: 1.0,
+                    max: 48.0,
+                    divisions: 47,
+                    valueLabel: draftWidth.round().toString(),
+                    onChanged: (value) {
+                      setPopupState(() {
+                        draftWidth = value;
+                      });
+                      _safeSetState(() {
+                        _currentShapeWidth = value;
+                      });
+                      _saveShapeType(_activeShapeType);
+                    },
+                  ),
+                  buildSliderRow(
+                    label: '투명도',
+                    value: draftOpacity,
+                    min: 0.05,
+                    max: 1.0,
+                    divisions: 19,
+                    valueLabel: '${(draftOpacity * 100).round()}%',
+                    onChanged: (value) {
+                      setPopupState(() {
+                        draftOpacity = value;
+                      });
+                      _safeSetState(() {
+                        _currentShapeOpacity = value;
+                      });
+                      _saveShapeType(_activeShapeType);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -2166,9 +2325,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final bool allowTapInFreeDraw =
         _isFreeDrawMode &&
-        (_activeTool == DrawingTool.textBox || _activeTool == DrawingTool.shape);
-    final GestureTapUpCallback? tapHandler = (_isMoveMode ||
-            (_isFreeDrawMode && !allowTapInFreeDraw))
+        (_activeTool == DrawingTool.textBox ||
+            _activeTool == DrawingTool.shape);
+    final GestureTapUpCallback? tapHandler =
+        (_isMoveMode || (_isFreeDrawMode && !allowTapInFreeDraw))
         ? null
         : onTapUp;
     final GestureLongPressStartCallback? longPressHandler =
@@ -2196,7 +2356,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }
 }
 
-
 class _HsvColorSquare extends StatelessWidget {
   const _HsvColorSquare({required this.hsv, required this.onChanged});
 
@@ -2222,9 +2381,7 @@ class _HsvColorSquare extends StatelessWidget {
             onPanDown: (d) => update(d.localPosition),
             onPanUpdate: (d) => update(d.localPosition),
             onTapDown: (d) => update(d.localPosition),
-            child: CustomPaint(
-              painter: _HsvColorSquarePainter(hsv: hsv),
-            ),
+            child: CustomPaint(painter: _HsvColorSquarePainter(hsv: hsv)),
           ),
         );
       },
@@ -2265,7 +2422,9 @@ class _HsvColorSquarePainter extends CustomPainter {
     canvas.restore();
 
     final dx = (hsv.saturation * size.width).clamp(0.0, size.width).toDouble();
-    final dy = ((1 - hsv.value) * size.height).clamp(0.0, size.height).toDouble();
+    final dy = ((1 - hsv.value) * size.height)
+        .clamp(0.0, size.height)
+        .toDouble();
     final thumb = Offset(dx, dy);
     canvas.drawCircle(
       thumb,

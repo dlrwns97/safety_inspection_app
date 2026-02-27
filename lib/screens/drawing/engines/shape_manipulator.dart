@@ -30,9 +30,14 @@ class ShapeManipulator {
   final double handleHitRadiusNorm;
 
   static Offset _clampNormPoint(Offset point) {
+    return Offset(point.dx.clamp(0.0, 1.0), point.dy.clamp(0.0, 1.0));
+  }
+
+  static Offset _clampNormPointWithMargin(Offset point, double margin) {
+    final clampedMargin = margin.clamp(0.0, 0.2);
     return Offset(
-      point.dx.clamp(0.0, 1.0),
-      point.dy.clamp(0.0, 1.0),
+      point.dx.clamp(clampedMargin, 1.0 - clampedMargin),
+      point.dy.clamp(clampedMargin, 1.0 - clampedMargin),
     );
   }
 
@@ -76,7 +81,12 @@ class ShapeManipulator {
       top = 0.0;
     }
 
-    return Rect.fromLTRB(left, top, right.clamp(left, 1.0), bottom.clamp(top, 1.0));
+    return Rect.fromLTRB(
+      left,
+      top,
+      right.clamp(left, 1.0),
+      bottom.clamp(top, 1.0),
+    );
   }
 
   static double _wrapAngle(double rad) {
@@ -129,10 +139,13 @@ class ShapeManipulator {
       (ShapeHandle.rotate, Offset(midX, b + rotateHandleOffsetNorm)),
     ];
 
+    final rotateMargin = (handleHitRadiusNorm * 0.7).clamp(0.01, 0.04);
     final withRotation = raw.map((entry) {
       final rotated = _rotatePoint(entry.$2, center, rotationRad);
-      final keepAsIs = entry.$1 == ShapeHandle.rotate;
-      return (entry.$1, keepAsIs ? rotated : _clampNormPoint(rotated));
+      if (entry.$1 == ShapeHandle.rotate) {
+        return (entry.$1, _clampNormPointWithMargin(rotated, rotateMargin));
+      }
+      return (entry.$1, _clampNormPoint(rotated));
     });
     return List<(ShapeHandle, Offset)>.from(withRotation);
   }
@@ -143,9 +156,6 @@ class ShapeManipulator {
     var closestDist = double.infinity;
 
     for (final (handle, point) in handlePositions()) {
-      if (handle == ShapeHandle.rotate && !_isInNormSpace(point)) {
-        continue;
-      }
       final dist = (point - target).distance;
       if (dist <= handleHitRadiusNorm && dist < closestDist) {
         closestDist = dist;
@@ -171,16 +181,20 @@ class ShapeManipulator {
     }
 
     final localDelta = _rotateDeltaInverse(deltaNorm, rotationRad);
-    final moveLeft = handle == ShapeHandle.topLeft ||
+    final moveLeft =
+        handle == ShapeHandle.topLeft ||
         handle == ShapeHandle.left ||
         handle == ShapeHandle.bottomLeft;
-    final moveRight = handle == ShapeHandle.topRight ||
+    final moveRight =
+        handle == ShapeHandle.topRight ||
         handle == ShapeHandle.right ||
         handle == ShapeHandle.bottomRight;
-    final moveTop = handle == ShapeHandle.topLeft ||
+    final moveTop =
+        handle == ShapeHandle.topLeft ||
         handle == ShapeHandle.top ||
         handle == ShapeHandle.topRight;
-    final moveBottom = handle == ShapeHandle.bottomLeft ||
+    final moveBottom =
+        handle == ShapeHandle.bottomLeft ||
         handle == ShapeHandle.bottom ||
         handle == ShapeHandle.bottomRight;
 

@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/shape_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 
 class ShapeHandlesOverlay extends StatelessWidget {
@@ -6,33 +10,65 @@ class ShapeHandlesOverlay extends StatelessWidget {
     super.key,
     required this.manipulator,
     required this.canvasSize,
+    this.previewType,
+    this.previewStroke,
+    this.previewFillArgb,
+    this.createStartNorm,
+    this.createCurrentNorm,
+    this.showBounds = true,
   });
 
   final ShapeManipulator manipulator;
   final Size canvasSize;
+  final ShapeType? previewType;
+  final StrokeStyle? previewStroke;
+  final int? previewFillArgb;
+  final Offset? createStartNorm;
+  final Offset? createCurrentNorm;
+  final bool showBounds;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _ShapeHandlesPainter(manipulator: manipulator),
-      child: SizedBox(
-        width: canvasSize.width,
-        height: canvasSize.height,
+      painter: _ShapeHandlesPainter(
+        manipulator: manipulator,
+        previewType: previewType,
+        previewStroke: previewStroke,
+        previewFillArgb: previewFillArgb,
+        createStartNorm: createStartNorm,
+        createCurrentNorm: createCurrentNorm,
+        showBounds: showBounds,
       ),
+      child: SizedBox(width: canvasSize.width, height: canvasSize.height),
     );
   }
 }
 
 class _ShapeHandlesPainter extends CustomPainter {
-  _ShapeHandlesPainter({required this.manipulator});
+  _ShapeHandlesPainter({
+    required this.manipulator,
+    required this.previewType,
+    required this.previewStroke,
+    required this.previewFillArgb,
+    required this.createStartNorm,
+    required this.createCurrentNorm,
+    required this.showBounds,
+  });
 
   final ShapeManipulator manipulator;
+  final ShapeType? previewType;
+  final StrokeStyle? previewStroke;
+  final int? previewFillArgb;
+  final Offset? createStartNorm;
+  final Offset? createCurrentNorm;
+  final bool showBounds;
 
   @override
   void paint(Canvas canvas, Size size) {
     final handlePositions = manipulator.handlePositions();
-    if (handlePositions.isEmpty) {
-      return;
+    final isCreatingPreview = previewType != null && previewStroke != null;
+    if (isCreatingPreview) {
+      _paintShapePreview(canvas, size, previewType!, previewStroke!);
     }
 
     final paint = Paint()
@@ -42,30 +78,34 @@ class _ShapeHandlesPainter extends CustomPainter {
     final fill = Paint()
       ..color = Colors.blueAccent
       ..style = PaintingStyle.fill;
-    final path = Path()
-      ..addRect(
-        Rect.fromLTWH(
-          manipulator.boundsNorm.left * size.width,
-          manipulator.boundsNorm.top * size.height,
-          manipulator.boundsNorm.width * size.width,
-          manipulator.boundsNorm.height * size.height,
-        ),
-      );
-    canvas.drawPath(path, paint);
+    final highlight = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
 
-    final centerPoints = handlePositions
-        .map((entry) => _toCanvas(entry.$2, size))
-        .toList(growable: false);
-    for (final point in centerPoints) {
-      canvas.drawCircle(point, 4, fill);
-      canvas.drawCircle(point, 4, paint);
+    if (showBounds) {
+      final path = Path()
+        ..addRect(
+          Rect.fromLTWH(
+            manipulator.boundsNorm.left * size.width,
+            manipulator.boundsNorm.top * size.height,
+            manipulator.boundsNorm.width * size.width,
+            manipulator.boundsNorm.height * size.height,
+          ),
+        );
+      canvas.drawPath(path, paint);
     }
 
     Offset? rotateHandle;
     for (final entry in handlePositions) {
+      if (entry.$1 != ShapeHandle.rotate) {
+        final point = _toCanvas(entry.$2, size);
+        canvas.drawCircle(point, 5, highlight);
+        canvas.drawCircle(point, 5, fill);
+        canvas.drawCircle(point, 5, paint);
+        continue;
+      }
       if (entry.$1 == ShapeHandle.rotate) {
         rotateHandle = _toCanvas(entry.$2, size);
-        break;
       }
     }
     if (rotateHandle != null) {
@@ -77,9 +117,77 @@ class _ShapeHandlesPainter extends CustomPainter {
         size,
       );
       canvas.drawLine(bottomCenter, rotateHandle, paint);
-      canvas.drawCircle(rotateHandle, 4, fill);
-      canvas.drawCircle(rotateHandle, 4, paint);
+      canvas.drawCircle(rotateHandle, 7, highlight);
+      canvas.drawCircle(rotateHandle, 7, fill);
+      canvas.drawCircle(rotateHandle, 7, paint);
     }
+  }
+
+  void _paintShapePreview(
+    Canvas canvas,
+    Size size,
+    ShapeType type,
+    StrokeStyle style,
+  ) {
+    final bounds = manipulator.boundsNorm;
+    final startNorm = type == ShapeType.arrow
+        ? (createStartNorm ?? bounds.topLeft)
+        : bounds.topLeft;
+    final endNorm = type == ShapeType.arrow
+        ? (createCurrentNorm ?? bounds.bottomRight)
+        : bounds.bottomRight;
+    final points = ShapeEngine.buildPointsNorm(type, startNorm, endNorm);
+    if (points.isEmpty) {
+      return;
+    }
+
+    final strokeColor = Color(style.argbColor).withValues(alpha: style.opacity);
+    final strokePaint = Paint()
+      ..color = strokeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = style.widthPx
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final centerNorm = bounds.center;
+    Offset toCanvas(Offset norm) {
+      final rotated = _rotatePoint(norm, centerNorm, manipulator.rotationRad);
+      return Offset(rotated.dx * size.width, rotated.dy * size.height);
+    }
+
+    final firstPoint = toCanvas(points.first);
+    final path = Path()..moveTo(firstPoint.dx, firstPoint.dy);
+    for (var i = 1; i < points.length; i += 1) {
+      final point = toCanvas(points[i]);
+      path.lineTo(point.dx, point.dy);
+    }
+
+    if (type != ShapeType.arrow) {
+      if (points.length >= 3) {
+        path.close();
+      }
+      if (previewFillArgb != null) {
+        final fillPaint = Paint()
+          ..color = Color(previewFillArgb!).withValues(alpha: style.opacity)
+          ..style = PaintingStyle.fill;
+        canvas.drawPath(path, fillPaint);
+      }
+    }
+    canvas.drawPath(path, strokePaint);
+  }
+
+  Offset _rotatePoint(Offset point, Offset center, double angleRad) {
+    if (angleRad == 0.0) {
+      return point;
+    }
+    final dx = point.dx - center.dx;
+    final dy = point.dy - center.dy;
+    final cosA = math.cos(angleRad);
+    final sinA = math.sin(angleRad);
+    return Offset(
+      center.dx + dx * cosA - dy * sinA,
+      center.dy + dx * sinA + dy * cosA,
+    );
   }
 
   Offset _toCanvas(Offset norm, Size size) {
@@ -89,6 +197,14 @@ class _ShapeHandlesPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ShapeHandlesPainter oldDelegate) {
     return oldDelegate.manipulator.boundsNorm != manipulator.boundsNorm ||
-        oldDelegate.manipulator.rotationRad != manipulator.rotationRad;
+        oldDelegate.manipulator.rotationRad != manipulator.rotationRad ||
+        oldDelegate.previewType != previewType ||
+        oldDelegate.previewStroke?.argbColor != previewStroke?.argbColor ||
+        oldDelegate.previewStroke?.widthPx != previewStroke?.widthPx ||
+        oldDelegate.previewStroke?.opacity != previewStroke?.opacity ||
+        oldDelegate.previewFillArgb != previewFillArgb ||
+        oldDelegate.createStartNorm != createStartNorm ||
+        oldDelegate.createCurrentNorm != createCurrentNorm ||
+        oldDelegate.showBounds != showBounds;
   }
 }

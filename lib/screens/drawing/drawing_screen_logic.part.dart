@@ -90,14 +90,18 @@ class _AreaEraserSession {
 
 final Expando<_PendingFreeDrawMove> _pendingFreeDrawMoveByState =
     Expando<_PendingFreeDrawMove>('pendingFreeDrawMoveByState');
-final Expando<bool> _isFreeDrawMoveScheduledByState =
-    Expando<bool>('isFreeDrawMoveScheduledByState');
-final Expando<int> _freeDrawCallsInWindowByState =
-    Expando<int>('freeDrawCallsInWindowByState');
-final Expando<int> _freeDrawUiMutationsInWindowByState =
-    Expando<int>('freeDrawUiMutationsInWindowByState');
-final Expando<DateTime> _freeDrawWindowStartByState =
-    Expando<DateTime>('freeDrawWindowStartByState');
+final Expando<bool> _isFreeDrawMoveScheduledByState = Expando<bool>(
+  'isFreeDrawMoveScheduledByState',
+);
+final Expando<int> _freeDrawCallsInWindowByState = Expando<int>(
+  'freeDrawCallsInWindowByState',
+);
+final Expando<int> _freeDrawUiMutationsInWindowByState = Expando<int>(
+  'freeDrawUiMutationsInWindowByState',
+);
+final Expando<DateTime> _freeDrawWindowStartByState = Expando<DateTime>(
+  'freeDrawWindowStartByState',
+);
 final Expando<Map<int, _PendingStraightenCommit>>
 _pendingStraightenCommitByPointerByState =
     Expando<Map<int, _PendingStraightenCommit>>(
@@ -205,6 +209,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _freeDrawUiMutationsInWindowByState[this] =
         (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
   }
+
   bool get _isPanScaleAllowedDuringDraw {
     if (!_isFreeDrawMode) {
       return true;
@@ -222,10 +227,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return kind == PointerDeviceKind.stylus ||
         kind == PointerDeviceKind.invertedStylus;
   }
-  int get _activeTouchPointerCount =>
-      _activePointerKinds.values
-          .where((kind) => kind == PointerDeviceKind.touch)
-          .length;
+
+  int get _activeTouchPointerCount => _activePointerKinds.values
+      .where((kind) => kind == PointerDeviceKind.touch)
+      .length;
 
   bool get _isStylusActive => _activeStylusPointerId != null;
 
@@ -489,10 +494,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final localPosition = tapInfo?.localPosition ?? details.localPosition;
       final scenePoint = _transformationController.toScene(localPosition);
       final normalized = toNormalized(scenePoint, DrawingCanvasSize);
-      _handleShapeTapSelection(
-        normPoint: normalized,
-        pageNumber: _currentPage,
-      );
+      _handleShapeTapSelection(normPoint: normalized, pageNumber: _currentPage);
       return;
     }
     final tapInfo = _resolveTapPosition(
@@ -552,19 +554,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     await widget.onSiteUpdated(_site);
   }
 
-
   Future<void> _loadStrokesFromSite() async {
     final targetSiteId = _site.id;
     await _cleanupLegacyDrawingPrefsForSite(targetSiteId);
 
-    final payload = await _drawingPersistenceStore.loadSiteDrawing(siteId: targetSiteId);
+    final payload = await _drawingPersistenceStore.loadSiteDrawing(
+      siteId: targetSiteId,
+    );
     final Map<int, List<DrawingStroke>> loaded = <int, List<DrawingStroke>>{};
 
     final drawingStrokesJson = payload?['drawingStrokes'];
     if (drawingStrokesJson is List) {
       for (final rawStroke in drawingStrokesJson.whereType<Map>()) {
-        final stroke = DrawingStroke.fromJson(rawStroke.cast<String, dynamic>());
-        loaded.putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[]).add(stroke);
+        final stroke = DrawingStroke.fromJson(
+          rawStroke.cast<String, dynamic>(),
+        );
+        loaded
+            .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
+            .add(stroke);
       }
     }
 
@@ -1094,7 +1101,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Rect? _effectiveTextBoundsForStroke(DrawingStroke stroke) {
-    if (_selectedTextStrokeId == stroke.id && _activeTextDraftBoundsNorm != null) {
+    if (_selectedTextStrokeId == stroke.id &&
+        _activeTextDraftBoundsNorm != null) {
       return _activeTextDraftBoundsNorm;
     }
     return _textStrokeBounds(stroke);
@@ -1136,10 +1144,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Rect? boundsNorm,
   }) {
     final nextBounds = boundsNorm ?? _textStrokeBounds(before);
-    final points =
-        nextBounds == null
-            ? List<Offset>.from(before.pointsNorm)
-            : <Offset>[nextBounds.topLeft, nextBounds.bottomRight];
+    final points = nextBounds == null
+        ? List<Offset>.from(before.pointsNorm)
+        : <Offset>[nextBounds.topLeft, nextBounds.bottomRight];
     return DrawingStroke(
       id: before.id,
       pageNumber: before.pageNumber,
@@ -1154,12 +1161,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       shapeFillArgb: before.shapeFillArgb,
       textBoxData: nextTextData,
       erasedMaskVersion: before.erasedMaskVersion,
-      erasedMask:
-          before.erasedMask == null ? null : List<int>.from(before.erasedMask!),
-      erasedSegments:
-          before.erasedSegments == null
-              ? null
-              : List<dynamic>.from(before.erasedSegments!),
+      erasedMask: before.erasedMask == null
+          ? null
+          : List<int>.from(before.erasedMask!),
+      erasedSegments: before.erasedSegments == null
+          ? null
+          : List<dynamic>.from(before.erasedSegments!),
     );
   }
 
@@ -1227,7 +1234,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final resizeRadiusNorm = (16.0 / pageSize.shortestSide).clamp(0.01, 0.05);
     for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
       final stroke = pageStrokes[i];
-      if (stroke.toolType != DrawingTool.textBox || stroke.textBoxData == null) {
+      if (stroke.toolType != DrawingTool.textBox ||
+          stroke.textBoxData == null) {
         continue;
       }
       final bounds = _textStrokeBounds(stroke);
@@ -1278,7 +1286,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
               child: const Text('취소'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
               child: const Text('확인'),
             ),
           ],
@@ -1353,14 +1362,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     const defaultSize = Size(0.24, 0.10);
-    final left =
-        (normPoint.dx - defaultSize.width / 2).clamp(0.0, 1.0 - defaultSize.width);
-    final top =
-        (normPoint.dy - defaultSize.height / 2).clamp(0.0, 1.0 - defaultSize.height);
+    final left = (normPoint.dx - defaultSize.width / 2).clamp(
+      0.0,
+      1.0 - defaultSize.width,
+    );
+    final top = (normPoint.dy - defaultSize.height / 2).clamp(
+      0.0,
+      1.0 - defaultSize.height,
+    );
     final created = _buildTextStroke(
       pageNumber: pageNumber,
       text: text,
-      boundsNorm: Rect.fromLTWH(left, top, defaultSize.width, defaultSize.height),
+      boundsNorm: Rect.fromLTWH(
+        left,
+        top,
+        defaultSize.width,
+        defaultSize.height,
+      ),
     );
     _historyManager.execute(
       AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
@@ -1446,7 +1464,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         next = Rect.fromLTWH(left, top, next.width, next.height);
       } else if (_activeTextEditOp == _TextEditOperation.resize) {
         final right = (next.right + delta.dx).clamp(next.left + minWidth, 1.0);
-        final bottom = (next.bottom + delta.dy).clamp(next.top + minHeight, 1.0);
+        final bottom = (next.bottom + delta.dy).clamp(
+          next.top + minHeight,
+          1.0,
+        );
         next = Rect.fromLTRB(next.left, next.top, right, bottom);
       }
       _activeTextDraftBoundsNorm = _clampNormRect(next);
@@ -1585,7 +1606,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (candidate != null && candidateBounds != null) {
-      final manipulator = ShapeManipulator(boundsNorm: candidateBounds, rotationRad: 0.0);
+      final manipulator = ShapeManipulator(
+        boundsNorm: candidateBounds,
+        rotationRad: 0.0,
+      );
       final handle = manipulator.hitTestHandle(startNorm);
       if (handle == ShapeHandle.rotate || handle != ShapeHandle.none) {
         _safeSetState(() {
@@ -1619,12 +1643,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     _safeSetState(() {
       _activeShapeManipulator = ShapeManipulator(
-        boundsNorm: Rect.fromLTWH(
-          startNorm.dx,
-          startNorm.dy,
-          0.0,
-          0.0,
-        ),
+        boundsNorm: Rect.fromLTWH(startNorm.dx, startNorm.dy, 0.0, 0.0),
       );
       _selectedShapeStrokeId = null;
       _activeShapeHandle = ShapeHandle.none;
@@ -1655,7 +1674,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         final start = _shapeInteractionStartNorm ?? norm;
-        final bounds = Rect.fromPoints(start, norm);
+        final adjustedEnd = _constrainShapeCreateEndNorm(start, norm);
+        final bounds = Rect.fromPoints(start, adjustedEnd);
         manipulator.boundsNorm = Rect.fromLTRB(
           bounds.left.clamp(0.0, 1.0),
           bounds.top.clamp(0.0, 1.0),
@@ -1680,7 +1700,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _shapeInteractionLastNorm = norm;
       _activeShapeManipulator = manipulator;
       final start = _shapeInteractionStartNorm;
-      if (!_shapeCreateHasMoved && start != null &&
+      if (!_shapeCreateHasMoved &&
+          start != null &&
           (norm - start).distance > _shapeCreateThresholdNorm) {
         _shapeCreateHasMoved = true;
       }
@@ -1704,26 +1725,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeShapeEditOp == _ShapeEditOperation.create ||
         _activeShapeEditOp == _ShapeEditOperation.none) {
       final start = _shapeInteractionStartNorm ?? pageLocalNorm;
+      final constrainedEnd = _constrainShapeCreateEndNorm(start, pageLocalNorm);
+      final createBounds = manipulator.boundsNorm;
+      final createStart = createBounds.topLeft;
+      final createEnd = createBounds.bottomRight;
+      final effectiveStart = _activeShapeType == ShapeType.arrow
+          ? start
+          : createStart;
+      final effectiveEnd = _activeShapeType == ShapeType.arrow
+          ? constrainedEnd
+          : createEnd;
       final created = ShapeEngine.toStroke(
         _activeShapeType,
         pageNumber,
-        start,
-        pageLocalNorm,
+        effectiveStart,
+        effectiveEnd,
         _activeShapeStrokeStyle,
         fillArgb: _activeShapeFillColor?.value,
       );
       _historyManager.execute(
-        AddStrokeCommand(
-          page: pageNumber,
-          strokeSnapshot: created.deepCopy(),
-        ),
+        AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
         _canvasController,
       );
       _safeSetState(() {
         _selectedShapeStrokeId = created.id;
         _activeShapeManipulator = ShapeManipulator(
-          boundsNorm: _shapeStrokeBounds(created.pointsNorm) ??
-              Rect.fromLTWH(start.dx, start.dy, 0.0, 0.0),
+          boundsNorm:
+              _shapeStrokeBounds(created.pointsNorm) ??
+              Rect.fromLTWH(effectiveStart.dx, effectiveStart.dy, 0.0, 0.0),
           rotationRad: 0.0,
         );
         _activeShapeHandle = ShapeHandle.none;
@@ -1803,6 +1832,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _requestPersistDrawing();
   }
 
+  Offset _constrainShapeCreateEndNorm(Offset start, Offset current) {
+    if (!_isShapeAspectLocked || _activeShapeType == ShapeType.arrow) {
+      return current;
+    }
+    final dx = current.dx - start.dx;
+    final dy = current.dy - start.dy;
+    if (dx.abs() < 1e-6 || dy.abs() < 1e-6) {
+      return current;
+    }
+    final locked = math.max(dx.abs(), dy.abs());
+    final adjusted = Offset(
+      start.dx + (dx.isNegative ? -locked : locked),
+      start.dy + (dy.isNegative ? -locked : locked),
+    );
+    return Offset(adjusted.dx.clamp(0.0, 1.0), adjusted.dy.clamp(0.0, 1.0));
+  }
+
   List<Offset> _transformShapePointsByBounds({
     required List<Offset> points,
     required Rect fromBounds,
@@ -1816,23 +1862,22 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final toLeft = toBounds.left;
     final toTop = toBounds.top;
     final toCenter = toBounds.center;
-    return points.map((point) {
-      final ratioX = (point.dx - fromBounds.left) / fromWidth;
-      final ratioY = (point.dy - fromBounds.top) / fromHeight;
-      final scaled = Offset(
-        toLeft + ratioX * toWidth,
-        toTop + ratioY * toHeight,
-      );
-      final rotated = _rotateAroundCenter(
-        point: scaled,
-        center: toCenter,
-        angleRad: rotationRad,
-      );
-      return Offset(
-        rotated.dx.clamp(0.0, 1.0),
-        rotated.dy.clamp(0.0, 1.0),
-      );
-    }).toList(growable: false);
+    return points
+        .map((point) {
+          final ratioX = (point.dx - fromBounds.left) / fromWidth;
+          final ratioY = (point.dy - fromBounds.top) / fromHeight;
+          final scaled = Offset(
+            toLeft + ratioX * toWidth,
+            toTop + ratioY * toHeight,
+          );
+          final rotated = _rotateAroundCenter(
+            point: scaled,
+            center: toCenter,
+            angleRad: rotationRad,
+          );
+          return Offset(rotated.dx.clamp(0.0, 1.0), rotated.dy.clamp(0.0, 1.0));
+        })
+        .toList(growable: false);
   }
 
   Offset _rotateAroundCenter({
@@ -2093,8 +2138,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       effectiveScale = desiredScale;
     }
     final double s = effectiveScale;
-    final double panBoost =
-        (s <= 1.0) ? 1.0 : (1.0 + (s - 1.0) * 0.35);
+    final double panBoost = (s <= 1.0) ? 1.0 : (1.0 + (s - 1.0) * 0.35);
     final Offset desiredPos = start.position + (_navAccumDelta * panBoost);
 
     if (kDebugMode && _debugNavUpdateLogCount < 3) {
@@ -2193,10 +2237,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       );
       return;
     }
-    final snapScale = _freeDrawInitialScaleForPage(pageNumber).clamp(
-      minScale,
-      maxScale,
-    );
+    final snapScale = _freeDrawInitialScaleForPage(
+      pageNumber,
+    ).clamp(minScale, maxScale);
     controller.value = PhotoViewControllerValue(
       position: Offset.zero,
       rotation: snapshot.rotation,
@@ -2246,8 +2289,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final touchCount = _activeTouchPointerCount;
-    final bool becameTwoFingerTouch =
-        previousTouchCount < 2 && touchCount >= 2;
+    final bool becameTwoFingerTouch = previousTouchCount < 2 && touchCount >= 2;
     if (becameTwoFingerTouch) {
       if (_isFreeDrawConsumingOneFinger && _inProgressStroke != null) {
         _handleFreeDrawPointerEnd(
@@ -2631,7 +2673,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _eraserCursorPageNumber = pageNumber;
       _eraserCursorPageLocal = pageLocal;
-      _canvasController.setEraserCursor(_currentPage == pageNumber ? pageLocal : null);
+      _canvasController.setEraserCursor(
+        _currentPage == pageNumber ? pageLocal : null,
+      );
       _startAreaEraserSession(event.pointer);
     });
   }
@@ -2696,8 +2740,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final radiusPagePx = (rightOffset != null)
         ? (rightOffset - pageLocal).distance
         : (leftOffset != null)
-            ? (leftOffset - pageLocal).distance
-            : _areaEraserRadiusPx;
+        ? (leftOffset - pageLocal).distance
+        : _areaEraserRadiusPx;
     _queueAreaEraserMove(
       pageNumber: pageNumber,
       pageSize: pageSize,
@@ -2731,7 +2775,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (_activeTool == DrawingTool.strokeEraser && wasStylus) {
       if (kDebugMode) {
-        debugPrint('[Eraser] up mode=stroke removed=$_erasedStrokeCountThisDrag');
+        debugPrint(
+          '[Eraser] up mode=stroke removed=$_erasedStrokeCountThisDrag',
+        );
       }
       _safeSetState(() {
         _activeStrokeEraserPointerId = null;
@@ -2846,7 +2892,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _areaEraserRadiusPx = nextRadius;
       final session = _activeAreaEraserSession;
       if (session != null) {
-        _activeAreaEraserSession = session.copyWith(radius: _areaEraserRadiusPx);
+        _activeAreaEraserSession = session.copyWith(
+          radius: _areaEraserRadiusPx,
+        );
       }
     });
     if (kDebugMode) {
@@ -2864,7 +2912,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required List<DrawingStroke>? strokes,
     required Size pageSize,
   }) {
-    final pageShortest = pageSize.shortestSide <= 0 ? 1.0 : pageSize.shortestSide;
+    final pageShortest = pageSize.shortestSide <= 0
+        ? 1.0
+        : pageSize.shortestSide;
     var maxStrokeWidthNorm = 0.0;
     for (final stroke in strokes ?? const <DrawingStroke>[]) {
       final widthNorm = stroke.style.widthPx / pageShortest;
@@ -2986,7 +3036,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         continue;
       }
 
-      final pointPx = Offset(points[i].dx * pageWidth, points[i].dy * pageHeight);
+      final pointPx = Offset(
+        points[i].dx * pageWidth,
+        points[i].dy * pageHeight,
+      );
       final pointDelta = pointPx - centerPx;
       final pointDistanceSquared =
           (pointDelta.dx * pointDelta.dx) + (pointDelta.dy * pointDelta.dy);
@@ -3017,10 +3070,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return (delta.dx * delta.dx) + (delta.dy * delta.dy);
     }
     final projection =
-        ((point.dx - start.dx) * segment.dx + (point.dy - start.dy) * segment.dy) /
+        ((point.dx - start.dx) * segment.dx +
+            (point.dy - start.dy) * segment.dy) /
         segmentLengthSquared;
     final t = projection.clamp(0.0, 1.0);
-    final nearest = Offset(start.dx + segment.dx * t, start.dy + segment.dy * t);
+    final nearest = Offset(
+      start.dx + segment.dx * t,
+      start.dy + segment.dy * t,
+    );
     final delta = point - nearest;
     return (delta.dx * delta.dx) + (delta.dy * delta.dy);
   }
@@ -3039,7 +3096,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         page: existing.pageNumber,
         deletedSnapshot: deletedStrokeSnapshot,
       ),
-      _canvasController
+      _canvasController,
     );
     _syncStrokesByPageFromControllerPage(existing.pageNumber);
     _updateDrawingHistoryAvailabilityState();
@@ -3186,10 +3243,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           continue;
         }
         _historyManager.execute(
-          BatchEraseCommand(
-            page: page,
-            items: items,
-          ),
+          BatchEraseCommand(page: page, items: items),
           _canvasController,
         );
         _syncStrokesByPageFromControllerPage(page);
@@ -3240,8 +3294,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageSize: pageSize,
       pageLocal: center,
       queryRadiusPx: radiusPagePx,
-    ).toList(growable: false)
-      ..sort();
+    ).toList(growable: false)..sort();
     if (candidateIds.isEmpty) {
       return session;
     }
@@ -3279,8 +3332,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         continue;
       }
 
-      final originalStroke =
-          _canvasController.findStrokeById(pageNumber, candidateId);
+      final originalStroke = _canvasController.findStrokeById(
+        pageNumber,
+        candidateId,
+      );
       if (originalStroke != null) {
         removedById.putIfAbsent(candidateId, originalStroke.deepCopy);
       }
@@ -3487,13 +3542,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
       final didSnap =
           _isStraightenSnapEnabled && nearestDiff <= snapToleranceRad;
-      final snappedPageExact =
-          didSnap
-              ? Offset(
-                startPage.dx + math.cos(nearestTarget) * math.sqrt(dx * dx + dy * dy),
-                startPage.dy + math.sin(nearestTarget) * math.sqrt(dx * dx + dy * dy),
-              )
-              : rawPage;
+      final snappedPageExact = didSnap
+          ? Offset(
+              startPage.dx +
+                  math.cos(nearestTarget) * math.sqrt(dx * dx + dy * dy),
+              startPage.dy +
+                  math.sin(nearestTarget) * math.sqrt(dx * dx + dy * dy),
+            )
+          : rawPage;
       final clampedSnappedPageExact = Offset(
         snappedPageExact.dx.clamp(0.0, destSize.width).toDouble(),
         snappedPageExact.dy.clamp(0.0, destSize.height).toDouble(),
@@ -3501,8 +3557,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       var snappedPageRender = clampedSnappedPageExact;
       if (didSnap) {
         const epsilonPx = 0.25;
-        final isHorizontalSnap =
-            nearestTarget == 0 || nearestTarget == math.pi;
+        final isHorizontalSnap = nearestTarget == 0 || nearestTarget == math.pi;
         final isVerticalSnap =
             nearestTarget == (math.pi / 2) ||
             nearestTarget == (3 * math.pi / 2);
@@ -3567,36 +3622,32 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       inProgressStroke.pointsNorm
         ..clear()
         ..addAll(newPoints);
-      final livePreviewStroke =
-          isHighlighterFamily
-              ? DrawingStroke(
-                id: inProgressStroke.id,
-                pageNumber: inProgressStroke.pageNumber,
-                style: inProgressStroke.style.copyWith(
-                  kind: StrokeToolKind.pen,
-                  variant:
-                      inProgressStroke.style.variant ==
-                                  PenVariant.highlighterChisel ||
-                              inProgressStroke.style.variant ==
-                                  PenVariant.markerChisel
-                          ? PenVariant.markerChisel
-                          : PenVariant.marker,
-                ),
-                pointsNorm: inProgressStroke.pointsNorm,
-                toolType: inProgressStroke.toolType,
-                opacity: inProgressStroke.opacity,
-                isStraightened: inProgressStroke.isStraightened,
-                penVariant: inProgressStroke.penVariant,
-                highlighterVariant: inProgressStroke.highlighterVariant,
-                erasedMaskVersion: inProgressStroke.erasedMaskVersion,
-                erasedMask: inProgressStroke.erasedMask,
-                erasedSegments: inProgressStroke.erasedSegments,
-              )
-              : inProgressStroke;
-      _canvasController.setLiveStroke(
-        livePreviewStroke,
-        forceNotify: true,
-      );
+      final livePreviewStroke = isHighlighterFamily
+          ? DrawingStroke(
+              id: inProgressStroke.id,
+              pageNumber: inProgressStroke.pageNumber,
+              style: inProgressStroke.style.copyWith(
+                kind: StrokeToolKind.pen,
+                variant:
+                    inProgressStroke.style.variant ==
+                            PenVariant.highlighterChisel ||
+                        inProgressStroke.style.variant ==
+                            PenVariant.markerChisel
+                    ? PenVariant.markerChisel
+                    : PenVariant.marker,
+              ),
+              pointsNorm: inProgressStroke.pointsNorm,
+              toolType: inProgressStroke.toolType,
+              opacity: inProgressStroke.opacity,
+              isStraightened: inProgressStroke.isStraightened,
+              penVariant: inProgressStroke.penVariant,
+              highlighterVariant: inProgressStroke.highlighterVariant,
+              erasedMaskVersion: inProgressStroke.erasedMaskVersion,
+              erasedMask: inProgressStroke.erasedMask,
+              erasedSegments: inProgressStroke.erasedSegments,
+            )
+          : inProgressStroke;
+      _canvasController.setLiveStroke(livePreviewStroke, forceNotify: true);
       return;
     }
 
@@ -3694,7 +3745,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return points;
   }
 
-
   Offset _applyStraightenSamsungLike({
     required int pointerId,
     required DrawingStroke inProgressStroke,
@@ -3786,23 +3836,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final vHat = Offset(vector.dx / vectorDistance, vector.dy / vectorDistance);
     const kPenAndMarkerAnglesDeg = <double>[0, 45, 90, 135];
     const kHighlighterAnglesDeg = <double>[0, 45, 90, 135];
-    final candidateAnglesDeg =
-        (applyToHighlighter && isHighlighterFamily)
-            ? kHighlighterAnglesDeg
-            : kPenAndMarkerAnglesDeg;
-    final candidateAxes =
-        candidateAnglesDeg
-            .map(
-              (angleDeg) {
-                final rad = angleDeg * math.pi / 180.0;
-                return Offset(math.cos(rad), math.sin(rad));
-              },
-            )
-            .toList(growable: false);
+    final candidateAnglesDeg = (applyToHighlighter && isHighlighterFamily)
+        ? kHighlighterAnglesDeg
+        : kPenAndMarkerAnglesDeg;
+    final candidateAxes = candidateAnglesDeg
+        .map((angleDeg) {
+          final rad = angleDeg * math.pi / 180.0;
+          return Offset(math.cos(rad), math.sin(rad));
+        })
+        .toList(growable: false);
 
     Offset nearestAxis = candidateAxes.first;
-    var bestScore =
-        (vHat.dx * nearestAxis.dx + vHat.dy * nearestAxis.dy).abs();
+    var bestScore = (vHat.dx * nearestAxis.dx + vHat.dy * nearestAxis.dy).abs();
     for (final axis in candidateAxes.skip(1)) {
       final score = (vHat.dx * axis.dx + vHat.dy * axis.dy).abs();
       if (score > bestScore) {
@@ -3825,9 +3870,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         return normalized;
       }
     } else {
-      final snappedAxis = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
-      final snappedScore =
-          (vHat.dx * snappedAxis.dx + vHat.dy * snappedAxis.dy).abs();
+      final snappedAxis = Offset(
+        math.cos(snappedAngle),
+        math.sin(snappedAngle),
+      );
+      final snappedScore = (vHat.dx * snappedAxis.dx + vHat.dy * snappedAxis.dy)
+          .abs();
       final deltaFromCurrent = math.acos(snappedScore.clamp(0.0, 1.0));
       if (deltaFromCurrent >= exitRad) {
         _straightenSnappedAngleByPointer[pointerId] = null;
@@ -3889,8 +3937,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       var committedPoints = List<Offset>.from(inProgressStroke.pointsNorm);
-      final pendingStraightenCommit =
-          pointerId != null ? _pendingStraightenCommitByPointer[pointerId] : null;
+      final pendingStraightenCommit = pointerId != null
+          ? _pendingStraightenCommitByPointer[pointerId]
+          : null;
       if (pendingStraightenCommit != null &&
           pendingStraightenCommit.destSize.width > 0 &&
           pendingStraightenCommit.destSize.height > 0) {
@@ -3919,7 +3968,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           page: pageNumber,
           strokeSnapshot: committedStroke.deepCopy(),
         ),
-        _canvasController
+        _canvasController,
       );
       if (kDebugMode) {
         debugPrint(
@@ -4006,11 +4055,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (!await _confirmClear(title: '전체 지우기', message: '현재 페이지의 손글씨를 모두 지울까요?')) {
+    if (!await _confirmClear(
+      title: '전체 지우기',
+      message: '현재 페이지의 손글씨를 모두 지울까요?',
+    )) {
       return;
     }
 
-    final removedStrokeIds = strokes.map((stroke) => stroke.id).toList(growable: false);
+    final removedStrokeIds = strokes
+        .map((stroke) => stroke.id)
+        .toList(growable: false);
     _safeSetState(() {
       _historyManager.execute(
         BatchRemoveStrokesCommand(page: page, strokeIds: removedStrokeIds),
@@ -4021,7 +4075,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearAll page=$page removed=${removedStrokeIds.length}');
+      debugPrint(
+        '[Eraser] clearAll page=$page removed=${removedStrokeIds.length}',
+      );
     }
     _requestPersistDrawing();
     if (_settingsPopover.isShown) {
@@ -4056,7 +4112,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}');
+      debugPrint(
+        '[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}',
+      );
     }
     _requestPersistDrawing();
     if (_settingsPopover.isShown) {
@@ -4091,7 +4149,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
     if (kDebugMode) {
-      debugPrint('[Eraser] clearPen page=$page removed=${removedStrokeIds.length}');
+      debugPrint(
+        '[Eraser] clearPen page=$page removed=${removedStrokeIds.length}',
+      );
     }
     _requestPersistDrawing();
     if (_settingsPopover.isShown) {
@@ -4117,8 +4177,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       ..clear()
       ..addAll(
         _canvasController.strokesByPage.map(
-          (page, strokes) =>
-              MapEntry(page, List<DrawingStroke>.from(strokes)),
+          (page, strokes) => MapEntry(page, List<DrawingStroke>.from(strokes)),
         ),
       );
     _strokeSpatialIndexByPage.clear();
