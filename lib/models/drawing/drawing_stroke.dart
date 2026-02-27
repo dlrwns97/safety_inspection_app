@@ -172,6 +172,8 @@ class DrawingStroke {
     this.isStraightened = false,
     this.penVariant,
     this.highlighterVariant,
+    this.shapeType,
+    this.shapeFillArgb,
     this.erasedMaskVersion,
     this.erasedMask,
     this.erasedSegments,
@@ -193,6 +195,8 @@ class DrawingStroke {
   final bool isStraightened;
   final String? penVariant;
   final String? highlighterVariant;
+  final String? shapeType;
+  final int? shapeFillArgb;
   final int? erasedMaskVersion;
   final List<int>? erasedMask;
   final List<dynamic>? erasedSegments;
@@ -230,6 +234,8 @@ class DrawingStroke {
       isStraightened: isStraightened,
       penVariant: penVariant,
       highlighterVariant: highlighterVariant,
+      shapeType: shapeType,
+      shapeFillArgb: shapeFillArgb,
       erasedMaskVersion: erasedMaskVersion,
       erasedMask: erasedMask == null ? null : List<int>.from(erasedMask!),
       erasedSegments:
@@ -254,6 +260,12 @@ class DrawingStroke {
     }
     if (highlighterVariant != null) {
       json['highlighterVariant'] = highlighterVariant;
+    }
+    if (shapeType != null) {
+      json['shapeType'] = shapeType;
+    }
+    if (shapeFillArgb != null) {
+      json['shapeFillArgb'] = shapeFillArgb;
     }
     if (erasedMaskVersion != null) {
       json['erasedMaskVersion'] = erasedMaskVersion;
@@ -312,6 +324,11 @@ class DrawingStroke {
       isStraightened: _asBool(json['isStraightened'], false),
       penVariant: _asString(json['penVariant'], null),
       highlighterVariant: _asString(json['highlighterVariant'], null),
+      shapeType: _asString(json['shapeType'], null),
+      shapeFillArgb:
+          json.containsKey('shapeFillArgb')
+              ? _asInt(json['shapeFillArgb'], 0)
+              : null,
       erasedMaskVersion:
           json.containsKey('erasedMaskVersion')
               ? _asInt(json['erasedMaskVersion'], 0)

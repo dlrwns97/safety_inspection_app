@@ -1241,7 +1241,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pageNumber,
         start,
         pageLocalNorm,
-        _activeStrokeStyleOrFallback,
+        _activeShapeStrokeStyle,
+        fillArgb: _activeShapeFillColor?.value,
       );
       _historyManager.execute(
         AddStrokeCommand(
@@ -1302,6 +1303,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       isStraightened: before.isStraightened,
       penVariant: before.penVariant,
       highlighterVariant: before.highlighterVariant,
+      shapeType: before.shapeType,
+      shapeFillArgb: before.shapeFillArgb,
       erasedMaskVersion: before.erasedMaskVersion,
       erasedMask: before.erasedMask == null
           ? null
@@ -1807,9 +1810,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (_activeTool == DrawingTool.shape) {
-      if (_activeStrokeStyle == null) {
-        return;
-      }
       _activeStylusPointerId = event.pointer;
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
@@ -1827,7 +1827,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pageNumber: pageNumber,
         pageSize: pageSize,
         startNorm: downNorm,
-        style: _activeStrokeStyleOrFallback,
+        style: _activeShapeStrokeStyle,
       );
       return;
     }
@@ -1870,8 +1870,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeTool == DrawingTool.shape) {
       if (_activeStylusPointerId == null ||
           event.pointer != _activeStylusPointerId ||
-          !_isStylusKind(event.kind) ||
-          _activeStrokeStyle == null) {
+          !_isStylusKind(event.kind)) {
         return;
       }
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
@@ -1889,7 +1888,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pointerId: event.pointer,
         pageNumber: pageNumber,
         norm: norm,
-        style: _activeStrokeStyleOrFallback,
+        style: _activeShapeStrokeStyle,
       );
       return;
     }
@@ -2291,6 +2290,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     _safeSetState(() {
       _activeTool = tool;
+      if (tool == DrawingTool.shape) {
+        _loadShapeType(_activeShapeType);
+      }
       _eraserCursorPageLocal = null;
       _eraserCursorPageNumber = null;
       _canvasController.setEraserCursor(null);

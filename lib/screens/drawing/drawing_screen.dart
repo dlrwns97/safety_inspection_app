@@ -243,11 +243,19 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<HighlighterUiType, double> _hlWidthByType = <HighlighterUiType, double>{};
   final Map<HighlighterUiType, double> _hlOpacityByType = <HighlighterUiType, double>{};
   final Map<HighlighterUiType, Color> _hlColorByType = <HighlighterUiType, Color>{};
+  final Map<ShapeType, double> _shapeWidthByType = <ShapeType, double>{};
+  final Map<ShapeType, double> _shapeOpacityByType = <ShapeType, double>{};
+  final Map<ShapeType, Color> _shapeStrokeColorByType = <ShapeType, Color>{};
+  final Map<ShapeType, Color?> _shapeFillColorByType = <ShapeType, Color?>{};
   double _currentPenWidth = 3.0;
   Color _currentPenColor = const Color(0xFF000000);
   double _currentHlWidth = 3.0;
   double _currentHlOpacity = _kDefaultHighlighterOpacity;
   Color _currentHlColor = const Color(0xFF000000);
+  double _currentShapeWidth = 3.0;
+  double _currentShapeOpacity = 1.0;
+  Color _currentShapeStrokeColor = const Color(0xFF000000);
+  Color? _currentShapeFillColor;
   late final ValueNotifier<PenVariant> _penVariantNotifier;
   late final ValueNotifier<double> _penWidthNotifier;
   late final ValueNotifier<Color> _penColorNotifier;
@@ -303,6 +311,16 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   StrokeStyle get _activeStrokeStyleOrFallback =>
       _activeStrokeStyle ?? _presets.first;
+
+  StrokeStyle get _activeShapeStrokeStyle => StrokeStyle(
+        kind: StrokeToolKind.shape,
+        variant: PenVariant.pen,
+        widthPx: _currentShapeWidth,
+        argbColor: _currentShapeStrokeColor.value,
+        opacity: _currentShapeOpacity,
+      );
+
+  Color? get _activeShapeFillColor => _shapeFillColorByType[_activeShapeType];
 
   StrokeToolKind get _activeToolKindForToolbar {
     if (_activeTool == DrawingTool.areaEraser ||
@@ -439,7 +457,21 @@ class _DrawingScreenState extends State<DrawingScreen>
     _activeHighlighterType = _highlighterUiTypeFromVariant(initialStyle.variant);
     _loadPenType(_activePenType);
     _loadHighlighterType(_activeHighlighterType);
+    _seedShapeTypeMaps(initialPenPreset);
     _syncPopupNotifiers();
+  }
+
+  void _seedShapeTypeMaps(StrokeStyle baseStyle) {
+    for (final type in ShapeType.values) {
+      _shapeWidthByType.putIfAbsent(type, () => baseStyle.widthPx);
+      _shapeOpacityByType.putIfAbsent(type, () => 1.0);
+      _shapeStrokeColorByType.putIfAbsent(
+        type,
+        () => Color(baseStyle.argbColor),
+      );
+      _shapeFillColorByType.putIfAbsent(type, () => null);
+    }
+    _loadShapeType(_activeShapeType);
   }
 
   void _syncPopupNotifiers() {
@@ -516,6 +548,18 @@ class _DrawingScreenState extends State<DrawingScreen>
   String _hlColorKey(HighlighterUiType type) =>
       '$_kDrawingSettingsPrefix.hl.${type.name}.colorARGB';
 
+  String _shapeWidthKey(ShapeType type) =>
+      '$_kDrawingSettingsPrefix.shape.${type.name}.width';
+
+  String _shapeOpacityKey(ShapeType type) =>
+      '$_kDrawingSettingsPrefix.shape.${type.name}.opacity';
+
+  String _shapeStrokeColorKey(ShapeType type) =>
+      '$_kDrawingSettingsPrefix.shape.${type.name}.strokeColorARGB';
+
+  String _shapeFillColorKey(ShapeType type) =>
+      '$_kDrawingSettingsPrefix.shape.${type.name}.fillColorARGB';
+
   Future<void> _loadDrawingSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -524,6 +568,10 @@ class _DrawingScreenState extends State<DrawingScreen>
     final loadedHlWidthByType = <HighlighterUiType, double>{};
     final loadedHlOpacityByType = <HighlighterUiType, double>{};
     final loadedHlColorByType = <HighlighterUiType, Color>{};
+    final loadedShapeWidthByType = <ShapeType, double>{};
+    final loadedShapeOpacityByType = <ShapeType, double>{};
+    final loadedShapeStrokeColorByType = <ShapeType, Color>{};
+    final loadedShapeFillColorByType = <ShapeType, Color?>{};
 
     for (final type in PenUiType.values) {
       final width = prefs.getDouble(_penWidthKey(type));
@@ -551,6 +599,28 @@ class _DrawingScreenState extends State<DrawingScreen>
       }
     }
 
+    for (final type in ShapeType.values) {
+      final width = prefs.getDouble(_shapeWidthKey(type));
+      final opacity = prefs.getDouble(_shapeOpacityKey(type));
+      final strokeColorArgb = prefs.getInt(_shapeStrokeColorKey(type));
+      final hasFillKey = prefs.containsKey(_shapeFillColorKey(type));
+      final fillColorArgb = hasFillKey ? prefs.getInt(_shapeFillColorKey(type)) : null;
+      if (width != null) {
+        loadedShapeWidthByType[type] = width;
+      }
+      if (opacity != null) {
+        loadedShapeOpacityByType[type] = opacity;
+      }
+      if (strokeColorArgb != null) {
+        loadedShapeStrokeColorByType[type] = Color(strokeColorArgb);
+      }
+      if (hasFillKey) {
+        loadedShapeFillColorByType[type] = fillColorArgb == null
+            ? null
+            : Color(fillColorArgb);
+      }
+    }
+
     final straightenEnabled = prefs.getBool(
       '$_kDrawingSettingsPrefix.straighten.enabled',
     );
@@ -574,6 +644,10 @@ class _DrawingScreenState extends State<DrawingScreen>
       _hlWidthByType.addAll(loadedHlWidthByType);
       _hlOpacityByType.addAll(loadedHlOpacityByType);
       _hlColorByType.addAll(loadedHlColorByType);
+      _shapeWidthByType.addAll(loadedShapeWidthByType);
+      _shapeOpacityByType.addAll(loadedShapeOpacityByType);
+      _shapeStrokeColorByType.addAll(loadedShapeStrokeColorByType);
+      _shapeFillColorByType.addAll(loadedShapeFillColorByType);
 
       PenUiType? savedPenType;
       for (final type in PenUiType.values) {
@@ -605,6 +679,7 @@ class _DrawingScreenState extends State<DrawingScreen>
 
       _loadPenType(_activePenType);
       _loadHighlighterType(_activeHighlighterType);
+      _loadShapeType(_activeShapeType);
       _syncCurrentFamilyStyleToPreset();
       _syncPopupNotifiers();
     });
@@ -640,6 +715,26 @@ class _DrawingScreenState extends State<DrawingScreen>
         (_hlColorByType[type] ?? _currentHlColor).value,
       );
     }
+    for (final type in ShapeType.values) {
+      await prefs.setDouble(
+        _shapeWidthKey(type),
+        _shapeWidthByType[type] ?? _currentShapeWidth,
+      );
+      await prefs.setDouble(
+        _shapeOpacityKey(type),
+        _shapeOpacityByType[type] ?? _currentShapeOpacity,
+      );
+      await prefs.setInt(
+        _shapeStrokeColorKey(type),
+        (_shapeStrokeColorByType[type] ?? _currentShapeStrokeColor).value,
+      );
+      final fill = _shapeFillColorByType[type];
+      if (fill == null) {
+        await prefs.remove(_shapeFillColorKey(type));
+      } else {
+        await prefs.setInt(_shapeFillColorKey(type), fill.value);
+      }
+    }
 
     await prefs.setBool(
       '$_kDrawingSettingsPrefix.straighten.enabled',
@@ -663,6 +758,22 @@ class _DrawingScreenState extends State<DrawingScreen>
     _currentHlWidth = _hlWidthByType[t] ?? _currentHlWidth;
     _currentHlOpacity = _hlOpacityByType[t] ?? _currentHlOpacity;
     _currentHlColor = _hlColorByType[t] ?? _currentHlColor;
+  }
+
+  void _saveShapeType(ShapeType type) {
+    _shapeWidthByType[type] = _currentShapeWidth;
+    _shapeOpacityByType[type] = _currentShapeOpacity;
+    _shapeStrokeColorByType[type] = _currentShapeStrokeColor;
+    _shapeFillColorByType[type] = _currentShapeFillColor;
+    unawaited(_saveDrawingSettings());
+  }
+
+  void _loadShapeType(ShapeType type) {
+    _currentShapeWidth = _shapeWidthByType[type] ?? _currentShapeWidth;
+    _currentShapeOpacity = _shapeOpacityByType[type] ?? _currentShapeOpacity;
+    _currentShapeStrokeColor =
+        _shapeStrokeColorByType[type] ?? _currentShapeStrokeColor;
+    _currentShapeFillColor = _shapeFillColorByType[type];
   }
 
   void _syncCurrentFamilyStyleToPreset() {

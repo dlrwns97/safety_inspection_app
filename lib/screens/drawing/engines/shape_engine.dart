@@ -223,6 +223,7 @@ class ShapeEngine {
     Offset startNorm,
     Offset endNorm,
     StrokeStyle style, {
+    int? fillArgb,
     double arrowHeadLengthPx = 18.0,
     double arrowHeadAngleRad = 0.55,
     int circleSegments = 64,
@@ -232,6 +233,8 @@ class ShapeEngine {
       pageNumber: pageNumber,
       toolType: DrawingTool.shape,
       style: style,
+      shapeType: type.name,
+      shapeFillArgb: fillArgb,
       pointsNorm: buildPointsNorm(
         type,
         startNorm,

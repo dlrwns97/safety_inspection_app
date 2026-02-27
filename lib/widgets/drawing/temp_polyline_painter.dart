@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
 class TempPolylinePainter extends CustomPainter {
   TempPolylinePainter({
@@ -130,6 +131,13 @@ class TempPolylinePainter extends CustomPainter {
       debugPrint('[Drawing] TempPolylinePainter stroke=${stroke.id} variant=${style.variant.name}');
     }
 
+    _drawShapeFillIfNeeded(
+      canvas: canvas,
+      stroke: stroke,
+      points: points,
+      erasedMask: erasedMask,
+    );
+
     for (var i = 0; i < points.length; i += 1) {
       if (erasedMask[i] != 0) {
         continue;
@@ -147,6 +155,44 @@ class TempPolylinePainter extends CustomPainter {
       }
       i = end;
     }
+  }
+
+  void _drawShapeFillIfNeeded({
+    required Canvas canvas,
+    required DrawingStroke stroke,
+    required List<Offset> points,
+    required List<int> erasedMask,
+  }) {
+    if (stroke.toolType != DrawingTool.shape || stroke.shapeFillArgb == null) {
+      return;
+    }
+    if (erasedMask.any((value) => value != 0)) {
+      return;
+    }
+    if (points.length < 3) {
+      return;
+    }
+
+    final shapeType = stroke.shapeType ?? '';
+    if (shapeType != 'rectangle' &&
+        shapeType != 'circle' &&
+        shapeType != 'triangle') {
+      return;
+    }
+
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length; i += 1) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    path.close();
+
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(stroke.shapeFillArgb!).withOpacity(
+        stroke.style.opacity.clamp(0.0, 1.0),
+      )
+      ..blendMode = BlendMode.srcOver;
+    canvas.drawPath(path, fillPaint);
   }
 
   void _drawPenStroke(Canvas canvas, List<Offset> points, StrokeStyle style) {

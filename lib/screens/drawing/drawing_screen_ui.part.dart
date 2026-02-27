@@ -182,28 +182,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.edit,
                     selected: isPenSelected,
-                    tooltip: '그리기',
+                    tooltip: '?잙갭梨?怨⑸쐻?,
                     onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '선 지우개',
+                    tooltip: '??嶺뚯솘???醫롫윞??,
                     onTap: () => _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '범위 지우개',
+                    tooltip: '?뺢퀡???嶺뚯솘???醫롫윞??,
                     onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: '직교 모드',
+                    tooltip: '嶺뚯쉳???嶺뚮ㅄ維獄?,
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -227,9 +227,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: '지우개 크기 조절',
+                            message: '嶺뚯솘???醫롫윞????醫롫윞???브퀗???,
                             child: const Text(
-                              '지우개 크기',
+                              '嶺뚯솘???醫롫윞????醫롫윞??,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -342,7 +342,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '전체 지우기',
+                    tooltip: '??醫롫윪??嶺뚯솘???醫롫윞??,
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -354,7 +354,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '형광펜만 전체 지우기',
+                    tooltip: '??醫롫윞???醫롫윥壤???醫롫윪??嶺뚯솘???醫롫윞??,
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -366,12 +366,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '펜만 전체 지우기',
+                    tooltip: '??醫롫윥壤???醫롫윪??嶺뚯솘???醫롫윞??,
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '닫기',
+                    tooltip: '??醫롫윞??,
                   ),
                 ],
               ),
@@ -409,7 +409,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Row(
                 children: [
                   const SizedBox(width: 8),
-                  const Text('투명도'),
+                  const Text('??醫롫윥筌??),
                   Expanded(
                     child: Slider(
                       value: style.opacity.clamp(0.05, 1.0),
@@ -466,7 +466,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _showPenSettingsPopover();
                         },
                   icon: const Icon(Icons.tune),
-                  tooltip: '펜 설정',
+                  tooltip: '????醫롫윪??,
                 ),
               ],
             ),
@@ -492,14 +492,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForVariant(PenVariant variant) {
     return switch (variant) {
-      PenVariant.pen => '펜',
-      PenVariant.fountainPen => '만년필',
-      PenVariant.calligraphyPen => '캘리그래피',
-      PenVariant.pencil => '연필',
-      PenVariant.highlighter => '형광펜',
-      PenVariant.marker => '마커',
-      PenVariant.highlighterChisel => '형광펜',
-      PenVariant.markerChisel => '마커',
+      PenVariant.pen => '??,
+      PenVariant.fountainPen => '嶺뚮씭????,
+      PenVariant.calligraphyPen => '嶺?瑗?怨ル돥筌뤾퍔???,
+      PenVariant.pencil => '??醫???,
+      PenVariant.highlighter => '??醫롫윞???,
+      PenVariant.marker => '嶺뚮씭?녽뜮?,
+      PenVariant.highlighterChisel => '??醫롫윞???,
+      PenVariant.markerChisel => '嶺뚮씭?녽뜮?,
     };
   }
 
@@ -547,6 +547,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _showHighlighterSettingsPopover();
         return;
       case StrokeToolKind.shape:
+        _loadShapeType(_activeShapeType);
         _handleDrawingToolChanged(DrawingTool.shape);
         _showShapeSettingsPopover();
         return;
@@ -806,9 +807,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: tabButton('표준', useStandardTab, () => setD(() => useStandardTab = true))),
+                        Expanded(child: tabButton('??醫롫짗??', useStandardTab, () => setD(() => useStandardTab = true))),
                         const SizedBox(width: 8),
-                        Expanded(child: tabButton('사용자 지정', !useStandardTab, () => setD(() => useStandardTab = false))),
+                        Expanded(child: tabButton('??醫롫윪???嶺뚯솘???, !useStandardTab, () => setD(() => useStandardTab = false))),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -829,7 +830,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       if (_recentArgb.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        Align(alignment: Alignment.centerLeft, child: Text('최근', style: Theme.of(ctx).textTheme.labelLarge)),
+                        Align(alignment: Alignment.centerLeft, child: Text('嶺뚣끉裕??, style: Theme.of(ctx).textTheme.labelLarge)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 10,
@@ -871,7 +872,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('투명도'),
+                          const Text('??醫롫윥筌??),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -898,7 +899,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('취소'),
+                            child: const Text('???쳛??),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -908,7 +909,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('완료'),
+                            child: const Text('??醫롫윥筌?),
                           ),
                         ),
                       ],
@@ -1342,77 +1343,214 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    final colorRow = <int>[
+      ..._standardPaletteArgb.take(8),
+      ..._recentArgb.take(2),
+    ];
     _showPopover(
       link: _shapeLink,
-      child: Material(
-        elevation: 2,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 210),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ShapeType.values.map((shapeType) {
-              final isSelected = _activeShapeType == shapeType;
-              return InkWell(
-                onTap: () {
-                  _safeSetState(() => _activeShapeType = shapeType);
-                  _settingsPopover.hide();
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 84,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.secondaryContainer
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: Border.all(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.secondary
-                          : Theme.of(context).colorScheme.outline.withOpacity(0.35),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+      child: StatefulBuilder(
+        builder: (context, setPopupState) {
+          final shapeStyle = _activeShapeStrokeStyle;
+          final fillColor = _activeShapeFillColor;
+          return Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 420, maxWidth: 560),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Icon(
-                        _iconForShapeType(shapeType),
-                        size: 18,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.onSecondaryContainer
-                            : Theme.of(context).colorScheme.onSurface,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _labelForShapeType(shapeType),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.onSecondaryContainer
-                              : Theme.of(context).colorScheme.onSurface,
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ShapeType.values.map((shapeType) {
+                            final isSelected = _activeShapeType == shapeType;
+                            return InkWell(
+                              onTap: () {
+                                _safeSetState(() {
+                                  _saveShapeType(_activeShapeType);
+                                  _activeShapeType = shapeType;
+                                  _loadShapeType(shapeType);
+                                });
+                                setPopupState(() {});
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 84,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.secondaryContainer
+                                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.secondary
+                                        : Theme.of(context).colorScheme.outline.withOpacity(0.35),
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(_iconForShapeType(shapeType), size: 18),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _labelForShapeType(shapeType),
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(growable: false),
                         ),
-                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Shape Type', style: Theme.of(context).textTheme.titleSmall),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text('Stroke:'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final argb in colorRow)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: _colorCircle(
+                                    argb,
+                                    selected: shapeStyle.argbColor == argb,
+                                    onTap: () {
+                                      _safeSetState(() {
+                                        _currentShapeStrokeColor = Color(argb);
+                                        _saveShapeType(_activeShapeType);
+                                        _pushRecentColor(argb);
+                                      });
+                                      setPopupState(() {});
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              );
-            }).toList(growable: false),
-          ),
-        ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text('Fill:'),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('None'),
+                        selected: fillColor == null,
+                        onSelected: (_) {
+                          _safeSetState(() {
+                            _currentShapeFillColor = null;
+                            _saveShapeType(_activeShapeType);
+                          });
+                          setPopupState(() {});
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final argb in colorRow)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: _colorCircle(
+                                    argb,
+                                    selected: fillColor?.value == argb,
+                                    onTap: () {
+                                      _safeSetState(() {
+                                        _currentShapeFillColor = Color(argb);
+                                        _saveShapeType(_activeShapeType);
+                                        _pushRecentColor(argb);
+                                      });
+                                      setPopupState(() {});
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const SizedBox(width: 64, child: Text('Width')),
+                      Expanded(
+                        child: Slider(
+                          value: shapeStyle.widthPx.clamp(1.0, 48.0),
+                          min: 1,
+                          max: 48,
+                          divisions: 47,
+                          label: shapeStyle.widthPx.round().toString(),
+                          onChanged: (value) {
+                            _safeSetState(() {
+                              _currentShapeWidth = value;
+                              _saveShapeType(_activeShapeType);
+                            });
+                            setPopupState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const SizedBox(width: 64, child: Text('Opacity')),
+                      Expanded(
+                        child: Slider(
+                          value: shapeStyle.opacity.clamp(0.05, 1.0),
+                          min: 0.05,
+                          max: 1.0,
+                          divisions: 19,
+                          label: '${(shapeStyle.opacity * 100).round()}%',
+                          onChanged: (value) {
+                            _safeSetState(() {
+                              _currentShapeOpacity = value;
+                              _saveShapeType(_activeShapeType);
+                            });
+                            setPopupState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.line => '직선',
-      ShapeType.arrow => '화살표',
-      ShapeType.rectangle => '사각형',
-      ShapeType.circle => '원형',
-      ShapeType.triangle => '삼각형',
+      ShapeType.line => 'Line',
+      ShapeType.arrow => 'Arrow',
+      ShapeType.rectangle => 'Rectangle',
+      ShapeType.circle => 'Circle',
+      ShapeType.triangle => 'Triangle',
     };
   }
 
@@ -1441,14 +1579,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('취소'),
+                  child: const Text('???쳛??),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('변경'),
+                  child: const Text('?곌떠???),
                 ),
               ),
             ],
@@ -1635,3 +1773,4 @@ class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
     return true;
   }
 }
+
