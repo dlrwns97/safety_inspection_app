@@ -226,6 +226,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   bool _isStylusKind(PointerDeviceKind kind) {
     return kind == PointerDeviceKind.stylus ||
         kind == PointerDeviceKind.invertedStylus ||
+        kind == PointerDeviceKind.touch ||
         kind == PointerDeviceKind.unknown;
   }
 
@@ -2292,7 +2293,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleOverlayPointerDown(PointerDownEvent event) {
-    if (event.kind == PointerDeviceKind.touch) {
+    if (!_isFreeDrawMode && event.kind == PointerDeviceKind.touch) {
       return;
     }
     final previousCount = _activePointerIds.length;
@@ -2321,7 +2322,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       });
       return;
     }
-    _safeSetState(() {});
   }
 
   void _handleOverlayPointerDownWithStylusDrawing(
@@ -2837,7 +2837,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   void _handleOverlayPointerUpOrCancel(PointerEvent event) {
-    if (event.kind == PointerDeviceKind.touch) {
+    if (!_isFreeDrawMode && event.kind == PointerDeviceKind.touch) {
       return;
     }
     final didRemove = _activePointerIds.remove(event.pointer);

@@ -148,6 +148,12 @@ class _ShapeHandlesPainter extends CustomPainter {
       ..strokeWidth = style.widthPx
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+    if (type == ShapeType.arrow) {
+      strokePaint
+        ..strokeCap = StrokeCap.butt
+        ..strokeJoin = StrokeJoin.miter
+        ..strokeMiterLimit = 6.0;
+    }
 
     final centerNorm = bounds.center;
     Offset toCanvas(Offset norm) {

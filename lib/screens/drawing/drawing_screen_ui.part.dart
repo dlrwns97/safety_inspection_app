@@ -1349,9 +1349,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 child: Listener(
                   behavior: stylusOverlayBehavior,
                   onPointerDown: (e) {
-                    if (e.kind == PointerDeviceKind.touch) {
-                      return;
-                    }
                     _handleOverlayPointerDownWithStylusDrawing(
                       e,
                       pageNumber: pageNumber,
@@ -1361,9 +1358,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     );
                   },
                   onPointerMove: (e) {
-                    if (e.kind == PointerDeviceKind.touch) {
-                      return;
-                    }
                     _handleOverlayPointerMoveWithStylusDrawing(
                       e,
                       pageNumber: pageNumber,
@@ -1373,9 +1367,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     );
                   },
                   onPointerUp: (e) {
-                    if (e.kind == PointerDeviceKind.touch) {
-                      return;
-                    }
                     _handleOverlayPointerUpOrCancelWithStylusDrawing(
                       e,
                       pageNumber: pageNumber,
@@ -1384,9 +1375,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     );
                   },
                   onPointerCancel: (e) {
-                    if (e.kind == PointerDeviceKind.touch) {
-                      return;
-                    }
                     _handleOverlayPointerUpOrCancelWithStylusDrawing(
                       e,
                       pageNumber: pageNumber,
@@ -1464,9 +1452,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (e) {
-                  if (e.kind == PointerDeviceKind.touch) {
-                    return;
-                  }
                   _handleOverlayPointerDownWithStylusDrawing(
                     e,
                     pageNumber: _currentPage,
@@ -1476,9 +1461,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   );
                 },
                 onPointerMove: (e) {
-                  if (e.kind == PointerDeviceKind.touch) {
-                    return;
-                  }
                   _handleOverlayPointerMoveWithStylusDrawing(
                     e,
                     pageNumber: _currentPage,
@@ -1488,9 +1470,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   );
                 },
                 onPointerUp: (e) {
-                  if (e.kind == PointerDeviceKind.touch) {
-                    return;
-                  }
                   _handleOverlayPointerUpOrCancelWithStylusDrawing(
                     e,
                     pageNumber: _currentPage,
@@ -1499,9 +1478,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   );
                 },
                 onPointerCancel: (e) {
-                  if (e.kind == PointerDeviceKind.touch) {
-                    return;
-                  }
                   _handleOverlayPointerUpOrCancelWithStylusDrawing(
                     e,
                     pageNumber: _currentPage,
