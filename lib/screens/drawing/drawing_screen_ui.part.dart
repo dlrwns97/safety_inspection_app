@@ -1346,10 +1346,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ..._standardPaletteArgb.take(8),
       ..._recentArgb.take(2),
     ];
-    var draftStrokeColor = _activeStrokeStyleOrFallback.argbColor;
-    int? draftFillColor;
-    var draftWidth = _activeStrokeStyleOrFallback.widthPx.clamp(1.0, 48.0);
-    var draftOpacity = _activeStrokeStyleOrFallback.opacity.clamp(0.05, 1.0);
+    var draftStrokeColor = _currentShapeStrokeColor.value;
+    int? draftFillColor = _currentShapeFillColor?.value;
+    var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
+    var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
 
     _showPopover(
       link: _shapeLink,
@@ -1374,8 +1374,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           label: Text(_labelForShapeType(shapeType)),
                           selected: _activeShapeType == shapeType,
                           onSelected: (_) {
-                            _safeSetState(() => _activeShapeType = shapeType);
-                            _saveShapeType(shapeType);
+                            final previousType = _activeShapeType;
+                            _saveShapeType(previousType);
+                            _safeSetState(() {
+                              _activeShapeType = shapeType;
+                              _loadShapeType(shapeType);
+                            });
+                            draftStrokeColor = _currentShapeStrokeColor.value;
+                            draftFillColor = _currentShapeFillColor?.value;
+                            draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
+                            draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
                             setPopupState(() {});
                           },
                         );
@@ -1400,6 +1408,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         setPopupState(() {
                                           draftStrokeColor = argb;
                                         });
+                                        _safeSetState(() {
+                                          _currentShapeStrokeColor = Color(argb);
+                                        });
+                                        _pushRecentColor(argb);
+                                        _saveShapeType(_activeShapeType);
                                       },
                                     ),
                                   ),
@@ -1420,6 +1433,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             setPopupState(() {
                               draftFillColor = null;
                             });
+                            _safeSetState(() {
+                              _currentShapeFillColor = null;
+                            });
+                            _saveShapeType(_activeShapeType);
                           },
                         ),
                         const SizedBox(width: 8),
@@ -1438,6 +1455,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         setPopupState(() {
                                           draftFillColor = argb;
                                         });
+                                        _safeSetState(() {
+                                          _currentShapeFillColor = Color(argb);
+                                        });
+                                        _pushRecentColor(argb);
+                                        _saveShapeType(_activeShapeType);
                                       },
                                     ),
                                   ),
@@ -1462,6 +1484,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               setPopupState(() {
                                 draftWidth = value;
                               });
+                              _safeSetState(() {
+                                _currentShapeWidth = value;
+                              });
+                              _saveShapeType(_activeShapeType);
                             },
                           ),
                         ),
@@ -1481,6 +1507,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               setPopupState(() {
                                 draftOpacity = value;
                               });
+                              _safeSetState(() {
+                                _currentShapeOpacity = value;
+                              });
+                              _saveShapeType(_activeShapeType);
                             },
                           ),
                         ),

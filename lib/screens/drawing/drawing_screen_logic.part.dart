@@ -587,14 +587,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   Future<void> _persistDrawingEpoch(int epoch) async {
     final flatList = _strokesByPage.entries
         .expand((entry) => entry.value)
-        .map(
-          (stroke) => DrawingStroke(
-            id: stroke.id,
-            pageNumber: stroke.pageNumber,
-            style: stroke.style,
-            pointsNorm: List<Offset>.from(stroke.pointsNorm),
-          ),
-        )
+        .map((stroke) => stroke.deepCopy())
         .toList();
     await _drawingPersistenceStore.saveSiteDrawing(
       siteId: _site.id,
