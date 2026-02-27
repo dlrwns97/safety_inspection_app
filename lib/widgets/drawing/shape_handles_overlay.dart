@@ -76,9 +76,19 @@ class _ShapeHandlesPainter extends CustomPainter {
       _paintShapePreview(canvas, size, previewType!, previewStroke!);
     }
 
+    final boundsWidthPx = manipulator.boundsNorm.width * size.width;
+    final boundsHeightPx = manipulator.boundsNorm.height * size.height;
+    final shapeMinSidePx = math.max(
+      1.0,
+      math.min(boundsWidthPx.abs(), boundsHeightPx.abs()),
+    );
+    final handleRadius = (shapeMinSidePx * 0.09).clamp(2.0, 5.0).toDouble();
+    final rotateHandleRadius = (handleRadius * 1.8).clamp(4.0, 10.0).toDouble();
+    final outlineWidth = (handleRadius * 0.3).clamp(1.0, 1.8).toDouble();
+
     final paint = Paint()
       ..color = Colors.blueAccent
-      ..strokeWidth = 1.5
+      ..strokeWidth = outlineWidth
       ..style = PaintingStyle.stroke;
     final fill = Paint()
       ..color = Colors.blueAccent
@@ -104,9 +114,9 @@ class _ShapeHandlesPainter extends CustomPainter {
     for (final entry in handlePositions) {
       if (entry.$1 != ShapeHandle.rotate) {
         final point = _toCanvas(entry.$2, size);
-        canvas.drawCircle(point, 5, highlight);
-        canvas.drawCircle(point, 5, fill);
-        canvas.drawCircle(point, 5, paint);
+        canvas.drawCircle(point, handleRadius, highlight);
+        canvas.drawCircle(point, handleRadius, fill);
+        canvas.drawCircle(point, handleRadius, paint);
         continue;
       }
       if (entry.$1 == ShapeHandle.rotate) {
@@ -122,9 +132,9 @@ class _ShapeHandlesPainter extends CustomPainter {
         size,
       );
       canvas.drawLine(bottomCenter, rotateHandle, paint);
-      canvas.drawCircle(rotateHandle, 10, highlight);
-      canvas.drawCircle(rotateHandle, 10, fill);
-      canvas.drawCircle(rotateHandle, 10, paint);
+      canvas.drawCircle(rotateHandle, rotateHandleRadius, highlight);
+      canvas.drawCircle(rotateHandle, rotateHandleRadius, fill);
+      canvas.drawCircle(rotateHandle, rotateHandleRadius, paint);
     }
   }
 
