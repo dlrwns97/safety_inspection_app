@@ -135,6 +135,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   _TextEditOperation _activeTextEditOp = _TextEditOperation.none;
   Offset? _shapeInteractionStartNorm;
   Offset? _shapeInteractionLastNorm;
+  double? _shapeRotateGestureStartAngleRad;
+  double? _shapeRotateGestureStartRotationRad;
   Offset? _textInteractionLastNorm;
   Rect? _activeTextDraftBoundsNorm;
   double _shapeCreateThresholdNorm = 0.0;
@@ -264,6 +266,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   Color _currentShapeStrokeColor = const Color(0xFF000000);
   Color? _currentShapeFillColor;
   bool _isShapeAspectLocked = false;
+  bool _isShapeRotateSnapEnabled = false;
+  double? _shapeRotateSnappedAngleRad;
   double _currentTextFontSize = 14.0;
   Color _currentTextColor = const Color(0xFF000000);
   TextAlign _currentTextAlign = TextAlign.left;

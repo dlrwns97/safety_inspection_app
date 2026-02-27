@@ -194,7 +194,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '획 지우개',
+                    tooltip: 'Stroke eraser',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
@@ -202,7 +202,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '영역 지우개',
+                    tooltip: 'Area eraser',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
@@ -362,7 +362,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '현재 페이지 전체 지우기',
+                    tooltip: 'Clear all on page',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -374,7 +374,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '현재 페이지 형광펜만 지우기',
+                    tooltip: 'Clear highlighter on page',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -386,12 +386,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '현재 페이지 펜만 지우기',
+                    tooltip: 'Clear pen on page',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '닫기',
+                    tooltip: 'Close',
                   ),
                 ],
               ),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: '세부 설정',
+                    tooltip: 'Detailed settings',
                   ),
                 ],
               ),
@@ -1164,6 +1164,27 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final stylusOverlayBehavior = (_isFreeDrawMode && _isStylusActive)
         ? HitTestBehavior.opaque
         : HitTestBehavior.translucent;
+    ShapeType? overlayPreviewType;
+    StrokeStyle? overlayPreviewStroke;
+    int? overlayPreviewFillArgb;
+    if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
+      if (_activeShapeEditOp == _ShapeEditOperation.create) {
+        overlayPreviewType = _activeShapeType;
+        overlayPreviewStroke = _activeShapeStrokeStyle;
+        overlayPreviewFillArgb = _activeShapeFillColor?.value;
+      } else if (_selectedShapeStrokeId != null) {
+        final selected = _canvasController.findStrokeById(
+          pageNumber,
+          _selectedShapeStrokeId!,
+        );
+        final resolvedType = _shapeTypeFromStored(selected?.shapeType);
+        if (selected != null && resolvedType != null) {
+          overlayPreviewType = resolvedType;
+          overlayPreviewStroke = selected.style;
+          overlayPreviewFillArgb = selected.shapeFillArgb;
+        }
+      }
+    }
 
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
@@ -1270,21 +1291,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               child: ShapeHandlesOverlay(
                                 manipulator: _activeShapeManipulator!,
                                 canvasSize: pageSize,
-                                previewType:
-                                    _activeShapeEditOp ==
-                                        _ShapeEditOperation.create
-                                    ? _activeShapeType
-                                    : null,
-                                previewStroke:
-                                    _activeShapeEditOp ==
-                                        _ShapeEditOperation.create
-                                    ? _activeShapeStrokeStyle
-                                    : null,
-                                previewFillArgb:
-                                    _activeShapeEditOp ==
-                                        _ShapeEditOperation.create
-                                    ? _activeShapeFillColor?.value
-                                    : null,
+                                previewType: overlayPreviewType,
+                                previewStroke: overlayPreviewStroke,
+                                previewFillArgb: overlayPreviewFillArgb,
                                 createStartNorm:
                                     _activeShapeEditOp ==
                                         _ShapeEditOperation.create
@@ -1410,6 +1419,28 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return scale;
     }
 
+    ShapeType? overlayPreviewType;
+    StrokeStyle? overlayPreviewStroke;
+    int? overlayPreviewFillArgb;
+    if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
+      if (_activeShapeEditOp == _ShapeEditOperation.create) {
+        overlayPreviewType = _activeShapeType;
+        overlayPreviewStroke = _activeShapeStrokeStyle;
+        overlayPreviewFillArgb = _activeShapeFillColor?.value;
+      } else if (_selectedShapeStrokeId != null) {
+        final selected = _canvasController.findStrokeById(
+          _currentPage,
+          _selectedShapeStrokeId!,
+        );
+        final resolvedType = _shapeTypeFromStored(selected?.shapeType);
+        if (selected != null && resolvedType != null) {
+          overlayPreviewType = resolvedType;
+          overlayPreviewStroke = selected.style;
+          overlayPreviewFillArgb = selected.shapeFillArgb;
+        }
+      }
+    }
+
     return InteractiveViewer(
       transformationController: _transformationController,
       minScale: DrawingCanvasMinScale,
@@ -1499,17 +1530,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 child: ShapeHandlesOverlay(
                   manipulator: _activeShapeManipulator!,
                   canvasSize: DrawingCanvasSize,
-                  previewType: _activeShapeEditOp == _ShapeEditOperation.create
-                      ? _activeShapeType
-                      : null,
-                  previewStroke:
-                      _activeShapeEditOp == _ShapeEditOperation.create
-                      ? _activeShapeStrokeStyle
-                      : null,
-                  previewFillArgb:
-                      _activeShapeEditOp == _ShapeEditOperation.create
-                      ? _activeShapeFillColor?.value
-                      : null,
+                  previewType: overlayPreviewType,
+                  previewStroke: overlayPreviewStroke,
+                  previewFillArgb: overlayPreviewFillArgb,
                   createStartNorm:
                       _activeShapeEditOp == _ShapeEditOperation.create
                       ? _shapeInteractionStartNorm
@@ -1596,7 +1619,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('텍스트 설정')),
+                      const Expanded(child: Text('Text settings')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1611,7 +1634,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('크기')),
+                      const SizedBox(width: 72, child: Text('Size')),
                       Expanded(
                         child: Slider(
                           value: draftFontSize,
@@ -1635,7 +1658,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('색상')),
+                      const SizedBox(width: 72, child: Text('Color')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1652,7 +1675,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '색상 선택',
+                              tooltip: 'Pick color',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalColor = draftColor;
@@ -1712,7 +1735,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(width: 72, child: Text('정렬')),
+                      const SizedBox(width: 72, child: Text('Align')),
                       Expanded(
                         child: Wrap(
                           spacing: 8,
@@ -1743,7 +1766,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _settingsPopover.hide,
-                          child: const Text('취소'),
+                          child: const Text('Cancel'),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1757,7 +1780,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             );
                             _settingsPopover.hide();
                           },
-                          child: const Text('적용'),
+                          child: const Text('Apply'),
                         ),
                       ),
                     ],
@@ -1890,6 +1913,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
     var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
     var lockAspect = _isShapeAspectLocked;
+    var rotateSnap = _isShapeRotateSnapEnabled;
 
     Widget buildSliderRow({
       required String label,
@@ -1932,7 +1956,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('도형 설정')),
+                      const Expanded(child: Text('Shape settings')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1978,26 +2002,40 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         .toList(growable: false),
                   ),
                   const SizedBox(height: 12),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    value: lockAspect,
-                    title: const Text('비율 고정 (정사각형/정원형)'),
-                    onChanged: (value) {
-                      final next = value ?? false;
-                      setPopupState(() {
-                        lockAspect = next;
-                      });
-                      _safeSetState(() {
-                        _isShapeAspectLocked = next;
-                      });
-                    },
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: lockAspect,
+                        onChanged: (value) {
+                          final next = value ?? false;
+                          setPopupState(() {
+                            lockAspect = next;
+                          });
+                          _safeSetState(() {
+                            _isShapeAspectLocked = next;
+                          });
+                        },
+                      ),
+                      const Text('비율 고정'),
+                      const SizedBox(width: 10),
+                      Checkbox(
+                        value: rotateSnap,
+                        onChanged: (value) {
+                          final next = value ?? false;
+                          setPopupState(() {
+                            rotateSnap = next;
+                          });
+                          _safeSetState(() {
+                            _isShapeRotateSnapEnabled = next;
+                          });
+                        },
+                      ),
+                      const Text('스냅'),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '회전: 도형 선택 후 하단의 동그란 회전 핸들을 드래그',
+                    '회전: 도형 선택 후 하단 원형 핸들을 드래그',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 6),
@@ -2025,7 +2063,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '색상 선택',
+                              tooltip: 'Pick color',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -2138,7 +2176,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: '채우기 색상 선택',
+                                  tooltip: 'Pick fill color',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -2213,7 +2251,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '선 굵기',
+                    label: 'Line width',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -2253,6 +2291,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
         },
       ),
     );
+  }
+
+  ShapeType? _shapeTypeFromStored(String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    for (final type in ShapeType.values) {
+      if (type.name == raw) {
+        return type;
+      }
+    }
+    return null;
   }
 
   String _labelForShapeType(ShapeType type) {

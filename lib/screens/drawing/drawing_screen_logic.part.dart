@@ -1558,6 +1558,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeShapeManipulator = null;
       _activeShapeHandle = ShapeHandle.none;
       _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeRotateSnappedAngleRad = null;
+      _shapeRotateGestureStartAngleRad = null;
+      _shapeRotateGestureStartRotationRad = null;
       _shapeInteractionStartNorm = null;
       _shapeInteractionLastNorm = null;
       _shapeCreateHasMoved = false;
@@ -1569,6 +1572,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _activeShapeHandle = ShapeHandle.none;
       _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeRotateSnappedAngleRad = null;
+      _shapeRotateGestureStartAngleRad = null;
+      _shapeRotateGestureStartRotationRad = null;
       _shapeInteractionStartNorm = null;
       _shapeInteractionLastNorm = null;
       _shapeCreateHasMoved = false;
@@ -1628,6 +1634,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (handleCandidate != null && handleManipulator != null) {
+      final center = handleManipulator.boundsNorm.center;
+      final gestureStartAngle = math.atan2(
+        startNorm.dy - center.dy,
+        startNorm.dx - center.dx,
+      );
+      final gestureStartRotation = handleManipulator.rotationRad;
       _safeSetState(() {
         _selectedShapeStrokeId = handleCandidate!.id;
         _activeShapeManipulator = handleManipulator;
@@ -1637,6 +1649,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             : _ShapeEditOperation.resize;
         _shapeInteractionStartNorm = startNorm;
         _shapeInteractionLastNorm = startNorm;
+        _shapeRotateSnappedAngleRad = null;
+        _shapeRotateGestureStartAngleRad = handleHit == ShapeHandle.rotate
+            ? gestureStartAngle
+            : null;
+        _shapeRotateGestureStartRotationRad = handleHit == ShapeHandle.rotate
+            ? gestureStartRotation
+            : null;
         _shapeCreateHasMoved = false;
         _shapeCreateThresholdNorm = 0.0;
       });
@@ -1656,6 +1675,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           _activeShapeEditOp = _ShapeEditOperation.translate;
           _shapeInteractionStartNorm = startNorm;
           _shapeInteractionLastNorm = startNorm;
+          _shapeRotateSnappedAngleRad = null;
+          _shapeRotateGestureStartAngleRad = null;
+          _shapeRotateGestureStartRotationRad = null;
           _shapeCreateHasMoved = false;
           _shapeCreateThresholdNorm = 0.0;
         });
@@ -1672,6 +1694,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeShapeEditOp = _ShapeEditOperation.create;
       _shapeInteractionStartNorm = startNorm;
       _shapeInteractionLastNorm = startNorm;
+      _shapeRotateSnappedAngleRad = null;
+      _shapeRotateGestureStartAngleRad = null;
+      _shapeRotateGestureStartRotationRad = null;
       _shapeCreateHasMoved = false;
       _shapeCreateThresholdNorm = 0.0;
     });
@@ -1718,7 +1743,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             manipulator.resizeByHandle(_activeShapeHandle, delta);
             break;
           case _ShapeEditOperation.rotate:
-            manipulator.rotateTo(norm);
+            if (_isShapeRotateSnapEnabled) {
+              _rotateShapeManipulatorWithSnap(manipulator, norm);
+            } else {
+              _shapeRotateSnappedAngleRad = null;
+              manipulator.rotationRad = _shapeRawRotateTargetAngle(
+                manipulator,
+                norm,
+              );
+            }
             break;
           default:
             break;
@@ -1781,6 +1814,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activeShapeEditOp = _ShapeEditOperation.none;
         _shapeInteractionStartNorm = null;
         _shapeInteractionLastNorm = null;
+        _shapeRotateSnappedAngleRad = null;
+        _shapeRotateGestureStartAngleRad = null;
+        _shapeRotateGestureStartRotationRad = null;
         _shapeCreateHasMoved = false;
         _shapeCreateThresholdNorm = 0.0;
       });
@@ -1844,6 +1880,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeShapeManipulator = manipulator;
       _activeShapeHandle = ShapeHandle.none;
       _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeRotateSnappedAngleRad = null;
+      _shapeRotateGestureStartAngleRad = null;
+      _shapeRotateGestureStartRotationRad = null;
       _shapeInteractionStartNorm = null;
       _shapeInteractionLastNorm = null;
       _shapeCreateHasMoved = false;
@@ -1875,6 +1914,63 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         (lockedPx / pageSize.height) * (dy.isNegative ? -1.0 : 1.0);
     final adjusted = Offset(start.dx + lockedDx, start.dy + lockedDy);
     return Offset(adjusted.dx.clamp(0.0, 1.0), adjusted.dy.clamp(0.0, 1.0));
+  }
+
+  void _rotateShapeManipulatorWithSnap(
+    ShapeManipulator manipulator,
+    Offset norm,
+  ) {
+    final rawAngle = _shapeRawRotateTargetAngle(manipulator, norm);
+    const enterSnapDeg = 7.0;
+    const exitSnapDeg = 11.0;
+    final enterSnapRad = _degToRad(enterSnapDeg);
+    final exitSnapRad = _degToRad(exitSnapDeg);
+
+    final snapped = _shapeRotateSnappedAngleRad;
+    if (snapped != null) {
+      final diff = _wrapAngleDiff(rawAngle, snapped).abs();
+      if (diff <= exitSnapRad) {
+        manipulator.rotationRad = snapped;
+        return;
+      }
+      _shapeRotateSnappedAngleRad = null;
+    }
+
+    final candidateAngles = <double>[];
+    const divisions = 24; // 15-degree increments
+    for (var i = 0; i < divisions; i += 1) {
+      candidateAngles.add(-math.pi + (2 * math.pi * i / divisions));
+    }
+
+    var nearest = candidateAngles.first;
+    var minDiff = _wrapAngleDiff(rawAngle, nearest).abs();
+    for (final angle in candidateAngles.skip(1)) {
+      final diff = _wrapAngleDiff(rawAngle, angle).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearest = angle;
+      }
+    }
+
+    if (minDiff <= enterSnapRad) {
+      _shapeRotateSnappedAngleRad = nearest;
+      manipulator.rotationRad = nearest;
+      return;
+    }
+
+    manipulator.rotationRad = rawAngle;
+  }
+
+  double _shapeRawRotateTargetAngle(ShapeManipulator manipulator, Offset norm) {
+    final center = manipulator.boundsNorm.center;
+    final pointerAngle = math.atan2(norm.dy - center.dy, norm.dx - center.dx);
+    final gestureStartAngle = _shapeRotateGestureStartAngleRad;
+    final gestureStartRotation = _shapeRotateGestureStartRotationRad;
+    if (gestureStartAngle == null || gestureStartRotation == null) {
+      return pointerAngle;
+    }
+    return gestureStartRotation +
+        _wrapAngleDiff(pointerAngle, gestureStartAngle);
   }
 
   List<Offset> _transformShapePointsByBounds({
