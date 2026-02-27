@@ -189,14 +189,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '??筌왖?怨뚯뻣',
+                    tooltip: '획 지우개',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '甕곕뗄??筌왖?怨뚯뻣',
+                    tooltip: '영역 지우개',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
                   const SizedBox(width: 8),
@@ -342,7 +342,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '?袁⑷퍥 筌왖?怨뚮┛',
+                    tooltip: '현재 페이지 전체 지우기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -354,7 +354,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '?類?굝??뺤춸 ?袁⑷퍥 筌왖?怨뚮┛',
+                    tooltip: '현재 페이지 형광펜만 지우기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -366,12 +366,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '??뺤춸 ?袁⑷퍥 筌왖?怨뚮┛',
+                    tooltip: '현재 페이지 펜만 지우기',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '??る┛',
+                    tooltip: '닫기',
                   ),
                 ],
               ),
@@ -456,7 +456,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
                 IconButton(
-                  onPressed: !canAdjustStrokeStyle
+                    onPressed: !canAdjustStrokeStyle
                       ? null
                       : () {
                           if (style.kind == StrokeToolKind.highlighter) {
@@ -466,7 +466,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           _showPenSettingsPopover();
                         },
                   icon: const Icon(Icons.tune),
-                  tooltip: '????쇱젟',
+                  tooltip: '세부 설정',
                 ),
               ],
             ),
@@ -1375,11 +1375,42 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return <int>[...fixedPalette, ...recent.take(2)];
     }
 
-    var draftStrokeColor = _currentShapeStrokeColor.value;
-    int? draftFillColor = _currentShapeFillColor?.value ?? draftStrokeColor;
+    int colorToArgb(Color color) => color.toARGB32();
+    var draftStrokeColor = colorToArgb(_currentShapeStrokeColor);
+    int? draftFillColor =
+        _currentShapeFillColor == null
+            ? null
+            : colorToArgb(_currentShapeFillColor!);
+    draftFillColor ??= draftStrokeColor;
     var fillEnabled = _currentShapeFillColor != null;
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
     var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
+
+    Widget buildSliderRow({
+      required String label,
+      required double value,
+      required double min,
+      required double max,
+      required int divisions,
+      required String valueLabel,
+      required ValueChanged<double> onChanged,
+    }) {
+      return Row(
+        children: [
+          SizedBox(width: 72, child: Text(label)),
+          Expanded(
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              divisions: divisions,
+              label: valueLabel,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      );
+    }
 
     _showPopover(
       link: _shapeLink,
@@ -1411,8 +1442,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _activeShapeType = shapeType;
                               _loadShapeType(shapeType);
                             });
-                            draftStrokeColor = _currentShapeStrokeColor.value;
-                            draftFillColor = _currentShapeFillColor?.value;
+                            draftStrokeColor = colorToArgb(_currentShapeStrokeColor);
+                            draftFillColor = _currentShapeFillColor == null
+                                ? null
+                                : colorToArgb(_currentShapeFillColor!);
                             draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
                             draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
                             setPopupState(() {});
@@ -1467,11 +1500,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         .toList(growable: false),
                                     onLiveChanged: (color) {
                                       _safeSetState(() {
-                                        _currentShapeStrokeColor = Color(color.withAlpha(0xFF).value);
+                                        _currentShapeStrokeColor = Color(
+                                          color.withAlpha(0xFF).toARGB32(),
+                                        );
                                       });
                                     },
                                     onCommitChanged: (color) {
-                                      final picked = color.withAlpha(0xFF).value;
+                                      final picked = color.withAlpha(0xFF).toARGB32();
                                       _safeSetState(() {
                                         _currentShapeStrokeColor = Color(picked);
                                       });
@@ -1604,6 +1639,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                           _currentShapeFillColor = originalFill;
                                         });
                                       }
+                                      draftFillColor = _currentShapeFillColor == null
+                                          ? null
+                                          : colorToArgb(_currentShapeFillColor!);
                                       _saveShapeType(_activeShapeType);
                                       if (mounted) {
                                         WidgetsBinding.instance
@@ -1624,51 +1662,39 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const SizedBox(width: 72, child: Text('선 굵기')),
-                        Expanded(
-                          child: Slider(
-                            value: draftWidth,
-                            min: 1,
-                            max: 48,
-                            divisions: 47,
-                            label: draftWidth.round().toString(),
-                            onChanged: (value) {
-                              setPopupState(() {
-                                draftWidth = value;
-                              });
-                              _safeSetState(() {
-                                _currentShapeWidth = value;
-                              });
-                              _saveShapeType(_activeShapeType);
-                            },
-                          ),
-                        ),
-                      ],
+                    buildSliderRow(
+                      label: '선 굵기',
+                      value: draftWidth,
+                      min: 1.0,
+                      max: 48.0,
+                      divisions: 47,
+                      valueLabel: draftWidth.round().toString(),
+                      onChanged: (value) {
+                        setPopupState(() {
+                          draftWidth = value;
+                        });
+                        _safeSetState(() {
+                          _currentShapeWidth = value;
+                        });
+                        _saveShapeType(_activeShapeType);
+                      },
                     ),
-                    Row(
-                      children: [
-                        const SizedBox(width: 72, child: Text('투명도')),
-                        Expanded(
-                          child: Slider(
-                            value: draftOpacity,
-                            min: 0.05,
-                            max: 1.0,
-                            divisions: 19,
-                            label: '${(draftOpacity * 100).round()}%',
-                            onChanged: (value) {
-                              setPopupState(() {
-                                draftOpacity = value;
-                              });
-                              _safeSetState(() {
-                                _currentShapeOpacity = value;
-                              });
-                              _saveShapeType(_activeShapeType);
-                            },
-                          ),
-                        ),
-                      ],
+                    buildSliderRow(
+                      label: '투명도',
+                      value: draftOpacity,
+                      min: 0.05,
+                      max: 1.0,
+                      divisions: 19,
+                      valueLabel: '${(draftOpacity * 100).round()}%',
+                      onChanged: (value) {
+                        setPopupState(() {
+                          draftOpacity = value;
+                        });
+                        _safeSetState(() {
+                          _currentShapeOpacity = value;
+                        });
+                        _saveShapeType(_activeShapeType);
+                      },
                     ),
                   ],
                 ),
