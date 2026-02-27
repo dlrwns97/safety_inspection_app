@@ -529,7 +529,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (kDebugMode) {
       debugPrint('TOOL change: $kind');
     }
-    if (_settingsPopover.isShown && _activeToolKindForToolbar == kind) {
+    if (_settingsPopover.isShown &&
+        _activeToolKindForToolbar == kind &&
+        kind != StrokeToolKind.shape) {
       return;
     }
 
@@ -546,6 +548,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         return;
       case StrokeToolKind.shape:
         _handleDrawingToolChanged(DrawingTool.shape);
+        _showShapeSettingsPopover();
         return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
@@ -1333,6 +1336,45 @@ extension _DrawingScreenUi on _DrawingScreenState {
         ),
       ),
     );
+  }
+
+  void _showShapeSettingsPopover() {
+    if (!mounted) {
+      return;
+    }
+    _showPopover(
+      link: _shapeLink,
+      child: Material(
+        elevation: 2,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Wrap(
+            spacing: 6,
+            children: ShapeType.values.map((shapeType) {
+              return ChoiceChip(
+                label: Text(_labelForShapeType(shapeType)),
+                selected: _activeShapeType == shapeType,
+                onSelected: (_) {
+                  _safeSetState(() => _activeShapeType = shapeType);
+                  _settingsPopover.hide();
+                },
+              );
+            }).toList(growable: false),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _labelForShapeType(ShapeType type) {
+    return switch (type) {
+      ShapeType.line => '직선',
+      ShapeType.arrow => '화살표',
+      ShapeType.rectangle => '사각형',
+      ShapeType.circle => '원형',
+      ShapeType.triangle => '삼각형',
+    };
   }
 
   Widget _buildMoveModeBottomBar() {

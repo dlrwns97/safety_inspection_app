@@ -30,6 +30,7 @@ class ToolHeaderRow extends StatelessWidget {
     this.penToolLink,
     this.highlighterToolLink,
     this.eraserToolLink,
+    this.shapeToolLink,
   });
 
   final DrawMode mode;
@@ -52,6 +53,7 @@ class ToolHeaderRow extends StatelessWidget {
   final LayerLink? penToolLink;
   final LayerLink? highlighterToolLink;
   final LayerLink? eraserToolLink;
+  final LayerLink? shapeToolLink;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +88,7 @@ class ToolHeaderRow extends StatelessWidget {
                       penToolLink: penToolLink,
                       highlighterToolLink: highlighterToolLink,
                       eraserToolLink: eraserToolLink,
+                      shapeToolLink: shapeToolLink,
                     )
                   : Row(
                   children: [
@@ -167,6 +170,7 @@ class _FreeDrawActionTabs extends StatelessWidget {
     this.penToolLink,
     this.highlighterToolLink,
     this.eraserToolLink,
+    this.shapeToolLink,
   });
 
   final StrokeToolKind activeTool;
@@ -178,6 +182,7 @@ class _FreeDrawActionTabs extends StatelessWidget {
   final LayerLink? penToolLink;
   final LayerLink? highlighterToolLink;
   final LayerLink? eraserToolLink;
+  final LayerLink? shapeToolLink;
 
   @override
   Widget build(BuildContext context) {
@@ -201,10 +206,13 @@ class _FreeDrawActionTabs extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        ChoiceChip(
-          label: const Text('도형'),
-          selected: activeTool == StrokeToolKind.shape,
-          onSelected: (_) => onToolSelected(StrokeToolKind.shape),
+        CompositedTransformTarget(
+          link: shapeToolLink ?? LayerLink(),
+          child: ChoiceChip(
+            label: const Text('도형'),
+            selected: activeTool == StrokeToolKind.shape,
+            onSelected: (_) => onToolSelected(StrokeToolKind.shape),
+          ),
         ),
         const SizedBox(width: 8),
         CompositedTransformTarget(

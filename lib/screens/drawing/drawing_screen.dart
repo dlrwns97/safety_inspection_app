@@ -191,6 +191,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final LayerLink _penLink = LayerLink();
   final LayerLink _highlighterLink = LayerLink();
   final LayerLink _eraserLink = LayerLink();
+  final LayerLink _shapeLink = LayerLink();
   final Map<int, List<DrawingStroke>> _strokesByPage = <int, List<DrawingStroke>>{};
   final Map<int, SpatialIndex> _strokeSpatialIndexByPage = <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
@@ -1459,6 +1460,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     penToolLink: _penLink,
     highlighterToolLink: _highlighterLink,
     eraserToolLink: _eraserLink,
+    shapeToolLink: _shapeLink,
   );
   CanvasMarkerLayer _buildMarkerLayer({
     required Widget child,
