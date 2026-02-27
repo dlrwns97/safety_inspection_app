@@ -160,7 +160,7 @@ class StrokeCacheManager extends ChangeNotifier {
       _drawPenSegment(canvas, style, stroke.opacity, points);
       return;
     }
-    _drawCenterlineSegment(canvas, stroke, style, stroke.opacity, points);
+    _drawCenterlineSegment(canvas, style, stroke.opacity, points);
   }
 
   void _drawShapeFillIfNeeded({
@@ -246,7 +246,6 @@ class StrokeCacheManager extends ChangeNotifier {
 
   void _drawCenterlineSegment(
     Canvas canvas,
-    DrawingStroke stroke,
     StrokeStyle style,
     double strokeOpacity,
     List<Offset> points,
@@ -256,14 +255,6 @@ class StrokeCacheManager extends ChangeNotifier {
       strokeOpacity: strokeOpacity,
     );
     final paint = resolved.paint;
-    final isShapeArrow =
-        stroke.toolType == DrawingTool.shape && stroke.shapeType == 'arrow';
-    if (isShapeArrow) {
-      paint
-        ..strokeCap = StrokeCap.butt
-        ..strokeJoin = StrokeJoin.miter
-        ..strokeMiterLimit = 6.0;
-    }
     if (shouldRenderCenterlineAsDot(points)) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);
       return;

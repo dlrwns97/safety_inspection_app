@@ -322,13 +322,6 @@ class TempPolylinePainter extends CustomPainter {
         break;
     }
 
-    final isShapeArrow =
-        stroke.toolType == DrawingTool.shape && stroke.shapeType == 'arrow';
-    if (isShapeArrow) {
-      resolvedStrokeCap = StrokeCap.butt;
-      resolvedStrokeJoin = StrokeJoin.miter;
-    }
-
     final paint = Paint()
       ..color = Color(
         style.argbColor,
@@ -336,7 +329,7 @@ class TempPolylinePainter extends CustomPainter {
       ..strokeWidth = resolvedStrokeWidth
       ..strokeCap = resolvedStrokeCap
       ..strokeJoin = resolvedStrokeJoin
-      ..strokeMiterLimit = isShapeArrow ? 6.0 : 4.0
+      ..strokeMiterLimit = 4.0
       ..style = PaintingStyle.stroke
       ..blendMode = resolvedBlendMode;
 

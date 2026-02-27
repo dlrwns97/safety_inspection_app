@@ -230,6 +230,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         kind == PointerDeviceKind.unknown;
   }
 
+  bool _isStrictStylusKind(PointerDeviceKind kind) {
+    return kind == PointerDeviceKind.stylus ||
+        kind == PointerDeviceKind.invertedStylus ||
+        kind == PointerDeviceKind.unknown;
+  }
+
   int get _activeTouchPointerCount => _activePointerKinds.values
       .where((kind) => kind == PointerDeviceKind.touch)
       .length;
@@ -1583,6 +1589,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final pageStrokes = _canvasController.getStrokes(pageNumber);
     final hitPaddingNorm = (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
+    DrawingStroke? handleCandidate;
+    ShapeManipulator? handleManipulator;
+    ShapeHandle handleHit = ShapeHandle.none;
     DrawingStroke? candidate;
     Rect? candidateBounds;
     for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
@@ -1593,6 +1602,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       final bounds = _shapeStrokeBounds(stroke.pointsNorm);
       if (bounds == null) {
         continue;
+      }
+      final manipulator = ShapeManipulator(
+        boundsNorm: bounds,
+        rotationRad: 0.0,
+      );
+      final hitHandle = manipulator.hitTestHandle(startNorm);
+      if (hitHandle != ShapeHandle.none) {
+        handleCandidate = stroke;
+        handleManipulator = manipulator;
+        handleHit = hitHandle;
+        break;
       }
       final paddedBounds = Rect.fromLTRB(
         (bounds.left - hitPaddingNorm).clamp(0.0, 1.0),
@@ -1607,27 +1627,27 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
     }
 
+    if (handleCandidate != null && handleManipulator != null) {
+      _safeSetState(() {
+        _selectedShapeStrokeId = handleCandidate!.id;
+        _activeShapeManipulator = handleManipulator;
+        _activeShapeHandle = handleHit;
+        _activeShapeEditOp = handleHit == ShapeHandle.rotate
+            ? _ShapeEditOperation.rotate
+            : _ShapeEditOperation.resize;
+        _shapeInteractionStartNorm = startNorm;
+        _shapeInteractionLastNorm = startNorm;
+        _shapeCreateHasMoved = false;
+        _shapeCreateThresholdNorm = 0.0;
+      });
+      return;
+    }
+
     if (candidate != null && candidateBounds != null) {
       final manipulator = ShapeManipulator(
         boundsNorm: candidateBounds,
         rotationRad: 0.0,
       );
-      final handle = manipulator.hitTestHandle(startNorm);
-      if (handle == ShapeHandle.rotate || handle != ShapeHandle.none) {
-        _safeSetState(() {
-          _selectedShapeStrokeId = candidate!.id;
-          _activeShapeManipulator = manipulator;
-          _activeShapeHandle = handle;
-          _activeShapeEditOp = handle == ShapeHandle.rotate
-              ? _ShapeEditOperation.rotate
-              : _ShapeEditOperation.resize;
-          _shapeInteractionStartNorm = startNorm;
-          _shapeInteractionLastNorm = startNorm;
-          _shapeCreateHasMoved = false;
-          _shapeCreateThresholdNorm = 0.0;
-        });
-        return;
-      }
       if (manipulator.hitTestBody(startNorm)) {
         _safeSetState(() {
           _selectedShapeStrokeId = candidate!.id;
@@ -1732,21 +1752,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (_activeShapeEditOp == _ShapeEditOperation.create ||
         _activeShapeEditOp == _ShapeEditOperation.none) {
-      final start = _shapeInteractionStartNorm ?? pageLocalNorm;
-      final constrainedEnd = _constrainShapeCreateEndNorm(
-        start,
-        pageLocalNorm,
-        pageSize: pageSize,
-      );
       final createBounds = manipulator.boundsNorm;
       final createStart = createBounds.topLeft;
       final createEnd = createBounds.bottomRight;
-      final effectiveStart = _activeShapeType == ShapeType.arrow
-          ? start
-          : createStart;
-      final effectiveEnd = _activeShapeType == ShapeType.arrow
-          ? constrainedEnd
-          : createEnd;
+      final effectiveStart = createStart;
+      final effectiveEnd = createEnd;
       final created = ShapeEngine.toStroke(
         _activeShapeType,
         pageNumber,
@@ -1754,8 +1764,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         effectiveEnd,
         _activeShapeStrokeStyle,
         fillArgb: _currentShapeFillColor?.value,
-        arrowHeadLengthPx: _currentArrowHeadLengthPx,
-        arrowHeadAngleRad: _currentArrowHeadAngleRad,
       );
       _historyManager.execute(
         AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
@@ -1851,7 +1859,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Offset current, {
     required Size pageSize,
   }) {
-    if (!_isShapeAspectLocked || _activeShapeType == ShapeType.arrow) {
+    if (!_isShapeAspectLocked) {
       return current;
     }
     final dx = current.dx - start.dx;
@@ -2360,6 +2368,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (_activeTool == DrawingTool.shape) {
+      if (!_isStrictStylusKind(event.kind)) {
+        return;
+      }
       _activeStylusPointerId = event.pointer;
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
@@ -2440,7 +2451,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_activeTool == DrawingTool.shape) {
       if (_activeStylusPointerId == null ||
           event.pointer != _activeStylusPointerId ||
-          !_isStylusKind(event.kind)) {
+          !_isStrictStylusKind(event.kind)) {
         return;
       }
       final pageLocal = drawingLocalToPageLocal(event.localPosition);

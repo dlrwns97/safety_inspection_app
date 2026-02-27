@@ -15,8 +15,6 @@ class ShapeHandlesOverlay extends StatelessWidget {
     this.previewFillArgb,
     this.createStartNorm,
     this.createCurrentNorm,
-    this.previewArrowHeadLengthPx,
-    this.previewArrowHeadAngleRad,
     this.showBounds = true,
   });
 
@@ -27,8 +25,6 @@ class ShapeHandlesOverlay extends StatelessWidget {
   final int? previewFillArgb;
   final Offset? createStartNorm;
   final Offset? createCurrentNorm;
-  final double? previewArrowHeadLengthPx;
-  final double? previewArrowHeadAngleRad;
   final bool showBounds;
 
   @override
@@ -41,8 +37,6 @@ class ShapeHandlesOverlay extends StatelessWidget {
         previewFillArgb: previewFillArgb,
         createStartNorm: createStartNorm,
         createCurrentNorm: createCurrentNorm,
-        previewArrowHeadLengthPx: previewArrowHeadLengthPx,
-        previewArrowHeadAngleRad: previewArrowHeadAngleRad,
         showBounds: showBounds,
       ),
       child: SizedBox(width: canvasSize.width, height: canvasSize.height),
@@ -58,8 +52,6 @@ class _ShapeHandlesPainter extends CustomPainter {
     required this.previewFillArgb,
     required this.createStartNorm,
     required this.createCurrentNorm,
-    required this.previewArrowHeadLengthPx,
-    required this.previewArrowHeadAngleRad,
     required this.showBounds,
   });
 
@@ -69,8 +61,6 @@ class _ShapeHandlesPainter extends CustomPainter {
   final int? previewFillArgb;
   final Offset? createStartNorm;
   final Offset? createCurrentNorm;
-  final double? previewArrowHeadLengthPx;
-  final double? previewArrowHeadAngleRad;
   final bool showBounds;
 
   @override
@@ -140,19 +130,9 @@ class _ShapeHandlesPainter extends CustomPainter {
     StrokeStyle style,
   ) {
     final bounds = manipulator.boundsNorm;
-    final startNorm = type == ShapeType.arrow
-        ? (createStartNorm ?? bounds.topLeft)
-        : bounds.topLeft;
-    final endNorm = type == ShapeType.arrow
-        ? (createCurrentNorm ?? bounds.bottomRight)
-        : bounds.bottomRight;
-    final points = ShapeEngine.buildPointsNorm(
-      type,
-      startNorm,
-      endNorm,
-      arrowHeadLengthPx: previewArrowHeadLengthPx ?? 18.0,
-      arrowHeadAngleRad: previewArrowHeadAngleRad ?? 0.55,
-    );
+    final startNorm = bounds.topLeft;
+    final endNorm = bounds.bottomRight;
+    final points = ShapeEngine.buildPointsNorm(type, startNorm, endNorm);
     if (points.isEmpty) {
       return;
     }
@@ -164,13 +144,6 @@ class _ShapeHandlesPainter extends CustomPainter {
       ..strokeWidth = style.widthPx
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    if (type == ShapeType.arrow) {
-      strokePaint
-        ..strokeCap = StrokeCap.butt
-        ..strokeJoin = StrokeJoin.miter
-        ..strokeMiterLimit = 6.0;
-    }
-
     final centerNorm = bounds.center;
     Offset toCanvas(Offset norm) {
       final rotated = _rotatePoint(norm, centerNorm, manipulator.rotationRad);
@@ -184,7 +157,7 @@ class _ShapeHandlesPainter extends CustomPainter {
       path.lineTo(point.dx, point.dy);
     }
 
-    if (type != ShapeType.arrow) {
+    if (type != ShapeType.hShape) {
       if (points.length >= 3) {
         path.close();
       }
@@ -227,8 +200,6 @@ class _ShapeHandlesPainter extends CustomPainter {
         oldDelegate.previewFillArgb != previewFillArgb ||
         oldDelegate.createStartNorm != createStartNorm ||
         oldDelegate.createCurrentNorm != createCurrentNorm ||
-        oldDelegate.previewArrowHeadLengthPx != previewArrowHeadLengthPx ||
-        oldDelegate.previewArrowHeadAngleRad != previewArrowHeadAngleRad ||
         oldDelegate.showBounds != showBounds;
   }
 }
