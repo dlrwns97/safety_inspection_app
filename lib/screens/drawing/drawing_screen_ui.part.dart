@@ -588,6 +588,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _showHighlighterSettingsPopover();
         return;
       case StrokeToolKind.shape:
+        if (_activeToolKindForToolbar == StrokeToolKind.shape) {
+          _settingsPopover.hide();
+          _clearShapeSelection();
+          _handleDrawingToolChanged(DrawingTool.pen);
+          return;
+        }
         _handleDrawingToolChanged(DrawingTool.shape);
         _showShapeSettingsPopover();
         return;
@@ -2034,10 +2040,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '회전: 도형 선택 후 하단 원형 핸들을 드래그',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                   const SizedBox(height: 6),
                   Row(
                     children: [

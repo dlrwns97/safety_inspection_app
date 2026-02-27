@@ -1635,9 +1635,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (handleCandidate != null && handleManipulator != null) {
       final center = handleManipulator.boundsNorm.center;
-      final gestureStartAngle = math.atan2(
-        startNorm.dy - center.dy,
-        startNorm.dx - center.dx,
+      final gestureStartAngle = _shapePointerAngleForPageSpace(
+        centerNorm: center,
+        pointerNorm: startNorm,
+        pageSize: pageSize,
       );
       final gestureStartRotation = handleManipulator.rotationRad;
       _safeSetState(() {
@@ -1744,12 +1745,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             break;
           case _ShapeEditOperation.rotate:
             if (_isShapeRotateSnapEnabled) {
-              _rotateShapeManipulatorWithSnap(manipulator, norm);
+              _rotateShapeManipulatorWithSnap(
+                manipulator,
+                norm,
+                pageSize: pageSize,
+              );
             } else {
               _shapeRotateSnappedAngleRad = null;
               manipulator.rotationRad = _shapeRawRotateTargetAngle(
                 manipulator,
                 norm,
+                pageSize: pageSize,
               );
             }
             break;
@@ -1847,6 +1853,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       fromBounds: beforeBounds,
       toBounds: manipulator.boundsNorm,
       rotationRad: manipulator.rotationRad,
+      pageSize: pageSize,
     );
     final after = DrawingStroke(
       id: before.id,
@@ -1918,9 +1925,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _rotateShapeManipulatorWithSnap(
     ShapeManipulator manipulator,
-    Offset norm,
-  ) {
-    final rawAngle = _shapeRawRotateTargetAngle(manipulator, norm);
+    Offset norm, {
+    required Size pageSize,
+  }) {
+    final rawAngle = _shapeRawRotateTargetAngle(
+      manipulator,
+      norm,
+      pageSize: pageSize,
+    );
     const enterSnapDeg = 7.0;
     const exitSnapDeg = 11.0;
     final enterSnapRad = _degToRad(enterSnapDeg);
@@ -1961,9 +1973,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     manipulator.rotationRad = rawAngle;
   }
 
-  double _shapeRawRotateTargetAngle(ShapeManipulator manipulator, Offset norm) {
+  double _shapeRawRotateTargetAngle(
+    ShapeManipulator manipulator,
+    Offset norm, {
+    required Size pageSize,
+  }) {
     final center = manipulator.boundsNorm.center;
-    final pointerAngle = math.atan2(norm.dy - center.dy, norm.dx - center.dx);
+    final pointerAngle = _shapePointerAngleForPageSpace(
+      centerNorm: center,
+      pointerNorm: norm,
+      pageSize: pageSize,
+    );
     final gestureStartAngle = _shapeRotateGestureStartAngleRad;
     final gestureStartRotation = _shapeRotateGestureStartRotationRad;
     if (gestureStartAngle == null || gestureStartRotation == null) {
@@ -1978,6 +1998,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Rect fromBounds,
     required Rect toBounds,
     required double rotationRad,
+    required Size pageSize,
   }) {
     final fromWidth = fromBounds.width <= 0 ? 1.0 : fromBounds.width;
     final fromHeight = fromBounds.height <= 0 ? 1.0 : fromBounds.height;
@@ -1994,29 +2015,59 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             toLeft + ratioX * toWidth,
             toTop + ratioY * toHeight,
           );
-          final rotated = _rotateAroundCenter(
+          final rotated = _rotateAroundCenterInPageSpace(
             point: scaled,
             center: toCenter,
             angleRad: rotationRad,
+            pageSize: pageSize,
           );
           return Offset(rotated.dx.clamp(0.0, 1.0), rotated.dy.clamp(0.0, 1.0));
         })
         .toList(growable: false);
   }
 
-  Offset _rotateAroundCenter({
+  Offset _rotateAroundCenterInPageSpace({
     required Offset point,
     required Offset center,
     required double angleRad,
+    required Size pageSize,
   }) {
+    if (pageSize.width <= 0 || pageSize.height <= 0) {
+      return point;
+    }
+    final pointPx = Offset(
+      point.dx * pageSize.width,
+      point.dy * pageSize.height,
+    );
+    final centerPx = Offset(
+      center.dx * pageSize.width,
+      center.dy * pageSize.height,
+    );
     final cosA = math.cos(angleRad);
     final sinA = math.sin(angleRad);
-    final dx = point.dx - center.dx;
-    final dy = point.dy - center.dy;
-    return Offset(
-      center.dx + dx * cosA - dy * sinA,
-      center.dy + dx * sinA + dy * cosA,
+    final dx = pointPx.dx - centerPx.dx;
+    final dy = pointPx.dy - centerPx.dy;
+    final rotatedPx = Offset(
+      centerPx.dx + dx * cosA - dy * sinA,
+      centerPx.dy + dx * sinA + dy * cosA,
     );
+    return Offset(
+      rotatedPx.dx / pageSize.width,
+      rotatedPx.dy / pageSize.height,
+    );
+  }
+
+  double _shapePointerAngleForPageSpace({
+    required Offset centerNorm,
+    required Offset pointerNorm,
+    required Size pageSize,
+  }) {
+    final dx = (pointerNorm.dx - centerNorm.dx) * pageSize.width;
+    final dy = (pointerNorm.dy - centerNorm.dy) * pageSize.height;
+    if (dx.abs() < 1e-9 && dy.abs() < 1e-9) {
+      return 0.0;
+    }
+    return math.atan2(dy, dx);
   }
 
   int? _createdIndexFromId(String id) {

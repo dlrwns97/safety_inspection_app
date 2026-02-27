@@ -145,9 +145,13 @@ class _ShapeHandlesPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final centerNorm = bounds.center;
+    final centerPx = Offset(
+      centerNorm.dx * size.width,
+      centerNorm.dy * size.height,
+    );
     Offset toCanvas(Offset norm) {
-      final rotated = _rotatePoint(norm, centerNorm, manipulator.rotationRad);
-      return Offset(rotated.dx * size.width, rotated.dy * size.height);
+      final pointPx = Offset(norm.dx * size.width, norm.dy * size.height);
+      return _rotatePoint(pointPx, centerPx, manipulator.rotationRad);
     }
 
     final firstPoint = toCanvas(points.first);
