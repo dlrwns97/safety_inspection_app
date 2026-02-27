@@ -44,7 +44,7 @@ class ToolHeaderRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final StrokeToolKind activeStrokeTool;
+  final StrokeToolKind? activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;
@@ -93,51 +93,51 @@ class ToolHeaderRow extends StatelessWidget {
                       textToolLink: textToolLink,
                     )
                   : Row(
-                  children: [
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Text(
-                        _modeTitle(mode),
-                        style: Theme.of(context).textTheme.titleSmall,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (showAddButton) ...[
-                      const SizedBox(width: 6),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          iconSize: 18,
-                          onPressed: onAdd,
-                          icon: const Icon(Icons.add),
-                          tooltip: '추가',
+                      children: [
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            _modeTitle(mode),
+                            style: Theme.of(context).textTheme.titleSmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
-                    if (showTabs) ...[
-                      const SizedBox(width: 8),
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: mode == DrawMode.defect
-                            ? _DefectCategoryTabs(
-                                defectTabs: defectTabs,
-                                activeCategory: activeCategory,
-                                onSelected: onDefectSelected,
-                                onLongPress: onDefectLongPress,
-                              )
-                            : NumberedTabs<EquipmentCategory>(
-                                items: equipmentTabs,
-                                selected: activeEquipmentCategory,
-                                onSelected: onEquipmentSelected,
-                                labelBuilder: equipmentChipLabel,
-                                onLongPress: onEquipmentLongPress,
-                              ),
-                      ),
-                    ],
-                  ],
-                ),
+                        if (showAddButton) ...[
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              iconSize: 18,
+                              onPressed: onAdd,
+                              icon: const Icon(Icons.add),
+                              tooltip: '추가',
+                            ),
+                          ),
+                        ],
+                        if (showTabs) ...[
+                          const SizedBox(width: 8),
+                          Flexible(
+                            fit: FlexFit.loose,
+                            child: mode == DrawMode.defect
+                                ? _DefectCategoryTabs(
+                                    defectTabs: defectTabs,
+                                    activeCategory: activeCategory,
+                                    onSelected: onDefectSelected,
+                                    onLongPress: onDefectLongPress,
+                                  )
+                                : NumberedTabs<EquipmentCategory>(
+                                    items: equipmentTabs,
+                                    selected: activeEquipmentCategory,
+                                    onSelected: onEquipmentSelected,
+                                    labelBuilder: equipmentChipLabel,
+                                    onLongPress: onEquipmentLongPress,
+                                  ),
+                          ),
+                        ],
+                      ],
+                    ),
             ),
           ],
         ),
@@ -176,7 +176,7 @@ class _FreeDrawActionTabs extends StatelessWidget {
     this.textToolLink,
   });
 
-  final StrokeToolKind activeTool;
+  final StrokeToolKind? activeTool;
   final bool canUndo;
   final bool canRedo;
   final ValueChanged<StrokeToolKind> onToolSelected;

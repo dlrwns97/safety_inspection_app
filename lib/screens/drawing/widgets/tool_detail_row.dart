@@ -42,7 +42,7 @@ class ToolDetailRow extends StatelessWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final StrokeToolKind activeStrokeTool;
+  final StrokeToolKind? activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;

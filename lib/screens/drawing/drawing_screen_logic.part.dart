@@ -3062,6 +3062,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
   }
 
+  void _deactivateActiveFreeDrawTool() {
+    if (_inProgressStroke != null) {
+      _handleFreeDrawEnd(_inProgressStroke?.pageNumber ?? _currentPage);
+    }
+    _clearShapeSelection();
+    _safeSetState(() {
+      _activeTool = DrawingTool.pen;
+      _activePresetIndex = null;
+      _selectedTextStrokeId = null;
+      _activeTextEditOp = _TextEditOperation.none;
+      _textInteractionLastNorm = null;
+      _activeTextDraftBoundsNorm = null;
+      _isFreeDrawConsumingOneFinger = false;
+      _pendingDraw = false;
+      _pendingDrawDownViewportLocal = null;
+      _activeStylusPointerId = null;
+      _eraserCursorPageLocal = null;
+      _eraserCursorPageNumber = null;
+      _canvasController.setEraserCursor(null);
+      _canvasController.setEraserPreview(null);
+      _activeAreaEraserPointerId = null;
+      _activeAreaEraserSession = null;
+      _activeStrokeEraserPointerId = null;
+      _erasedStrokeIdsThisDrag.clear();
+      _erasedStrokeCountThisDrag = 0;
+    });
+  }
+
   void _handleAreaEraserRadiusChanged(double value) {
     final nextRadius = value.clamp(
       _DrawingScreenState._kMinAreaEraserRadiusPx,
@@ -4205,8 +4233,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required String title,
     required String message,
   }) async {
+    if (_settingsPopover.isShown) {
+      _settingsPopover.hide();
+    }
     final confirmed = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (context) {
         return AlertDialog(
           title: Text(title),

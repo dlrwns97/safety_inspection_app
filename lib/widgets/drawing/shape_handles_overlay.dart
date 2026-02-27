@@ -13,6 +13,7 @@ class ShapeHandlesOverlay extends StatelessWidget {
     this.previewType,
     this.previewStroke,
     this.previewFillArgb,
+    this.previewPointsNorm,
     this.createStartNorm,
     this.createCurrentNorm,
     this.showBounds = true,
@@ -23,6 +24,7 @@ class ShapeHandlesOverlay extends StatelessWidget {
   final ShapeType? previewType;
   final StrokeStyle? previewStroke;
   final int? previewFillArgb;
+  final List<Offset>? previewPointsNorm;
   final Offset? createStartNorm;
   final Offset? createCurrentNorm;
   final bool showBounds;
@@ -35,6 +37,7 @@ class ShapeHandlesOverlay extends StatelessWidget {
         previewType: previewType,
         previewStroke: previewStroke,
         previewFillArgb: previewFillArgb,
+        previewPointsNorm: previewPointsNorm,
         createStartNorm: createStartNorm,
         createCurrentNorm: createCurrentNorm,
         showBounds: showBounds,
@@ -50,6 +53,7 @@ class _ShapeHandlesPainter extends CustomPainter {
     required this.previewType,
     required this.previewStroke,
     required this.previewFillArgb,
+    required this.previewPointsNorm,
     required this.createStartNorm,
     required this.createCurrentNorm,
     required this.showBounds,
@@ -59,6 +63,7 @@ class _ShapeHandlesPainter extends CustomPainter {
   final ShapeType? previewType;
   final StrokeStyle? previewStroke;
   final int? previewFillArgb;
+  final List<Offset>? previewPointsNorm;
   final Offset? createStartNorm;
   final Offset? createCurrentNorm;
   final bool showBounds;
@@ -132,7 +137,9 @@ class _ShapeHandlesPainter extends CustomPainter {
     final bounds = manipulator.boundsNorm;
     final startNorm = bounds.topLeft;
     final endNorm = bounds.bottomRight;
-    final points = ShapeEngine.buildPointsNorm(type, startNorm, endNorm);
+    final points = previewPointsNorm == null || previewPointsNorm!.isEmpty
+        ? ShapeEngine.buildPointsNorm(type, startNorm, endNorm)
+        : List<Offset>.from(previewPointsNorm!);
     if (points.isEmpty) {
       return;
     }
@@ -202,6 +209,7 @@ class _ShapeHandlesPainter extends CustomPainter {
         oldDelegate.previewStroke?.widthPx != previewStroke?.widthPx ||
         oldDelegate.previewStroke?.opacity != previewStroke?.opacity ||
         oldDelegate.previewFillArgb != previewFillArgb ||
+        oldDelegate.previewPointsNorm != previewPointsNorm ||
         oldDelegate.createStartNorm != createStartNorm ||
         oldDelegate.createCurrentNorm != createCurrentNorm ||
         oldDelegate.showBounds != showBounds;

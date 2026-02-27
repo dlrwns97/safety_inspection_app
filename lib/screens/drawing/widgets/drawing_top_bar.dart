@@ -48,7 +48,7 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<DefectCategory> onDefectLongPress;
   final ValueChanged<EquipmentCategory> onEquipmentSelected;
   final ValueChanged<EquipmentCategory> onEquipmentLongPress;
-  final StrokeToolKind activeStrokeTool;
+  final StrokeToolKind? activeStrokeTool;
   final bool canUndoDrawing;
   final bool canRedoDrawing;
   final ValueChanged<StrokeToolKind> onDrawingToolSelected;
@@ -70,10 +70,7 @@ class DrawingTopBar extends StatelessWidget implements PreferredSizeWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: isToolSelectionMode
-            ? ToolSelectionRow(
-                mode: mode,
-                onToggleMode: onToggleMode,
-              )
+            ? ToolSelectionRow(mode: mode, onToggleMode: onToggleMode)
             : ToolDetailRow(
                 mode: mode,
                 defectTabs: defectTabs,

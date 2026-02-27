@@ -350,6 +350,16 @@ class _DrawingScreenState extends State<DrawingScreen>
         : StrokeToolKind.pen;
   }
 
+  StrokeToolKind? get _selectedToolKindForToolbar {
+    if (!_isFreeDrawMode) {
+      return null;
+    }
+    if (_activeTool == DrawingTool.pen && _activePresetIndex == null) {
+      return null;
+    }
+    return _activeToolKindForToolbar;
+  }
+
   void _setToolPanelOpen(bool value) =>
       _safeSetState(() => _isToolPanelOpen = value);
 
@@ -1605,7 +1615,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       _sidePanelEquipmentCategory = item;
     }),
     onEquipmentLongPress: _showDeleteEquipmentTabDialog,
-    activeStrokeTool: _activeToolKindForToolbar,
+    activeStrokeTool: _selectedToolKindForToolbar,
     canUndoDrawing: _canUndoDrawing,
     canRedoDrawing: _canRedoDrawing,
     onDrawingToolSelected: _selectToolAndOpenSettings,

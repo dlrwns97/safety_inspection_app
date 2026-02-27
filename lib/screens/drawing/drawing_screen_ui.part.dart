@@ -570,9 +570,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (kDebugMode) {
       debugPrint('TOOL change: $kind');
     }
-    if (_settingsPopover.isShown &&
-        _activeToolKindForToolbar == kind &&
-        kind != StrokeToolKind.shape) {
+    if (_selectedToolKindForToolbar == kind) {
+      _settingsPopover.hide();
+      _deactivateActiveFreeDrawTool();
       return;
     }
 
@@ -588,12 +588,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _showHighlighterSettingsPopover();
         return;
       case StrokeToolKind.shape:
-        if (_activeToolKindForToolbar == StrokeToolKind.shape) {
-          _settingsPopover.hide();
-          _clearShapeSelection();
-          _handleDrawingToolChanged(DrawingTool.pen);
-          return;
-        }
         _handleDrawingToolChanged(DrawingTool.shape);
         _showShapeSettingsPopover();
         return;
@@ -1173,6 +1167,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     ShapeType? overlayPreviewType;
     StrokeStyle? overlayPreviewStroke;
     int? overlayPreviewFillArgb;
+    List<Offset>? overlayPreviewPointsNorm;
     if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         overlayPreviewType = _activeShapeType;
@@ -1188,6 +1183,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
           overlayPreviewType = resolvedType;
           overlayPreviewStroke = selected.style;
           overlayPreviewFillArgb = selected.shapeFillArgb;
+          overlayPreviewPointsNorm = selected.pointsNorm;
         }
       }
     }
@@ -1300,6 +1296,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 previewType: overlayPreviewType,
                                 previewStroke: overlayPreviewStroke,
                                 previewFillArgb: overlayPreviewFillArgb,
+                                previewPointsNorm: overlayPreviewPointsNorm,
                                 createStartNorm:
                                     _activeShapeEditOp ==
                                         _ShapeEditOperation.create
@@ -1428,6 +1425,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     ShapeType? overlayPreviewType;
     StrokeStyle? overlayPreviewStroke;
     int? overlayPreviewFillArgb;
+    List<Offset>? overlayPreviewPointsNorm;
     if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         overlayPreviewType = _activeShapeType;
@@ -1443,6 +1441,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
           overlayPreviewType = resolvedType;
           overlayPreviewStroke = selected.style;
           overlayPreviewFillArgb = selected.shapeFillArgb;
+          overlayPreviewPointsNorm = selected.pointsNorm;
         }
       }
     }
@@ -1539,6 +1538,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   previewType: overlayPreviewType,
                   previewStroke: overlayPreviewStroke,
                   previewFillArgb: overlayPreviewFillArgb,
+                  previewPointsNorm: overlayPreviewPointsNorm,
                   createStartNorm:
                       _activeShapeEditOp == _ShapeEditOperation.create
                       ? _shapeInteractionStartNorm
