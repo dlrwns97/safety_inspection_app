@@ -1343,10 +1343,40 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
     final shapeTypes = ShapeType.values.toList(growable: false);
-    final palette = _standardPaletteArgb.take(7).toList(growable: false);
+    const fixedPalette = <int>[
+      0xFFE53935, // red
+      0xFFFF9800, // orange
+      0xFFFFEB3B, // yellow
+      0xFF43A047, // green
+      0xFF1E88E5, // blue
+    ];
+
+    List<int> buildPalette() {
+      final recent = <int>[];
+      for (final argb in _recentArgb) {
+        if (fixedPalette.contains(argb)) {
+          continue;
+        }
+        recent.add(argb);
+        if (recent.length == 2) {
+          break;
+        }
+      }
+      const fallback = <int>[0xFF000000, 0xFFFFFFFF];
+      for (final argb in fallback) {
+        if (recent.length == 2) {
+          break;
+        }
+        if (!recent.contains(argb) && !fixedPalette.contains(argb)) {
+          recent.add(argb);
+        }
+      }
+      return <int>[...fixedPalette, ...recent.take(2)];
+    }
 
     var draftStrokeColor = _currentShapeStrokeColor.value;
-    int? draftFillColor = _currentShapeFillColor?.value;
+    int? draftFillColor = _currentShapeFillColor?.value ?? draftStrokeColor;
+    var fillEnabled = _currentShapeFillColor != null;
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
     var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
 
@@ -1354,6 +1384,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       link: _shapeLink,
       child: StatefulBuilder(
         builder: (context, setPopupState) {
+          final palette = buildPalette();
           return Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(14),
@@ -1417,12 +1448,13 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
                                   final originalStroke = _currentShapeStrokeColor;
-                                  _settingsPopover.hide();
                                   final kept = await showDrawingColorPickerDialog(
-                                    this.context,
+                                    Navigator.of(
+                                      this.context,
+                                      rootNavigator: true,
+                                    ).context,
                                     initialColor: originalStroke,
                                     recentColors: _recentArgb
-                                        .take(5)
                                         .map((argb) => Color(argb))
                                         .toList(growable: false),
                                     onLiveChanged: (color) {
@@ -1435,6 +1467,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                       _safeSetState(() {
                                         _currentShapeStrokeColor = Color(picked);
                                       });
+                                      setPopupState(() {
+                                        draftStrokeColor = picked;
+                                      });
                                       _pushRecentColor(picked);
                                       _saveShapeType(_activeShapeType);
                                     },
@@ -1445,9 +1480,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     });
                                   }
                                   _saveShapeType(_activeShapeType);
-                                  if (mounted) {
-                                    _showShapeSettingsPopover();
-                                  }
+                                  setPopupState(() {});
                                 },
                                 icon: const Icon(Icons.colorize),
                               ),
@@ -1459,88 +1492,110 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const SizedBox(width: 72, child: Text('채우기 색')),
+                        SizedBox(
+                          width: 72,
+                          child: InkWell(
+                            onTap: () {
+                              setPopupState(() {
+                                fillEnabled = !fillEnabled;
+                                if (fillEnabled && draftFillColor == null) {
+                                  draftFillColor = draftStrokeColor;
+                                }
+                              });
+                              _safeSetState(() {
+                                _currentShapeFillColor = fillEnabled
+                                    ? Color(draftFillColor ?? draftStrokeColor)
+                                    : null;
+                              });
+                              _saveShapeType(_activeShapeType);
+                            },
+                            child: Opacity(
+                              opacity: fillEnabled ? 1.0 : 0.45,
+                              child: const Text('채우기 색'),
+                            ),
+                          ),
+                        ),
                         Expanded(
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              FilterChip(
-                                label: const Text('없음'),
-                                selected: draftFillColor == null,
-                                showCheckmark: true,
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                onSelected: (_) {
-                                  setPopupState(() {
-                                    draftFillColor = null;
-                                  });
-                                  _safeSetState(() {
-                                    _currentShapeFillColor = null;
-                                  });
-                                  _saveShapeType(_activeShapeType);
-                                },
-                              ),
-                              for (final argb in palette)
-                                _colorCircle(
-                                  argb,
-                                  selected: draftFillColor == argb,
-                                  onTap: () {
-                                    setPopupState(() {
-                                      draftFillColor = argb;
-                                    });
-                                    _safeSetState(() {
-                                      _currentShapeFillColor = Color(argb);
-                                    });
-                                    _pushRecentColor(argb);
-                                    _saveShapeType(_activeShapeType);
-                                  },
-                                ),
-                              IconButton(
-                                tooltip: '채우기 색상 선택',
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () async {
-                                  final originalFill = _currentShapeFillColor;
-                                  final seedColor = Color(
-                                    draftFillColor ??
-                                        _currentShapeStrokeColor.value,
-                                  );
-                                  _settingsPopover.hide();
-                                  final kept = await showDrawingColorPickerDialog(
-                                    this.context,
-                                    initialColor: seedColor,
-                                    recentColors: _recentArgb
-                                        .take(5)
-                                        .map((argb) => Color(argb))
-                                        .toList(growable: false),
-                                    onLiveChanged: (color) {
-                                      _safeSetState(() {
-                                        _currentShapeFillColor = Color(color.withAlpha(0xFF).value);
-                                      });
-                                    },
-                                    onCommitChanged: (color) {
-                                      final picked = color.withAlpha(0xFF).value;
-                                      _safeSetState(() {
-                                        _currentShapeFillColor = Color(picked);
-                                      });
-                                      _pushRecentColor(picked);
+                          child: Opacity(
+                            opacity: fillEnabled ? 1.0 : 0.45,
+                            child: IgnorePointer(
+                              ignoring: !fillEnabled,
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (final argb in palette)
+                                    _colorCircle(
+                                      argb,
+                                      selected: draftFillColor == argb,
+                                      onTap: () {
+                                        setPopupState(() {
+                                          draftFillColor = argb;
+                                          fillEnabled = true;
+                                        });
+                                        _safeSetState(() {
+                                          _currentShapeFillColor = Color(argb);
+                                        });
+                                        _pushRecentColor(argb);
+                                        _saveShapeType(_activeShapeType);
+                                      },
+                                    ),
+                                  IconButton(
+                                    tooltip: '채우기 색상 선택',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () async {
+                                      final originalFill = _currentShapeFillColor;
+                                      final seedColor = Color(
+                                        draftFillColor ??
+                                            _currentShapeStrokeColor.value,
+                                      );
+                                      final kept =
+                                          await showDrawingColorPickerDialog(
+                                        Navigator.of(
+                                          this.context,
+                                          rootNavigator: true,
+                                        ).context,
+                                        initialColor: seedColor,
+                                        recentColors: _recentArgb
+                                            .map((argb) => Color(argb))
+                                            .toList(growable: false),
+                                        onLiveChanged: (color) {
+                                          _safeSetState(() {
+                                            _currentShapeFillColor = Color(
+                                              color.withAlpha(0xFF).value,
+                                            );
+                                          });
+                                        },
+                                        onCommitChanged: (color) {
+                                          final picked = color.withAlpha(
+                                            0xFF,
+                                          ).value;
+                                          _safeSetState(() {
+                                            _currentShapeFillColor = Color(
+                                              picked,
+                                            );
+                                          });
+                                          setPopupState(() {
+                                            draftFillColor = picked;
+                                            fillEnabled = true;
+                                          });
+                                          _pushRecentColor(picked);
+                                          _saveShapeType(_activeShapeType);
+                                        },
+                                      );
+                                      if (!kept) {
+                                        _safeSetState(() {
+                                          _currentShapeFillColor = originalFill;
+                                        });
+                                      }
                                       _saveShapeType(_activeShapeType);
+                                      setPopupState(() {});
                                     },
-                                  );
-                                  if (!kept) {
-                                    _safeSetState(() {
-                                      _currentShapeFillColor = originalFill;
-                                    });
-                                  }
-                                  _saveShapeType(_activeShapeType);
-                                  if (mounted) {
-                                    _showShapeSettingsPopover();
-                                  }
-                                },
-                                icon: const Icon(Icons.colorize),
+                                    icon: const Icon(Icons.colorize),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ],
