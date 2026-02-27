@@ -1295,6 +1295,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                         _ShapeEditOperation.create
                                     ? _shapeInteractionLastNorm
                                     : null,
+                                previewArrowHeadLengthPx:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _currentArrowHeadLengthPx
+                                    : null,
+                                previewArrowHeadAngleRad:
+                                    _activeShapeEditOp ==
+                                        _ShapeEditOperation.create
+                                    ? _currentArrowHeadAngleRad
+                                    : null,
                                 showBounds:
                                     _activeShapeEditOp !=
                                     _ShapeEditOperation.create,
@@ -1517,6 +1527,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   createCurrentNorm:
                       _activeShapeEditOp == _ShapeEditOperation.create
                       ? _shapeInteractionLastNorm
+                      : null,
+                  previewArrowHeadLengthPx:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _currentArrowHeadLengthPx
+                      : null,
+                  previewArrowHeadAngleRad:
+                      _activeShapeEditOp == _ShapeEditOperation.create
+                      ? _currentArrowHeadAngleRad
                       : null,
                   showBounds: _activeShapeEditOp != _ShapeEditOperation.create,
                 ),
@@ -1889,6 +1907,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     var fillEnabled = _currentShapeFillColor != null;
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
     var draftOpacity = _currentShapeOpacity.clamp(0.05, 1.0);
+    var draftArrowHeadLength = _currentArrowHeadLengthPx.clamp(8.0, 56.0);
+    var draftArrowHeadAngleDeg = (_currentArrowHeadAngleRad * 180 / math.pi)
+        .clamp(15.0, 75.0);
     var lockAspect = _isShapeAspectLocked;
 
     Widget buildSliderRow({
@@ -1971,6 +1992,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 0.05,
                                 1.0,
                               );
+                              draftArrowHeadLength = _currentArrowHeadLengthPx
+                                  .clamp(8.0, 56.0);
+                              draftArrowHeadAngleDeg =
+                                  (_currentArrowHeadAngleRad * 180 / math.pi)
+                                      .clamp(15.0, 75.0);
                               setPopupState(() {});
                             },
                           );
@@ -1996,6 +2022,46 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   const SizedBox(height: 4),
+                  if (_activeShapeType == ShapeType.arrow) ...[
+                    buildSliderRow(
+                      label: '화살촉 길이',
+                      value: draftArrowHeadLength,
+                      min: 8.0,
+                      max: 56.0,
+                      divisions: 48,
+                      valueLabel: draftArrowHeadLength.round().toString(),
+                      onChanged: (value) {
+                        setPopupState(() {
+                          draftArrowHeadLength = value;
+                        });
+                        _safeSetState(() {
+                          _currentArrowHeadLengthPx = value;
+                        });
+                      },
+                    ),
+                    buildSliderRow(
+                      label: '화살촉 각도',
+                      value: draftArrowHeadAngleDeg,
+                      min: 15.0,
+                      max: 75.0,
+                      divisions: 60,
+                      valueLabel: '${draftArrowHeadAngleDeg.round()}°',
+                      onChanged: (value) {
+                        setPopupState(() {
+                          draftArrowHeadAngleDeg = value;
+                        });
+                        _safeSetState(() {
+                          _currentArrowHeadAngleRad = value * math.pi / 180;
+                        });
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '회전: 도형 선택 후 하단의 동그란 회전 핸들을 드래그',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       const SizedBox(width: 72, child: Text('테두리 색')),

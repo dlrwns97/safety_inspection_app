@@ -263,6 +263,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   double _currentShapeOpacity = 1.0;
   Color _currentShapeStrokeColor = const Color(0xFF000000);
   Color? _currentShapeFillColor;
+  double _currentArrowHeadLengthPx = 18.0;
+  double _currentArrowHeadAngleRad = 0.55;
   bool _isShapeAspectLocked = false;
   double _currentTextFontSize = 14.0;
   Color _currentTextColor = const Color(0xFF000000);

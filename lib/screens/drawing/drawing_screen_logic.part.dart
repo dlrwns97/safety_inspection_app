@@ -1754,6 +1754,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         effectiveEnd,
         _activeShapeStrokeStyle,
         fillArgb: _currentShapeFillColor?.value,
+        arrowHeadLengthPx: _currentArrowHeadLengthPx,
+        arrowHeadAngleRad: _currentArrowHeadAngleRad,
       );
       _historyManager.execute(
         AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),
