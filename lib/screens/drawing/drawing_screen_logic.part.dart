@@ -452,6 +452,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isMoveMode) {
       return;
     }
+    if (_activeTool == DrawingTool.shape) {
+      final tapInfo = _resolveTapPosition(
+        _canvasTapRegionKey.currentContext,
+        details.globalPosition,
+      );
+      final localPosition = tapInfo?.localPosition ?? details.localPosition;
+      final scenePoint = _transformationController.toScene(localPosition);
+      final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+      _handleShapeTapSelection(
+        normPoint: normalized,
+        pageNumber: _currentPage,
+      );
+      return;
+    }
     final tapInfo = _resolveTapPosition(
       _canvasTapRegionKey.currentContext,
       details.globalPosition,
@@ -889,6 +903,15 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size pageSize,
     int pageIndex,
   ) async {
+    if (_activeTool == DrawingTool.shape) {
+      final normalized = toNormalized(pageLocal, pageSize);
+      _handleShapeTapSelection(
+        normPoint: normalized,
+        pageNumber: pageIndex,
+        pageSize: pageSize,
+      );
+      return;
+    }
     if (_isMoveMode || _isStrokeEraserActive || _isAreaEraserActive) {
       return;
     }
@@ -962,6 +985,398 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       pageIndex: pageIndex,
     );
     await _handleOverlapSelection(hits);
+  }
+
+  void _handleShapeTapSelection({
+    required Offset normPoint,
+    required int pageNumber,
+    Size? pageSize,
+  }) {
+    this._clearShapeSelection();
+    final pageStrokes = _canvasController.getStrokes(pageNumber);
+    final hitPaddingNorm = pageSize == null || pageSize.isEmpty
+        ? 0.02
+        : (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
+    for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
+      final stroke = pageStrokes[i];
+      if (stroke.toolType != DrawingTool.shape) {
+        continue;
+      }
+      final rawBounds = _shapeStrokeBounds(stroke.pointsNorm);
+      if (rawBounds == null) {
+        continue;
+      }
+      final hitBounds = Rect.fromLTRB(
+        (rawBounds.left - hitPaddingNorm).clamp(0.0, 1.0),
+        (rawBounds.top - hitPaddingNorm).clamp(0.0, 1.0),
+        (rawBounds.right + hitPaddingNorm).clamp(0.0, 1.0),
+        (rawBounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
+      );
+      if (hitBounds.contains(normPoint)) {
+        _safeSetState(() {
+          _selectedShapeStrokeId = stroke.id;
+          _activeShapeManipulator = ShapeManipulator(
+            boundsNorm: rawBounds,
+            rotationRad: 0.0,
+          );
+          _activeShapeHandle = ShapeHandle.none;
+          _activeShapeEditOp = _ShapeEditOperation.none;
+          _shapeInteractionStartNorm = null;
+          _shapeInteractionLastNorm = null;
+          _shapeCreateHasMoved = false;
+          _shapeCreateThresholdNorm = 0.0;
+        });
+        return;
+      }
+    }
+  }
+
+  Rect? _shapeStrokeBounds(List<Offset> pointsNorm) {
+    if (pointsNorm.isEmpty) {
+      return null;
+    }
+    var left = 1.0;
+    var right = 0.0;
+    var top = 1.0;
+    var bottom = 0.0;
+    for (final point in pointsNorm) {
+      final clamped = Offset(
+        point.dx.clamp(0.0, 1.0),
+        point.dy.clamp(0.0, 1.0),
+      );
+      left = left < clamped.dx ? left : clamped.dx;
+      right = right > clamped.dx ? right : clamped.dx;
+      top = top < clamped.dy ? top : clamped.dy;
+      bottom = bottom > clamped.dy ? bottom : clamped.dy;
+    }
+    if (left > right || top > bottom) {
+      return null;
+    }
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  void _clearShapeSelection() {
+    _safeSetState(() {
+      _selectedShapeStrokeId = null;
+      _activeShapeManipulator = null;
+      _activeShapeHandle = ShapeHandle.none;
+      _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeInteractionStartNorm = null;
+      _shapeInteractionLastNorm = null;
+      _shapeCreateHasMoved = false;
+      _shapeCreateThresholdNorm = 0.0;
+    });
+  }
+
+  void _clearShapeInteractionState() {
+    _safeSetState(() {
+      _activeShapeHandle = ShapeHandle.none;
+      _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeInteractionStartNorm = null;
+      _shapeInteractionLastNorm = null;
+      _shapeCreateHasMoved = false;
+      _shapeCreateThresholdNorm = 0.0;
+    });
+  }
+
+  void _handleShapeStrokeInteractionStart({
+    required int pointerId,
+    required int pageNumber,
+    required Size pageSize,
+    required Offset startNorm,
+    required StrokeStyle style,
+  }) {
+    if (_activeStylusPointerId == null || _activeStylusPointerId != pointerId) {
+      return;
+    }
+
+    final pageStrokes = _canvasController.getStrokes(pageNumber);
+    final hitPaddingNorm = (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
+    DrawingStroke? candidate;
+    Rect? candidateBounds;
+    for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
+      final stroke = pageStrokes[i];
+      if (stroke.toolType != DrawingTool.shape) {
+        continue;
+      }
+      final bounds = _shapeStrokeBounds(stroke.pointsNorm);
+      if (bounds == null) {
+        continue;
+      }
+      final paddedBounds = Rect.fromLTRB(
+        (bounds.left - hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.top - hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.right + hitPaddingNorm).clamp(0.0, 1.0),
+        (bounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
+      );
+      if (paddedBounds.contains(startNorm)) {
+        candidate = stroke;
+        candidateBounds = bounds;
+        break;
+      }
+    }
+
+    if (candidate != null && candidateBounds != null) {
+      final manipulator = ShapeManipulator(boundsNorm: candidateBounds, rotationRad: 0.0);
+      final handle = manipulator.hitTestHandle(startNorm);
+      if (handle == ShapeHandle.rotate || handle != ShapeHandle.none) {
+        _safeSetState(() {
+          _selectedShapeStrokeId = candidate!.id;
+          _activeShapeManipulator = manipulator;
+          _activeShapeHandle = handle;
+          _activeShapeEditOp = handle == ShapeHandle.rotate
+              ? _ShapeEditOperation.rotate
+              : _ShapeEditOperation.resize;
+          _shapeInteractionStartNorm = startNorm;
+          _shapeInteractionLastNorm = startNorm;
+          _shapeCreateHasMoved = false;
+          _shapeCreateThresholdNorm = 0.0;
+        });
+        return;
+      }
+      if (manipulator.hitTestBody(startNorm)) {
+        _safeSetState(() {
+          _selectedShapeStrokeId = candidate!.id;
+          _activeShapeManipulator = manipulator;
+          _activeShapeHandle = ShapeHandle.none;
+          _activeShapeEditOp = _ShapeEditOperation.translate;
+          _shapeInteractionStartNorm = startNorm;
+          _shapeInteractionLastNorm = startNorm;
+          _shapeCreateHasMoved = false;
+          _shapeCreateThresholdNorm = 0.0;
+        });
+        return;
+      }
+    }
+
+    _safeSetState(() {
+      _activeShapeManipulator = ShapeManipulator(
+        boundsNorm: Rect.fromLTWH(
+          startNorm.dx,
+          startNorm.dy,
+          0.0,
+          0.0,
+        ),
+      );
+      _selectedShapeStrokeId = null;
+      _activeShapeHandle = ShapeHandle.none;
+      _activeShapeEditOp = _ShapeEditOperation.create;
+      _shapeInteractionStartNorm = startNorm;
+      _shapeInteractionLastNorm = startNorm;
+      _shapeCreateHasMoved = false;
+      _shapeCreateThresholdNorm = 0.0;
+    });
+  }
+
+  void _handleShapeStrokeInteractionUpdate({
+    required int pointerId,
+    required int pageNumber,
+    required Offset norm,
+    required StrokeStyle style,
+  }) {
+    if (_activeStylusPointerId != pointerId ||
+        _activeShapeManipulator == null ||
+        _shapeInteractionLastNorm == null) {
+      return;
+    }
+
+    final manipulator = _activeShapeManipulator!;
+    final last = _shapeInteractionLastNorm!;
+    final delta = norm - last;
+
+    _safeSetState(() {
+      if (_activeShapeEditOp == _ShapeEditOperation.create) {
+        final start = _shapeInteractionStartNorm ?? norm;
+        final bounds = Rect.fromPoints(start, norm);
+        manipulator.boundsNorm = Rect.fromLTRB(
+          bounds.left.clamp(0.0, 1.0),
+          bounds.top.clamp(0.0, 1.0),
+          bounds.right.clamp(0.0, 1.0),
+          bounds.bottom.clamp(0.0, 1.0),
+        );
+      } else {
+        switch (_activeShapeEditOp) {
+          case _ShapeEditOperation.translate:
+            manipulator.translate(delta);
+            break;
+          case _ShapeEditOperation.resize:
+            manipulator.resizeByHandle(_activeShapeHandle, delta);
+            break;
+          case _ShapeEditOperation.rotate:
+            manipulator.rotateTo(norm);
+            break;
+          default:
+            break;
+        }
+      }
+      _shapeInteractionLastNorm = norm;
+      _activeShapeManipulator = manipulator;
+      final start = _shapeInteractionStartNorm;
+      if (!_shapeCreateHasMoved && start != null &&
+          (norm - start).distance > _shapeCreateThresholdNorm) {
+        _shapeCreateHasMoved = true;
+      }
+    });
+  }
+
+  void _handleShapeStrokeInteractionEnd({
+    required int pointerId,
+    required int pageNumber,
+    required Offset pageLocalNorm,
+  }) {
+    if (_activeStylusPointerId != pointerId) {
+      return;
+    }
+    final manipulator = _activeShapeManipulator;
+    if (manipulator == null) {
+      this._clearShapeInteractionState();
+      return;
+    }
+
+    if (_activeShapeEditOp == _ShapeEditOperation.create ||
+        _activeShapeEditOp == _ShapeEditOperation.none) {
+      final start = _shapeInteractionStartNorm ?? pageLocalNorm;
+      final created = ShapeEngine.toStroke(
+        _activeShapeType,
+        pageNumber,
+        start,
+        pageLocalNorm,
+        _activeStrokeStyleOrFallback,
+      );
+      _historyManager.execute(
+        AddStrokeCommand(
+          page: pageNumber,
+          strokeSnapshot: created.deepCopy(),
+        ),
+        _canvasController,
+      );
+      _safeSetState(() {
+        _selectedShapeStrokeId = created.id;
+        _activeShapeManipulator = ShapeManipulator(
+          boundsNorm: _shapeStrokeBounds(created.pointsNorm) ??
+              Rect.fromLTWH(start.dx, start.dy, 0.0, 0.0),
+          rotationRad: 0.0,
+        );
+        _activeShapeHandle = ShapeHandle.none;
+        _activeShapeEditOp = _ShapeEditOperation.none;
+        _shapeInteractionStartNorm = null;
+        _shapeInteractionLastNorm = null;
+        _shapeCreateHasMoved = false;
+        _shapeCreateThresholdNorm = 0.0;
+      });
+      _syncStrokesByPageFromControllerPage(pageNumber);
+      _updateDrawingHistoryAvailabilityState();
+      _requestPersistDrawing();
+      return;
+    }
+
+    final selectedId = _selectedShapeStrokeId;
+    if (selectedId == null) {
+      this._clearShapeInteractionState();
+      return;
+    }
+    final before = _canvasController.findStrokeById(pageNumber, selectedId);
+    if (before == null) {
+      this._clearShapeInteractionState();
+      return;
+    }
+    final beforeBounds = _shapeStrokeBounds(before.pointsNorm);
+    if (beforeBounds == null) {
+      this._clearShapeInteractionState();
+      return;
+    }
+
+    final afterPoints = _transformShapePointsByBounds(
+      points: before.pointsNorm,
+      fromBounds: beforeBounds,
+      toBounds: manipulator.boundsNorm,
+      rotationRad: manipulator.rotationRad,
+    );
+    final after = DrawingStroke(
+      id: before.id,
+      pageNumber: before.pageNumber,
+      style: before.style,
+      pointsNorm: afterPoints,
+      toolType: before.toolType,
+      opacity: before.opacity,
+      isStraightened: before.isStraightened,
+      penVariant: before.penVariant,
+      highlighterVariant: before.highlighterVariant,
+      erasedMaskVersion: before.erasedMaskVersion,
+      erasedMask: before.erasedMask == null
+          ? null
+          : List<int>.from(before.erasedMask!),
+      erasedSegments: before.erasedSegments == null
+          ? null
+          : List<dynamic>.from(before.erasedSegments!),
+    );
+    _historyManager.execute(
+      ReplaceStrokeCommand(
+        page: pageNumber,
+        beforeSnapshot: before.deepCopy(),
+        afterSnapshot: after,
+      ),
+      _canvasController,
+    );
+    _safeSetState(() {
+      _activeShapeManipulator = manipulator;
+      _activeShapeHandle = ShapeHandle.none;
+      _activeShapeEditOp = _ShapeEditOperation.none;
+      _shapeInteractionStartNorm = null;
+      _shapeInteractionLastNorm = null;
+      _shapeCreateHasMoved = false;
+      _shapeCreateThresholdNorm = 0.0;
+    });
+    _syncStrokesByPageFromControllerPage(pageNumber);
+    _updateDrawingHistoryAvailabilityState();
+    _requestPersistDrawing();
+  }
+
+  List<Offset> _transformShapePointsByBounds({
+    required List<Offset> points,
+    required Rect fromBounds,
+    required Rect toBounds,
+    required double rotationRad,
+  }) {
+    final fromWidth = fromBounds.width <= 0 ? 1.0 : fromBounds.width;
+    final fromHeight = fromBounds.height <= 0 ? 1.0 : fromBounds.height;
+    final toWidth = toBounds.width;
+    final toHeight = toBounds.height;
+    final toLeft = toBounds.left;
+    final toTop = toBounds.top;
+    final toCenter = toBounds.center;
+    return points.map((point) {
+      final ratioX = (point.dx - fromBounds.left) / fromWidth;
+      final ratioY = (point.dy - fromBounds.top) / fromHeight;
+      final scaled = Offset(
+        toLeft + ratioX * toWidth,
+        toTop + ratioY * toHeight,
+      );
+      final rotated = _rotateAroundCenter(
+        point: scaled,
+        center: toCenter,
+        angleRad: rotationRad,
+      );
+      return Offset(
+        rotated.dx.clamp(0.0, 1.0),
+        rotated.dy.clamp(0.0, 1.0),
+      );
+    }).toList(growable: false);
+  }
+
+  Offset _rotateAroundCenter({
+    required Offset point,
+    required Offset center,
+    required double angleRad,
+  }) {
+    final cosA = math.cos(angleRad);
+    final sinA = math.sin(angleRad);
+    final dx = point.dx - center.dx;
+    final dy = point.dy - center.dy;
+    return Offset(
+      center.dx + dx * cosA - dy * sinA,
+      center.dy + dx * sinA + dy * cosA,
+    );
   }
 
   int? _createdIndexFromId(String id) {
@@ -1391,6 +1806,31 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isStylusKind(event.kind)) {
       return;
     }
+    if (_activeTool == DrawingTool.shape) {
+      if (_activeStrokeStyle == null) {
+        return;
+      }
+      _activeStylusPointerId = event.pointer;
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final downNorm = _overlayToNormalizedPoint(
+        overlayLocal: pageLocal,
+        destSize: pageSize,
+      );
+      if (downNorm == null) {
+        return;
+      }
+      this._handleShapeStrokeInteractionStart(
+        pointerId: event.pointer,
+        pageNumber: pageNumber,
+        pageSize: pageSize,
+        startNorm: downNorm,
+        style: _activeStrokeStyleOrFallback,
+      );
+      return;
+    }
 
     final activeToolKind = _activeToolKindForToolbar;
     final eraserMode = _activeTool == DrawingTool.strokeEraser
@@ -1427,6 +1867,33 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
+    if (_activeTool == DrawingTool.shape) {
+      if (_activeStylusPointerId == null ||
+          event.pointer != _activeStylusPointerId ||
+          !_isStylusKind(event.kind) ||
+          _activeStrokeStyle == null) {
+        return;
+      }
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal == null) {
+        return;
+      }
+      final norm = _overlayToNormalizedPoint(
+        overlayLocal: pageLocal,
+        destSize: pageSize,
+      );
+      if (norm == null) {
+        return;
+      }
+      this._handleShapeStrokeInteractionUpdate(
+        pointerId: event.pointer,
+        pageNumber: pageNumber,
+        norm: norm,
+        style: _activeStrokeStyleOrFallback,
+      );
+      return;
+    }
+
     if (event.kind == PointerDeviceKind.touch) {
       return;
     }
@@ -1547,6 +2014,32 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size pageSize,
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
+    if (_activeTool == DrawingTool.shape &&
+        (event is PointerUpEvent || event is PointerCancelEvent)) {
+      final wasShapeStylus = _activeStylusPointerId == event.pointer;
+      if (!wasShapeStylus) {
+        return;
+      }
+      final pageLocal = drawingLocalToPageLocal(event.localPosition);
+      if (pageLocal != null) {
+        final norm = _overlayToNormalizedPoint(
+          overlayLocal: pageLocal,
+          destSize: pageSize,
+        );
+        if (norm != null) {
+          this._handleShapeStrokeInteractionEnd(
+            pointerId: event.pointer,
+            pageNumber: pageNumber,
+            pageLocalNorm: norm,
+          );
+        }
+      } else {
+        this._clearShapeInteractionState();
+      }
+      _shapeCreateHasMoved = false;
+      return;
+    }
+
     final wasStylus = _activeStylusPointerId == event.pointer;
     final wasAreaSession = _activeAreaEraserPointerId == event.pointer;
     if (wasStylus) {

@@ -533,7 +533,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return;
     }
 
-    switch (kind) {
+      switch (kind) {
       case StrokeToolKind.pen:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
@@ -543,6 +543,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
         _showHighlighterSettingsPopover();
+        return;
+      case StrokeToolKind.shape:
+        _handleDrawingToolChanged(DrawingTool.shape);
         return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
@@ -1176,6 +1179,16 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           eraserRadius: _areaEraserRadiusPx,
                         ),
                       ),
+                      if (_activeTool == DrawingTool.shape &&
+                          _activeShapeManipulator != null)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: ShapeHandlesOverlay(
+                              manipulator: _activeShapeManipulator!,
+                              canvasSize: pageSize,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1291,18 +1304,32 @@ extension _DrawingScreenUi on _DrawingScreenState {
         key: _canvasKey,
         width: DrawingCanvasSize.width,
         height: DrawingCanvasSize.height,
-        child: _buildMarkerLayer(
-          size: DrawingCanvasSize,
-          pageIndex: _currentPage,
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border.all(color: theme.colorScheme.outlineVariant),
+        child: Stack(
+          children: [
+            _buildMarkerLayer(
+              size: DrawingCanvasSize,
+              pageIndex: _currentPage,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: CustomPaint(
+                  painter: GridPainter(
+                    lineColor: theme.colorScheme.outlineVariant,
+                  ),
+                ),
+              ),
             ),
-            child: CustomPaint(
-              painter: GridPainter(lineColor: theme.colorScheme.outlineVariant),
-            ),
-          ),
+            if (_activeTool == DrawingTool.shape &&
+                _activeShapeManipulator != null)
+              IgnorePointer(
+                child: ShapeHandlesOverlay(
+                  manipulator: _activeShapeManipulator!,
+                  canvasSize: DrawingCanvasSize,
+                ),
+              ),
+          ],
         ),
       ),
     );

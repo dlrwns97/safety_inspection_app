@@ -44,6 +44,8 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dia
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/shape_engine.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
@@ -57,6 +59,7 @@ import 'package:safety_inspection_app/screens/drawing/widgets/highlighter_settin
 import 'package:safety_inspection_app/screens/drawing/widgets/color_picker_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/eraser_settings_popup.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/settings_popover.dart';
+import 'package:safety_inspection_app/widgets/drawing/shape_handles_overlay.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/side_panel/marker_side_panel.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_drawing_view.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dart';
@@ -82,6 +85,14 @@ enum ToolFamily { pen, highlighter }
 enum PenUiType { pen, fountainPen, calligraphy, pencil }
 
 enum HighlighterUiType { highlighter, marker }
+
+enum _ShapeEditOperation {
+  none,
+  create,
+  translate,
+  resize,
+  rotate,
+}
 
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin {
@@ -119,6 +130,14 @@ class _DrawingScreenState extends State<DrawingScreen>
   String? _selectedDefectId;
   String? _selectedEquipmentId;
   Offset? _selectedMarkerScenePosition;
+  String? _selectedShapeStrokeId;
+  ShapeManipulator? _activeShapeManipulator;
+  ShapeHandle _activeShapeHandle = ShapeHandle.none;
+  _ShapeEditOperation _activeShapeEditOp = _ShapeEditOperation.none;
+  Offset? _shapeInteractionStartNorm;
+  Offset? _shapeInteractionLastNorm;
+  double _shapeCreateThresholdNorm = 0.0;
+  bool _shapeCreateHasMoved = false;
   Offset? _pointerDownPosition;
   bool _tapCanceled = false;
   bool _isDetailDialogOpen = false;
@@ -131,6 +150,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isFreeDrawMode = false;
   bool _isToolPanelOpen = true;
   DrawingTool _activeTool = DrawingTool.pen;
+  ShapeType _activeShapeType = ShapeType.rectangle;
   static const double _kMinAreaEraserRadiusPx = 6.0;
   static const double _kMaxAreaEraserRadiusPx = 60.0;
   double _areaEraserRadiusPx = 24.0;
@@ -287,6 +307,9 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (_activeTool == DrawingTool.areaEraser ||
         _activeTool == DrawingTool.strokeEraser) {
       return StrokeToolKind.eraser;
+    }
+    if (_activeTool == DrawingTool.shape) {
+      return StrokeToolKind.shape;
     }
     return _activeFamily == ToolFamily.highlighter
         ? StrokeToolKind.highlighter

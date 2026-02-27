@@ -201,6 +201,12 @@ class _FreeDrawActionTabs extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
+        ChoiceChip(
+          label: const Text('도형'),
+          selected: activeTool == StrokeToolKind.shape,
+          onSelected: (_) => onToolSelected(StrokeToolKind.shape),
+        ),
+        const SizedBox(width: 8),
         CompositedTransformTarget(
           link: eraserToolLink ?? LayerLink(),
           child: ChoiceChip(

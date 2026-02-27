@@ -168,6 +168,50 @@ class ClearToolKindCommand extends HistoryCommand {
   }
 }
 
+class ReplaceStrokeCommand extends HistoryCommand {
+  ReplaceStrokeCommand({
+    required this.page,
+    required DrawingStroke beforeSnapshot,
+    required DrawingStroke afterSnapshot,
+    DateTime? timestamp,
+  }) : beforeSnapshot = beforeSnapshot.deepCopy(),
+       afterSnapshot = afterSnapshot.deepCopy(),
+       super(timestamp: timestamp);
+
+  @override
+  final int page;
+  final DrawingStroke beforeSnapshot;
+  final DrawingStroke afterSnapshot;
+  int? _originalIndex;
+
+  @override
+  HistoryCommandType get type => HistoryCommandType.modifyShape;
+
+  @override
+  void execute(DrawingCanvasController controller) {
+    final strokes = controller.getStrokes(page);
+    _originalIndex = strokes.indexWhere((stroke) => stroke.id == afterSnapshot.id);
+    _apply(controller, afterSnapshot);
+  }
+
+  @override
+  void undo(DrawingCanvasController controller) {
+    _apply(controller, beforeSnapshot);
+  }
+
+  void _apply(DrawingCanvasController controller, DrawingStroke snapshot) {
+    final strokes = controller.getStrokes(page);
+    final index = strokes.indexWhere((stroke) => stroke.id == snapshot.id);
+    if (index >= 0) {
+      strokes[index] = snapshot.deepCopy();
+      return;
+    }
+    final insertIndex = _originalIndex == null
+        ? strokes.length
+        : _originalIndex!.clamp(0, strokes.length);
+    controller.insertStroke(page, snapshot.deepCopy(), index: insertIndex);
+  }
+}
 
 class BatchRemoveStrokesCommand extends HistoryCommand {
   BatchRemoveStrokesCommand({

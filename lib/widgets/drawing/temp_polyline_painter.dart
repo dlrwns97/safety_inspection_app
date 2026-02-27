@@ -225,6 +225,7 @@ class TempPolylinePainter extends CustomPainter {
       StrokeToolKind.highlighter => BlendMode.multiply,
       StrokeToolKind.eraser => BlendMode.clear,
       StrokeToolKind.pen => BlendMode.srcOver,
+      StrokeToolKind.shape => BlendMode.srcOver,
     };
 
     switch (style.variant) {
