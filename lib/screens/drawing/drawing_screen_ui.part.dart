@@ -1342,10 +1342,18 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final palette = <int>[
-      ..._standardPaletteArgb.take(8),
-      ..._recentArgb.take(2),
-    ];
+    final shapeTypes = ShapeType.values
+        .where((shapeType) => shapeType != ShapeType.line)
+        .toList(growable: false);
+    final palette = _standardPaletteArgb.take(7).toList(growable: false);
+
+    if (_activeShapeType == ShapeType.line) {
+      _safeSetState(() {
+        _activeShapeType = ShapeType.arrow;
+        _loadShapeType(_activeShapeType);
+      });
+    }
+
     var draftStrokeColor = _currentShapeStrokeColor.value;
     int? draftFillColor = _currentShapeFillColor?.value;
     var draftWidth = _currentShapeWidth.clamp(1.0, 48.0);
@@ -1369,7 +1377,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ShapeType.values.map((shapeType) {
+                      children: shapeTypes.map((shapeType) {
                         return ChoiceChip(
                           label: Text(_labelForShapeType(shapeType)),
                           selected: _activeShapeType == shapeType,
@@ -1392,32 +1400,82 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const SizedBox(width: 72, child: Text('Stroke')),
+                        const SizedBox(width: 72, child: Text('테두리 색')),
                         Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                for (final argb in palette)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6),
-                                    child: _colorCircle(
-                                      argb,
-                                      selected: draftStrokeColor == argb,
-                                      onTap: () {
-                                        setPopupState(() {
-                                          draftStrokeColor = argb;
-                                        });
-                                        _safeSetState(() {
-                                          _currentShapeStrokeColor = Color(argb);
-                                        });
-                                        _pushRecentColor(argb);
-                                        _saveShapeType(_activeShapeType);
-                                      },
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final argb in palette)
+                                _colorCircle(
+                                  argb,
+                                  selected: draftStrokeColor == argb,
+                                  onTap: () {
+                                    setPopupState(() {
+                                      draftStrokeColor = argb;
+                                    });
+                                    _safeSetState(() {
+                                      _currentShapeStrokeColor = Color(argb);
+                                    });
+                                    _pushRecentColor(argb);
+                                    _saveShapeType(_activeShapeType);
+                                  },
+                                ),
+                              IconButton(
+                                tooltip: '색상 선택',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () async {
+                                  Color selected = Color(draftStrokeColor);
+                                  final kept = await showDrawingColorPickerDialog(
+                                    context,
+                                    initialColor: selected,
+                                    recentColors: _recentArgb
+                                        .map((argb) => Color(argb))
+                                        .toList(growable: false),
+                                    onLiveChanged: (color) {
+                                      selected = color;
+                                      setPopupState(() {
+                                        draftStrokeColor =
+                                            color.withAlpha(0xFF).value;
+                                      });
+                                      _safeSetState(() {
+                                        _currentShapeStrokeColor = Color(
+                                          draftStrokeColor,
+                                        );
+                                      });
+                                    },
+                                    onCommitChanged: (color) {
+                                      selected = color;
+                                      setPopupState(() {
+                                        draftStrokeColor =
+                                            color.withAlpha(0xFF).value;
+                                      });
+                                      _safeSetState(() {
+                                        _currentShapeStrokeColor = Color(
+                                          draftStrokeColor,
+                                        );
+                                      });
+                                      _pushRecentColor(draftStrokeColor);
+                                      _saveShapeType(_activeShapeType);
+                                    },
+                                  );
+                                  if (!kept) {
+                                    setPopupState(() {
+                                      draftStrokeColor = _currentShapeStrokeColor
+                                          .value;
+                                    });
+                                  } else {
+                                    _safeSetState(() {
+                                      _currentShapeStrokeColor = Color(
+                                        selected.withAlpha(0xFF).value,
+                                      );
+                                    });
+                                    _saveShapeType(_activeShapeType);
+                                  }
+                                },
+                                icon: const Icon(Icons.colorize),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1425,9 +1483,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const SizedBox(width: 72, child: Text('Fill')),
+                        const SizedBox(width: 72, child: Text('채우기 색')),
                         ChoiceChip(
-                          label: const Text('None'),
+                          label: const Text('없음'),
                           selected: draftFillColor == null,
                           onSelected: (_) {
                             setPopupState(() {
@@ -1441,30 +1499,84 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                for (final argb in palette)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6),
-                                    child: _colorCircle(
-                                      argb,
-                                      selected: draftFillColor == argb,
-                                      onTap: () {
-                                        setPopupState(() {
-                                          draftFillColor = argb;
-                                        });
-                                        _safeSetState(() {
-                                          _currentShapeFillColor = Color(argb);
-                                        });
-                                        _pushRecentColor(argb);
-                                        _saveShapeType(_activeShapeType);
-                                      },
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final argb in palette)
+                                _colorCircle(
+                                  argb,
+                                  selected: draftFillColor == argb,
+                                  onTap: () {
+                                    setPopupState(() {
+                                      draftFillColor = argb;
+                                    });
+                                    _safeSetState(() {
+                                      _currentShapeFillColor = Color(argb);
+                                    });
+                                    _pushRecentColor(argb);
+                                    _saveShapeType(_activeShapeType);
+                                  },
+                                ),
+                              IconButton(
+                                tooltip: '채우기 색상 선택',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () async {
+                                  final seedColor = Color(
+                                    draftFillColor ??
+                                        _currentShapeStrokeColor.value,
+                                  );
+                                  Color selected = seedColor;
+                                  final kept = await showDrawingColorPickerDialog(
+                                    context,
+                                    initialColor: seedColor,
+                                    recentColors: _recentArgb
+                                        .map((argb) => Color(argb))
+                                        .toList(growable: false),
+                                    onLiveChanged: (color) {
+                                      selected = color;
+                                      setPopupState(() {
+                                        draftFillColor =
+                                            color.withAlpha(0xFF).value;
+                                      });
+                                      _safeSetState(() {
+                                        _currentShapeFillColor = Color(
+                                          draftFillColor!,
+                                        );
+                                      });
+                                    },
+                                    onCommitChanged: (color) {
+                                      selected = color;
+                                      setPopupState(() {
+                                        draftFillColor =
+                                            color.withAlpha(0xFF).value;
+                                      });
+                                      _safeSetState(() {
+                                        _currentShapeFillColor = Color(
+                                          draftFillColor!,
+                                        );
+                                      });
+                                      _pushRecentColor(draftFillColor!);
+                                      _saveShapeType(_activeShapeType);
+                                    },
+                                  );
+                                  if (!kept) {
+                                    setPopupState(() {
+                                      draftFillColor =
+                                          _currentShapeFillColor?.value;
+                                    });
+                                  } else {
+                                    _safeSetState(() {
+                                      _currentShapeFillColor = Color(
+                                        selected.withAlpha(0xFF).value,
+                                      );
+                                    });
+                                    _saveShapeType(_activeShapeType);
+                                  }
+                                },
+                                icon: const Icon(Icons.colorize),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1472,7 +1584,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const SizedBox(width: 72, child: Text('Width')),
+                        const SizedBox(width: 72, child: Text('선 굵기')),
                         Expanded(
                           child: Slider(
                             value: draftWidth,
@@ -1495,7 +1607,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     ),
                     Row(
                       children: [
-                        const SizedBox(width: 72, child: Text('Opacity')),
+                        const SizedBox(width: 72, child: Text('투명도')),
                         Expanded(
                           child: Slider(
                             value: draftOpacity,
@@ -1528,11 +1640,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.line => 'Line',
-      ShapeType.arrow => 'Arrow',
-      ShapeType.rectangle => 'Rectangle',
-      ShapeType.circle => 'Circle',
-      ShapeType.triangle => 'Triangle',
+      ShapeType.line => '직선',
+      ShapeType.arrow => '화살표',
+      ShapeType.rectangle => '사각형',
+      ShapeType.circle => '원형',
+      ShapeType.triangle => '삼각형',
     };
   }
 
