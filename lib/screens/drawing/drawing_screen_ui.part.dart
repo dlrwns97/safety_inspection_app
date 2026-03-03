@@ -210,7 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: '도형 설정',
+                    tooltip: '?熬곥굦援????깆젧',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -391,7 +391,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '???뗢뵛',
+                    tooltip: '\uB2EB\uAE30',
                   ),
                 ],
               ),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: '?筌? ???깆젧',
+                    tooltip: '\uC138\uBD80 \uC124\uC815',
                   ),
                 ],
               ),
@@ -1627,7 +1627,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('?熬곥굦援????깆젧')),
+                      const Expanded(child: Text('\uB3C4\uD615 \uC124\uC815')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1687,7 +1687,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('도형 설정'),
+                      const Text('\uB3C4\uD615 \uC124\uC815'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1701,14 +1701,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('???고돩'),
+                      const Text('\uAC01\uB3C4 \uC2A4\uB0C5'),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('선 색상')),
+                      const SizedBox(width: 72, child: Text('\uC120 \uC0C9\uC0C1')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1730,7 +1730,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '선 색상 직접 선택',
+                              tooltip: '\uC120 \uC0C9\uC0C1 \uC9C1\uC811 \uC120\uD0DD',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1813,7 +1813,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text('채우기 색상'),
+                            child: const Text('\uCC44\uC6B0\uAE30 \uC0C9\uC0C1'),
                           ),
                         ),
                       ),
@@ -1843,7 +1843,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: '채우기 색상 직접 선택',
+                                  tooltip: '\uCC44\uC6B0\uAE30 \uC0C9\uC0C1 \uC9C1\uC811 \uC120\uD0DD',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -1918,7 +1918,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '굵기',
+                    label: '\uAD75\uAE30',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -1935,7 +1935,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: '투명도',
+                    label: '\uD22C\uBA85\uB3C4',
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -1974,10 +1974,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => '사각형',
-      ShapeType.circle => '원형',
-      ShapeType.triangle => '삼각형',
-      ShapeType.hShape => 'H 모형',
+      ShapeType.rectangle => '\uC0AC\uAC01\uD615',
+      ShapeType.circle => '\uC6D0\uD615',
+      ShapeType.triangle => '\uC0BC\uAC01\uD615',
+      ShapeType.hShape => 'H \uBAA8\uD615',
     };
   }
 
@@ -1996,14 +1996,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('취소'),
+                  child: const Text('\uCDE8\uC18C'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('적용'),
+                  child: const Text('\uC801\uC6A9'),
                 ),
               ),
             ],

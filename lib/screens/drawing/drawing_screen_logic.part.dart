@@ -642,7 +642,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('??μ뿉 ?ㅽ뙣?덉뒿?덈떎')));
+        ..showSnackBar(const SnackBar(content: Text('?????묎덩?????됰꽡???怨?????덊렡')));
     }
   }
 
@@ -669,7 +669,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('????ㅽ뙣濡??쇰? ?댁슜????λ릺吏 ?딆븯?????덉뒿?덈떎')),
+          const SnackBar(content: Text('????????됰꽡????? ???⑤챶裕?????潁뺛깾逾녜뇡??? ????⒱봼???????怨?????덊렡')),
         );
     }
     if (mounted) {
@@ -3694,11 +3694,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('痍⑥냼'),
+              child: const Text('\uCDE8\uC18C'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('吏?곌린'),
+              child: const Text('\uD655\uC778'),
             ),
           ],
         );
@@ -3715,8 +3715,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (!await _confirmClear(
-      title: '?꾩껜 吏?곌린',
-      message: '?꾩옱 ?섏씠吏???먭??⑤? 紐⑤몢 吏?멸퉴??',
+      title: '\uD604\uC7AC \uD398\uC774\uC9C0 \uC804\uCCB4 \uC9C0\uC6B0\uAE30',
+      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC758 \uBAA8\uB4E0 \uADF8\uB9AC\uAE30 \uC694\uC18C\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }
@@ -3755,8 +3755,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title: '?뺢킅?쒕쭔 ?꾩껜 吏?곌린',
-      message: '?꾩옱 ?섏씠吏???뺢킅???먭??⑤쭔 紐⑤몢 吏?멸퉴??',
+      title: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }
@@ -3792,8 +3792,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title: '?쒕쭔 ?꾩껜 吏?곌린',
-      message: '?꾩옱 ?섏씠吏?????먭??⑤쭔 紐⑤몢 吏?멸퉴??',
+      title: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }
@@ -3905,12 +3905,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _activeAreaEraserSession = null;
       }
     });
-    if (_isFreeDrawMode && !_didShowFreeDrawGuide && mounted) {
-      _didShowFreeDrawGuide = true;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('?먯쑀 洹몃━湲? ???먭??쎌쑝濡?洹몃━湲? ???먭??쎌쑝濡??뺣?/?대룞')),
-      );
-    }
     if (!_isFreeDrawMode) {
       _debugLogPhotoViewBaseStateOnce('mode-toggle');
     }
