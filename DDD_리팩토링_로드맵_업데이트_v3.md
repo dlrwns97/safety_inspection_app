@@ -326,10 +326,15 @@ lib/
 
 ---
 
-## Phase 1. Repository 경계 확립 (3~4일)
+## Phase 1. Repository 경계 확립 (3~4일) ✅ 완료 (2026-03-03)
 목표: 저장소 접근을 인터페이스 뒤로 감춰서 Presentation의 I/O 직접 호출 제거 기반을 만든다.
 
-### Step 1-1. 도메인 Repository 인터페이스 정의
+상태:
+- `Step 1-1` 완료
+- `Step 1-2` 완료
+- `Step 1-3` 완료
+
+### Step 1-1. 도메인 Repository 인터페이스 정의 ✅ 완료
 생성 파일:
 - `lib/domain/site/repositories/site_repository.dart`
 - `lib/domain/drawing/repositories/drawing_repository.dart`
@@ -345,7 +350,7 @@ lib/
 수동 검증:
 - 없음.
 
-### Step 1-2. 인프라 어댑터 구현 (기능 동일)
+### Step 1-2. 인프라 어댑터 구현 (기능 동일) ✅ 완료
 대상:
 - `site_storage.dart`, `drawing_persistence_store.dart`, `defect_photo_store.dart`
 
@@ -359,7 +364,7 @@ lib/
 수동 검증:
 - 시나리오 `H-01`, `D-08`, `P-01`.
 
-### Step 1-3. HomeScreen/TrashScreen의 정적 저장 호출 제거
+### Step 1-3. HomeScreen/TrashScreen의 정적 저장 호출 제거 ✅ 완료
 대상:
 - `home_storage.dart`, `home_screen.dart`, `trash_screen.dart`
 
