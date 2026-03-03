@@ -86,10 +86,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       details.photoOriginalNamesByPath,
     );
     _structuralMember = details.structuralMember;
-    _widthController.text =
-        details.widthMm > 0 ? details.widthMm.toString() : '';
-    _lengthController.text =
-        details.lengthMm > 0 ? details.lengthMm.toString() : '';
+    _widthController.text = details.widthMm > 0
+        ? details.widthMm.toString()
+        : '';
+    _lengthController.text = details.lengthMm > 0
+        ? details.lengthMm.toString()
+        : '';
     final crackType = details.crackType;
     if (crackType.isNotEmpty) {
       if (widget.typeOptions.contains(crackType)) {
@@ -126,9 +128,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (_isSavingPhotos) {
       return;
     }
-    final selection = await _showPhotoSourceSheet(
-      context,
-    );
+    final selection = await _showPhotoSourceSheet(context);
     if (selection == null) {
       return;
     }
@@ -141,9 +141,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     }
   }
 
-  Future<_DefectPhotoSource?> _showPhotoSourceSheet(
-    BuildContext sheetContext,
-  ) {
+  Future<_DefectPhotoSource?> _showPhotoSourceSheet(BuildContext sheetContext) {
     return showDefectPhotoSourceSheet(sheetContext);
   }
 
@@ -157,14 +155,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (picked == null) {
       return;
     }
-    await _savePhotoPaths(
-      [
-        _PickedPhotoInfo(
-          path: picked.path,
-          originalName: _resolveCameraName(picked),
-        ),
-      ],
-    );
+    await _savePhotoPaths([
+      _PickedPhotoInfo(
+        path: picked.path,
+        originalName: _resolveCameraName(picked),
+      ),
+    ]);
   }
 
   Future<void> _pickFromGallery() async {
@@ -180,30 +176,24 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       type: FileType.any,
       allowMultiple: true,
     );
-    final allowedExtensions = {
-      'jpg',
-      'jpeg',
-      'png',
-      'heic',
-      'heif',
-      'webp',
-    };
+    final allowedExtensions = {'jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'};
     if (result == null) {
       return;
     }
-    final selectedFiles =
-        result.files.where((file) => file.path != null).toList();
-    final pickedPhotos = selectedFiles.where((file) {
-      final extension = (file.extension ??
-              p.extension(file.name).replaceFirst('.', ''))
-          .toLowerCase();
-      return allowedExtensions.contains(extension);
-    }).map((file) {
-      return _PickedPhotoInfo(
-        path: file.path!,
-        originalName: file.name,
-      );
-    }).toList();
+    final selectedFiles = result.files
+        .where((file) => file.path != null)
+        .toList();
+    final pickedPhotos = selectedFiles
+        .where((file) {
+          final extension =
+              (file.extension ?? p.extension(file.name).replaceFirst('.', ''))
+                  .toLowerCase();
+          return allowedExtensions.contains(extension);
+        })
+        .map((file) {
+          return _PickedPhotoInfo(path: file.path!, originalName: file.name);
+        })
+        .toList();
     final ignoredCount = selectedFiles.length - pickedPhotos.length;
     if (pickedPhotos.isEmpty) {
       if (!mounted) {
@@ -229,9 +219,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('일부 파일은 사진 형식이 아니라 제외되었습니다.'),
-        ),
+        const SnackBar(content: Text('일부 파일은 사진 형식이 아니라 제외되었습니다.')),
       );
     }
     await _savePhotoPaths(pickedPhotos);
@@ -245,12 +233,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       _isSavingPhotos = true;
     });
     final sourcePaths = pickedPhotos.map((photo) => photo.path).toList();
-    final originalNames =
-        pickedPhotos.map((photo) => photo.originalName).toList();
+    final originalNames = pickedPhotos
+        .map((photo) => photo.originalName)
+        .toList();
     final savedPaths = await _photoStore.savePickedImages(
       siteId: widget.siteId,
       defectId: widget.defectId,
       sourcePaths: sourcePaths,
+      originalNames: originalNames,
     );
     if (!mounted) {
       return;
@@ -262,15 +252,11 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     });
   }
 
-  Future<void> _replacePhotoAt({
-    required int index,
-  }) async {
+  Future<void> _replacePhotoAt({required int index}) async {
     if (_isSavingPhotos) {
       return;
     }
-    final selection = await _showPhotoSourceSheet(
-      context,
-    );
+    final selection = await _showPhotoSourceSheet(context);
     if (selection == null) {
       return;
     }
@@ -286,6 +272,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       siteId: widget.siteId,
       defectId: widget.defectId,
       sourcePaths: [pickedPath.path],
+      originalNames: originalNames,
     );
     if (!mounted) {
       return;
@@ -360,17 +347,11 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (pickedPath == null) {
       return null;
     }
-    final allowedExtensions = {
-      'jpg',
-      'jpeg',
-      'png',
-      'heic',
-      'heif',
-      'webp',
-    };
-    final extension = (pickedFile.extension ??
-            p.extension(pickedFile.name).replaceFirst('.', ''))
-        .toLowerCase();
+    final allowedExtensions = {'jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'};
+    final extension =
+        (pickedFile.extension ??
+                p.extension(pickedFile.name).replaceFirst('.', ''))
+            .toLowerCase();
     if (!allowedExtensions.contains(extension)) {
       if (!mounted) {
         return null;
@@ -390,18 +371,49 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       );
       return null;
     }
-    return _PickedPhotoInfo(
-      path: pickedPath,
-      originalName: pickedFile.name,
-    );
+    return _PickedPhotoInfo(path: pickedPath, originalName: pickedFile.name);
   }
 
   String _resolveCameraName(XFile picked) {
-    final name = picked.name.trim();
-    if (name.isNotEmpty) {
-      return name;
+    final pickedName = picked.name.trim();
+    if (_isMeaningfulCameraFileName(pickedName)) {
+      return pickedName;
+    }
+    final pathName = p.basename(picked.path).trim();
+    if (_isMeaningfulCameraFileName(pathName)) {
+      return pathName;
     }
     return _cameraFallbackName(picked.path);
+  }
+
+  bool _isMeaningfulCameraFileName(String name) {
+    if (name.isEmpty) {
+      return false;
+    }
+    final extension = p.extension(name).toLowerCase();
+    const allowedExtensions = {
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.heic',
+      '.heif',
+    };
+    if (!allowedExtensions.contains(extension)) {
+      return false;
+    }
+    final lower = name.toLowerCase();
+    const blockedPrefixes = {
+      'image_picker',
+      'scaled_',
+      'cache_',
+      'temp_',
+      'tmp_',
+    };
+    if (blockedPrefixes.any(lower.startsWith)) {
+      return false;
+    }
+    return !lower.contains('image_picker');
   }
 
   String _cameraFallbackName(String sourcePath) {
@@ -415,7 +427,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     final extension = p.extension(sourcePath).isEmpty
         ? '.jpg'
         : p.extension(sourcePath);
-    return '$year$month${day}_$hour$minute$second$extension';
+    return 'IMG_${year}${month}${day}_$hour$minute$second$extension';
   }
 
   void _storePhotoOriginalNames(
@@ -453,17 +465,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final maxHeight = MediaQuery.of(context).size.height * 0.5;
-    final maxWidth = min(
-      MediaQuery.of(context).size.width * 0.6,
-      520.0,
-    );
+    final maxWidth = min(MediaQuery.of(context).size.width * 0.6, 520.0);
 
     return NarrowDialogFrame(
       maxWidth: maxWidth,
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: maxHeight,
-        ),
+        constraints: BoxConstraints(maxHeight: maxHeight),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -488,30 +495,17 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   List<Widget> _buildHeader(BuildContext context) {
     final titleStyle = Theme.of(context).textTheme.titleLarge;
-    return [
-      Text(
-        widget.title,
-        style: titleStyle,
-      ),
-      const SizedBox(height: 12),
-    ];
+    return [Text(widget.title, style: titleStyle), const SizedBox(height: 12)];
   }
 
   List<Widget> _buildCategorySection(BuildContext context) {
     final structuralMemberItems = StringsKo.structuralMembers
-        .map(
-          (item) => DropdownMenuItem(
-            value: item,
-            child: Text(item),
-          ),
-        )
+        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
         .toList();
     return [
       DropdownButtonFormField<String>(
         initialValue: _structuralMember,
-        decoration: InputDecoration(
-          labelText: StringsKo.structuralMemberLabel,
-        ),
+        decoration: InputDecoration(labelText: StringsKo.structuralMemberLabel),
         items: structuralMemberItems,
         onChanged: (value) {
           setState(() {
@@ -527,19 +521,12 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 
   List<Widget> _buildMemberTypeSection(BuildContext context) {
     final typeItems = widget.typeOptions
-        .map(
-          (item) => DropdownMenuItem(
-            value: item,
-            child: Text(item),
-          ),
-        )
+        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
         .toList();
     return [
       DropdownButtonFormField<String>(
         initialValue: _crackType,
-        decoration: InputDecoration(
-          labelText: StringsKo.crackTypeLabel,
-        ),
+        decoration: InputDecoration(labelText: StringsKo.crackTypeLabel),
         items: typeItems,
         onChanged: (value) {
           setState(() {
@@ -556,11 +543,8 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
         const SizedBox(height: 12),
         TextFormField(
           controller: _otherTypeController,
-          decoration: InputDecoration(
-            labelText: StringsKo.otherTypeLabel,
-          ),
-          validator: (_) =>
-              _otherTypeController.text.trim().isEmpty
+          decoration: InputDecoration(labelText: StringsKo.otherTypeLabel),
+          validator: (_) => _otherTypeController.text.trim().isEmpty
               ? StringsKo.enterOtherTypeError
               : null,
           onChanged: (_) => setState(() {}),
@@ -575,12 +559,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       decimal: true,
     );
     final causeItems = widget.causeOptions
-        .map(
-          (item) => DropdownMenuItem(
-            value: item,
-            child: Text(item),
-          ),
-        )
+        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
         .toList();
     return [
       Row(
@@ -588,9 +567,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
           Expanded(
             child: TextFormField(
               controller: _widthController,
-              decoration: InputDecoration(
-                labelText: StringsKo.widthLabel,
-              ),
+              decoration: InputDecoration(labelText: StringsKo.widthLabel),
               keyboardType: numberKeyboardType,
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
@@ -606,9 +583,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
           Expanded(
             child: TextFormField(
               controller: _lengthController,
-              decoration: InputDecoration(
-                labelText: StringsKo.lengthLabel,
-              ),
+              decoration: InputDecoration(labelText: StringsKo.lengthLabel),
               keyboardType: numberKeyboardType,
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
@@ -625,9 +600,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         initialValue: _cause,
-        decoration: InputDecoration(
-          labelText: StringsKo.causeLabel,
-        ),
+        decoration: InputDecoration(labelText: StringsKo.causeLabel),
         items: causeItems,
         onChanged: (value) {
           setState(() {
@@ -637,18 +610,14 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
             }
           });
         },
-        validator: (value) =>
-            value == null ? StringsKo.selectCauseError : null,
+        validator: (value) => value == null ? StringsKo.selectCauseError : null,
       ),
       if (_isOtherCause) ...[
         const SizedBox(height: 12),
         TextFormField(
           controller: _otherCauseController,
-          decoration: InputDecoration(
-            labelText: StringsKo.otherCauseLabel,
-          ),
-          validator: (_) =>
-              _otherCauseController.text.trim().isEmpty
+          decoration: InputDecoration(labelText: StringsKo.otherCauseLabel),
+          validator: (_) => _otherCauseController.text.trim().isEmpty
               ? StringsKo.enterOtherCauseError
               : null,
           onChanged: (_) => setState(() {}),
@@ -756,10 +725,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
 }
 
 class _PickedPhotoInfo {
-  const _PickedPhotoInfo({
-    required this.path,
-    required this.originalName,
-  });
+  const _PickedPhotoInfo({required this.path, required this.originalName});
 
   final String path;
   final String originalName;

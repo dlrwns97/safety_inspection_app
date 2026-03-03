@@ -14,6 +14,7 @@ class DefectPhotoStore {
     required String siteId,
     required String defectId,
     required List<String> sourcePaths,
+    List<String>? originalNames,
   }) async {
     if (sourcePaths.isEmpty) {
       return [];
@@ -34,17 +35,21 @@ class DefectPhotoStore {
         continue;
       }
       final extension = _resolveExtension(sourcePath);
-      final destinationPath =
-          '${targetDir.path}/${timestamp}_$index$extension';
+      final destinationPath = '${targetDir.path}/${timestamp}_$index$extension';
       try {
         await sourceFile.copy(destinationPath);
         savedPaths.add(destinationPath);
       } catch (_) {
         continue;
       }
+      final originalName = index < (originalNames?.length ?? 0)
+          ? originalNames![index].trim()
+          : '';
       await _writeSidecarMetadata(
         destinationPath: destinationPath,
-        originalName: p.basename(sourcePath),
+        originalName: originalName.isNotEmpty
+            ? originalName
+            : p.basename(sourcePath),
       );
     }
 
@@ -55,9 +60,7 @@ class DefectPhotoStore {
     return p.setExtension(storedPhotoPath, '.json');
   }
 
-  Future<String?> readOriginalNameForStoredPath(
-    String storedPhotoPath,
-  ) async {
+  Future<String?> readOriginalNameForStoredPath(String storedPhotoPath) async {
     final sidecarPath = sidecarPathFor(storedPhotoPath);
     final sidecarFile = File(sidecarPath);
     if (!await sidecarFile.exists()) {
