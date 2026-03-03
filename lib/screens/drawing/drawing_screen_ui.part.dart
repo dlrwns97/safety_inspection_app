@@ -194,7 +194,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '??지?�개',
+                    tooltip: '??吏?곌컻',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
@@ -202,7 +202,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '?�역 지?�개',
+                    tooltip: '?곸뿭 吏?곌컻',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
@@ -210,7 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: '직선 보정',
+                    tooltip: '吏곸꽑 蹂댁젙',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -234,9 +234,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: '?�역 지?�개 반경',
+                            message: '?곸뿭 吏?곌컻 諛섍꼍',
                             child: const Text(
-                              '?�역 지?�개 반경',
+                              '?곸뿭 吏?곌컻 諛섍꼍',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -362,7 +362,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '?�재 ?�이지 ?�체 지?�기',
+                    tooltip: '?꾩옱 ?섏씠吏 ?꾩껜 吏?곌린',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -374,7 +374,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '?�재 ?�이지 ?�광?�만 지?�기',
+                    tooltip: '?꾩옱 ?섏씠吏 ?뺢킅?쒕쭔 吏?곌린',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -386,12 +386,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '?�재 ?�이지 ?�만 지?�기',
+                    tooltip: '?꾩옱 ?섏씠吏 ?쒕쭔 吏?곌린',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '?�기',
+                    tooltip: '?リ린',
                   ),
                 ],
               ),
@@ -444,7 +444,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Row(
                   children: [
                     const SizedBox(width: 8),
-                    const Text('?�명??),
+                    const Text('?щ챸??),
                     Expanded(
                       child: Slider(
                         value: style.opacity.clamp(0.05, 1.0),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: '?��? ?�정',
+                    tooltip: '?몃? ?ㅼ젙',
                   ),
                 ],
               ),
@@ -922,7 +922,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Text('?�조'),
+                          const Text('?됱“'),
                           Expanded(
                             child: Slider(
                               min: 0,
@@ -938,7 +938,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('?�명??),
+                          const Text('?щ챸??),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -965,7 +965,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('취소'),
+                            child: const Text('痍⑥냼'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -975,7 +975,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('?�용'),
+                            child: const Text('?곸슜'),
                           ),
                         ),
                       ],
@@ -1274,14 +1274,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             eraserRadius: _areaEraserRadiusPx,
                           ),
                         ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: _buildTextBoxesOverlay(
-                              pageSize: pageSize,
-                              pageNumber: pageNumber,
-                            ),
-                          ),
-                        ),
                         if (_activeTool == DrawingTool.shape &&
                             _activeShapeManipulator != null)
                           Positioned.fill(
@@ -1519,12 +1511,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 },
               ),
             ),
-            IgnorePointer(
-              child: _buildTextBoxesOverlay(
-                pageSize: DrawingCanvasSize,
-                pageNumber: _currentPage,
-              ),
-            ),
             if (_activeTool == DrawingTool.shape &&
                 _activeShapeManipulator != null)
               IgnorePointer(
@@ -1549,78 +1535,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextBoxesOverlay({
-    required Size pageSize,
-    required int pageNumber,
-  }) {
-    final strokes = _canvasController.getStrokes(pageNumber);
-    final textStrokes = strokes.where(
-      (stroke) =>
-          stroke.toolType == DrawingTool.textBox && stroke.textBoxData != null,
-    );
-    return Stack(
-      children: textStrokes
-          .map((stroke) {
-            final boundsNorm = _effectiveTextBoundsForStroke(stroke);
-            if (boundsNorm == null || boundsNorm.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            final textData = stroke.textBoxData!;
-            final isSelected = _selectedTextStrokeId == stroke.id;
-            final left = boundsNorm.left * pageSize.width;
-            final top = boundsNorm.top * pageSize.height;
-            final width = boundsNorm.width * pageSize.width;
-            final height = boundsNorm.height * pageSize.height;
-            return Positioned(
-              left: left,
-              top: top,
-              width: width,
-              height: height,
-              child: Container(
-                alignment: Alignment.topLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  border: Border.all(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.transparent,
-                    width: isSelected ? 1.5 : 0.0,
-                  ),
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Text(
-                      _textStrokeText(stroke),
-                      textAlign: textData.textAlign,
-                      style: TextStyle(
-                        fontSize: textData.fontSize,
-                        color: Color(textData.argbColor),
-                      ),
-                    ),
-                    if (isSelected)
-                      Positioned(
-                        right: -5,
-                        bottom: -5,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          })
-          .toList(growable: false),
     );
   }
 
@@ -1714,7 +1628,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('?�형 ?�정')),
+                      const Expanded(child: Text('?꾪삎 ?ㅼ젙')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1774,7 +1688,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('비율 고정'),
+                      const Text('鍮꾩쑉 怨좎젙'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1788,14 +1702,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('?�냅'),
+                      const Text('?ㅻ깄'),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('?�두�???)),
+                      const SizedBox(width: 72, child: Text('?뚮몢由???)),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1817,7 +1731,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '?�상 ?�택',
+                              tooltip: '?됱긽 ?좏깮',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1900,7 +1814,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text('채우�???),
+                            child: const Text('梨꾩슦湲???),
                           ),
                         ),
                       ),
@@ -1930,7 +1844,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: '채우�??�상 ?�택',
+                                  tooltip: '梨꾩슦湲??됱긽 ?좏깮',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -2005,7 +1919,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '??굵기',
+                    label: '??援듦린',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -2022,7 +1936,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: '?�명??,
+                    label: '?щ챸??,
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -2061,10 +1975,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => '?�각??,
-      ShapeType.circle => '?�형',
-      ShapeType.triangle => '?�각??,
-      ShapeType.hShape => 'H 모형',
+      ShapeType.rectangle => '?ш컖??,
+      ShapeType.circle => '?먰삎',
+      ShapeType.triangle => '?쇨컖??,
+      ShapeType.hShape => 'H 紐⑦삎',
     };
   }
 
@@ -2083,14 +1997,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('취소'),
+                  child: const Text('痍⑥냼'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('?�용'),
+                  child: const Text('?곸슜'),
                 ),
               ),
             ],

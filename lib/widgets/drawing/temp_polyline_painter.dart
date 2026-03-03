@@ -115,9 +115,6 @@ class TempPolylinePainter extends CustomPainter {
   }
 
   void _drawStroke(Canvas canvas, DrawingStroke stroke) {
-    if (stroke.toolType == DrawingTool.textBox) {
-      return;
-    }
     final pointsNorm = stroke.pointsNorm;
     if (pointsNorm.isEmpty) {
       return;
