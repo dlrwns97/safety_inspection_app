@@ -69,8 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       pdfName: selection.fileName,
     );
 
-    final updatedSites = [..._sites, site];
-    await _homeStorage.saveSites(updatedSites);
+    final updatedSites = await _homeStorage.createSite(_sites, site);
     if (!mounted) {
       return;
     }
