@@ -8,22 +8,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:safety_inspection_app/application/drawing/use_cases/load_site_drawing_use_case.dart';
+import 'package:safety_inspection_app/application/drawing/use_cases/persist_site_drawing_use_case.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
+import 'package:safety_inspection_app/domain/site/repositories/site_repository.dart';
+import 'package:safety_inspection_app/infrastructure/persistence/file_store/drawing_file_repository.dart';
+import 'package:safety_inspection_app/infrastructure/persistence/shared_prefs/site_prefs_repository.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
-import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_commands.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_manager.dart';
 import 'package:safety_inspection_app/screens/drawing/models/stroke_presets.dart';
-import 'package:safety_inspection_app/screens/drawing/persistence/drawing_persistence_store.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
 import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
-import 'package:safety_inspection_app/models/site_storage.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/spatial_index.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_widget.dart';
@@ -188,8 +191,15 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
   final Set<int> _strokeSpatialIndexDirtyPages = <int>{};
-  final DrawingPersistenceStore _drawingPersistenceStore =
-      DrawingPersistenceStore();
+  final DrawingRepository _drawingRepository = DrawingFileRepository();
+  final SiteRepository _siteRepository = SitePrefsRepository();
+  late final LoadSiteDrawingUseCase _loadSiteDrawingUseCase =
+      LoadSiteDrawingUseCase(drawingRepository: _drawingRepository);
+  late final PersistSiteDrawingUseCase _persistSiteDrawingUseCase =
+      PersistSiteDrawingUseCase(
+        drawingRepository: _drawingRepository,
+        siteRepository: _siteRepository,
+      );
   DrawingStroke? _inProgressStroke;
   bool _hasUnsavedChanges = false;
   Timer? _persistDebounce;

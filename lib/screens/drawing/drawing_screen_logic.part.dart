@@ -588,22 +588,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final targetSiteId = _site.id;
     await _cleanupLegacyDrawingPrefsForSite(targetSiteId);
 
-    final payload = await _drawingPersistenceStore.loadSiteDrawing(
-      siteId: targetSiteId,
-    );
-    final Map<int, List<DrawingStroke>> loaded = <int, List<DrawingStroke>>{};
-
-    final drawingStrokesJson = payload?['drawingStrokes'];
-    if (drawingStrokesJson is List) {
-      for (final rawStroke in drawingStrokesJson.whereType<Map>()) {
-        final stroke = DrawingStroke.fromJson(
-          rawStroke.cast<String, dynamic>(),
-        );
-        loaded
-            .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
-            .add(stroke);
-      }
-    }
+    final loaded = await _loadSiteDrawingUseCase.execute(siteId: targetSiteId);
 
     if (!mounted || _site.id != targetSiteId) {
       return;
@@ -651,31 +636,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Future<void> _persistDrawingEpoch(int epoch) async {
-    final flatList = _strokesByPage.entries
-        .expand((entry) => entry.value)
-        .map((stroke) => stroke.deepCopy())
-        .toList();
-    await _drawingPersistenceStore.saveSiteDrawing(
-      siteId: _site.id,
-      payloadJson: <String, dynamic>{
-        'drawingStrokes': flatList.map((stroke) => stroke.toJson()).toList(),
-      },
-    );
-    final updatedSite = _site.copyWith(
-      drawingStrokes: const <DrawingStroke>[],
-      drawingUndoHistory: const <DrawingHistoryActionPersisted>[],
-      drawingRedoHistory: const <DrawingHistoryActionPersisted>[],
-    );
     try {
-      final sites = await SiteStorage.loadSites();
-      final existingIndex = sites.indexWhere((s) => s.id == updatedSite.id);
-      final updatedSites = List<Site>.from(sites);
-      if (existingIndex >= 0) {
-        updatedSites[existingIndex] = updatedSite;
-      } else {
-        updatedSites.add(updatedSite);
-      }
-      await SiteStorage.saveSites(updatedSites);
+      final updatedSite = await _persistSiteDrawingUseCase.execute(
+        site: _site,
+        strokesByPage: _strokesByPage,
+      );
       if (!mounted || epoch != _persistEpoch) {
         return;
       }
@@ -4485,6 +4450,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
       );
     });
+    final hasPageStrokes = _canvasController.getStrokes(page).isNotEmpty;
+    if (hasPageStrokes &&
+        (_canvasController.isCacheDirty(page) ||
+            !_strokeCacheManager.hasCache(page))) {
+      unawaited(_rebuildStrokeCacheForPage(page));
+    }
     if (!_isFreeDrawMode) {
       _debugLogPhotoViewBaseStateOnce('page-change');
     }
@@ -4524,7 +4495,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pageSize.height < _kMinValidPdfPageSide) {
       return;
     }
+    final previousSize = _pdfPageSizes[pageNumber];
     _setPdfState(() => _pdfPageSizes[pageNumber] = pageSize);
+    if (previousSize == null ||
+        previousSize.width != pageSize.width ||
+        previousSize.height != pageSize.height) {
+      _invalidateCanvasCacheForPage(pageNumber, 'pdf-page-size-updated');
+    }
     _persistPdfPageSizeCache();
   }
 
