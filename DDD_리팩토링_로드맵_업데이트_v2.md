@@ -221,6 +221,17 @@ lib/
 롤백 포인트:
 - 경로 정규화 함수 변경 전후 diff만 되돌리면 복구 가능하도록 커밋 분리.
 
+실행 기록 (2026-03-03):
+- 수정 파일
+  - `lib/screens/home/site_photo_orphan_scanner.dart`
+  - `test/photo_path_ordering_test.dart`
+- 핵심 수정
+  - `photoReferenceKey` 정규화 규칙 강화(슬래시/드라이브 레터/트레일링 슬래시 처리).
+  - 중복 판정 회귀 케이스 추가(`drive letter case`, `trailing slash`).
+- 자동 검증 결과
+  - `flutter test test/photo_path_ordering_test.dart` 통과
+  - `flutter test` 통과
+
 ### Step 0-2. warning 11 -> 0 ✅ 완료
 대상 파일:
 - `lib/screens/drawing/drawing_screen.dart`
@@ -242,6 +253,18 @@ lib/
 롤백 포인트:
 - UI/gesture 변경이 포함되면 즉시 중단 후 warning 제거만 남긴 패치로 재구성.
 
+실행 기록 (2026-03-03):
+- 수정 파일
+  - `lib/screens/drawing/drawing_screen.dart`
+  - `lib/screens/drawing/drawing_screen_logic.part.dart`
+  - `lib/screens/drawing/drawing_screen_ui.part.dart`
+- 핵심 수정
+  - 미사용 field/element 제거로 warning 항목 정리.
+  - 사용되지 않던 레거시 UI 블록/보조 함수 제거.
+- 자동 검증 결과
+  - `flutter analyze` warning 0 달성
+  - `flutter test` 통과
+
 ### Step 0-3. 스모크 테스트 이름 체계 고정 ✅ 완료
 대상 파일:
 - `test/` 신규 smoke 스위트
@@ -255,6 +278,17 @@ lib/
 
 수동 검증:
 - 없음 (테스트 목록 정합성 확인으로 대체).
+
+실행 기록 (2026-03-03):
+- 수정 파일
+  - `test/smoke/scenario_id_smoke_test.dart` (신규)
+  - `PHASE_TEST_CATALOG.md` (신규)
+- 핵심 수정
+  - 시나리오 ID 기준 smoke 테스트 추가(`H-01`, `H-02`, `H-03`, `D-05`, `P-02`).
+  - Phase 0 필수 테스트 카탈로그 문서화.
+- 자동 검증 결과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - `flutter test` 통과
 
 ---
 
