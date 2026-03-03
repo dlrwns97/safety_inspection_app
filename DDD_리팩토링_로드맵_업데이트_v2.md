@@ -717,3 +717,31 @@ flutter analyze
 ## 10. 메모
 - 이 문서는 요약본이 아니라 실행본이므로, 실제 작업 중 숫자/라인 수/이슈 수가 바뀌면 Step 완료 시 즉시 갱신한다.
 - 변경 중간에 동작 리스크가 커지면, Phase를 멈추고 Step 단위로 더 잘게 쪼개서 재진행한다.
+
+---
+
+## 11. 로드맵 외 기능 수정 로그
+
+### 2026-03-03 / 결함 사진 카메라 원본명 표시 보정
+- 상황
+  - 갤러리/파일 선택 경로는 원본 파일명이 표시되는데, 카메라 촬영 경로는 임시 이름(`image_picker...`)이 표시되는 문제가 있었음.
+- 수정 내용
+  - 카메라 경로에서 의미 없는 임시 이름을 제외하고 파일명 보정 로직 추가.
+  - 저장 시 sidecar 메타데이터(`originalName`)에 보정된 원본명을 우선 저장하도록 `DefectPhotoStore` 저장 API 확장.
+  - 관련 파일
+    - `lib/screens/drawing/dialogs/defect_details_dialog.dart`
+    - `lib/screens/drawing/attachments/defect_photo_store.dart`
+- 검증
+  - `flutter test` 전체 통과
+  - 실제 앱 수동 확인에서 카메라 촬영 사진의 파일명 표시 정상화
+
+### 2026-03-03 / 카메라 fallback 파일명 접두사 조정
+- 상황
+  - 위 보정 이후 fallback 파일명에 `IMG_` 접두사가 붙어 표시되는 UX 피드백 발생.
+- 수정 내용
+  - fallback 파일명 형식을 `IMG_YYYYMMDD_HHMMSS.ext` -> `YYYYMMDD_HHMMSS.ext`로 변경.
+  - 관련 파일
+    - `lib/screens/drawing/dialogs/defect_details_dialog.dart`
+- 검증
+  - `flutter test` 전체 통과
+  - 실제 앱 수동 확인에서 접두사 없이 기대한 파일명 표시
