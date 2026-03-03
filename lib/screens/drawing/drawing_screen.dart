@@ -195,7 +195,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   final LayerLink _highlighterLink = LayerLink();
   final LayerLink _eraserLink = LayerLink();
   final LayerLink _shapeLink = LayerLink();
-  final LayerLink _textLink = LayerLink();
   final Map<int, List<DrawingStroke>> _strokesByPage =
       <int, List<DrawingStroke>>{};
   final Map<int, SpatialIndex> _strokeSpatialIndexByPage =
@@ -270,7 +269,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   double? _shapeRotateSnappedAngleRad;
   double _currentTextFontSize = 14.0;
   Color _currentTextColor = const Color(0xFF000000);
-  TextAlign _currentTextAlign = TextAlign.left;
   late final ValueNotifier<PenVariant> _penVariantNotifier;
   late final ValueNotifier<double> _penWidthNotifier;
   late final ValueNotifier<Color> _penColorNotifier;
@@ -341,9 +339,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
     if (_activeTool == DrawingTool.shape) {
       return StrokeToolKind.shape;
-    }
-    if (_activeTool == DrawingTool.textBox) {
-      return StrokeToolKind.textBox;
     }
     return _activeFamily == ToolFamily.highlighter
         ? StrokeToolKind.highlighter
@@ -591,10 +586,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   String _shapeFillColorKey(ShapeType type) =>
       '$_kDrawingSettingsPrefix.shape.${type.name}.fillColorARGB';
 
-  String get _textFontSizeKey => '$_kDrawingSettingsPrefix.text.fontSize';
-  String get _textColorKey => '$_kDrawingSettingsPrefix.text.colorARGB';
-  String get _textAlignKey => '$_kDrawingSettingsPrefix.text.align';
-
   Future<void> _loadDrawingSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -670,9 +661,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     final activeHlTypeName = prefs.getString(
       '$_kDrawingSettingsPrefix.last.hlType',
     );
-    final savedTextFontSize = prefs.getDouble(_textFontSizeKey);
-    final savedTextColorArgb = prefs.getInt(_textColorKey);
-    final savedTextAlignName = prefs.getString(_textAlignKey);
 
     if (!mounted) {
       return;
@@ -715,18 +703,6 @@ class _DrawingScreenState extends State<DrawingScreen>
       }
       if (straightenSnapEnabled != null) {
         _isStraightenSnapEnabled = straightenSnapEnabled;
-      }
-      if (savedTextFontSize != null) {
-        _currentTextFontSize = savedTextFontSize.clamp(10.0, 64.0);
-      }
-      if (savedTextColorArgb != null) {
-        _currentTextColor = Color(savedTextColorArgb);
-      }
-      if (savedTextAlignName != null) {
-        _currentTextAlign = TextAlign.values.firstWhere(
-          (value) => value.name == savedTextAlignName,
-          orElse: () => TextAlign.left,
-        );
       }
 
       _loadPenType(_activePenType);
@@ -804,9 +780,6 @@ class _DrawingScreenState extends State<DrawingScreen>
       '$_kDrawingSettingsPrefix.last.hlType',
       _activeHighlighterType.name,
     );
-    await prefs.setDouble(_textFontSizeKey, _currentTextFontSize);
-    await prefs.setInt(_textColorKey, _currentTextColor.value);
-    await prefs.setString(_textAlignKey, _currentTextAlign.name);
   }
 
   void _loadHighlighterType(HighlighterUiType t) {
@@ -1625,7 +1598,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     highlighterToolLink: _highlighterLink,
     eraserToolLink: _eraserLink,
     shapeToolLink: _shapeLink,
-    textToolLink: _textLink,
   );
   CanvasMarkerLayer _buildMarkerLayer({
     required Widget child,

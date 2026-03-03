@@ -71,7 +71,7 @@ DrawingTool _drawingToolFromJson(dynamic value, {DrawingTool? fallback}) {
   return defaultTool;
 }
 
-enum StrokeToolKind { pen, highlighter, eraser, shape, textBox }
+enum StrokeToolKind { pen, highlighter, eraser, shape }
 
 enum PenVariant {
   pen,
@@ -295,7 +295,6 @@ class DrawingStroke {
       StrokeToolKind.highlighter => DrawingTool.highlighter,
       StrokeToolKind.eraser => DrawingTool.strokeEraser,
       StrokeToolKind.shape => DrawingTool.shape,
-      StrokeToolKind.textBox => DrawingTool.textBox,
       StrokeToolKind.pen => DrawingTool.pen,
     };
     final erasedMaskRaw = json['erasedMask'];

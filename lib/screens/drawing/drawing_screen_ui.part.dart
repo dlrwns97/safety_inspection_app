@@ -187,14 +187,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.edit,
                     selected: isPenSelected,
-                    tooltip: '펜',
+                    tooltip: '??,
                     onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '획 지우개',
+                    tooltip: '??지?�개',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
@@ -202,7 +202,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '영역 지우개',
+                    tooltip: '?�역 지?�개',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
@@ -234,9 +234,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: '영역 지우개 반경',
+                            message: '?�역 지?�개 반경',
                             child: const Text(
-                              '영역 지우개 반경',
+                              '?�역 지?�개 반경',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -362,7 +362,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '현재 페이지 전체 지우기',
+                    tooltip: '?�재 ?�이지 ?�체 지?�기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -374,7 +374,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '현재 페이지 형광펜만 지우기',
+                    tooltip: '?�재 ?�이지 ?�광?�만 지?�기',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -386,12 +386,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '현재 페이지 펜만 지우기',
+                    tooltip: '?�재 ?�이지 ?�만 지?�기',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '닫기',
+                    tooltip: '?�기',
                   ),
                 ],
               ),
@@ -444,7 +444,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Row(
                   children: [
                     const SizedBox(width: 8),
-                    const Text('투명도'),
+                    const Text('?�명??),
                     Expanded(
                       child: Slider(
                         value: style.opacity.clamp(0.05, 1.0),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: '세부 설정',
+                    tooltip: '?��? ?�정',
                   ),
                 ],
               ),
@@ -590,10 +590,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
       case StrokeToolKind.shape:
         _handleDrawingToolChanged(DrawingTool.shape);
         _showShapeSettingsPopover();
-        return;
-      case StrokeToolKind.textBox:
-        _handleDrawingToolChanged(DrawingTool.textBox);
-        _showTextSettingsPopover();
         return;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
@@ -926,7 +922,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Text('색조'),
+                          const Text('?�조'),
                           Expanded(
                             child: Slider(
                               min: 0,
@@ -942,7 +938,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('투명도'),
+                          const Text('?�명??),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -979,7 +975,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('적용'),
+                            child: const Text('?�용'),
                           ),
                         ),
                       ],
@@ -1556,250 +1552,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
-  String _labelForTextAlign(TextAlign align) {
-    return switch (align) {
-      TextAlign.left || TextAlign.start => '왼쪽',
-      TextAlign.center => '가운데',
-      TextAlign.right || TextAlign.end => '오른쪽',
-      TextAlign.justify => '양쪽',
-    };
-  }
-
-  void _showTextSettingsPopover() {
-    if (!mounted) {
-      return;
-    }
-    _settingsPopover.hide();
-    final selectedStroke = _resolveSelectedTextStroke();
-    final selectedData = selectedStroke?.stroke.textBoxData;
-    var draftFontSize = (selectedData?.fontSize ?? _currentTextFontSize).clamp(
-      10.0,
-      64.0,
-    );
-    var draftColor = selectedData?.argbColor ?? _currentTextColor.value;
-    var draftAlign = selectedData?.textAlign ?? _currentTextAlign;
-
-    const fixedPalette = <int>[
-      0xFFE53935, // red
-      0xFFFF9800, // orange
-      0xFFFFEB3B, // yellow
-      0xFF43A047, // green
-      0xFF1E88E5, // blue
-    ];
-
-    List<int> buildPalette() {
-      final recent = <int>[];
-      for (final argb in _recentArgb) {
-        if (fixedPalette.contains(argb)) {
-          continue;
-        }
-        recent.add(argb);
-        if (recent.length == 3) {
-          break;
-        }
-      }
-      const fallback = <int>[0xFF000000, 0xFFFFFFFF];
-      for (final argb in fallback) {
-        if (recent.length == 3) {
-          break;
-        }
-        if (!recent.contains(argb) && !fixedPalette.contains(argb)) {
-          recent.add(argb);
-        }
-      }
-      return <int>[...fixedPalette, ...recent.take(3)];
-    }
-
-    _showPopover(
-      link: _textLink,
-      child: StatefulBuilder(
-        builder: (context, setPopupState) {
-          final palette = buildPalette();
-          return ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 340, maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(child: Text('텍스트 설정')),
-                      SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: IconButton(
-                          onPressed: _settingsPopover.hide,
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.close, size: 18),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const SizedBox(width: 72, child: Text('크기')),
-                      Expanded(
-                        child: Slider(
-                          value: draftFontSize,
-                          min: 10.0,
-                          max: 64.0,
-                          divisions: 54,
-                          label: draftFontSize.round().toString(),
-                          onChanged: (value) {
-                            setPopupState(() {
-                              draftFontSize = value;
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(
-                        width: 48,
-                        child: Text('${draftFontSize.round()}'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const SizedBox(width: 72, child: Text('색상')),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final argb in palette)
-                              _colorCircle(
-                                argb,
-                                selected: draftColor == argb,
-                                onTap: () {
-                                  setPopupState(() {
-                                    draftColor = argb;
-                                  });
-                                },
-                              ),
-                            IconButton(
-                              tooltip: '색상 선택',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () async {
-                                final originalColor = draftColor;
-                                _settingsPopover.hide();
-                                await Future<void>.delayed(
-                                  const Duration(milliseconds: 16),
-                                );
-                                if (!mounted) {
-                                  return;
-                                }
-                                var liveColor = originalColor;
-                                final kept = await showDrawingColorPickerDialog(
-                                  Navigator.of(
-                                    this.context,
-                                    rootNavigator: true,
-                                  ).context,
-                                  initialColor: Color(originalColor),
-                                  recentColors: _recentArgb
-                                      .map((argb) => Color(argb))
-                                      .toList(growable: false),
-                                  onLiveChanged: (color) {
-                                    liveColor = color
-                                        .withAlpha(0xFF)
-                                        .toARGB32();
-                                  },
-                                  onCommitChanged: (color) {
-                                    liveColor = color
-                                        .withAlpha(0xFF)
-                                        .toARGB32();
-                                  },
-                                );
-                                if (mounted) {
-                                  setPopupState(() {
-                                    draftColor = kept
-                                        ? liveColor
-                                        : originalColor;
-                                  });
-                                }
-                                if (mounted) {
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    if (mounted) {
-                                      _showTextSettingsPopover();
-                                    }
-                                  });
-                                }
-                              },
-                              icon: const Icon(Icons.colorize),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(width: 72, child: Text('정렬')),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final align in const <TextAlign>[
-                              TextAlign.left,
-                              TextAlign.center,
-                              TextAlign.right,
-                            ])
-                              ChoiceChip(
-                                label: Text(_labelForTextAlign(align)),
-                                selected: draftAlign == align,
-                                onSelected: (_) {
-                                  setPopupState(() {
-                                    draftAlign = align;
-                                  });
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _settingsPopover.hide,
-                          child: const Text('취소'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            _applyTextStyle(
-                              fontSize: draftFontSize,
-                              argbColor: draftColor,
-                              textAlign: draftAlign,
-                            );
-                            _settingsPopover.hide();
-                          },
-                          child: const Text('적용'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildTextBoxesOverlay({
     required Size pageSize,
     required int pageNumber,
@@ -1962,7 +1714,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('도형 설정')),
+                      const Expanded(child: Text('?�형 ?�정')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -2036,14 +1788,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('스냅'),
+                      const Text('?�냅'),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('테두리 색')),
+                      const SizedBox(width: 72, child: Text('?�두�???)),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -2065,7 +1817,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '색상 선택',
+                              tooltip: '?�상 ?�택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -2148,7 +1900,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text('채우기 색'),
+                            child: const Text('채우�???),
                           ),
                         ),
                       ),
@@ -2178,7 +1930,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: '채우기 색상 선택',
+                                  tooltip: '채우�??�상 ?�택',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -2253,7 +2005,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '선 굵기',
+                    label: '??굵기',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -2270,7 +2022,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: '투명도',
+                    label: '?�명??,
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -2309,9 +2061,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => '사각형',
-      ShapeType.circle => '원형',
-      ShapeType.triangle => '삼각형',
+      ShapeType.rectangle => '?�각??,
+      ShapeType.circle => '?�형',
+      ShapeType.triangle => '?�각??,
       ShapeType.hShape => 'H 모형',
     };
   }
@@ -2338,7 +2090,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('적용'),
+                  child: const Text('?�용'),
                 ),
               ),
             ],
