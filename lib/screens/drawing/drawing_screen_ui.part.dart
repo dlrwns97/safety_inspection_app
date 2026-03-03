@@ -1627,7 +1627,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('\uB3C4\uD615 \uC124\uC815')),
+                      Expanded(
+                        child: Text(
+                          '\uB3C4\uD615 \uC124\uC815',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1687,7 +1694,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('\uB3C4\uD615 \uC124\uC815'),
+                      const Text('\uBE44\uC728'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1701,7 +1708,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('\uAC01\uB3C4 \uC2A4\uB0C5'),
+                      const Text('\uC2A4\uB0C5'),
                     ],
                   ),
                   const SizedBox(height: 4),
