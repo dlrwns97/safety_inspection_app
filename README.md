@@ -1,16 +1,133 @@
-# safety_inspection_app
+# 현장 안전 점검 (Safety Inspection App)
 
-A new Flutter project.
+건설 현장의 안전 점검을 위한 Flutter 기반 모바일 애플리케이션입니다. PDF 도면 위에 결함과 장비를 마킹하고, 다양한 드로잉 도구로 점검 내용을 기록할 수 있습니다.
 
-## Getting Started
+## 주요 기능
 
-This project is a starting point for a Flutter application.
+### 현장 관리
+- 점검 현장 생성 및 관리
+- PDF 도면 가져오기 또는 빈 캔버스 생성
+- 구조 유형 및 점검 유형 설정
+- 현장 휴지통 (소프트 삭제 및 복구)
+- 고아 사진 파일 스캔 및 정리
 
-A few resources to get you started if this is your first Flutter project:
+### 결함 마킹
+- **균열**: 일반, 수직, 수평, 대각선, 망상 균열
+- **누수**
+- **콘크리트 결함**: 박리, 박락, 철근 노출
+- **철골 결함**
+- **기타 결함**
+- 구조 부재 지정: 기둥, 벽체, 슬래브, 보, 조적벽
+- 결함별 사진 첨부 및 상세 정보 입력 (폭, 길이, 원인 등)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 장비 마커
+- 8종 장비 카테고리 지원
+- 슈미트 해머, 탄산화, 코어 채취, 철근 간격 등 전문 점검 데이터 입력
+- 침하량, 구조 기울기, 처짐 측정 기록
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 드로잉 도구
+- **펜**: 일반 펜, 만년필, 캘리그래피 펜, 연필
+- **형광펜**: 형광펜, 치즐 형광펜, 마커, 치즐 마커
+- **지우개**: 획 지우개, 영역 지우개 (반경 조절 가능)
+- **도형**: 사각형, 원, 삼각형, H형
+- HSV 색상 선택기 및 투명도 조절
+- 직선 모드 (0°, 45°, 90°, 135°, 180° 스냅)
+- 최대 300단계 실행 취소/다시 실행
+
+### PDF 지원
+- 다중 페이지 PDF 렌더링
+- 핀치 줌 및 팬 제스처
+- 페이지별 마킹 및 드로잉 관리
+
+## 기술 스택
+
+| 항목 | 내용 |
+|------|------|
+| 프레임워크 | Flutter (Dart SDK ^3.10.4) |
+| PDF 렌더링 | pdfx 2.6.0 |
+| 드로잉 엔진 | perfect_freehand 2.3.0 |
+| 파일 선택 | file_picker 10.3.8 |
+| 사진 촬영 | image_picker 1.1.2 |
+| 에셋 선택 | wechat_assets_picker 9.4.0 |
+| 로컬 저장 | shared_preferences 2.5.2 |
+| 경로 관리 | path_provider 2.1.3 |
+
+## 프로젝트 구조
+
+```
+lib/
+├── main.dart                  # 앱 진입점
+├── constants/
+│   └── strings_ko.dart        # 한국어 문자열 상수
+├── models/
+│   ├── defect.dart            # 결함 모델
+│   ├── defect_details.dart    # 결함 상세 정보
+│   ├── site.dart              # 현장 모델
+│   ├── site_storage.dart      # 현장 데이터 저장
+│   ├── equipment_marker.dart  # 장비 마커 모델
+│   ├── drawing_enums.dart     # 드로잉 관련 열거형
+│   ├── rebar_spacing_group_details.dart
+│   └── drawing/               # 드로잉 스트로크 모델
+├── screens/
+│   ├── home/                  # 홈 화면 (현장 목록, 휴지통)
+│   └── drawing/               # 드로잉 화면
+│       ├── canvas/            # 캔버스 위젯 및 페인터
+│       ├── dialogs/           # 결함/장비 입력 다이얼로그
+│       ├── engines/           # 드로잉 엔진 (펜, 형광펜, 지우개, 도형)
+│       ├── flows/             # 마커 배치 및 탭 처리 플로우
+│       ├── history/           # 실행 취소/다시 실행 관리
+│       ├── persistence/       # 드로잉 데이터 저장
+│       └── widgets/           # UI 위젯 (툴바, 사이드 패널 등)
+├── utils/
+│   └── photo_path_ordering.dart
+└── widgets/                   # 공통 위젯
+```
+
+## 시작하기
+
+### 사전 요구 사항
+- Flutter SDK ^3.10.4
+- Dart SDK ^3.10.4
+
+### 설치 및 실행
+
+```bash
+# 의존성 설치
+flutter pub get
+
+# 앱 실행
+flutter run
+
+# 빌드 (Android)
+flutter build apk
+
+# 빌드 (iOS)
+flutter build ios
+```
+
+## 지원 플랫폼
+
+- Android
+- iOS
+- Web
+- Linux
+- macOS
+- Windows
+
+## 점검 유형
+
+| 점검 유형 | 설명 |
+|-----------|------|
+| 정기안전점검 | 정기적으로 수행하는 안전 점검 |
+| 정밀안전점검 | 정밀하게 수행하는 안전 점검 |
+| 정밀안전진단 | 정밀하게 수행하는 안전 진단 |
+| 내진성능평가 | 지진에 대한 내진 성능 평가 |
+| 구조안전진단 | 구조물의 안전성 진단 |
+
+## 구조 유형
+
+- 철근콘크리트구조
+- 철골철근콘크리트구조
+- 철골구조
+- 조적조
+- 조적조+철골조
