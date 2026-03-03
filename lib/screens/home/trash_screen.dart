@@ -6,24 +6,28 @@ import 'package:safety_inspection_app/screens/home/home_storage.dart';
 import 'package:safety_inspection_app/screens/home/widgets/site_list_tile.dart';
 
 class TrashScreen extends StatefulWidget {
-  const TrashScreen({super.key});
+  const TrashScreen({super.key, this.homeStorage});
+
+  final HomeStorage? homeStorage;
 
   @override
   State<TrashScreen> createState() => _TrashScreenState();
 }
 
 class _TrashScreenState extends State<TrashScreen> {
+  late final HomeStorage _homeStorage;
   List<Site> _sites = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _homeStorage = widget.homeStorage ?? HomeStorage();
     _loadSites();
   }
 
   Future<void> _loadSites() async {
-    final sites = await HomeStorage.loadSites();
+    final sites = await _homeStorage.loadSites();
     if (!mounted) {
       return;
     }
@@ -33,11 +37,10 @@ class _TrashScreenState extends State<TrashScreen> {
     });
   }
 
-  List<Site> get _trashSites =>
-      _sites.where((site) => site.isDeleted).toList();
+  List<Site> get _trashSites => _sites.where((site) => site.isDeleted).toList();
 
   Future<void> _restoreSite(Site site) async {
-    final updatedSites = await HomeStorage.restoreSite(_sites, site);
+    final updatedSites = await _homeStorage.restoreSite(_sites, site);
     if (!mounted) {
       return;
     }
@@ -47,7 +50,7 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   Future<void> _permanentlyDeleteSite(Site site) async {
-    final updatedSites = await HomeStorage.permanentlyDeleteSite(_sites, site);
+    final updatedSites = await _homeStorage.permanentlyDeleteSite(_sites, site);
     if (!mounted) {
       return;
     }
@@ -71,7 +74,7 @@ class _TrashScreenState extends State<TrashScreen> {
       return;
     }
 
-    final updatedSites = await HomeStorage.emptyTrash(_sites);
+    final updatedSites = await _homeStorage.emptyTrash(_sites);
     if (!mounted) {
       return;
     }
@@ -97,60 +100,60 @@ class _TrashScreenState extends State<TrashScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : trashSites.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.delete_outline,
-                          size: 72,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          StringsKo.trashEmptyTitle,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          StringsKo.trashEmptySubtitle,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 72,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: trashSites.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final site = trashSites[index];
-                    return SiteListTile(
-                      site: site,
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => _restoreSite(site),
-                            child: const Text(StringsKo.restore),
-                          ),
-                          FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.error,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onError,
-                            ),
-                            onPressed: () => _confirmPermanentDelete(site),
-                            child: const Text(StringsKo.permanentDelete),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                    const SizedBox(height: 16),
+                    Text(
+                      StringsKo.trashEmptyTitle,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      StringsKo.trashEmptySubtitle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
+              ),
+            )
+          : ListView.separated(
+              itemCount: trashSites.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final site = trashSites[index];
+                return SiteListTile(
+                  site: site,
+                  trailing: Wrap(
+                    spacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => _restoreSite(site),
+                        child: const Text(StringsKo.restore),
+                      ),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onError,
+                        ),
+                        onPressed: () => _confirmPermanentDelete(site),
+                        child: const Text(StringsKo.permanentDelete),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }

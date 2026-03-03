@@ -48,14 +48,15 @@ void main() {
 
   group('H-01/H-02/H-03 smoke', () {
     test('H-01 creates and reloads site metadata', () async {
+      final homeStorage = HomeStorage();
       final site = _site(
         id: 's1',
         name: '현장 A',
         drawingType: DrawingType.blank,
       );
-      await HomeStorage.saveSites(<Site>[site]);
+      await homeStorage.saveSites(<Site>[site]);
 
-      final loaded = await HomeStorage.loadSites();
+      final loaded = await homeStorage.loadSites();
 
       expect(loaded, hasLength(1));
       expect(loaded.first.id, 's1');
@@ -65,6 +66,7 @@ void main() {
     });
 
     test('H-02 trash -> restore -> permanent delete flow', () async {
+      final homeStorage = HomeStorage();
       final target = _site(
         id: 's1',
         name: '현장 A',
@@ -74,7 +76,7 @@ void main() {
       final initial = <Site>[target, keep];
       final deletedAt = DateTime(2026, 3, 3, 10, 0);
 
-      final trashed = await HomeStorage.moveSiteToTrash(
+      final trashed = await homeStorage.moveSiteToTrash(
         initial,
         target,
         deletedAt,
@@ -83,19 +85,20 @@ void main() {
       expect(trashedTarget.isDeleted, isTrue);
       expect(trashedTarget.deletedAt, deletedAt);
 
-      final restored = await HomeStorage.restoreSite(trashed, target);
+      final restored = await homeStorage.restoreSite(trashed, target);
       final restoredTarget = restored.firstWhere(
         (site) => site.id == target.id,
       );
       expect(restoredTarget.isDeleted, isFalse);
       expect(restoredTarget.deletedAt, isNull);
 
-      final deleted = await HomeStorage.permanentlyDeleteSite(restored, target);
+      final deleted = await homeStorage.permanentlyDeleteSite(restored, target);
       expect(deleted.map((site) => site.id), isNot(contains(target.id)));
       expect(deleted.map((site) => site.id), contains(keep.id));
     });
 
     test('H-03 restores persisted trash state after reload', () async {
+      final homeStorage = HomeStorage();
       final target = _site(
         id: 's1',
         name: '현장 A',
@@ -103,9 +106,9 @@ void main() {
         isDeleted: true,
         deletedAt: DateTime(2026, 3, 3, 11, 0),
       );
-      await HomeStorage.saveSites(<Site>[target]);
+      await homeStorage.saveSites(<Site>[target]);
 
-      final reloaded = await HomeStorage.loadSites();
+      final reloaded = await homeStorage.loadSites();
       expect(reloaded, hasLength(1));
       expect(reloaded.first.isDeleted, isTrue);
       expect(reloaded.first.deletedAt, isNotNull);

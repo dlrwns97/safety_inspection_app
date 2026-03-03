@@ -21,24 +21,28 @@ import 'package:safety_inspection_app/screens/home/widgets/site_list_tile.dart';
 import 'package:safety_inspection_app/utils/photo_path_ordering.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.homeStorage});
+
+  final HomeStorage? homeStorage;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late final HomeStorage _homeStorage;
   List<Site> _sites = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _homeStorage = widget.homeStorage ?? HomeStorage();
     _loadSites();
   }
 
   Future<void> _loadSites() async {
-    final sites = await HomeStorage.loadSites();
+    final sites = await _homeStorage.loadSites();
     setState(() {
       _sites = sites;
       _isLoading = false;
@@ -66,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     final updatedSites = [..._sites, site];
-    await HomeStorage.saveSites(updatedSites);
+    await _homeStorage.saveSites(updatedSites);
     if (!mounted) {
       return;
     }
@@ -83,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _updateSite(Site site) async {
-    final updatedSites = await HomeStorage.updateSite(_sites, site);
+    final updatedSites = await _homeStorage.updateSite(_sites, site);
     if (!mounted) {
       return;
     }
@@ -93,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _moveSiteToTrash(Site site) async {
-    final updatedSites = await HomeStorage.moveSiteToTrash(
+    final updatedSites = await _homeStorage.moveSiteToTrash(
       _sites,
       site,
       DateTime.now(),
@@ -116,9 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openTrash() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const TrashScreen()));
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TrashScreen(homeStorage: _homeStorage),
+      ),
+    );
     if (!mounted) {
       return;
     }
@@ -137,8 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
           future: scanFuture,
           builder: (context, snapshot) {
             final result = snapshot.data ?? OrphanScanResult.empty();
-            final isLoading =
-                snapshot.connectionState != ConnectionState.done;
+            final isLoading = snapshot.connectionState != ConnectionState.done;
             return AlertDialog(
               title: const Text('사진 정리'),
               content: isLoading
@@ -251,80 +256,77 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(StringsKo.homeTitle),
-        actions: [
-          HomeOverflowMenu(onTrashSelected: _openTrash),
-        ],
+        actions: [HomeOverflowMenu(onTrashSelected: _openTrash)],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : activeSites.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.assignment_outlined,
-                          size: 72,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          StringsKo.noSitesTitle,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          StringsKo.noSitesSubtitle,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.assignment_outlined,
+                      size: 72,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: activeSites.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final site = activeSites[index];
-                    return SiteListTile(
-                      site: site,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          PopupMenuButton<_SiteMenuAction>(
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (action) {
-                              if (action ==
-                                  _SiteMenuAction.scanOrphanPhotos) {
-                                _showOrphanPhotoScanDialog(site);
-                              }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(
-                                value: _SiteMenuAction.scanOrphanPhotos,
-                                child: Text('사진 정리'),
-                              ),
-                            ],
+                    const SizedBox(height: 16),
+                    Text(
+                      StringsKo.noSitesTitle,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      StringsKo.noSitesSubtitle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.separated(
+              itemCount: activeSites.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final site = activeSites[index];
+                return SiteListTile(
+                  site: site,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PopupMenuButton<_SiteMenuAction>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (action) {
+                          if (action == _SiteMenuAction.scanOrphanPhotos) {
+                            _showOrphanPhotoScanDialog(site);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: _SiteMenuAction.scanOrphanPhotos,
+                            child: Text('사진 정리'),
                           ),
-                          const Icon(Icons.chevron_right),
                         ],
                       ),
-                      onTap: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => DrawingScreen(
-                              site: site,
-                              onSiteUpdated: _updateSite,
-                            ),
-                          ),
-                        );
-                      },
-                      onLongPress: () => _confirmDeleteSite(site),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => DrawingScreen(
+                          site: site,
+                          onSiteUpdated: _updateSite,
+                        ),
+                      ),
                     );
                   },
-                ),
+                  onLongPress: () => _confirmDeleteSite(site),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createSiteFlow,
         icon: const Icon(Icons.add),
@@ -500,9 +502,9 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
   Future<void> _confirmRestore(FileSystemEntity entity) async {
     if (!_isAllowedImagePath(entity.path)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('복구할 수 없는 파일입니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('복구할 수 없는 파일입니다.')));
       }
       return;
     }
@@ -615,9 +617,9 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
     final snackBarMessage = skippedCount > 0
         ? '$deletedCount개 정리 완료, $skippedCount개는 안전상 건너뜀'
         : '$deletedCount개 정리 완료';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(snackBarMessage)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(snackBarMessage)));
   }
 
   Future<Site?> _restoreOrphanFile({
@@ -667,7 +669,7 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('미사용 파일 ${totalCount}개'),
+            Text('미사용 파일 $totalCount개'),
             const SizedBox(height: 4),
             const Text('현재 현장 데이터에서 참조되지 않는 사진입니다.'),
             const SizedBox(height: 8),
@@ -685,7 +687,8 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
                   ? const Center(child: Text('표시할 파일이 없습니다.'))
                   : ListView.separated(
                       itemCount: displayedFiles.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final entity = displayedFiles[index];
                         final defectId = extractDefectIdFromPath(
@@ -710,10 +713,9 @@ class _OrphanScanResultListState extends State<_OrphanScanResultList> {
                               ),
                               const SizedBox(width: 8),
                               TextButton(
-                                onPressed:
-                                    _isCleaning
-                                        ? null
-                                        : () => _confirmRestore(entity),
+                                onPressed: _isCleaning
+                                    ? null
+                                    : () => _confirmRestore(entity),
                                 child: const Text('복구'),
                               ),
                             ],
