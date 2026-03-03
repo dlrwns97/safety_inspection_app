@@ -2522,10 +2522,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _activeTool = DrawingTool.pen;
       _activePresetIndex = null;
-      _selectedTextStrokeId = null;
-      _activeTextEditOp = _TextEditOperation.none;
-      _textInteractionLastNorm = null;
-      _activeTextDraftBoundsNorm = null;
       _isFreeDrawConsumingOneFinger = false;
       _pendingDraw = false;
       _pendingDrawDownViewportLocal = null;

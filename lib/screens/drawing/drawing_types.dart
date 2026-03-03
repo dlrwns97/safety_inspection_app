@@ -5,6 +5,5 @@ enum DrawingTool {
   strokeEraser,
   areaEraser,
   shape,
-  textBox,
   // lasso,
 }

@@ -187,14 +187,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.edit,
                     selected: isPenSelected,
-                    tooltip: '??,
+                    tooltip: 'Pen',
                     onTap: () => _handleDrawingToolChanged(DrawingTool.pen),
                   ),
                   const SizedBox(width: 8),
                   panelButton(
                     icon: Icons.remove,
                     selected: isStrokeEraserSelected,
-                    tooltip: '??吏?곌컻',
+                    tooltip: 'Stroke eraser',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.strokeEraser),
                   ),
@@ -202,7 +202,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.circle_outlined,
                     selected: isAreaEraserSelected,
-                    tooltip: '?곸뿭 吏?곌컻',
+                    tooltip: 'Area eraser',
                     onTap: () =>
                         _handleDrawingToolChanged(DrawingTool.areaEraser),
                   ),
@@ -210,7 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: '吏곸꽑 蹂댁젙',
+                    tooltip: 'Shape settings',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -234,9 +234,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       children: [
                         Expanded(
                           child: Tooltip(
-                            message: '?곸뿭 吏?곌컻 諛섍꼍',
+                            message: 'Area eraser requires stroke data.',
                             child: const Text(
-                              '?곸뿭 吏?곌컻 諛섍꼍',
+                              'Area eraser requires stroke data.',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -362,7 +362,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         ? _clearCurrentPageAllStrokes
                         : null,
                     icon: const Icon(Icons.delete_sweep),
-                    tooltip: '?꾩옱 ?섏씠吏 ?꾩껜 吏?곌린',
+                    tooltip: 'Pen settings',
                   ),
                   IconButton(
                     onPressed: hasCurrentPageHighlighterStrokes
@@ -374,7 +374,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.auto_fix_high),
-                    tooltip: '?꾩옱 ?섏씠吏 ?뺢킅?쒕쭔 吏?곌린',
+                    tooltip: 'Highlighter settings',
                   ),
                   IconButton(
                     onPressed: hasCurrentPagePenStrokes
@@ -386,12 +386,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       height: 40,
                     ),
                     icon: const Icon(Icons.edit_off),
-                    tooltip: '?꾩옱 ?섏씠吏 ?쒕쭔 吏?곌린',
+                    tooltip: 'Marker settings',
                   ),
                   IconButton(
                     onPressed: () => _setToolPanelOpen(false),
                     icon: const Icon(Icons.close),
-                    tooltip: '?リ린',
+                    tooltip: '???뗢뵛',
                   ),
                 ],
               ),
@@ -444,7 +444,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 Row(
                   children: [
                     const SizedBox(width: 8),
-                    const Text('?щ챸??),
+                    const Text('Opacity'),
                     Expanded(
                       child: Slider(
                         value: style.opacity.clamp(0.05, 1.0),
@@ -502,7 +502,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             _showPenSettingsPopover();
                           },
                     icon: const Icon(Icons.tune),
-                    tooltip: '?몃? ?ㅼ젙',
+                    tooltip: '?筌? ???깆젧',
                   ),
                 ],
               ),
@@ -922,7 +922,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Text('?됱“'),
+                          const Text('Hue'),
                           Expanded(
                             child: Slider(
                               min: 0,
@@ -938,7 +938,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                       ),
                       Row(
                         children: [
-                          const Text('?щ챸??),
+                          const Text('Opacity'),
                           Expanded(
                             child: Slider(
                               min: 0.05,
@@ -965,7 +965,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('痍⑥냼'),
+                            child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -975,7 +975,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               _applyPresetWithRecentColor(buildLiveStyle());
                               Navigator.pop(ctx, true);
                             },
-                            child: const Text('?곸슜'),
+                            child: const Text('Apply'),
                           ),
                         ),
                       ],
@@ -1537,7 +1537,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ),
     );
   }
-
   void _showShapeSettingsPopover() {
     if (!mounted) {
       return;
@@ -1628,7 +1627,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text('?꾪삎 ?ㅼ젙')),
+                      const Expanded(child: Text('?熬곥굦援????깆젧')),
                       SizedBox(
                         width: 32,
                         height: 32,
@@ -1688,7 +1687,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('鍮꾩쑉 怨좎젙'),
+                      const Text('Shape settings'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1702,14 +1701,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('?ㅻ깄'),
+                      const Text('???고돩'),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('?뚮몢由???)),
+                      const SizedBox(width: 72, child: Text('Line color')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1731,7 +1730,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: '?됱긽 ?좏깮',
+                              tooltip: 'Pick custom stroke color',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1814,7 +1813,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text('梨꾩슦湲???),
+                            child: const Text('Fill color'),
                           ),
                         ),
                       ),
@@ -1844,7 +1843,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: '梨꾩슦湲??됱긽 ?좏깮',
+                                  tooltip: 'Pick custom fill color',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -1919,7 +1918,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '??援듦린',
+                    label: 'Width',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -1936,7 +1935,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: '?щ챸??,
+                    label: 'Opacity',
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -1975,10 +1974,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => '?ш컖??,
-      ShapeType.circle => '?먰삎',
-      ShapeType.triangle => '?쇨컖??,
-      ShapeType.hShape => 'H 紐⑦삎',
+      ShapeType.rectangle => 'Rectangle',
+      ShapeType.circle => 'Circle',
+      ShapeType.triangle => 'Triangle',
+      ShapeType.hShape => 'H Shape',
     };
   }
 
@@ -1997,14 +1996,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('痍⑥냼'),
+                  child: const Text('Cancel'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('?곸슜'),
+                  child: const Text('Apply'),
                 ),
               ),
             ],
@@ -2023,9 +2022,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     Key? tapRegionKey,
   }) {
     final bool allowTapInFreeDraw =
-        _isFreeDrawMode &&
-        (_activeTool == DrawingTool.textBox ||
-            _activeTool == DrawingTool.shape);
+        _isFreeDrawMode && (_activeTool == DrawingTool.shape);
     final GestureTapUpCallback? tapHandler =
         (_isMoveMode || (_isFreeDrawMode && !allowTapInFreeDraw))
         ? null

@@ -1,8 +1,6 @@
-﻿import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
-import 'package:safety_inspection_app/models/drawing/text_box_data.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
 void main() {
@@ -29,7 +27,6 @@ void main() {
       expect(stroke.toolType, DrawingTool.highlighter);
       expect(stroke.style.kind, StrokeToolKind.highlighter);
       expect(stroke.pageNumber, 2);
-      expect(stroke.textBoxData, isNull);
     });
 
     test('unknown toolType string falls back to style.kind mapping', () {
@@ -81,60 +78,5 @@ void main() {
       expect(stroke.erasedMaskAsBool(), const [true, false, false, false]);
     });
 
-    test('textBoxData with partial fields restores fallback values', () {
-      final json = <String, dynamic>{
-        'id': 'textbox-1',
-        'pageNumber': 1,
-        'toolType': 'textBox',
-        'style': <String, dynamic>{
-          'kind': 'textBox',
-          'variant': 'pen',
-          'widthPx': 1,
-          'argbColor': 0xFF000000,
-          'opacity': 1.0,
-        },
-        'pointsNorm': const [
-          [0.2, 0.2],
-          [0.5, 0.4],
-        ],
-        'textBoxData': <String, dynamic>{
-          'text': 'hello',
-        },
-      };
-
-      final stroke = DrawingStroke.fromJson(json);
-      final data = stroke.textBoxData;
-
-      expect(stroke.toolType, DrawingTool.textBox);
-      expect(data, isNotNull);
-      expect(data!.text, 'hello');
-      expect(data.positionNorm, const Offset(0.0, 0.0));
-      expect(data.sizeNorm, const Size(0.2, 0.08));
-      expect(data.fontSize, 14.0);
-      expect(data.argbColor, 0xFF000000);
-      expect(data.textAlign, TextAlign.left);
-    });
-  });
-
-  group('TextBoxData JSON compatibility', () {
-    test('string numerics and unknown align fallback', () {
-      final json = <String, dynamic>{
-        'text': 123,
-        'positionNorm': const ['0.25', '0.75'],
-        'sizeNorm': const ['0.4', '0.1'],
-        'fontSize': '18',
-        'argbColor': '4278190080',
-        'textAlign': 'not-valid-align',
-      };
-
-      final data = TextBoxData.fromJson(json);
-
-      expect(data.text, '123');
-      expect(data.positionNorm, const Offset(0.25, 0.75));
-      expect(data.sizeNorm, const Size(0.4, 0.1));
-      expect(data.fontSize, 18.0);
-      expect(data.argbColor, 4278190080);
-      expect(data.textAlign, TextAlign.left);
-    });
   });
 }
