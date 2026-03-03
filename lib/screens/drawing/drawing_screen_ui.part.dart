@@ -969,7 +969,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     children: [
                       Expanded(
                         child: Text(
-                          '\uB3C4\uD615 \uC124\uC815',
+                          '도형 설정',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -1033,7 +1033,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('\uBE44\uC728'),
+                      const Text('비율'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1047,7 +1047,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('\uC2A4\uB0C5'),
+                      const Text('스냅'),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -1056,7 +1056,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     children: [
                       const SizedBox(
                         width: 72,
-                        child: Text('\uC120 \uC0C9\uC0C1'),
+                        child: Text('선 색상'),
                       ),
                       Expanded(
                         child: Wrap(
@@ -1080,7 +1080,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               ),
                             IconButton(
                               tooltip:
-                                  '\uC120 \uC0C9\uC0C1 \uC9C1\uC811 \uC120\uD0DD',
+                                  '선 색상 직접 선택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1164,7 +1164,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
                             child: const Text(
-                              '\uCC44\uC6B0\uAE30 \uC0C9\uC0C1',
+                              '채우기 색상',
                             ),
                           ),
                         ),
@@ -1196,7 +1196,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                   ),
                                 IconButton(
                                   tooltip:
-                                      '\uCC44\uC6B0\uAE30 \uC0C9\uC0C1 \uC9C1\uC811 \uC120\uD0DD',
+                                      '채우기 색상 직접 선택',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -1271,7 +1271,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: '\uAD75\uAE30',
+                    label: '굵기',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -1288,7 +1288,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: '\uD22C\uBA85\uB3C4',
+                    label: '투명도',
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -1327,10 +1327,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => '\uC0AC\uAC01\uD615',
-      ShapeType.circle => '\uC6D0\uD615',
-      ShapeType.triangle => '\uC0BC\uAC01\uD615',
-      ShapeType.hShape => 'H \uBAA8\uD615',
+      ShapeType.rectangle => '사각형',
+      ShapeType.circle => '원형',
+      ShapeType.triangle => '삼각형',
+      ShapeType.hShape => 'H 모형',
     };
   }
 
@@ -1349,14 +1349,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('\uCDE8\uC18C'),
+                  child: const Text('취소'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('\uC801\uC6A9'),
+                  child: const Text('적용'),
                 ),
               ),
             ],
@@ -1451,3 +1451,4 @@ class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
     return true;
   }
 }
+

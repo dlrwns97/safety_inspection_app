@@ -1,74 +1,80 @@
-﻿# DDD 리팩토링 로드맵 v3 (업데이트: 2026-03-03, Phase 1 완료)
+# DDD 리팩토링 로드맵 v3 (업데이트: 2026-03-03, Phase 1 완료)
 
-## 0. 臾몄꽌 紐⑹쟻怨??ъ슜踰???臾몄꽌???꾩옱 `safety_inspection_app` 肄붾뱶踰좎씠?ㅻ? 湲곗??쇰줈, 湲곕뒫 ?뚭? ?놁씠 DDD 援ъ“濡??④퀎?곸쑝濡??닿??섍린 ?꾪븳 ?ㅽ뻾 臾몄꽌??
+## 0. 문서 목적과 사용법
+이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
 
-?ъ슜 ?먯튃:
-1. ?붿빟???꾨땲???묒뾽 吏?쒖꽌濡??ъ슜?쒕떎.
-2. 媛?Step 醫낅즺 ???먮룞 寃利?+ ?섎룞 寃利앹쓣 諛섎뱶???섑뻾?쒕떎.
-3. ?ㅽ뙣 ??諛붾줈 ?ㅼ쓬 Step?쇰줈 ?섏뼱媛吏 ?딄퀬, ?대떦 Step?먯꽌 濡ㅻ갚 ?먮뒗 ?섏젙 ???ш?利앺븳??
-4. Phase 醫낅즺 寃利앸퓧 ?꾨땲??Step 醫낅즺 寃利앹쓣 媛뺤젣?쒕떎.
+사용 원칙:
+1. 요약이 아니라 작업 지시서로 사용한다.
+2. 각 Step 종료 시 자동 검증 + 수동 검증을 반드시 수행한다.
+3. 실패 시 바로 다음 Step으로 넘어가지 않고, 해당 Step에서 롤백 또는 수정 후 재검증한다.
+4. Phase 종료 검증뿐 아니라 Step 종료 검증을 강제한다.
 
 ---
 
 ## 0-1. 진행 현황 (v3)
 - 완료 Phase
-  - Phase 0 (Step 0-1, Step 0-2, Step 0-3)
-  - Phase 1 (Step 1-1, Step 1-2, Step 1-3)
+  - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
+  - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
 - 최근 자동 검증 결과 (Phase 1 마감 기준)
-  - flutter analyze lib/screens/home/home_storage.dart lib/screens/home/home_screen.dart lib/screens/home/trash_screen.dart test/smoke/scenario_id_smoke_test.dart: 통과
-  - flutter test test/smoke/scenario_id_smoke_test.dart: 통과
+  - `flutter analyze lib/screens/home/home_storage.dart lib/screens/home/home_screen.dart lib/screens/home/trash_screen.dart test/smoke/scenario_id_smoke_test.dart`: 통과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart`: 통과
 - 최근 수동 검증 결과
-  - H-01, H-02, H-03: all pass
-  - H-01, D-08, P-01: all pass
+  - `H-01`, `H-02`, `H-03`: all pass
+  - `H-01`, `D-08`, `P-01`: all pass
 - 다음 시작점
-  - Phase 2 - Step 2-1: Site UseCase 도입
+  - `Phase 2 - Step 2-1`: Site UseCase 도입
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
 - 수정 파일
-  - lib/domain/site/repositories/site_repository.dart
-  - lib/domain/drawing/repositories/drawing_repository.dart
-  - lib/domain/inspection/repositories/photo_repository.dart
+  - `lib/domain/site/repositories/site_repository.dart`
+  - `lib/domain/drawing/repositories/drawing_repository.dart`
+  - `lib/domain/inspection/repositories/photo_repository.dart`
 - 핵심 변경
-  - 도메인 경계 인터페이스를 도입해 저장소 의존 방향을 domain <- infrastructure로 고정.
+  - 도메인 경계 인터페이스를 도입해 저장소 의존 방향을 `domain <- infrastructure`로 고정.
 - 검증
   - 정적 분석/컴파일 기준 정상.
 
 ### Step 1-2. 인프라 어댑터 구현
 - 수정 파일
-  - lib/infrastructure/persistence/shared_prefs/site_prefs_repository.dart
-  - lib/infrastructure/persistence/file_store/drawing_file_repository.dart
-  - lib/infrastructure/photo/defect_photo_repository.dart
+  - `lib/infrastructure/persistence/shared_prefs/site_prefs_repository.dart`
+  - `lib/infrastructure/persistence/file_store/drawing_file_repository.dart`
+  - `lib/infrastructure/photo/defect_photo_repository.dart`
 - 핵심 변경
   - 기존 저장소 구현을 인터페이스 어댑터로 감싸 동작 변경 없이 인프라 계층으로 분리.
 - 검증
-  - 자동: flutter test test/smoke/scenario_id_smoke_test.dart 통과
-  - 수동: H-01, D-08, P-01 all pass
+  - 자동: `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - 수동: `H-01`, `D-08`, `P-01` all pass
 
 ### Step 1-3. Home/Trash 정적 저장 호출 경계화
 - 수정 파일
-  - lib/screens/home/home_storage.dart
-  - lib/screens/home/home_screen.dart
-  - lib/screens/home/trash_screen.dart
-  - test/smoke/scenario_id_smoke_test.dart
+  - `lib/screens/home/home_storage.dart`
+  - `lib/screens/home/home_screen.dart`
+  - `lib/screens/home/trash_screen.dart`
+  - `test/smoke/scenario_id_smoke_test.dart`
 - 핵심 변경
-  - HomeStorage를 정적 유틸에서 SiteRepository 기반 인스턴스 파사드로 전환.
-  - HomeScreen/TrashScreen이 동일 HomeStorage 인스턴스를 주입받아 사용하도록 변경.
+  - `HomeStorage`를 정적 유틸에서 `SiteRepository` 기반 인스턴스 파사드로 전환.
+  - `HomeScreen`/`TrashScreen`이 동일 `HomeStorage` 인스턴스를 주입받아 사용하도록 변경.
   - 스모크 테스트를 인스턴스 호출 기준으로 전환.
 - 검증
-  - 자동: flutter analyze (대상 4개 파일) 통과, flutter test test/smoke/scenario_id_smoke_test.dart 통과
-  - 수동: H-01, H-02, H-03 all pass
+  - 자동: `flutter analyze` (대상 4개 파일) 통과, `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - 수동: `H-01`, `H-02`, `H-03` all pass
 
 ---
-## 1. ?꾩옱 肄붾뱶 ?ㅻ깄??(?ㅼ륫 湲곗?: 2026-03-03)
 
-### 1-1. 肄붾뱶 蹂쇰ⅷ
-- `lib/` 珥?112媛??뚯씪, 24,974以?- `lib/screens/` 95媛??뚯씪, 22,745以?- `lib/screens/drawing/` 84媛??뚯씪, 21,371以?- ?쒕줈???듭떖 4?뚯씪 ?⑷퀎 8,826以?  - `drawing_screen.dart`: 1,858
+## 1. 현재 코드 스냅샷 (실측 기준: 2026-03-03)
+
+### 1-1. 코드 볼륨
+- `lib/` 총 112개 파일, 24,974줄
+- `lib/screens/` 95개 파일, 22,745줄
+- `lib/screens/drawing/` 84개 파일, 21,371줄
+- 드로잉 핵심 4파일 합계 8,826줄
+  - `drawing_screen.dart`: 1,858
   - `drawing_screen_logic.part.dart`: 4,658
   - `drawing_screen_ui.part.dart`: 2,201
   - `drawing_screen_scale_prefs.part.dart`: 109
 
-### 1-2. 怨좊났?〓룄 ?뚯씪 Top 15 (以???湲곗?)
+### 1-2. 고복잡도 파일 Top 15 (줄 수 기준)
 1. `lib/screens/drawing/drawing_screen_logic.part.dart` (4,658)
 2. `lib/screens/drawing/drawing_screen_ui.part.dart` (2,201)
 3. `lib/screens/drawing/drawing_screen.dart` (1,858)
@@ -85,60 +91,65 @@
 14. `lib/models/drawing/drawing_stroke.dart` (343)
 15. `lib/screens/drawing/history/history_commands.dart` (333)
 
-### 1-3. 寃고빀??寃쎄퀎 ?꾨컲
-- Import 寃고빀??  - `screens -> screens`: 135
+### 1-3. 결합도/경계 위반
+- Import 결합도
+  - `screens -> screens`: 135
   - `screens -> models`: 100
   - `models -> screens`: 1
-- 紐낆떆??寃쎄퀎 ?꾨컲
-  - `lib/models/drawing/drawing_stroke.dart`媛 `screens/drawing/drawing_types.dart`???섏〈
-  - `lib/models/drawing_enums.dart`媛 `constants/strings_ko.dart`???섏〈
-- UI ?몃? 怨꾩링??UI/?쒗쁽 ?쇳빀
-  - ?쇰꺼/?쒖떆 洹쒖튃??`flows/marker_presenters.dart`? `drawing_enums.dart`???쇱옱
+- 명시적 경계 위반
+  - `lib/models/drawing/drawing_stroke.dart`가 `screens/drawing/drawing_types.dart`에 의존
+  - `lib/models/drawing_enums.dart`가 `constants/strings_ko.dart`에 의존
+- UI 외부 계층의 UI/표현 혼합
+  - 라벨/표시 규칙이 `flows/marker_presenters.dart`와 `drawing_enums.dart`에 혼재
 
-### 1-4. I/O 梨낆엫 遺꾩궛 ?곹깭
-- ?ъ씠??硫뷀? ??? `lib/models/site_storage.dart` (`SharedPreferences`)
+### 1-4. I/O 책임 분산 상태
+- 사이트 메타 저장: `lib/models/site_storage.dart` (`SharedPreferences`)
 - Home wrapper: `lib/screens/home/home_storage.dart`
-- ?쒕줈????? `lib/screens/drawing/persistence/drawing_persistence_store.dart` (JSON file)
-- 寃고븿 ?ъ쭊 ??? `lib/screens/drawing/attachments/defect_photo_store.dart`
-- ???붾㈃?먯꽌 ?뚯씪/?붾젆?좊━ 吏곸젒 ?묎렐:
+- 드로잉 저장: `lib/screens/drawing/persistence/drawing_persistence_store.dart` (JSON file)
+- 결함 사진 저장: `lib/screens/drawing/attachments/defect_photo_store.dart`
+- 홈 화면에서 파일/디렉토리 직접 접근:
   - `lib/screens/home/home_screen.dart`
   - `lib/screens/home/site_photo_orphan_scanner.dart`
-- ?쒕줈???붾㈃?먯꽌 `SharedPreferences` 吏곸젒 ?묎렐:
+- 드로잉 화면에서 `SharedPreferences` 직접 접근:
   - `drawing_screen.dart`
   - `drawing_screen_logic.part.dart`
   - `drawing_screen_scale_prefs.part.dart`
 
-### 1-5. ?덉쭏 踰좎씠?ㅻ씪??- `flutter test`: 18媛?以?1媛??ㅽ뙣
-  - ?ㅽ뙣: `test/photo_path_ordering_test.dart` case D
-  - ?꾩긽: `C:\a\2.jpg`? `/a/2.jpg`媛 ?숇벑 寃쎈줈濡?痍④툒?섏? ?딆븘 以묐났 ?쎌엯
-- `flutter analyze`: 111 ?댁뒋
+### 1-5. 품질 베이스라인
+- `flutter test`: 18개 중 1개 실패
+  - 실패: `test/photo_path_ordering_test.dart` case D
+  - 현상: `C:\a\2.jpg`와 `/a/2.jpg`가 동등 경로로 취급되지 않아 중복 삽입
+- `flutter analyze`: 111 이슈
   - warning 11
   - info 100
-  - 二쇱슂: `deprecated_member_use`, `unused_field`, `unused_element`, `constant_identifier_names`
+  - 주요: `deprecated_member_use`, `unused_field`, `unused_element`, `constant_identifier_names`
 
 ---
 
-## 2. 紐⑺몴 ?꾪궎?띿쿂 (DDD + Clean 寃쎄퀎)
+## 2. 목표 아키텍처 (DDD + Clean 경계)
 
-### 2-1. ?덉씠???뺤쓽
+### 2-1. 레이어 정의
 - Domain
-  - ?뷀떚?? 媛믨컼泥? ?꾨찓???쒕퉬?? ?꾨찓??由ы룷吏?좊━ ?명꽣?섏씠??  - Flutter/UI/?뚯씪I/O ?섏〈 湲덉?
+  - 엔티티, 값객체, 도메인 서비스, 도메인 리포지토리 인터페이스
+  - Flutter/UI/파일I/O 의존 금지
 - Application
-  - UseCase, ?몃옖??뀡 寃쎄퀎, ?뺤콉 議고빀
-  - Domain ?명꽣?섏씠???ъ슜
+  - UseCase, 트랜잭션 경계, 정책 조합
+  - Domain 인터페이스 사용
 - Infrastructure
-  - ?뚯씪/SharedPreferences/PDF/Photo ???援ы쁽泥?  - Domain/Application ?명꽣?섏씠??援ы쁽
+  - 파일/SharedPreferences/PDF/Photo 저장 구현체
+  - Domain/Application 인터페이스 구현
 - Presentation
-  - Flutter ?꾩젽, ViewState, Input Adapter
-  - UseCase ?몄텧怨?寃곌낵 諛섏쁺留??대떦
+  - Flutter 위젯, ViewState, Input Adapter
+  - UseCase 호출과 결과 반영만 담당
 
-### 2-2. ?섏〈 洹쒖튃
+### 2-2. 의존 규칙
 1. `presentation -> application -> domain`
-2. `infrastructure -> domain` (?꾩슂 ??`application` DTO 李몄“ ?덉슜)
-3. `domain -> (none)` (Flutter, screens, constants 臾몄옄??湲덉?)
-4. ?붾㈃ ?뚯씪?먯꽌 `dart:io`, `SharedPreferences`, `path_provider` 吏곸젒 ?몄텧 湲덉?
+2. `infrastructure -> domain` (필요 시 `application` DTO 참조 허용)
+3. `domain -> (none)` (Flutter, screens, constants 문자열 금지)
+4. 화면 파일에서 `dart:io`, `SharedPreferences`, `path_provider` 직접 호출 금지
 
-### 2-3. 沅뚯옣 ?대뜑 泥?궗吏?```text
+### 2-3. 권장 폴더 청사진
+```text
 lib/
   domain/
     site/
@@ -175,590 +186,622 @@ lib/
       widgets/
 ```
 
-### 2-4. ?꾩옱 ?뚯씪 -> ?源??꾩튂 留ㅽ븨
+### 2-4. 현재 파일 -> 타깃 위치 매핑
 - Core Model
   - `lib/models/site.dart` -> `lib/domain/site/entities/site.dart`
   - `lib/models/defect.dart` -> `lib/domain/inspection/entities/defect.dart`
   - `lib/models/equipment_marker.dart` -> `lib/domain/inspection/entities/equipment_marker.dart`
   - `lib/models/drawing/drawing_stroke.dart` -> `lib/domain/drawing/entities/drawing_stroke.dart`
-  - JSON mapper??`lib/infrastructure/mappers/*`濡?遺꾨━
+  - JSON mapper는 `lib/infrastructure/mappers/*`로 분리
 - Storage/Persistence
   - `lib/models/site_storage.dart` -> `lib/infrastructure/persistence/shared_prefs/site_prefs_repository.dart`
   - `lib/screens/drawing/persistence/drawing_persistence_store.dart` -> `lib/infrastructure/persistence/file_store/drawing_file_repository.dart`
   - `lib/screens/drawing/attachments/defect_photo_store.dart` -> `lib/infrastructure/photo/defect_photo_repository.dart`
 - Flow/UseCase
   - `lib/screens/drawing/flows/*.dart` -> `lib/application/inspection/use_cases/*`, `lib/application/drawing/use_cases/*`
-  - `lib/screens/home/home_storage.dart` -> ??젣 ??`application/site/use_cases/*`濡??泥?- Presentation
+  - `lib/screens/home/home_storage.dart` -> 삭제 후 `application/site/use_cases/*`로 대체
+- Presentation
   - `lib/screens/home/*` -> `lib/presentation/home/*`
-  - `lib/screens/drawing/*` -> `lib/presentation/drawing/*` (?? ?명봽???좎뒪耳?댁뒪濡?遺꾨━???뚯씪 ?쒖쇅)
+  - `lib/screens/drawing/*` -> `lib/presentation/drawing/*` (단, 인프라/유스케이스로 분리될 파일 제외)
 
 ---
 
-## 3. ?ㅽ뻾 ?먯튃 (?댁쁺 洹쒖튃)
+## 3. 실행 원칙 (운영 규칙)
 
-### 3-1. 蹂寃??⑥쐞
-1. Step??理쒕? ?듭떖 梨낆엫 1媛쒕쭔 ?대룞
-2. Step ?댁뿉???뚯씪 ?대룞 + 濡쒖쭅 蹂寃??숈떆 ????섑뻾 湲덉?
-3. 寃쎄퀎 ?앹꽦(?명꽣?섏씠?? ??援ы쁽 ?닿? ?쒖꽌 怨좎젙
+### 3-1. 변경 단위
+1. Step당 최대 핵심 책임 1개만 이동
+2. Step 내에서 파일 이동 + 로직 변경 동시 대량 수행 금지
+3. 경계 생성(인터페이스) 후 구현 이관 순서 고정
 
-### 3-2. 而ㅻ컠 ?먯튃
-1. 而ㅻ컠? Step ?⑥쐞濡?履쇨컿??
-2. 而ㅻ컠 硫붿떆吏??`PhaseX-StepY: ...` ?뺤떇 ?ъ슜
-3. 由щ꽕???대룞 而ㅻ컠怨??숈옉 蹂寃?而ㅻ컠??遺꾨━?쒕떎.
+### 3-2. 커밋 원칙
+1. 커밋은 Step 단위로 쪼갠다.
+2. 커밋 메시지는 `PhaseX-StepY: ...` 형식 사용
+3. 리네임/이동 커밋과 동작 변경 커밋을 분리한다.
 
-### 3-3. ?꾩닔 寃利?寃뚯씠??- Step 寃뚯씠??  - ????뚯뒪??+ `flutter test` 理쒖냼 1??  - 二쇱슂 ?섎룞 ?쒕굹由ъ삤 2媛??댁긽
-- Phase 寃뚯씠??  - `flutter test` ?꾩껜 ?듦낵
-  - `flutter analyze` warning ??紐⑺몴 ?ъ꽦
-  - ?쒕굹由ъ삤 移댄깉濡쒓렇???대떦 Phase ??ぉ ?꾨? ?듦낵
+### 3-3. 필수 검증 게이트
+- Step 게이트
+  - 대상 테스트 + `flutter test` 최소 1회
+  - 주요 수동 시나리오 2개 이상
+- Phase 게이트
+  - `flutter test` 전체 통과
+  - `flutter analyze` warning 수 목표 달성
+  - 시나리오 카탈로그의 해당 Phase 항목 전부 통과
 
 ---
 
-## 4. ?곸꽭 濡쒕뱶留?(?ㅽ뻾 踰꾩쟾)
+## 4. 상세 로드맵 (실행 버전)
 
-## Phase 0. 踰좎씠?ㅻ씪??怨좎젙 (2~3??
-紐⑺몴: ?꾩옱 源⑥쭊 ?곹깭瑜?癒쇱? ?뺤긽?뷀븯???댄썑 由ы뙥?좊쭅 由ъ뒪?щ? 以꾩씤??
+## Phase 0. 베이스라인 고정 (2~3일)
+목표: 현재 깨진 상태를 먼저 정상화하여 이후 리팩토링 리스크를 줄인다.
 
-### Step 0-1. 寃쎈줈 ?뺢퇋???ㅽ뙣 ?뚯뒪??蹂듦뎄 ???꾨즺
-????뚯씪:
+### Step 0-1. 경로 정규화 실패 테스트 복구 ✅ 완료
+대상 파일:
 - `lib/utils/photo_path_ordering.dart`
 - `lib/screens/home/site_photo_orphan_scanner.dart`
 - `test/photo_path_ordering_test.dart`
 
-?묒뾽:
-1. `photoReferenceKey`瑜?Windows/Unix ?숇벑 鍮꾧탳媛 ?섎룄濡?normalize 洹쒖튃 媛뺥솕.
-2. 以묐났 ?먮떒 ?ㅼ? ?뺣젹 鍮꾧탳 ?ㅻ? ?숈씪 ?⑥닔濡??듭씪.
-3. legacy path(`\`, `/`, drive letter`) 耳?댁뒪瑜??뚯뒪?몄뿉 異붽?.
+작업:
+1. `photoReferenceKey`를 Windows/Unix 동등 비교가 되도록 normalize 규칙 강화.
+2. 중복 판단 키와 정렬 비교 키를 동일 함수로 통일.
+3. legacy path(`\`, `/`, drive letter`) 케이스를 테스트에 추가.
 
-?먮룞 寃利?
+자동 검증:
 - `flutter test test/photo_path_ordering_test.dart`
 - `flutter test`
 
-?섎룞 寃利?
-- ?쒕굹由ъ삤 `P-01`, `P-02` ?섑뻾.
+수동 검증:
+- 시나리오 `P-01`, `P-02` 수행.
 
-濡ㅻ갚 ?ъ씤??
-- 寃쎈줈 ?뺢퇋???⑥닔 蹂寃??꾪썑 diff留??섎룎由щ㈃ 蹂듦뎄 媛?ν븯?꾨줉 而ㅻ컠 遺꾨━.
+롤백 포인트:
+- 경로 정규화 함수 변경 전후 diff만 되돌리면 복구 가능하도록 커밋 분리.
 
-?ㅽ뻾 湲곕줉 (2026-03-03):
-- ?섏젙 ?뚯씪
+실행 기록 (2026-03-03):
+- 수정 파일
   - `lib/screens/home/site_photo_orphan_scanner.dart`
   - `test/photo_path_ordering_test.dart`
-- ?듭떖 ?섏젙
-  - `photoReferenceKey` ?뺢퇋??洹쒖튃 媛뺥솕(?щ옒???쒕씪?대툕 ?덊꽣/?몃젅?쇰쭅 ?щ옒??泥섎━).
-  - 以묐났 ?먯젙 ?뚭? 耳?댁뒪 異붽?(`drive letter case`, `trailing slash`).
-- ?먮룞 寃利?寃곌낵
-  - `flutter test test/photo_path_ordering_test.dart` ?듦낵
-  - `flutter test` ?듦낵
+- 핵심 수정
+  - `photoReferenceKey` 정규화 규칙 강화(슬래시/드라이브 레터/트레일링 슬래시 처리).
+  - 중복 판정 회귀 케이스 추가(`drive letter case`, `trailing slash`).
+- 자동 검증 결과
+  - `flutter test test/photo_path_ordering_test.dart` 통과
+  - `flutter test` 통과
 
-### Step 0-2. warning 11 -> 0 ???꾨즺
-????뚯씪:
+### Step 0-2. warning 11 -> 0 ✅ 완료
+대상 파일:
 - `lib/screens/drawing/drawing_screen.dart`
 - `lib/screens/drawing/drawing_screen_logic.part.dart`
 - `lib/screens/drawing/drawing_screen_ui.part.dart`
 
-?묒뾽:
-1. `unused_field`, `unused_element` ?쒓굅.
-2. ?숈옉???곹뼢 ?녿뒗 deprecate 援먯껜瑜??곗꽑 ?곸슜.
-3. naming/info ?깃꺽 lint??蹂꾨룄 Phase濡??대룞 媛?ν븯??warning? 利됱떆 ?쒓굅.
+작업:
+1. `unused_field`, `unused_element` 제거.
+2. 동작에 영향 없는 deprecate 교체를 우선 적용.
+3. naming/info 성격 lint는 별도 Phase로 이동 가능하나 warning은 즉시 제거.
 
-?먮룞 寃利?
+자동 검증:
 - `flutter analyze`
 - `flutter test`
 
-?섎룞 寃利?
-- ?쒕굹由ъ삤 `D-01`, `D-03`, `D-06`.
+수동 검증:
+- 시나리오 `D-01`, `D-03`, `D-06`.
 
-濡ㅻ갚 ?ъ씤??
-- UI/gesture 蹂寃쎌씠 ?ы븿?섎㈃ 利됱떆 以묐떒 ??warning ?쒓굅留??④릿 ?⑥튂濡??ш뎄??
+롤백 포인트:
+- UI/gesture 변경이 포함되면 즉시 중단 후 warning 제거만 남긴 패치로 재구성.
 
-?ㅽ뻾 湲곕줉 (2026-03-03):
-- ?섏젙 ?뚯씪
+실행 기록 (2026-03-03):
+- 수정 파일
   - `lib/screens/drawing/drawing_screen.dart`
   - `lib/screens/drawing/drawing_screen_logic.part.dart`
   - `lib/screens/drawing/drawing_screen_ui.part.dart`
-- ?듭떖 ?섏젙
-  - 誘몄궗??field/element ?쒓굅濡?warning ??ぉ ?뺣━.
-  - ?ъ슜?섏? ?딅뜕 ?덇굅??UI 釉붾줉/蹂댁“ ?⑥닔 ?쒓굅.
-- ?먮룞 寃利?寃곌낵
-  - `flutter analyze` warning 0 ?ъ꽦
-  - `flutter test` ?듦낵
+- 핵심 수정
+  - 미사용 field/element 제거로 warning 항목 정리.
+  - 사용되지 않던 레거시 UI 블록/보조 함수 제거.
+- 자동 검증 결과
+  - `flutter analyze` warning 0 달성
+  - `flutter test` 통과
 
-### Step 0-3. ?ㅻえ???뚯뒪???대쫫 泥닿퀎 怨좎젙 ???꾨즺
-????뚯씪:
-- `test/` ?좉퇋 smoke ?ㅼ쐞??
-?묒뾽:
-1. ?듭떖 ?쒕굹由ъ삤 ID(`H-*`, `D-*`, `P-*`)瑜??뚯뒪?몃챸?쇰줈 諛섏쁺.
-2. Phase蹂??꾩닔 ?뚯뒪??紐⑸줉??臾몄꽌??
+### Step 0-3. 스모크 테스트 이름 체계 고정 ✅ 완료
+대상 파일:
+- `test/` 신규 smoke 스위트
 
-?먮룞 寃利?
+작업:
+1. 핵심 시나리오 ID(`H-*`, `D-*`, `P-*`)를 테스트명으로 반영.
+2. Phase별 필수 테스트 목록을 문서화.
+
+자동 검증:
 - `flutter test`
 
-?섎룞 寃利?
-- ?놁쓬 (?뚯뒪??紐⑸줉 ?뺥빀???뺤씤?쇰줈 ?泥?.
+수동 검증:
+- 없음 (테스트 목록 정합성 확인으로 대체).
 
-?ㅽ뻾 湲곕줉 (2026-03-03):
-- ?섏젙 ?뚯씪
-  - `test/smoke/scenario_id_smoke_test.dart` (?좉퇋)
-  - `PHASE_TEST_CATALOG.md` (?좉퇋)
-- ?듭떖 ?섏젙
-  - ?쒕굹由ъ삤 ID 湲곗? smoke ?뚯뒪??異붽?(`H-01`, `H-02`, `H-03`, `D-05`, `P-02`).
-  - Phase 0 ?꾩닔 ?뚯뒪??移댄깉濡쒓렇 臾몄꽌??
-- ?먮룞 寃利?寃곌낵
-  - `flutter test test/smoke/scenario_id_smoke_test.dart` ?듦낵
-  - `flutter test` ?듦낵
+실행 기록 (2026-03-03):
+- 수정 파일
+  - `test/smoke/scenario_id_smoke_test.dart` (신규)
+  - `PHASE_TEST_CATALOG.md` (신규)
+- 핵심 수정
+  - 시나리오 ID 기준 smoke 테스트 추가(`H-01`, `H-02`, `H-03`, `D-05`, `P-02`).
+  - Phase 0 필수 테스트 카탈로그 문서화.
+- 자동 검증 결과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - `flutter test` 통과
 
 ---
 
-## Phase 1. Repository 寃쎄퀎 ?뺣┰ (3~4??
-紐⑺몴: ??μ냼 ?묎렐???명꽣?섏씠???ㅻ줈 媛먯떠??Presentation??I/O 吏곸젒 ?몄텧 ?쒓굅 湲곕컲??留뚮뱺??
+## Phase 1. Repository 경계 확립 (3~4일)
+목표: 저장소 접근을 인터페이스 뒤로 감춰서 Presentation의 I/O 직접 호출 제거 기반을 만든다.
 
-### Step 1-1. ?꾨찓??Repository ?명꽣?섏씠???뺤쓽
-?앹꽦 ?뚯씪:
+### Step 1-1. 도메인 Repository 인터페이스 정의
+생성 파일:
 - `lib/domain/site/repositories/site_repository.dart`
 - `lib/domain/drawing/repositories/drawing_repository.dart`
 - `lib/domain/inspection/repositories/photo_repository.dart`
 
-?묒뾽:
-1. 理쒖냼 API留??뺤쓽 (load/save/delete ?꾩＜).
-2. `Site`/`Drawing`/`Photo` ???愿?ъ궗瑜?遺꾨━.
+작업:
+1. 최소 API만 정의 (load/save/delete 위주).
+2. `Site`/`Drawing`/`Photo` 저장 관심사를 분리.
 
-?먮룞 寃利?
-- ?뺤쟻 遺꾩꽍 + 而댄뙆??
-?섎룞 寃利?
-- ?놁쓬.
+자동 검증:
+- 정적 분석 + 컴파일
 
-### Step 1-2. ?명봽???대뙌??援ы쁽 (湲곕뒫 ?숈씪)
-???
+수동 검증:
+- 없음.
+
+### Step 1-2. 인프라 어댑터 구현 (기능 동일)
+대상:
 - `site_storage.dart`, `drawing_persistence_store.dart`, `defect_photo_store.dart`
 
-?묒뾽:
-1. 湲곗〈 援ы쁽??adapter class濡?媛먯떬??
-2. ?대? 濡쒖쭅? 嫄대뱶由ъ? ?딄퀬 ?명꽣?섏씠?ㅻ쭔 留욎텣??
+작업:
+1. 기존 구현을 adapter class로 감싼다.
+2. 내부 로직은 건드리지 않고 인터페이스만 맞춘다.
 
-?먮룞 寃利?
+자동 검증:
 - `flutter test`
 
-?섎룞 寃利?
-- ?쒕굹由ъ삤 `H-01`, `D-08`, `P-01`.
+수동 검증:
+- 시나리오 `H-01`, `D-08`, `P-01`.
 
-### Step 1-3. HomeScreen/TrashScreen???뺤쟻 ????몄텧 ?쒓굅
-???
+### Step 1-3. HomeScreen/TrashScreen의 정적 저장 호출 제거
+대상:
 - `home_storage.dart`, `home_screen.dart`, `trash_screen.dart`
 
-?묒뾽:
-1. `HomeStorage` ?뺤쟻 硫붿꽌???섏〈??UseCase ?몄텧濡?移섑솚 以鍮?
-2. ?꾩떆濡?fa챌ade瑜??????덉쑝???붾㈃? ?명꽣?섏씠?ㅻ? 諛붾씪蹂닿쾶 蹂寃?
+작업:
+1. `HomeStorage` 정적 메서드 의존을 UseCase 호출로 치환 준비.
+2. 임시로 façade를 둘 수 있으나 화면은 인터페이스를 바라보게 변경.
 
-?먮룞 寃利?
+자동 검증:
 - `flutter test`
 - `flutter analyze`
 
-?섎룞 寃利?
-- ?쒕굹由ъ삤 `H-01`, `H-02`, `H-03`.
+수동 검증:
+- 시나리오 `H-01`, `H-02`, `H-03`.
 
 ---
 
-## Phase 2. Application UseCase ?닿? (4~6??
-紐⑺몴: `flows/` ?⑥닔 吏묓빀??紐낆떆???좎뒪耳?댁뒪 ?대옒?ㅻ줈 ?밴꺽.
+## Phase 2. Application UseCase 이관 (4~6일)
+목표: `flows/` 함수 집합을 명시적 유스케이스 클래스로 승격.
 
-### Step 2-1. Site UseCase ?꾩엯
-?앹꽦:
+### Step 2-1. Site UseCase 도입
+생성:
 - `application/site/use_cases/load_sites_use_case.dart`
 - `application/site/use_cases/create_site_use_case.dart`
 - `application/site/use_cases/trash_site_use_case.dart`
 - `application/site/use_cases/restore_site_use_case.dart`
 
-寃利?
-- ?쒕굹由ъ삤 `H-01`, `H-02`, `H-03`.
+검증:
+- 시나리오 `H-01`, `H-02`, `H-03`.
 
-### Step 2-2. MarkerInteraction UseCase ?꾩엯
-???
+### Step 2-2. MarkerInteraction UseCase 도입
+대상:
 - `flows/marker_tap_flow.dart`
 - `flows/defect_marker_flow.dart`
 - `flows/equipment_pack_*.dart`
 - `flows/equipment_updated_site_flow.dart`
 
-?묒뾽:
-1. Tap decision, marker ?앹꽦, ?곸꽭 ?낅젰 諛섏쁺??UseCase ?대옒?ㅻ줈 遺꾨━.
-2. ?쇰꺼 利앷? 洹쒖튃? ?쇰떒 ?숈씪 蹂듭젣.
+작업:
+1. Tap decision, marker 생성, 상세 입력 반영을 UseCase 클래스로 분리.
+2. 라벨 증가 규칙은 일단 동일 복제.
 
-寃利?
+검증:
 - `test/marker_presenters_label_test.dart`
-- ?쒕굹由ъ삤 `D-04`, `D-05`.
+- 시나리오 `D-04`, `D-05`.
 
-### Step 2-3. PDF UseCase ?꾩엯
-???
+### Step 2-3. PDF UseCase 도입
+대상:
 - `flows/pdf_controller_flow.dart`
-- `drawing_screen_logic.part.dart` PDF 愿??釉붾줉
+- `drawing_screen_logic.part.dart` PDF 관련 블록
 
-?묒뾽:
-1. 濡쒕뱶/援먯껜/?먮윭 泥섎━ ?좎뒪耳?댁뒪 遺꾨━.
-2. ?섏씠吏 ???꾩옱 ?섏씠吏/?ㅻ쪟 ?곹깭 諛섏쁺???⑥씪 ?묐떟 紐⑤뜽濡??쒖???
+작업:
+1. 로드/교체/에러 처리 유스케이스 분리.
+2. 페이지 수/현재 페이지/오류 상태 반영을 단일 응답 모델로 표준화.
 
-寃利?
-- ?쒕굹由ъ삤 `D-02`, `D-03`, `D-08`.
+검증:
+- 시나리오 `D-02`, `D-03`, `D-08`.
 
-### Step 2-4. DrawingPersistence UseCase ?꾩엯
-???
+### Step 2-4. DrawingPersistence UseCase 도입
+대상:
 - `drawing_persistence_store.dart`
 - `drawing_screen_logic.part.dart` persist loop
 
-寃利?
-- ?쒕굹由ъ삤 `D-08`, `D-09`.
+검증:
+- 시나리오 `D-08`, `D-09`.
 
 ---
 
-## Phase 3. DrawingScreen ?곹깭 ?щ씪?댁뒪 遺꾪빐 (?듭떖, 7~10??
-紐⑺몴: `_DrawingScreenState` 吏묒쨷 ?곹깭瑜?梨낆엫蹂?state object濡??덈떒.
+## Phase 3. DrawingScreen 상태 슬라이스 분해 (핵심, 7~10일)
+목표: `_DrawingScreenState` 집중 상태를 책임별 state object로 절단.
 
-### Step 3-1. SessionState 遺꾨━
-遺꾨━ ???
+### Step 3-1. SessionState 분리
+분리 대상:
 - `_currentPage`, `_pageCount`, `_pdfController`, `_pdfPageSizes`, `_pdfLoadError`
 
-?좉퇋:
+신규:
 - `presentation/drawing/states/drawing_session_state.dart`
 
-寃利?
-- ?쒕굹由ъ삤 `D-02`, `D-03`.
+검증:
+- 시나리오 `D-02`, `D-03`.
 
-### Step 3-2. ToolState 遺꾨━
-遺꾨━ ???
-- `_activeTool`, `_activeFamily`, ???뺢킅???꾪삎 ?듭뀡 留? straighten ?듭뀡
+### Step 3-2. ToolState 분리
+분리 대상:
+- `_activeTool`, `_activeFamily`, 펜/형광펜/도형 옵션 맵, straighten 옵션
 
-?좉퇋:
+신규:
 - `presentation/drawing/states/tool_state.dart`
 
-寃利?
-- ?쒕굹由ъ삤 `D-06`, `D-07`.
+검증:
+- 시나리오 `D-06`, `D-07`.
 
-### Step 3-3. MarkerState 遺꾨━
-遺꾨━ ???
-- ?좏깮 ID, 移댄뀒怨좊━ ?? 媛?쒖꽦 set, ?⑤꼸 ???곹깭
+### Step 3-3. MarkerState 분리
+분리 대상:
+- 선택 ID, 카테고리 탭, 가시성 set, 패널 탭 상태
 
-?좉퇋:
+신규:
 - `presentation/drawing/states/marker_state.dart`
 
-寃利?
-- ?쒕굹由ъ삤 `D-04`, `D-05`.
+검증:
+- 시나리오 `D-04`, `D-05`.
 
-### Step 3-4. GestureState 遺꾨━
-遺꾨━ ???
-- pointer tracking, nav gesture, eraser session, straighten ?꾩떆 ?곹깭
+### Step 3-4. GestureState 분리
+분리 대상:
+- pointer tracking, nav gesture, eraser session, straighten 임시 상태
 
-?좉퇋:
+신규:
 - `presentation/drawing/states/gesture_state.dart`
 
-寃利?
-- ?쒕굹由ъ삤 `D-01`, `D-06`, `D-09`.
+검증:
+- 시나리오 `D-01`, `D-06`, `D-09`.
 
-### Step 3-5. HistoryState/PersistState 遺꾨━
-遺꾨━ ???
-- undo/redo 媛???곹깭, debounce, in-flight ?뚮옒洹?
-?좉퇋:
+### Step 3-5. HistoryState/PersistState 분리
+분리 대상:
+- undo/redo 가능 상태, debounce, in-flight 플래그
+
+신규:
 - `presentation/drawing/states/history_state.dart`
 - `presentation/drawing/states/persist_state.dart`
 
-寃利?
+검증:
 - `test/drawing_history_stress_test.dart`
-- ?쒕굹由ъ삤 `D-09`.
+- 시나리오 `D-09`.
 
-### Step 3-6. `DrawingScreen` 寃쎈웾??紐⑺몴:
-- `DrawingScreen`? ?곹깭 議고빀 + ?꾩젽 援ъ꽦 + ?대깽??諛붿씤?⑸쭔 ?대떦.
+### Step 3-6. `DrawingScreen` 경량화
+목표:
+- `DrawingScreen`은 상태 조합 + 위젯 구성 + 이벤트 바인딩만 담당.
 
-?뺣웾 紐⑺몴:
-- `drawing_screen*` 8,826以?-> 4,500以??댄븯(1李?紐⑺몴)
+정량 목표:
+- `drawing_screen*` 8,826줄 -> 4,500줄 이하(1차 목표)
 
-寃利?
-- ?쒕굹由ъ삤 `D-01` ~ `D-09` ?꾩닔.
+검증:
+- 시나리오 `D-01` ~ `D-09` 전수.
 
 ---
 
-## Phase 4. Domain ?쒖닔??+ Mapper 遺꾨━ (5~7??
-紐⑺몴: ?뷀떚?곕? ?꾨젅?좏뀒?댁뀡/吏곷젹???섏〈?먯꽌 遺꾨━.
+## Phase 4. Domain 순수화 + Mapper 분리 (5~7일)
+목표: 엔티티를 프레젠테이션/직렬화 의존에서 분리.
 
-### Step 4-1. ?뷀떚??吏곷젹???쒓굅
-???
+### Step 4-1. 엔티티 직렬화 제거
+대상:
 - `site.dart`, `defect.dart`, `equipment_marker.dart`, `drawing_stroke.dart`
 
-?묒뾽:
-1. `toJson/fromJson`瑜?mapper ?대옒?ㅻ줈 ?대룞.
-2. ?뷀떚?곕뒗 ?쒖닔 ?곗씠??+ ?꾨찓???됱쐞留??좎?.
+작업:
+1. `toJson/fromJson`를 mapper 클래스로 이동.
+2. 엔티티는 순수 데이터 + 도메인 행위만 유지.
 
-寃利?
+검증:
 - `test/drawing_serialization_compat_test.dart`
-- 湲곗〈 ????곗씠??濡쒕뱶 ?명솚 ?섎룞 寃利?
+- 기존 저장 데이터 로드 호환 수동 검증.
 
-### Step 4-2. ?꾨찓????쓽議??쒓굅
-利됱떆 ?닿껐 ???
+### Step 4-2. 도메인 역의존 제거
+즉시 해결 대상:
 - `drawing_stroke.dart -> drawing_types.dart`
 - `drawing_enums.dart -> strings_ko.dart`
 
-?묒뾽:
-1. `DrawingTool`???꾨찓??enum 踰꾩쟾 ?뺤쓽.
-2. UI ?쇰꺼? presenter/provider濡??대룞.
+작업:
+1. `DrawingTool`의 도메인 enum 버전 정의.
+2. UI 라벨은 presenter/provider로 이동.
 
-?뺣웾 紐⑺몴:
+정량 목표:
 - `models/domain -> screens` import 0
 
-### Step 4-3. ?쇰꺼/?쒕쾲 洹쒖튃 Domain Service?????
+### Step 4-3. 라벨/순번 규칙 Domain Service화
+대상:
 - `flows/marker_presenters.dart`
 
-?묒뾽:
-1. ?쒕쾲/?묐몢???쒖떆?쇰꺼 濡쒖쭅??Domain Service濡??닿?.
-2. ?붾㈃? 寃곌낵 臾몄옄?대쭔 ?섏떊.
+작업:
+1. 순번/접두어/표시라벨 로직을 Domain Service로 이관.
+2. 화면은 결과 문자열만 수신.
 
-寃利?
+검증:
 - `test/marker_presenters_label_test.dart`
 
 ---
 
-## Phase 5. Dialog/SidePanel ?꾨젅?좏뀒?댁뀡 ?뺣━ (3~5??
-紐⑺몴: Dialog媛 I/O瑜?紐곕씪???섎룄濡??낅젰 ?섏쭛 ?꾩슜??
+## Phase 5. Dialog/SidePanel 프레젠테이션 정리 (3~5일)
+목표: Dialog가 I/O를 몰라도 되도록 입력 수집 전용화.
 
-### Step 5-1. Defect Dialog???뚯씪 ?묎렐 ?쒓굅
-???
+### Step 5-1. Defect Dialog의 파일 접근 제거
+대상:
 - `dialogs/defect_details_dialog.dart`
 - `dialogs/photo_manager_dialog.dart`
 
-?묒뾽:
-1. ?뚯씪 ???????젣瑜?Application ?쒕퉬?ㅻ줈 ?대룞.
-2. Dialog??DTO ?낅젰/寃곌낵 諛섑솚留??섑뻾.
+작업:
+1. 파일 픽/저장/삭제를 Application 서비스로 이동.
+2. Dialog는 DTO 입력/결과 반환만 수행.
 
-寃利?
-- ?쒕굹由ъ삤 `P-01`, `P-02`, `P-03`.
+검증:
+- 시나리오 `P-01`, `P-02`, `P-03`.
 
-### Step 5-2. Equipment Dialog援??뺣━
-???
-- `equipment_details_dialog.dart`, `rebar_spacing_dialog.dart`, 湲고? ?λ퉬 ?ㅼ씠?쇰줈洹?
-?묒뾽:
-1. 媛?寃利앹? validator/service濡??닿?.
-2. Dialog???꾨뱶 ?뚮뜑留?+ submit留??대떦.
+### Step 5-2. Equipment Dialog군 정리
+대상:
+- `equipment_details_dialog.dart`, `rebar_spacing_dialog.dart`, 기타 장비 다이얼로그
 
-寃利?
-- ?쒕굹由ъ삤 `D-05`.
+작업:
+1. 값 검증은 validator/service로 이관.
+2. Dialog는 필드 렌더링 + submit만 담당.
 
-### Step 5-3. SidePanel ViewModel ?꾩엯
-???
+검증:
+- 시나리오 `D-05`.
+
+### Step 5-3. SidePanel ViewModel 도입
+대상:
 - `widgets/side_panel/marker_side_panel.dart`
 
-?묒뾽:
-1. ?쒓린 臾몄옄???뺣젹/?꾪꽣 濡쒖쭅??ViewModel濡??대룞.
-2. ?꾩젽 ?몃━???뚮뜑留??꾩슜??
+작업:
+1. 표기 문자열/정렬/필터 로직을 ViewModel로 이동.
+2. 위젯 트리는 렌더링 전용화.
 
-寃利?
-- ?쒕굹由ъ삤 `D-04`, `D-05`.
+검증:
+- 시나리오 `D-04`, `D-05`.
 
 ---
 
-## Phase 6. ?뚯뒪??泥닿퀎 ?뺤옣 (吏?? 5~7??
-紐⑺몴: 援ъ“ 由ы뙥?좊쭅 ?댄썑 ?뚭? 媛먯떆留?媛뺥솕.
+## Phase 6. 테스트 체계 확장 (지속, 5~7일)
+목표: 구조 리팩토링 이후 회귀 감시망 강화.
 
-### Step 6-1. Domain ?뚯뒪???뺤옣
-異붽? ?뚯뒪??
-- ?쇰꺼 ?쒕쾲/?묐몢??洹쒖튃
-- 媛?쒖꽦 ?꾪꽣 洹쒖튃
-- shape bounds/rotation 怨꾩궛
-- 寃쎄퀎媛??낅젰 寃利?
-### Step 6-2. Application ?뚯뒪???뺤옣
-異붽? ?뚯뒪??
+### Step 6-1. Domain 테스트 확장
+추가 테스트:
+- 라벨 순번/접두어 규칙
+- 가시성 필터 규칙
+- shape bounds/rotation 계산
+- 경계값 입력 검증
+
+### Step 6-2. Application 테스트 확장
+추가 테스트:
 - site create/trash/restore usecase
 - marker interaction usecase
 - drawing persistence usecase
 - pdf replace/load usecase
 
-### Step 6-3. ?뚭? ?쒕굹由ъ삤 ?뚯뒪??異붽? ?뚯뒪??
-- PDF 援먯껜 -> ?섏씠吏 ?대룞 -> 留덉빱 ?앹꽦 -> ???-> ?ъ떎??蹂듭썝
-- pen/highlighter/shape/eraser ?쇳빀 ??undo/redo ?덉젙??- orphan photo scan/restore/cleanup
+### Step 6-3. 회귀 시나리오 테스트
+추가 테스트:
+- PDF 교체 -> 페이지 이동 -> 마커 생성 -> 저장 -> 재실행 복원
+- pen/highlighter/shape/eraser 혼합 후 undo/redo 안정성
+- orphan photo scan/restore/cleanup
 
-### Step 6-4. ?κ린 ?덉젙??異붽? ?뚯뒪??
-- 100???댁긽 undo/redo 諛섎났
-- ?ㅼ쨷 ?섏씠吏(10p+)?먯꽌 ?깅뒫/硫붾え由??뺤씤
+### Step 6-4. 장기 안정성
+추가 테스트:
+- 100회 이상 undo/redo 반복
+- 다중 페이지(10p+)에서 성능/메모리 확인
 
 ---
 
-## Phase 7. ?깅뒫/?뺣━ 留덈Т由?(3~4??
-紐⑺몴: 肄붾뱶 ?덉쭏 泥닿컧 媛쒖꽑怨??좎?蹂댁닔??留덇컧.
+## Phase 7. 성능/정리 마무리 (3~4일)
+목표: 코드 품질 체감 개선과 유지보수성 마감.
 
-### Step 7-1. 二쎌? 肄붾뱶/?ㅽ뀅 ?뺣━
-???
+### Step 7-1. 죽은 코드/스텁 정리
+대상:
 - `engines/eraser_engine_v2.dart`
 - `engines/text_engine.dart`
 
-?묒뾽:
-1. ?ㅼ젣 誘몄궗?⑹씠硫??쒓굅.
-2. ?ν썑 怨꾪쉷???덉쑝硫?TODO媛 ?꾨땲??紐낆떆 ?댁뒋 留곹겕濡?愿由?
+작업:
+1. 실제 미사용이면 제거.
+2. 향후 계획이 있으면 TODO가 아니라 명시 이슈 링크로 관리.
 
-### Step 7-2. ?섏씤??罹먯떆 寃쎈줈 ?뺣━
-???
+### Step 7-2. 페인터/캐시 경로 정리
+대상:
 - `temp_polyline_painter.dart`
 - `stroke_cache_manager.dart`
 
-?묒뾽:
-1. 以묐났 ?뚮뜑留?寃쎈줈 理쒖냼??
-2. deprecated API 援먯껜 ?꾨즺.
+작업:
+1. 중복 렌더링 경로 최소화.
+2. deprecated API 교체 완료.
 
-### Step 7-3. 臾몄꽌/?⑤낫??留덇컧
-?곗텧臾?
-- ?꾪궎?띿쿂 媛쒖슂 臾몄꽌
-- ?덉씠??洹쒖튃 臾몄꽌
-- ?좉퇋 湲곕뒫 異붽? 媛?대뱶
+### Step 7-3. 문서/온보딩 마감
+산출물:
+- 아키텍처 개요 문서
+- 레이어 규칙 문서
+- 신규 기능 추가 가이드
 
 ---
 
-## 5. Step 醫낅즺 ?섎룞 寃利??쒕굹由ъ삤 移댄깉濡쒓렇
+## 5. Step 종료 수동 검증 시나리오 카탈로그
 
-### Home/?ъ씠??- `H-01` ?꾩옣 ?앹꽦
-  - PDF/鍮?罹붾쾭???????앹꽦 媛??  - 援ъ“?뺤떇/?먭??뺤떇/?먭????쒖떆 ?뺤긽
-- `H-02` ?댁????뚮줈??  - ??젣 -> ?댁????대룞 -> 蹂듭썝 -> ?곴뎄??젣
-- `H-03` ???ъ떎??蹂듭썝
-  - Home 紐⑸줉/??젣 ?곹깭 ?숈씪
+### Home/사이트
+- `H-01` 현장 생성
+  - PDF/빈 캔버스 둘 다 생성 가능
+  - 구조형식/점검형식/점검일 표시 정상
+- `H-02` 휴지통 플로우
+  - 삭제 -> 휴지통 이동 -> 복원 -> 영구삭제
+- `H-03` 앱 재실행 복원
+  - Home 목록/삭제 상태 동일
 
 ### Drawing/PDF/Marker
-- `D-01` 罹붾쾭???쒖뒪泥?  - ?ㅽ??쇰윭???쒕줈?? 2?먭????ㅻ퉬寃뚯씠??異⑸룎 ?놁쓬
-- `D-02` PDF 濡쒕뱶/?먮윭
-  - ?뚯씪 ?놁쓬/?먯긽 ?뚯씪 ?먮윭 硫붿떆吏 ?뺤긽
-- `D-03` ?섏씠吏 ?대룞
-  - ?댁쟾/?ㅼ쓬, ?섏씠吏 ?몃뵒耳?댄꽣, ?섏씠吏蹂??ㅻ쾭?덉씠 ?뺥빀
-- `D-04` 寃고븿 留덉빱 ?뚮줈??  - ??異붽?/??젣, ?좏깮/?댁젣, ?곸꽭 ?섏젙 諛섏쁺
-- `D-05` ?λ퉬 留덉빱 ?뚮줈??  - 移댄뀒怨좊━蹂??쇰꺼 洹쒖튃, ?곸꽭媛????諛섏쁺
-- `D-06` ?꾧뎄 ?꾪솚
-  - ???뺢킅???꾪삎/吏?곌컻 ?꾪솚 諛??듭뀡 ?좎?
-- `D-07` ??援듦린/?щ챸??  - ?꾧뎄蹂?留덉?留??ъ슜媛?蹂댁〈
-- `D-08` ???蹂듭썝
-  - 洹몃━湲???媛뺤쥌/?ъ떎??蹂듭썝
-  - PDF 援먯껜 ?꾨룄 ?뺤긽 蹂듭썝
-- `D-09` ?덉뒪?좊━
-  - undo/redo 100??諛섎났 ?덉젙??  - clear pen/highlighter/all ?숈옉 ?쇨???
-### Photo/泥⑤?
-- `P-01` 寃고븿 ?ъ쭊 異붽?/援먯껜/??젣
-  - ?먮낯紐?sidecar) 蹂댁〈
-- `P-02` 怨좎븘 ?ъ쭊 ?ㅼ틪/蹂듭썝
-  - ?숈씪 寃쎈줈 以묐났 ?쎌엯 ?놁쓬
-- `P-03` 怨좎븘 ?ъ쭊 ?뺣━
-  - ?ㅼ젣 ?뚯씪/sidecar ?숈떆 ?뺣━
+- `D-01` 캔버스 제스처
+  - 스타일러스 드로잉, 2손가락 네비게이션 충돌 없음
+- `D-02` PDF 로드/에러
+  - 파일 없음/손상 파일 에러 메시지 정상
+- `D-03` 페이지 이동
+  - 이전/다음, 페이지 인디케이터, 페이지별 오버레이 정합
+- `D-04` 결함 마커 플로우
+  - 탭 추가/삭제, 선택/해제, 상세 수정 반영
+- `D-05` 장비 마커 플로우
+  - 카테고리별 라벨 규칙, 상세값 저장 반영
+- `D-06` 도구 전환
+  - 펜/형광펜/도형/지우개 전환 및 옵션 유지
+- `D-07` 색/굵기/투명도
+  - 도구별 마지막 사용값 보존
+- `D-08` 저장/복원
+  - 그리기 후 강종/재실행 복원
+  - PDF 교체 후도 정상 복원
+- `D-09` 히스토리
+  - undo/redo 100회 반복 안정성
+  - clear pen/highlighter/all 동작 일관성
+
+### Photo/첨부
+- `P-01` 결함 사진 추가/교체/삭제
+  - 원본명(sidecar) 보존
+- `P-02` 고아 사진 스캔/복원
+  - 동일 경로 중복 삽입 없음
+- `P-03` 고아 사진 정리
+  - 실제 파일/sidecar 동시 정리
 
 ---
 
-## 6. ?먮룞 ?꾪궎?띿쿂 媛?쒕젅??(?뺢린 ?먭? 紐낅졊)
+## 6. 자동 아키텍처 가드레일 (정기 점검 명령)
 
-1. ?꾨찓?몄뿉???붾㈃ ?섏〈 湲덉?
+1. 도메인에서 화면 의존 금지
 ```powershell
 rg -n "package:safety_inspection_app/screens/" lib/domain lib/models
 ```
 
-2. ?꾨젅?좏뀒?댁뀡??吏곸젒 I/O 湲덉? (理쒖쥌 紐⑺몴)
+2. 프레젠테이션의 직접 I/O 금지 (최종 목표)
 ```powershell
 rg -n "dart:io|SharedPreferences|getApplicationDocumentsDirectory|FilePicker|ImagePicker" lib/presentation
 ```
 
-3. 怨꾩링 寃쎄퀎 ?꾨컲 媛먯떆
+3. 계층 경계 위반 감시
 ```powershell
 rg -n "package:safety_inspection_app/presentation/" lib/domain lib/application lib/infrastructure
 ```
 
-4. ?듭떖 ?덉쭏 寃뚯씠??```powershell
+4. 핵심 품질 게이트
+```powershell
 flutter test
 flutter analyze
 ```
 
 ---
 
-## 7. ?뺣웾 ?꾨즺 湲곗? (Definition of Done)
+## 7. 정량 완료 기준 (Definition of Done)
 
-### ?꾪궎?띿쿂
+### 아키텍처
 - `domain/models -> screens/presentation` import 0
-- `presentation/screens`?먯꽌 吏곸젒 ?뚯씪 I/O ?몄텧 0
-- `drawing_screen*` 珥앺빀 8,826 -> 2,500 ?댄븯 (理쒖쥌 紐⑺몴)
-- `drawing_screen*` 珥앺빀 8,826 -> 4,500 ?댄븯 (以묎컙 紐⑺몴, Phase 3 醫낅즺)
+- `presentation/screens`에서 직접 파일 I/O 호출 0
+- `drawing_screen*` 총합 8,826 -> 2,500 이하 (최종 목표)
+- `drawing_screen*` 총합 8,826 -> 4,500 이하 (중간 목표, Phase 3 종료)
 
-### ?덉쭏
-- `flutter test` 100% ?듦낵
+### 품질
+- `flutter test` 100% 통과
 - `flutter analyze` warning 0
-- deprecate 二쇱슂 ??ぉ ?뺣━ ?꾨즺 (`Color.value`, `withOpacity`, 援щ쾭??callback)
+- deprecate 주요 항목 정리 완료 (`Color.value`, `withOpacity`, 구버전 callback)
 
-### ?좎?蹂댁닔??- ?좉퇋 ?λ퉬 移댄뀒怨좊━ 異붽? ???섏젙 ?뚯씪 3媛??댄븯
-- 留덉빱 ?쇰꺼 ?뺤콉 蹂寃???Domain/Application留??섏젙 媛??- ??μ냼 援먯껜 ??Infrastructure 怨꾩링 蹂寃쎈쭔?쇰줈 ???媛??
+### 유지보수성
+- 신규 장비 카테고리 추가 시 수정 파일 3개 이하
+- 마커 라벨 정책 변경 시 Domain/Application만 수정 가능
+- 저장소 교체 시 Infrastructure 계층 변경만으로 대응 가능
+
 ---
 
-## 8. 2二??μ삤???ㅽ뻾??(沅뚯옣)
+## 8. 2주 킥오프 실행안 (권장)
 
 ### Week 1
-1. Day 1: Step 0-1 寃쎈줈 ?뺢퇋??蹂듦뎄 + ?뚯뒪??green
-2. Day 2: Step 0-2 warning 0 ?ъ꽦
-3. Day 3: Step 1-1 Repository ?명꽣?섏씠???뺤쓽
-4. Day 4: Step 1-2 ?명봽???대뙌???곸슜
-5. Day 5: Step 1-3 Home ????몄텧 寃쎄퀎??
+1. Day 1: Step 0-1 경로 정규화 복구 + 테스트 green
+2. Day 2: Step 0-2 warning 0 달성
+3. Day 3: Step 1-1 Repository 인터페이스 정의
+4. Day 4: Step 1-2 인프라 어댑터 적용
+5. Day 5: Step 1-3 Home 저장 호출 경계화
+
 ### Week 2
 1. Day 6: Step 2-1 Site UseCase
 2. Day 7: Step 2-2 MarkerInteraction UseCase
 3. Day 8: Step 2-3 PDF UseCase
-4. Day 9: Step 3-1 SessionState, Step 3-2 ToolState ?쒖옉
-5. Day 10: Step 3-3 MarkerState + ?뚭? 寃利?
+4. Day 9: Step 3-1 SessionState, Step 3-2 ToolState 시작
+5. Day 10: Step 3-3 MarkerState + 회귀 검증
+
 ---
 
 ## 9. 지금 바로 시작할 실행 순서 (실무용)
 
-1. 완료 Phase 1-1 Repository 인터페이스 정의
-2. 완료 Phase 1-2 인프라 어댑터 적용 (동작 변경 금지)
-3. 완료 Phase 1-3 Home/Trash 정적 저장 호출 경계화
-4. 다음 Phase 2-1 Site UseCase 도입
-5. 다음 Phase 2-2 MarkerInteraction UseCase 도입
-6. 다음 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 기록
----
-## 10. 硫붾え
-- ??臾몄꽌???붿빟蹂몄씠 ?꾨땲???ㅽ뻾蹂몄씠誘濡? ?ㅼ젣 ?묒뾽 以??レ옄/?쇱씤 ???댁뒋 ?섍? 諛붾뚮㈃ Step ?꾨즺 ??利됱떆 媛깆떊?쒕떎.
-- 蹂寃?以묎컙???숈옉 由ъ뒪?ш? 而ㅼ?硫? Phase瑜?硫덉텛怨?Step ?⑥쐞濡????섍쾶 履쇨컻???ъ쭊?됲븳??
+1. `완료` Phase 1-1 Repository 인터페이스 정의
+2. `완료` Phase 1-2 인프라 어댑터 적용 (동작 변경 금지)
+3. `완료` Phase 1-3 Home/Trash 정적 저장 호출 경계화
+4. `다음` Phase 2-1 Site UseCase 도입
+5. `다음` Phase 2-2 MarkerInteraction UseCase 도입
+6. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
-## 11. 濡쒕뱶留???湲곕뒫 ?섏젙 濡쒓렇
+## 10. 메모
+- 이 문서는 요약본이 아니라 실행본이므로, 실제 작업 중 숫자/라인 수/이슈 수가 바뀌면 Step 완료 시 즉시 갱신한다.
+- 변경 중간에 동작 리스크가 커지면, Phase를 멈추고 Step 단위로 더 잘게 쪼개서 재진행한다.
 
-### 2026-03-03 / 寃고븿 ?ъ쭊 移대찓???먮낯紐??쒖떆 蹂댁젙
-- ?곹솴
-  - 媛ㅻ윭由??뚯씪 ?좏깮 寃쎈줈???먮낯 ?뚯씪紐낆씠 ?쒖떆?섎뒗?? 移대찓??珥ъ쁺 寃쎈줈???꾩떆 ?대쫫(`image_picker...`)???쒖떆?섎뒗 臾몄젣媛 ?덉뿀??
-- ?섏젙 ?댁슜
-  - 移대찓??寃쎈줈?먯꽌 ?섎? ?녿뒗 ?꾩떆 ?대쫫???쒖쇅?섍퀬 ?뚯씪紐?蹂댁젙 濡쒖쭅 異붽?.
-  - ?????sidecar 硫뷀??곗씠??`originalName`)??蹂댁젙???먮낯紐낆쓣 ?곗꽑 ??ν븯?꾨줉 `DefectPhotoStore` ???API ?뺤옣.
-  - 愿???뚯씪
+---
+
+## 11. 로드맵 외 기능 수정 로그
+
+### 2026-03-03 / 결함 사진 카메라 원본명 표시 보정
+- 상황
+  - 갤러리/파일 선택 경로는 원본 파일명이 표시되는데, 카메라 촬영 경로는 임시 이름(`image_picker...`)이 표시되는 문제가 있었음.
+- 수정 내용
+  - 카메라 경로에서 의미 없는 임시 이름을 제외하고 파일명 보정 로직 추가.
+  - 저장 시 sidecar 메타데이터(`originalName`)에 보정된 원본명을 우선 저장하도록 `DefectPhotoStore` 저장 API 확장.
+  - 관련 파일
     - `lib/screens/drawing/dialogs/defect_details_dialog.dart`
     - `lib/screens/drawing/attachments/defect_photo_store.dart`
-- 寃利?  - `flutter test` ?꾩껜 ?듦낵
-  - ?ㅼ젣 ???섎룞 ?뺤씤?먯꽌 移대찓??珥ъ쁺 ?ъ쭊???뚯씪紐??쒖떆 ?뺤긽??
-### 2026-03-03 / 移대찓??fallback ?뚯씪紐??묐몢??議곗젙
-- ?곹솴
-  - ??蹂댁젙 ?댄썑 fallback ?뚯씪紐낆뿉 `IMG_` ?묐몢?ш? 遺숈뼱 ?쒖떆?섎뒗 UX ?쇰뱶諛?諛쒖깮.
-- ?섏젙 ?댁슜
-  - fallback ?뚯씪紐??뺤떇??`IMG_YYYYMMDD_HHMMSS.ext` -> `YYYYMMDD_HHMMSS.ext`濡?蹂寃?
-  - 愿???뚯씪
+- 검증
+  - `flutter test` 전체 통과
+  - 실제 앱 수동 확인에서 카메라 촬영 사진의 파일명 표시 정상화
+
+### 2026-03-03 / 카메라 fallback 파일명 접두사 조정
+- 상황
+  - 위 보정 이후 fallback 파일명에 `IMG_` 접두사가 붙어 표시되는 UX 피드백 발생.
+- 수정 내용
+  - fallback 파일명 형식을 `IMG_YYYYMMDD_HHMMSS.ext` -> `YYYYMMDD_HHMMSS.ext`로 변경.
+  - 관련 파일
     - `lib/screens/drawing/dialogs/defect_details_dialog.dart`
-- 寃利?  - `flutter test` ?꾩껜 ?듦낵
-  - ?ㅼ젣 ???섎룞 ?뺤씤?먯꽌 ?묐몢???놁씠 湲곕????뚯씪紐??쒖떆
+- 검증
+  - `flutter test` 전체 통과
+  - 실제 앱 수동 확인에서 접두사 없이 기대한 파일명 표시
 
 ---
 
-## 12. ?묒뾽 ?묒뾽 洹쒖튃
+## 12. 협업 작업 규칙
 
-1. 吏꾪뻾 ?⑥쐞??`Step` 湲곗??쇰줈 怨좎젙?쒕떎.
-2. 留?Step留덈떎
-   - 援ы쁽/?섏젙
-   - ?먮룞 寃利?`flutter test`, ?꾩슂 ??`flutter analyze`)
-   - ?ъ슜???섎룞 ?뚯뒪???붿껌
-   - ?ъ슜??寃곌낵 ?뺤씤
-   ?쒖꽌濡?吏꾪뻾?쒕떎.
-3. ?섎룞 ?뚯뒪?몃뒗 Codex媛 ?쒕굹由ъ삤 紐⑸줉???쒖떆?섍퀬, ?ъ슜?먭? ?ㅽ뻾 ??寃곌낵瑜?怨듭쑀?쒕떎.
-4. Phase 醫낅즺 ??濡쒕뱶留?臾몄꽌瑜?諛섎뱶??媛깆떊?섎ŉ, 媛?Step蹂꾨줈 ?꾨옒瑜?湲곕줉?쒕떎.
-   - ?섏젙 ?뚯씪
-   - ?듭떖 ?섏젙 ?댁슜
-   - ?먮룞 寃利?寃곌낵
-   - ?섎룞 寃利?寃곌낵
-5. Phase/Step 怨꾪쉷???녿뜕 湲곕뒫 ?섏젙? `## 11. 濡쒕뱶留???湲곕뒫 ?섏젙 濡쒓렇`??蹂꾨룄濡?湲곕줉?쒕떎.
-6. 而ㅻ컠/?몄떆??Codex媛 ?먮룞 ?섑뻾?쒕떎(蹂꾨룄 ?뺤씤 吏덈Ц ?놁씠 吏꾪뻾).
-7. 而ㅻ컠 ?꾩뿉???꾨옒 ?먮룞 ?앹꽦 ?뚯씪????긽 `git restore`濡??뺣━?쒕떎.
+1. 진행 단위는 `Step` 기준으로 고정한다.
+2. 매 Step마다
+   - 구현/수정
+   - 자동 검증(`flutter test`, 필요 시 `flutter analyze`)
+   - 사용자 수동 테스트 요청
+   - 사용자 결과 확인
+   순서로 진행한다.
+3. 수동 테스트는 Codex가 시나리오 목록을 제시하고, 사용자가 실행 후 결과를 공유한다.
+4. Phase 종료 시 로드맵 문서를 반드시 갱신하며, 각 Step별로 아래를 기록한다.
+   - 수정 파일
+   - 핵심 수정 내용
+   - 자동 검증 결과
+   - 수동 검증 결과
+5. Phase/Step 계획에 없던 기능 수정은 `## 11. 로드맵 외 기능 수정 로그`에 별도로 기록한다.
+6. 커밋/푸시는 Codex가 자동 수행한다(별도 확인 질문 없이 진행).
+7. 커밋 전에는 아래 자동 생성 파일을 항상 `git restore`로 정리한다.
    - `linux/flutter/generated_plugin_registrant.cc`
    - `linux/flutter/generated_plugins.cmake`
    - `macos/Flutter/GeneratedPluginRegistrant.swift`
    - `windows/flutter/generated_plugin_registrant.cc`
    - `windows/flutter/generated_plugins.cmake`
-
-
-

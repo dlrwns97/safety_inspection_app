@@ -3527,11 +3527,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('\uCDE8\uC18C'),
+              child: const Text('취소'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('\uD655\uC778'),
+              child: const Text('확인'),
             ),
           ],
         );
@@ -3548,9 +3548,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     if (!await _confirmClear(
-      title: '\uD604\uC7AC \uD398\uC774\uC9C0 \uC804\uCCB4 \uC9C0\uC6B0\uAE30',
+      title: '현재 페이지 전체 지우기',
       message:
-          '\uD604\uC7AC \uD398\uC774\uC9C0\uC758 \uBAA8\uB4E0 \uADF8\uB9AC\uAE30 \uC694\uC18C\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+          '현재 페이지의 모든 그리기 요소를 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -3590,9 +3590,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     if (!await _confirmClear(
       title:
-          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+          '현재 페이지에서 형광펜만 지우기',
       message:
-          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+          '현재 페이지에서 형광펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -3629,9 +3629,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     if (!await _confirmClear(
       title:
-          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+          '현재 페이지에서 펜만 지우기',
       message:
-          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+          '현재 페이지에서 펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -4494,3 +4494,4 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _pdfController?.jumpToPage(nextPage);
   }
 }
+
