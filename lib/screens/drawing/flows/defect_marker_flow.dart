@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:safety_inspection_app/application/inspection/use_cases/create_defect_marker_use_case.dart';
 
-import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
+
+final CreateDefectMarkerUseCase _createDefectMarkerUseCase =
+    CreateDefectMarkerUseCase();
 
 Future<Site?> createDefectIfConfirmed({
   required BuildContext context,
@@ -19,30 +21,13 @@ Future<Site?> createDefectIfConfirmed({
   )
   showDefectDetailsDialog,
 }) async {
-  final defectId = DateTime.now().microsecondsSinceEpoch.toString();
-  final detailsResult = await showDefectDetailsDialog(context, defectId);
-  if (detailsResult == null) {
-    return null;
-  }
-
-  final countOnPage = site.defects
-      .where(
-        (defect) =>
-            defect.pageIndex == pageIndex && defect.category == activeCategory,
-      )
-      .length;
-  final labelPrefix = defectLabelPrefix(activeCategory);
-  final label = '$labelPrefix${countOnPage + 1}';
-
-  final defect = Defect(
-    id: defectId,
-    label: label,
+  return _createDefectMarkerUseCase.execute(
+    context: context,
+    site: site,
     pageIndex: pageIndex,
-    category: activeCategory,
     normalizedX: normalizedX,
     normalizedY: normalizedY,
-    details: detailsResult,
+    activeCategory: activeCategory,
+    showDefectDetailsDialog: showDefectDetailsDialog,
   );
-
-  return site.copyWith(defects: [...site.defects, defect]);
 }
