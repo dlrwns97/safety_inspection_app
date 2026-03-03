@@ -642,7 +642,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('?????묎덩?????됰꽡???怨?????덊렡')));
+        ..showSnackBar(
+          const SnackBar(content: Text('?????묎덩?????됰꽡???怨?????덊렡')),
+        );
     }
   }
 
@@ -669,7 +671,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('????????됰꽡????? ???⑤챶裕?????潁뺛깾逾녜뇡??? ????⒱봼???????怨?????덊렡')),
+          const SnackBar(
+            content: Text(
+              '????????됰꽡????? ???⑤챶裕?????潁뺛깾逾녜뇡??? ????⒱봼???????怨?????덊렡',
+            ),
+          ),
         );
     }
     if (mounted) {
@@ -3400,179 +3406,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return points;
   }
 
-  Offset _applyStraightenSamsungLike({
-    required int pointerId,
-    required DrawingStroke inProgressStroke,
-    required Offset normalized,
-    required Size destSize,
-    bool applyToHighlighter = false,
-  }) {
-    final isHighlighterFamily = _isHighlighterFamilyVariant(
-      inProgressStroke.style.variant,
-    );
-    final isPenFamily =
-        inProgressStroke.style.kind == StrokeToolKind.pen &&
-        !isHighlighterFamily;
-    final shouldApply =
-        _isStraightenModeEnabled &&
-        (isPenFamily || (applyToHighlighter && isHighlighterFamily));
-    if (!shouldApply) {
-      return normalized;
-    }
-    if (destSize.width <= 0 || destSize.height <= 0) {
-      return normalized;
-    }
-    if (inProgressStroke.pointsNorm.isEmpty) {
-      return normalized;
-    }
-
-    final cachedStart = _straightenStartPageByPointer[pointerId];
-    final startNorm = inProgressStroke.pointsNorm.first;
-    final startPage =
-        cachedStart ??
-        Offset(startNorm.dx * destSize.width, startNorm.dy * destSize.height);
-    if (cachedStart == null) {
-      _straightenStartPageByPointer[pointerId] = startPage;
-    }
-
-    final rawPage = Offset(
-      normalized.dx * destSize.width,
-      normalized.dy * destSize.height,
-    );
-    final vector = rawPage - startPage;
-    final absDx = vector.dx.abs();
-    final absDy = vector.dy.abs();
-    if (vector.distance < _DrawingScreenState.kMinDragToConsiderSnapPx) {
-      return normalized;
-    }
-
-    const axisRatio = 1.35;
-    if (absDx > absDy * axisRatio) {
-      _straightenSnappedAngleByPointer.remove(pointerId);
-      final snappedPage = Offset(startPage.dx + vector.dx, startPage.dy);
-      assert(() {
-        debugPrint(
-          '[Drawing][Straighten] axis-first horizontal '
-          'rawDx=${vector.dx.toStringAsFixed(2)} '
-          'rawDy=${vector.dy.toStringAsFixed(2)} '
-          'absDx=${absDx.toStringAsFixed(2)} '
-          'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
-        );
-        return true;
-      }());
-      return Offset(
-        snappedPage.dx / destSize.width,
-        snappedPage.dy / destSize.height,
-      );
-    }
-    if (absDy > absDx * axisRatio) {
-      _straightenSnappedAngleByPointer.remove(pointerId);
-      final snappedPage = Offset(startPage.dx, startPage.dy + vector.dy);
-      assert(() {
-        debugPrint(
-          '[Drawing][Straighten] axis-first vertical '
-          'rawDx=${vector.dx.toStringAsFixed(2)} '
-          'rawDy=${vector.dy.toStringAsFixed(2)} '
-          'absDx=${absDx.toStringAsFixed(2)} '
-          'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
-        );
-        return true;
-      }());
-      return Offset(
-        snappedPage.dx / destSize.width,
-        snappedPage.dy / destSize.height,
-      );
-    }
-
-    final vectorDistance = vector.distance;
-    if (vectorDistance <= 0) {
-      return normalized;
-    }
-    final vHat = Offset(vector.dx / vectorDistance, vector.dy / vectorDistance);
-    const kPenAndMarkerAnglesDeg = <double>[0, 45, 90, 135];
-    const kHighlighterAnglesDeg = <double>[0, 45, 90, 135];
-    final candidateAnglesDeg = (applyToHighlighter && isHighlighterFamily)
-        ? kHighlighterAnglesDeg
-        : kPenAndMarkerAnglesDeg;
-    final candidateAxes = candidateAnglesDeg
-        .map((angleDeg) {
-          final rad = angleDeg * math.pi / 180.0;
-          return Offset(math.cos(rad), math.sin(rad));
-        })
-        .toList(growable: false);
-
-    Offset nearestAxis = candidateAxes.first;
-    var bestScore = (vHat.dx * nearestAxis.dx + vHat.dy * nearestAxis.dy).abs();
-    for (final axis in candidateAxes.skip(1)) {
-      final score = (vHat.dx * axis.dx + vHat.dy * axis.dy).abs();
-      if (score > bestScore) {
-        nearestAxis = axis;
-        bestScore = score;
-      }
-    }
-    final nearestDelta = math.acos(bestScore.clamp(0.0, 1.0));
-    final nearest = math.atan2(nearestAxis.dy, nearestAxis.dx);
-
-    final enterRad = _DrawingScreenState.kEnterSnapDeg * math.pi / 180.0;
-    final exitRad = _DrawingScreenState.kExitSnapDeg * math.pi / 180.0;
-    var snappedAngle = _straightenSnappedAngleByPointer[pointerId];
-
-    if (snappedAngle == null) {
-      if (nearestDelta <= enterRad) {
-        snappedAngle = nearest;
-        _straightenSnappedAngleByPointer[pointerId] = snappedAngle;
-      } else {
-        return normalized;
-      }
-    } else {
-      final snappedAxis = Offset(
-        math.cos(snappedAngle),
-        math.sin(snappedAngle),
-      );
-      final snappedScore = (vHat.dx * snappedAxis.dx + vHat.dy * snappedAxis.dy)
-          .abs();
-      final deltaFromCurrent = math.acos(snappedScore.clamp(0.0, 1.0));
-      if (deltaFromCurrent >= exitRad) {
-        _straightenSnappedAngleByPointer[pointerId] = null;
-        return normalized;
-      }
-    }
-
-    Offset snappedPage;
-    final normalizedAngle = snappedAngle.abs() % math.pi;
-    final isHorizontalSnap =
-        normalizedAngle <= 1e-6 || (math.pi - normalizedAngle) <= 1e-6;
-    final isVerticalSnap = (normalizedAngle - (math.pi / 2)).abs() <= 1e-6;
-    if (isHorizontalSnap) {
-      snappedPage = Offset(rawPage.dx, startPage.dy);
-    } else if (isVerticalSnap) {
-      snappedPage = Offset(startPage.dx, rawPage.dy);
-    } else {
-      var unit = Offset(math.cos(snappedAngle), math.sin(snappedAngle));
-      var t = vector.dx * unit.dx + vector.dy * unit.dy;
-      if (t < 0) {
-        unit = Offset(-unit.dx, -unit.dy);
-        t = -t;
-      }
-      snappedPage = Offset(
-        startPage.dx + unit.dx * t,
-        startPage.dy + unit.dy * t,
-      );
-    }
-    assert(() {
-      debugPrint(
-        '[Drawing][Straighten] snap rawDx=${vector.dx.toStringAsFixed(2)} '
-        'rawDy=${vector.dy.toStringAsFixed(2)} absDx=${absDx.toStringAsFixed(2)} '
-        'absDy=${absDy.toStringAsFixed(2)} snappedPage=$snappedPage',
-      );
-      return true;
-    }());
-    return Offset(
-      snappedPage.dx / destSize.width,
-      snappedPage.dy / destSize.height,
-    );
-  }
-
   void _handleFreeDrawPointerEnd(int pageNumber, {required int pointerId}) {
     if (_activeStylusPointerId == pointerId) {
       _activeStylusPointerId = null;
@@ -3716,7 +3549,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!await _confirmClear(
       title: '\uD604\uC7AC \uD398\uC774\uC9C0 \uC804\uCCB4 \uC9C0\uC6B0\uAE30',
-      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC758 \uBAA8\uB4E0 \uADF8\uB9AC\uAE30 \uC694\uC18C\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+      message:
+          '\uD604\uC7AC \uD398\uC774\uC9C0\uC758 \uBAA8\uB4E0 \uADF8\uB9AC\uAE30 \uC694\uC18C\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }
@@ -3755,8 +3589,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uB9CC \uC9C0\uC6B0\uAE30',
-      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+      title:
+          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+      message:
+          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD615\uAD11\uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }
@@ -3792,8 +3628,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uB9CC \uC9C0\uC6B0\uAE30',
-      message: '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+      title:
+          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uB9CC \uC9C0\uC6B0\uAE30',
+      message:
+          '\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0\uC11C \uD39C\uC73C\uB85C \uADF8\uB9B0 \uC694\uC18C\uB9CC \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
     )) {
       return;
     }

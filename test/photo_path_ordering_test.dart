@@ -68,5 +68,25 @@ void main() {
       expect(identical(result, original), isFalse);
       expect(result, ['/root/1.jpg', '/root/2.jpg', '/root/3.jpg']);
     });
+
+    test('G. duplicate no-op when drive letter differs only by case', () {
+      final result = insertPreservingReferenceOrder(
+        photoPaths: ['C:\\a\\2.jpg'],
+        restoreKey: 'c:/a/2.jpg',
+        normalizeKey: photoReferenceKey,
+      );
+
+      expect(result, ['C:\\a\\2.jpg']);
+    });
+
+    test('H. duplicate no-op when trailing slash differs', () {
+      final result = insertPreservingReferenceOrder(
+        photoPaths: ['/root/a/2.jpg'],
+        restoreKey: '/root/a/2.jpg/',
+        normalizeKey: photoReferenceKey,
+      );
+
+      expect(result, ['/root/a/2.jpg']);
+    });
   });
 }

@@ -76,7 +76,18 @@ bool _isAllowedImagePath(String path) {
 }
 
 String photoReferenceKey(String path) {
-  return p.normalize(path).replaceAll('\\', '/');
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+
+  var normalized = p.normalize(trimmed).replaceAll('\\', '/');
+  normalized = normalized.replaceAll(RegExp('/+'), '/');
+  normalized = normalized.replaceFirst(RegExp(r'^[A-Za-z]:(?=/|$)'), '');
+  if (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.substring(0, normalized.length - 1);
+  }
+  return normalized;
 }
 
 String extractOrphanFileName(FileSystemEntity entity) {

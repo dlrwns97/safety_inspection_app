@@ -144,7 +144,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
   bool _isFreeDrawMode = false;
-  bool _isToolPanelOpen = true;
   DrawingTool _activeTool = DrawingTool.pen;
   ShapeType _activeShapeType = ShapeType.rectangle;
   static const double _kMinAreaEraserRadiusPx = 6.0;
@@ -169,10 +168,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isStraightenSnapEnabled = true;
   final Map<int, double?> _straightenSnappedAngleByPointer = <int, double?>{};
   final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
-  static const double kMinDragToConsiderSnapPx = 12.0;
-  static const double kEnterSnapDeg = 7.0;
-  static const double kExitSnapDeg = 12.0;
-  static const List<double> kAnglesDeg = <double>[0, 45, 90, 135, 180];
   bool _isFreeDrawConsumingOneFinger = false;
   PhotoViewControllerValue? _navStartValue;
   int? _navStartPage;
@@ -181,7 +176,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   Offset? _pendingDrawDownViewportLocal;
   bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
-  bool _didShowFreeDrawGuide = false;
   final SettingsPopoverController _settingsPopover =
       SettingsPopoverController();
   final LayerLink _penLink = LayerLink();
@@ -223,12 +217,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final List<StrokeStyle> _presets = StrokePresets.defaults();
   static const double _kDefaultHighlighterOpacity = 0.35;
   static const double _kDefaultMarkerOpacity = 0.80;
-  static const Set<PenVariant> penVariants = <PenVariant>{
-    PenVariant.pen,
-    PenVariant.fountainPen,
-    PenVariant.calligraphyPen,
-    PenVariant.pencil,
-  };
   static const Set<PenVariant> highlighterVariants = <PenVariant>{
     PenVariant.highlighter,
     PenVariant.marker,
@@ -346,29 +334,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     return _activeToolKindForToolbar;
   }
 
-  void _setToolPanelOpen(bool value) =>
-      _safeSetState(() => _isToolPanelOpen = value);
-
-  void _toggleActivePreset(int index) {
-    final normalizedIndex = _clampPresetIndex(index);
-    final shouldUnselect = _activePresetIndex == normalizedIndex;
-    if (shouldUnselect && _inProgressStroke != null) {
-      _handleFreeDrawEnd(_inProgressStroke?.pageNumber ?? _currentPage);
-    }
-    _safeSetState(() {
-      _activePresetIndex = shouldUnselect ? null : normalizedIndex;
-      if (!shouldUnselect) {
-        _activeTool = DrawingTool.pen;
-      }
-      if (_activePresetIndex == null) {
-        _isFreeDrawConsumingOneFinger = false;
-        _pendingDraw = false;
-        _pendingDrawDownViewportLocal = null;
-        _activeStylusPointerId = null;
-      }
-    });
-  }
-
   List<int> _buildRecentColors(List<int> current, int nextArgb) {
     final nextRgb = Color(nextArgb).withAlpha(0xFF).value;
     final updated = <int>[nextRgb, ...current.where((argb) => argb != nextRgb)];
@@ -384,22 +349,8 @@ class _DrawingScreenState extends State<DrawingScreen>
     });
   }
 
-  bool _isMarkerVariant(PenVariant variant) {
-    return variant == PenVariant.marker;
-  }
-
   bool _isHighlighterFamilyVariant(PenVariant variant) {
     return highlighterVariants.contains(variant);
-  }
-
-  bool _isPenFamilyVariant(PenVariant variant) {
-    return penVariants.contains(variant);
-  }
-
-  PenVariant _defaultVariantForFamily(ToolFamily family) {
-    return family == ToolFamily.highlighter
-        ? PenVariant.highlighter
-        : PenVariant.pen;
   }
 
   PenUiType _penUiTypeFromVariant(PenVariant variant) {
@@ -501,36 +452,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     _highlighterOpacityNotifier.value = _currentHlOpacity;
     _highlighterColorNotifier.value = _currentHlColor;
   }
-
-  void _updateActivePreset(StrokeStyle next) {
-    final index = _activePresetIndex;
-    if (index == null) {
-      return;
-    }
-    final normalizedIndex = _clampPresetIndex(index);
-    _safeSetState(() {
-      _presets[normalizedIndex] = next;
-      _activeFamily = next.kind == StrokeToolKind.highlighter
-          ? ToolFamily.highlighter
-          : ToolFamily.pen;
-      if (_activeFamily == ToolFamily.highlighter) {
-        _activeHighlighterType = _highlighterUiTypeFromVariant(next.variant);
-        _currentHlWidth = next.widthPx;
-        _currentHlOpacity = next.opacity;
-        _currentHlColor = Color(next.argbColor);
-        _saveHighlighterType(_activeHighlighterType);
-      } else {
-        _activePenType = _penUiTypeFromVariant(next.variant);
-        _currentPenWidth = next.widthPx;
-        _currentPenColor = Color(next.argbColor);
-        _savePenType(_activePenType);
-      }
-    });
-  }
-
-  PenVariant get _currentVariant => _activeFamily == ToolFamily.highlighter
-      ? _highlighterVariantFromUiType(_activeHighlighterType)
-      : _penVariantFromUiType(_activePenType);
 
   void _savePenType(PenUiType t) {
     _penWidthByType[t] = _currentPenWidth;
@@ -848,14 +769,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     unawaited(_saveDrawingSettings());
   }
 
-  void _switchVariant(PenVariant newVariant) {
-    if (_isHighlighterFamilyVariant(newVariant)) {
-      _switchHighlighterType(_highlighterUiTypeFromVariant(newVariant));
-      return;
-    }
-    _switchPenType(_penUiTypeFromVariant(newVariant));
-  }
-
   void _handlePenVariantChanged(PenVariant variant) {
     final nextType = _penUiTypeFromVariant(variant);
     if (_activeFamily != ToolFamily.pen) {
@@ -951,36 +864,6 @@ class _DrawingScreenState extends State<DrawingScreen>
           ..clear()
           ..addAll(updatedRecent);
       }
-    });
-  }
-
-  void _applyPresetWithRecentColor(StrokeStyle next) {
-    final index = _activePresetIndex;
-    if (index == null) {
-      return;
-    }
-    final normalizedIndex = _clampPresetIndex(index);
-    _safeSetState(() {
-      _activeFamily = next.kind == StrokeToolKind.highlighter
-          ? ToolFamily.highlighter
-          : ToolFamily.pen;
-      if (_activeFamily == ToolFamily.highlighter) {
-        _activeHighlighterType = _highlighterUiTypeFromVariant(next.variant);
-        _currentHlWidth = next.widthPx;
-        _currentHlOpacity = next.opacity;
-        _currentHlColor = Color(next.argbColor);
-        _saveHighlighterType(_activeHighlighterType);
-      } else {
-        _activePenType = _penUiTypeFromVariant(next.variant);
-        _currentPenWidth = next.widthPx;
-        _currentPenColor = Color(next.argbColor);
-        _savePenType(_activePenType);
-      }
-      _presets[normalizedIndex] = next;
-      final updatedRecent = _buildRecentColors(_recentArgb, next.argbColor);
-      _recentArgb
-        ..clear()
-        ..addAll(updatedRecent);
     });
   }
 
