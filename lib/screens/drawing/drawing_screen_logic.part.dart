@@ -385,13 +385,41 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     await prefs.setString(_pdfPageSizeCacheKeyForSite(_site), jsonEncode(map));
   }
 
+  void _applyPdfLoadResult({
+    required PdfController? controller,
+    required String? error,
+    required Map<int, Size> clearedPageSizes,
+    required int pageCount,
+    required int currentPage,
+  }) {
+    _safeSetState(() {
+      _pdfViewVersion += 1;
+      _pdfController = controller;
+      _pdfLoadError = error;
+      if (error != null) {
+        return;
+      }
+      if (clearedPageSizes.isNotEmpty) {
+        _pdfPageSizes
+          ..clear()
+          ..addAll(clearedPageSizes);
+      }
+      _pageCount = pageCount;
+      _currentPage = currentPage;
+    });
+  }
+
   Future<void> _loadPdfController() async {
     final path = _site.pdfPath;
     if (path == null || path.isEmpty) {
       return;
     }
     final previousController = _pdfController;
-    _pdfController = null;
+    _safeSetState(() {
+      _pdfController = null;
+      _pdfLoadError = null;
+      _pdfViewVersion += 1;
+    });
     final result = await loadPdfControllerForSite(
       site: _site,
       previousController: previousController,
@@ -399,23 +427,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!mounted || result == null) {
       return;
     }
-    _safeSetState(() {
-      _pdfController = result.controller;
-      _pdfLoadError = result.error;
-      if (result.error == null) {
-        if (result.clearedPageSizes.isNotEmpty) {
-          _pdfPageSizes
-            ..clear()
-            ..addAll(result.clearedPageSizes);
-        }
-        _pageCount = result.pageCount;
-        _currentPage = result.currentPage;
-      }
-    });
+    _applyPdfLoadResult(
+      controller: result.controller,
+      error: result.error,
+      clearedPageSizes: result.clearedPageSizes,
+      pageCount: result.pageCount,
+      currentPage: result.currentPage,
+    );
   }
 
   Future<void> _replacePdf() async {
-    final result = await replacePdfAndUpdateSite(site: _site);
+    final result = await replacePdfAndUpdateSite(
+      site: _site,
+      confirmReplace: _confirmPdfReplacement,
+    );
     if (!mounted || result == null) {
       return;
     }
@@ -432,12 +457,38 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _pdfPageSizes.clear();
         _currentPage = 1;
         _pageCount = 1;
+        _pdfLoadError = null;
+        _pdfViewVersion += 1;
       },
     );
     if (!mounted) {
       return;
     }
     await _loadPdfController();
+  }
+
+  Future<bool> _confirmPdfReplacement(String fileName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('PDF 교체 확인'),
+          content: Text("'$fileName' 파일로 도면을 교체하시겠습니까?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('교체'),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
   }
 
   void _clearSelectionAndPopup({bool inSetState = true}) {
@@ -3549,8 +3600,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     if (!await _confirmClear(
       title: '현재 페이지 전체 지우기',
-      message:
-          '현재 페이지의 모든 그리기 요소를 삭제합니다. 계속하시겠습니까?',
+      message: '현재 페이지의 모든 그리기 요소를 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -3589,10 +3639,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title:
-          '현재 페이지에서 형광펜만 지우기',
-      message:
-          '현재 페이지에서 형광펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
+      title: '현재 페이지에서 형광펜만 지우기',
+      message: '현재 페이지에서 형광펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -3628,10 +3676,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     if (!await _confirmClear(
-      title:
-          '현재 페이지에서 펜만 지우기',
-      message:
-          '현재 페이지에서 펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
+      title: '현재 페이지에서 펜만 지우기',
+      message: '현재 페이지에서 펜으로 그린 요소만 삭제합니다. 계속하시겠습니까?',
     )) {
       return;
     }
@@ -4494,4 +4540,3 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _pdfController?.jumpToPage(nextPage);
   }
 }
-
