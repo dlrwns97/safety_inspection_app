@@ -427,7 +427,7 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     final extension = p.extension(sourcePath).isEmpty
         ? '.jpg'
         : p.extension(sourcePath);
-    return 'IMG_${year}${month}${day}_$hour$minute$second$extension';
+    return '${year}${month}${day}_$hour$minute$second$extension';
   }
 
   void _storePhotoOriginalNames(
