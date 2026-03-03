@@ -210,7 +210,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   panelButton(
                     icon: Icons.straighten,
                     selected: _isStraightenModeEnabled,
-                    tooltip: 'Shape settings',
+                    tooltip: '도형 설정',
                     onTap: () {
                       _safeSetState(() {
                         _isStraightenModeEnabled = !_isStraightenModeEnabled;
@@ -1687,7 +1687,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           });
                         },
                       ),
-                      const Text('Shape settings'),
+                      const Text('도형 설정'),
                       const SizedBox(width: 10),
                       Checkbox(
                         value: rotateSnap,
@@ -1708,7 +1708,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(width: 72, child: Text('Line color')),
+                      const SizedBox(width: 72, child: Text('선 색상')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1730,7 +1730,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip: 'Pick custom stroke color',
+                              tooltip: '선 색상 직접 선택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1813,7 +1813,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text('Fill color'),
+                            child: const Text('채우기 색상'),
                           ),
                         ),
                       ),
@@ -1843,7 +1843,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip: 'Pick custom fill color',
+                                  tooltip: '채우기 색상 직접 선택',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -1918,7 +1918,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                   const SizedBox(height: 8),
                   buildSliderRow(
-                    label: 'Width',
+                    label: '굵기',
                     value: draftWidth,
                     min: 1.0,
                     max: 48.0,
@@ -1935,7 +1935,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     },
                   ),
                   buildSliderRow(
-                    label: 'Opacity',
+                    label: '투명도',
                     value: draftOpacity,
                     min: 0.05,
                     max: 1.0,
@@ -1974,10 +1974,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   String _labelForShapeType(ShapeType type) {
     return switch (type) {
-      ShapeType.rectangle => 'Rectangle',
-      ShapeType.circle => 'Circle',
-      ShapeType.triangle => 'Triangle',
-      ShapeType.hShape => 'H Shape',
+      ShapeType.rectangle => '사각형',
+      ShapeType.circle => '원형',
+      ShapeType.triangle => '삼각형',
+      ShapeType.hShape => 'H 모형',
     };
   }
 
@@ -1996,14 +1996,14 @@ extension _DrawingScreenUi on _DrawingScreenState {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _cancelMoveMode,
-                  child: const Text('Cancel'),
+                  child: const Text('취소'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: canCommit ? _commitMovePreview : null,
-                  child: const Text('Apply'),
+                  child: const Text('적용'),
                 ),
               ),
             ],
