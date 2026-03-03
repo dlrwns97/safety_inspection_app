@@ -745,3 +745,29 @@ flutter analyze
 - 검증
   - `flutter test` 전체 통과
   - 실제 앱 수동 확인에서 접두사 없이 기대한 파일명 표시
+
+---
+
+## 12. 협업 작업 규칙
+
+1. 진행 단위는 `Step` 기준으로 고정한다.
+2. 매 Step마다
+   - 구현/수정
+   - 자동 검증(`flutter test`, 필요 시 `flutter analyze`)
+   - 사용자 수동 테스트 요청
+   - 사용자 결과 확인
+   순서로 진행한다.
+3. 수동 테스트는 Codex가 시나리오 목록을 제시하고, 사용자가 실행 후 결과를 공유한다.
+4. Phase 종료 시 로드맵 문서를 반드시 갱신하며, 각 Step별로 아래를 기록한다.
+   - 수정 파일
+   - 핵심 수정 내용
+   - 자동 검증 결과
+   - 수동 검증 결과
+5. Phase/Step 계획에 없던 기능 수정은 `## 11. 로드맵 외 기능 수정 로그`에 별도로 기록한다.
+6. 커밋/푸시는 Codex가 자동 수행한다(별도 확인 질문 없이 진행).
+7. 커밋 전에는 아래 자동 생성 파일을 항상 `git restore`로 정리한다.
+   - `linux/flutter/generated_plugin_registrant.cc`
+   - `linux/flutter/generated_plugins.cmake`
+   - `macos/Flutter/GeneratedPluginRegistrant.swift`
+   - `windows/flutter/generated_plugin_registrant.cc`
+   - `windows/flutter/generated_plugins.cmake`
