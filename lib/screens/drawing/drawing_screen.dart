@@ -55,6 +55,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.da
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/marker_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/tool_state.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
@@ -106,6 +107,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
   final DrawingSessionState _sessionState = DrawingSessionState();
   final MarkerState _markerState = MarkerState();
+  final GestureState _gestureState = GestureState();
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
@@ -120,8 +122,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   double? _shapeRotateGestureStartRotationRad;
   double _shapeCreateThresholdNorm = 0.0;
   bool _shapeCreateHasMoved = false;
-  Offset? _pointerDownPosition;
-  bool _tapCanceled = false;
   bool _isDetailDialogOpen = false;
   double _markerScale = 1.0;
   double _labelScale = 1.0;
@@ -135,30 +135,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   static const double _kMinAreaEraserRadiusPx = 6.0;
   static const double _kMaxAreaEraserRadiusPx = 60.0;
   double _areaEraserRadiusPx = 24.0;
-  Offset? _eraserCursorPageLocal;
-  int? _eraserCursorPageNumber;
-  int? _activeAreaEraserPointerId;
-  _AreaEraserSession? _activeAreaEraserSession;
-  int? _activeStrokeEraserPointerId;
-  final Set<String> _erasedStrokeIdsThisDrag = <String>{};
-  int _erasedStrokeCountThisDrag = 0;
-  _PendingAreaEraserMove? _pendingAreaEraserMove;
-  final List<_PendingAreaEraserMove> _areaEraserPath =
-      <_PendingAreaEraserMove>[];
-  bool _isAreaEraserFrameScheduled = false;
-  final Set<int> _activePointerIds = <int>{};
-  final Map<int, PointerDeviceKind> _activePointerKinds =
-      <int, PointerDeviceKind>{};
-  int? _activeStylusPointerId;
-  final Map<int, double?> _straightenSnappedAngleByPointer = <int, double?>{};
-  final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
-  bool _isFreeDrawConsumingOneFinger = false;
-  PhotoViewControllerValue? _navStartValue;
-  int? _navStartPage;
-  Offset _navAccumDelta = Offset.zero;
-  int _debugNavUpdateLogCount = 0;
-  Offset? _pendingDrawDownViewportLocal;
-  bool _pendingDraw = false;
   static const double _kDrawStartSlopPx = 4.0;
   final SettingsPopoverController _settingsPopover =
       SettingsPopoverController();
@@ -322,6 +298,120 @@ class _DrawingScreenState extends State<DrawingScreen>
   int get _sidePanelTabIndex => _markerState.sidePanelTabIndex;
   set _sidePanelTabIndex(int value) {
     _markerState.sidePanelTabIndex = value.clamp(0, 3).toInt();
+  }
+
+  Offset? get _pointerDownPosition => _gestureState.pointerDownPosition;
+  set _pointerDownPosition(Offset? value) {
+    _gestureState.pointerDownPosition = value;
+  }
+
+  bool get _tapCanceled => _gestureState.tapCanceled;
+  set _tapCanceled(bool value) {
+    _gestureState.tapCanceled = value;
+  }
+
+  Offset? get _eraserCursorPageLocal => _gestureState.eraserCursorPageLocal;
+  set _eraserCursorPageLocal(Offset? value) {
+    _gestureState.eraserCursorPageLocal = value;
+  }
+
+  int? get _eraserCursorPageNumber => _gestureState.eraserCursorPageNumber;
+  set _eraserCursorPageNumber(int? value) {
+    _gestureState.eraserCursorPageNumber = value;
+  }
+
+  int? get _activeAreaEraserPointerId =>
+      _gestureState.activeAreaEraserPointerId;
+  set _activeAreaEraserPointerId(int? value) {
+    _gestureState.activeAreaEraserPointerId = value;
+  }
+
+  AreaEraserSession? get _activeAreaEraserSession =>
+      _gestureState.activeAreaEraserSession;
+  set _activeAreaEraserSession(AreaEraserSession? value) {
+    _gestureState.activeAreaEraserSession = value;
+  }
+
+  int? get _activeStrokeEraserPointerId =>
+      _gestureState.activeStrokeEraserPointerId;
+  set _activeStrokeEraserPointerId(int? value) {
+    _gestureState.activeStrokeEraserPointerId = value;
+  }
+
+  Set<String> get _erasedStrokeIdsThisDrag =>
+      _gestureState.erasedStrokeIdsThisDrag;
+
+  int get _erasedStrokeCountThisDrag => _gestureState.erasedStrokeCountThisDrag;
+  set _erasedStrokeCountThisDrag(int value) {
+    _gestureState.erasedStrokeCountThisDrag = value;
+  }
+
+  PendingAreaEraserMove? get _pendingAreaEraserMove =>
+      _gestureState.pendingAreaEraserMove;
+  set _pendingAreaEraserMove(PendingAreaEraserMove? value) {
+    _gestureState.pendingAreaEraserMove = value;
+  }
+
+  List<PendingAreaEraserMove> get _areaEraserPath =>
+      _gestureState.areaEraserPath;
+
+  bool get _isAreaEraserFrameScheduled =>
+      _gestureState.isAreaEraserFrameScheduled;
+  set _isAreaEraserFrameScheduled(bool value) {
+    _gestureState.isAreaEraserFrameScheduled = value;
+  }
+
+  Set<int> get _activePointerIds => _gestureState.activePointerIds;
+
+  Map<int, PointerDeviceKind> get _activePointerKinds =>
+      _gestureState.activePointerKinds;
+
+  int? get _activeStylusPointerId => _gestureState.activeStylusPointerId;
+  set _activeStylusPointerId(int? value) {
+    _gestureState.activeStylusPointerId = value;
+  }
+
+  Map<int, double?> get _straightenSnappedAngleByPointer =>
+      _gestureState.straightenSnappedAngleByPointer;
+
+  Map<int, Offset> get _straightenStartPageByPointer =>
+      _gestureState.straightenStartPageByPointer;
+
+  bool get _isFreeDrawConsumingOneFinger =>
+      _gestureState.isFreeDrawConsumingOneFinger;
+  set _isFreeDrawConsumingOneFinger(bool value) {
+    _gestureState.isFreeDrawConsumingOneFinger = value;
+  }
+
+  PhotoViewControllerValue? get _navStartValue => _gestureState.navStartValue;
+  set _navStartValue(PhotoViewControllerValue? value) {
+    _gestureState.navStartValue = value;
+  }
+
+  int? get _navStartPage => _gestureState.navStartPage;
+  set _navStartPage(int? value) {
+    _gestureState.navStartPage = value;
+  }
+
+  Offset get _navAccumDelta => _gestureState.navAccumDelta;
+  set _navAccumDelta(Offset value) {
+    _gestureState.navAccumDelta = value;
+  }
+
+  int get _debugNavUpdateLogCount => _gestureState.debugNavUpdateLogCount;
+  set _debugNavUpdateLogCount(int value) {
+    _gestureState.debugNavUpdateLogCount = value;
+  }
+
+  Offset? get _pendingDrawDownViewportLocal =>
+      _gestureState.pendingDrawDownViewportLocal;
+  set _pendingDrawDownViewportLocal(Offset? value) {
+    _gestureState.pendingDrawDownViewportLocal = value;
+  }
+
+  bool get _pendingDraw => _gestureState.pendingDraw;
+  set _pendingDraw(bool value) {
+    _gestureState.pendingDraw = value;
   }
 
   DrawingTool get _activeTool => _toolState.activeTool;

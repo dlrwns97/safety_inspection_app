@@ -1,99 +1,5 @@
 part of 'drawing_screen.dart';
 
-class _PendingAreaEraserMove {
-  const _PendingAreaEraserMove({
-    required this.pageNumber,
-    required this.pageSize,
-    required this.pageLocal,
-    required this.radiusPagePx,
-  });
-
-  final int pageNumber;
-  final Size pageSize;
-  final Offset pageLocal;
-  final double radiusPagePx;
-}
-
-class _PendingFreeDrawMove {
-  const _PendingFreeDrawMove({
-    required this.pointerId,
-    required this.pageNumber,
-    required this.pageSize,
-    required this.normalized,
-    required this.photoScale,
-  });
-
-  final int pointerId;
-  final int pageNumber;
-  final Size pageSize;
-  final Offset normalized;
-  final double photoScale;
-}
-
-class _PendingStraightenCommit {
-  const _PendingStraightenCommit({
-    required this.snappedPageExact,
-    required this.destSize,
-    required this.photoScale,
-  });
-
-  final Offset snappedPageExact;
-  final Size destSize;
-  final double photoScale;
-}
-
-class _AreaEraserSession {
-  const _AreaEraserSession({
-    required this.radius,
-    this.removedStrokeIds = const <String>{},
-    this.processedStrokeIds = const <String>{},
-    this.removedById = const <String, DrawingStroke>{},
-    this.addedById = const <String, DrawingStroke>{},
-  });
-
-  final double radius;
-  final Set<String> removedStrokeIds;
-  final Set<String> processedStrokeIds;
-  final Map<String, DrawingStroke> removedById;
-  final Map<String, DrawingStroke> addedById;
-
-  _AreaEraserSession copyWith({
-    double? radius,
-    Set<String>? removedStrokeIds,
-    Set<String>? processedStrokeIds,
-    Map<String, DrawingStroke>? removedById,
-    Map<String, DrawingStroke>? addedById,
-  }) {
-    return _AreaEraserSession(
-      radius: radius ?? this.radius,
-      removedStrokeIds: removedStrokeIds ?? this.removedStrokeIds,
-      processedStrokeIds: processedStrokeIds ?? this.processedStrokeIds,
-      removedById: removedById ?? this.removedById,
-      addedById: addedById ?? this.addedById,
-    );
-  }
-}
-
-final Expando<_PendingFreeDrawMove> _pendingFreeDrawMoveByState =
-    Expando<_PendingFreeDrawMove>('pendingFreeDrawMoveByState');
-final Expando<bool> _isFreeDrawMoveScheduledByState = Expando<bool>(
-  'isFreeDrawMoveScheduledByState',
-);
-final Expando<int> _freeDrawCallsInWindowByState = Expando<int>(
-  'freeDrawCallsInWindowByState',
-);
-final Expando<int> _freeDrawUiMutationsInWindowByState = Expando<int>(
-  'freeDrawUiMutationsInWindowByState',
-);
-final Expando<DateTime> _freeDrawWindowStartByState = Expando<DateTime>(
-  'freeDrawWindowStartByState',
-);
-final Expando<Map<int, _PendingStraightenCommit>>
-_pendingStraightenCommitByPointerByState =
-    Expando<Map<int, _PendingStraightenCommit>>(
-      'pendingStraightenCommitByPointerByState',
-    );
-
 const double _kMinValidPdfPageSide = 200.0;
 
 typedef OverlayToPageLocal = Offset? Function(Offset overlayLocal);
@@ -105,22 +11,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _pendingStraightenCommitByPointer.clear();
   }
 
-  Map<int, _PendingStraightenCommit> get _pendingStraightenCommitByPointer =>
-      _pendingStraightenCommitByPointerByState[this] ??=
-          <int, _PendingStraightenCommit>{};
+  Map<int, PendingStraightenCommit> get _pendingStraightenCommitByPointer =>
+      _gestureState.pendingStraightenCommitByPointer;
 
-  _PendingFreeDrawMove? get _pendingFreeDrawMove =>
-      _pendingFreeDrawMoveByState[this];
+  PendingFreeDrawMove? get _pendingFreeDrawMove =>
+      _gestureState.pendingFreeDrawMove;
 
-  set _pendingFreeDrawMove(_PendingFreeDrawMove? value) {
-    _pendingFreeDrawMoveByState[this] = value;
+  set _pendingFreeDrawMove(PendingFreeDrawMove? value) {
+    _gestureState.pendingFreeDrawMove = value;
   }
 
-  bool get _isFreeDrawMoveScheduled =>
-      _isFreeDrawMoveScheduledByState[this] ?? false;
+  bool get _isFreeDrawMoveScheduled => _gestureState.isFreeDrawMoveScheduled;
 
   set _isFreeDrawMoveScheduled(bool value) {
-    _isFreeDrawMoveScheduledByState[this] = value;
+    _gestureState.isFreeDrawMoveScheduled = value;
   }
 
   void _handleCanvasCacheInvalidated() {
@@ -164,36 +68,34 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final now = DateTime.now();
-    final windowStart = _freeDrawWindowStartByState[this];
+    final windowStart = _gestureState.freeDrawWindowStart;
     if (windowStart == null) {
-      _freeDrawWindowStartByState[this] = now;
-      _freeDrawCallsInWindowByState[this] = 1;
-      _freeDrawUiMutationsInWindowByState[this] = 0;
+      _gestureState.freeDrawWindowStart = now;
+      _gestureState.freeDrawCallsInWindow = 1;
+      _gestureState.freeDrawUiMutationsInWindow = 0;
       return;
     }
 
-    _freeDrawCallsInWindowByState[this] =
-        (_freeDrawCallsInWindowByState[this] ?? 0) + 1;
+    _gestureState.freeDrawCallsInWindow += 1;
     final elapsedMs = now.difference(windowStart).inMilliseconds;
     if (elapsedMs < 1000) {
       return;
     }
 
     debugPrint(
-      '[Perf] freeDraw: calls/s=${_freeDrawCallsInWindowByState[this] ?? 0} '
-      'uiMutations/s=${_freeDrawUiMutationsInWindowByState[this] ?? 0}',
+      '[Perf] freeDraw: calls/s=${_gestureState.freeDrawCallsInWindow} '
+      'uiMutations/s=${_gestureState.freeDrawUiMutationsInWindow}',
     );
-    _freeDrawWindowStartByState[this] = now;
-    _freeDrawCallsInWindowByState[this] = 0;
-    _freeDrawUiMutationsInWindowByState[this] = 0;
+    _gestureState.freeDrawWindowStart = now;
+    _gestureState.freeDrawCallsInWindow = 0;
+    _gestureState.freeDrawUiMutationsInWindow = 0;
   }
 
   void _recordFreeDrawPerfUiMutation() {
     if (!kDebugMode) {
       return;
     }
-    _freeDrawUiMutationsInWindowByState[this] =
-        (_freeDrawUiMutationsInWindowByState[this] ?? 0) + 1;
+    _gestureState.freeDrawUiMutationsInWindow += 1;
   }
 
   bool get _isPanScaleAllowedDuringDraw {
@@ -2784,7 +2686,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required int pageNumber,
     required Offset pageLocal,
     required double radiusPagePx,
-    required _AreaEraserSession session,
+    required AreaEraserSession session,
   }) {
     final baseStrokes = _canvasController.getStrokes(pageNumber);
     final previewStrokes = baseStrokes
@@ -2810,7 +2712,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _startAreaEraserSession(int pointer) {
     _activeAreaEraserPointerId = pointer;
-    _activeAreaEraserSession = _AreaEraserSession(radius: _areaEraserRadiusPx);
+    _activeAreaEraserSession = AreaEraserSession(radius: _areaEraserRadiusPx);
     _areaEraserPath.clear();
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _canvasController.setEraserPreview(null);
@@ -2824,7 +2726,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Offset pageLocal,
     required double radiusPagePx,
   }) {
-    _pendingAreaEraserMove = _PendingAreaEraserMove(
+    _pendingAreaEraserMove = PendingAreaEraserMove(
       pageNumber: pageNumber,
       pageSize: pageSize,
       pageLocal: pageLocal,
@@ -2955,8 +2857,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     return count;
   }
 
-  _AreaEraserSession _applyAreaEraserPointMask(
-    _AreaEraserSession session, {
+  AreaEraserSession _applyAreaEraserPointMask(
+    AreaEraserSession session, {
     required int pageNumber,
     required Size pageSize,
     required Offset center,
@@ -3081,7 +2983,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Offset normalized,
     required double photoScale,
   }) {
-    _pendingFreeDrawMove = _PendingFreeDrawMove(
+    _pendingFreeDrawMove = PendingFreeDrawMove(
       pointerId: pointerId,
       pageNumber: pageNumber,
       pageSize: pageSize,
@@ -3255,7 +3157,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         );
       }
 
-      _pendingStraightenCommitByPointer[pointerId] = _PendingStraightenCommit(
+      _pendingStraightenCommitByPointer[pointerId] = PendingStraightenCommit(
         snappedPageExact: clampedSnappedPageExact,
         destSize: destSize,
         photoScale: photoScale,
