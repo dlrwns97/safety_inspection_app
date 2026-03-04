@@ -17,7 +17,6 @@ class LiveStrokePainter extends CustomPainter {
 
   final DrawingStroke? liveStroke;
   final double devicePixelRatio;
-  static final Set<String> _debugLoggedStrokeIds = <String>{};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -36,9 +35,7 @@ class LiveStrokePainter extends CustomPainter {
     }
 
     final scaledPoints = points
-        .map(
-          (point) => Offset(point.dx * size.width, point.dy * size.height),
-        )
+        .map((point) => Offset(point.dx * size.width, point.dy * size.height))
         .toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
 
@@ -59,12 +56,6 @@ class LiveStrokePainter extends CustomPainter {
 
   void _drawSegment(Canvas canvas, DrawingStroke stroke, List<Offset> points) {
     final style = stroke.style;
-    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
-      debugPrint(
-        '[Drawing] LiveStrokePainter stroke=${stroke.id} '
-        'variant=${style.variant.name}',
-      );
-    }
     if (style.kind == StrokeToolKind.pen) {
       _drawPenSegment(canvas, style, stroke.opacity, points);
       return;
@@ -87,9 +78,12 @@ class LiveStrokePainter extends CustomPainter {
           devicePixelRatio != oldDelegate.devicePixelRatio;
     }
 
-    final currentLast = current.pointsNorm.isNotEmpty ? current.pointsNorm.last : null;
-    final previousLast =
-        previous.pointsNorm.isNotEmpty ? previous.pointsNorm.last : null;
+    final currentLast = current.pointsNorm.isNotEmpty
+        ? current.pointsNorm.last
+        : null;
+    final previousLast = previous.pointsNorm.isNotEmpty
+        ? previous.pointsNorm.last
+        : null;
 
     return current.id != previous.id ||
         current.pointsNorm.length != previous.pointsNorm.length ||
@@ -158,7 +152,10 @@ class LiveStrokePainter extends CustomPainter {
     double strokeOpacity,
     List<Offset> points,
   ) {
-    final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
+    final resolved = resolveCenterlineStyle(
+      style: style,
+      strokeOpacity: strokeOpacity,
+    );
     final paint = resolved.paint;
     if (shouldRenderCenterlineAsDot(points)) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);

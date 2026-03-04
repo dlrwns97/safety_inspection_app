@@ -63,41 +63,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _canvasController.invalidateCache(page, reason: reason);
   }
 
-  void _recordFreeDrawPerfCall() {
-    if (!kDebugMode) {
-      return;
-    }
-    final now = DateTime.now();
-    final windowStart = _gestureState.freeDrawWindowStart;
-    if (windowStart == null) {
-      _gestureState.freeDrawWindowStart = now;
-      _gestureState.freeDrawCallsInWindow = 1;
-      _gestureState.freeDrawUiMutationsInWindow = 0;
-      return;
-    }
-
-    _gestureState.freeDrawCallsInWindow += 1;
-    final elapsedMs = now.difference(windowStart).inMilliseconds;
-    if (elapsedMs < 1000) {
-      return;
-    }
-
-    debugPrint(
-      '[Perf] freeDraw: calls/s=${_gestureState.freeDrawCallsInWindow} '
-      'uiMutations/s=${_gestureState.freeDrawUiMutationsInWindow}',
-    );
-    _gestureState.freeDrawWindowStart = now;
-    _gestureState.freeDrawCallsInWindow = 0;
-    _gestureState.freeDrawUiMutationsInWindow = 0;
-  }
-
-  void _recordFreeDrawPerfUiMutation() {
-    if (!kDebugMode) {
-      return;
-    }
-    _gestureState.freeDrawUiMutationsInWindow += 1;
-  }
-
   bool get _isPanScaleAllowedDuringDraw {
     if (!_isFreeDrawMode) {
       return true;
@@ -112,15 +77,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   bool _isStylusKind(PointerDeviceKind kind) {
-    return kind == PointerDeviceKind.stylus ||
-        kind == PointerDeviceKind.invertedStylus ||
-        kind == PointerDeviceKind.touch ||
-        kind == PointerDeviceKind.unknown;
+    return MarkerInputGuard.isStylusLike(kind);
   }
 
   bool _isStrictStylusKind(PointerDeviceKind kind) {
-    return kind == PointerDeviceKind.stylus ||
-        kind == PointerDeviceKind.invertedStylus;
+    return MarkerInputGuard.isStrictStylus(kind);
   }
 
   int get _activeTouchPointerCount => _activePointerKinds.values
@@ -1044,6 +1005,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final pageStrokes = _canvasController.getStrokes(pageNumber);
     final hitPaddingNorm = (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
+    final createThresholdNorm = (8.0 / pageSize.shortestSide).clamp(
+      0.004,
+      0.03,
+    );
     DrawingStroke? handleCandidate;
     ShapeManipulator? handleManipulator;
     ShapeHandle handleHit = ShapeHandle.none;
@@ -1062,6 +1027,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         boundsNorm: bounds,
         rotationRad: 0.0,
       );
+      final minSideNorm = math.min(bounds.width.abs(), bounds.height.abs());
+      final tinyShapeThresholdNorm = (manipulator.handleHitRadiusNorm * 2.2)
+          .clamp(0.02, 0.10);
+      final isTinyShape = minSideNorm <= tinyShapeThresholdNorm;
+      final bodyHit = manipulator.hitTestBody(startNorm);
+      // For very small shapes, handle hit zones overlap most of the body.
+      // Prioritize translation so users can still move the selected shape.
+      if (isTinyShape && bodyHit) {
+        candidate = stroke;
+        candidateBounds = bounds;
+        break;
+      }
       final hitHandle = manipulator.hitTestHandle(startNorm);
       if (hitHandle != ShapeHandle.none) {
         handleCandidate = stroke;
@@ -1075,7 +1052,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         (bounds.right + hitPaddingNorm).clamp(0.0, 1.0),
         (bounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
       );
-      if (paddedBounds.contains(startNorm)) {
+      if (paddedBounds.contains(startNorm) || bodyHit) {
         candidate = stroke;
         candidateBounds = bounds;
         break;
@@ -1148,7 +1125,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _shapeRotateGestureStartAngleRad = null;
       _shapeRotateGestureStartRotationRad = null;
       _shapeCreateHasMoved = false;
-      _shapeCreateThresholdNorm = 0.0;
+      _shapeCreateThresholdNorm = createThresholdNorm;
     });
   }
 
@@ -1238,9 +1215,24 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_activeShapeEditOp == _ShapeEditOperation.create ||
-        _activeShapeEditOp == _ShapeEditOperation.none) {
+    if (_activeShapeEditOp == _ShapeEditOperation.none) {
+      _clearShapeInteractionState();
+      return;
+    }
+
+    if (_activeShapeEditOp == _ShapeEditOperation.create) {
       final createBounds = manipulator.boundsNorm;
+      final createWidth = createBounds.width.abs();
+      final createHeight = createBounds.height.abs();
+      final minCreateSizeNorm = _shapeCreateThresholdNorm <= 0
+          ? 0.004
+          : _shapeCreateThresholdNorm;
+      if (!_shapeCreateHasMoved ||
+          createWidth < minCreateSizeNorm ||
+          createHeight < minCreateSizeNorm) {
+        _clearShapeSelection();
+        return;
+      }
       final createStart = createBounds.topLeft;
       final createEnd = createBounds.bottomRight;
       final effectiveStart = createStart;
@@ -1692,11 +1684,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   bool get _isStylusRequiredMarkerPlacementMode {
-    return _mode == DrawMode.defect || _mode == DrawMode.equipment;
+    return MarkerInputGuard.requiresStylusForPlacement(_mode);
   }
 
   bool _isMarkerPlacementPointerAllowed(PointerDeviceKind kind) {
-    return _isStrictStylusKind(kind);
+    return MarkerInputGuard.allowMarkerPlacementPointer(
+      mode: _mode,
+      kind: kind,
+    );
   }
 
   void _handlePointerDown(Offset position) {
@@ -1736,7 +1731,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final controller = _photoControllerForPage(_navStartPage!);
     _navStartValue = controller.value;
     _navAccumDelta = Offset.zero;
-    _debugNavUpdateLogCount = 0;
   }
 
   void _handlePdfNavigationScaleUpdate(ScaleUpdateDetails details) {
@@ -1775,15 +1769,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final double panBoost = (s <= 1.0) ? 1.0 : (1.0 + (s - 1.0) * 0.35);
     final Offset desiredPos = start.position + (_navAccumDelta * panBoost);
 
-    if (kDebugMode && _debugNavUpdateLogCount < 3) {
-      _debugNavUpdateLogCount += 1;
-      // ignore: avoid_print
-      print(
-        'NAV update page=$page pointers=${details.pointerCount} '
-        'scale=$effectiveScale pos=$desiredPos',
-      );
-    }
-
     controller.value = PhotoViewControllerValue(
       position: desiredPos,
       rotation: start.rotation,
@@ -1810,7 +1795,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _navStartPage = null;
     _navStartValue = null;
     _navAccumDelta = Offset.zero;
-    _debugNavUpdateLogCount = 0;
   }
 
   double _resolveFreeDrawScale(dynamic value, {required double fallback}) {
@@ -1949,9 +1933,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     _handleOverlayPointerDown(event);
 
-    if (!_isFreeDrawMode &&
-        _isStylusRequiredMarkerPlacementMode &&
-        _isStrictStylusKind(event.kind)) {
+    if (PointerIntentRouter.shouldTrackMarkerStylusTap(
+      isFreeDrawMode: _isFreeDrawMode,
+      mode: _mode,
+      pointerKind: event.kind,
+    )) {
       _markerTapStylusPointerId = event.pointer;
       _markerTapStylusStartLocal = event.localPosition;
       _markerTapStylusMoved = false;
@@ -1961,10 +1947,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isStylusKind(event.kind)) {
       return;
     }
-    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
-      if (!_isStrictStylusKind(event.kind)) {
-        return;
-      }
+    if (PointerIntentRouter.shouldHandleShapeDown(
+      isFreeDrawMode: _isFreeDrawMode,
+      isShapeToolActive: _activeTool == DrawingTool.shape,
+      pointerKind: event.kind,
+    )) {
       _activeStylusPointerId = event.pointer;
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
@@ -1988,9 +1975,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     final activeToolKind = _activeToolKindForToolbar;
-    if (kDebugMode) {
-      debugPrint('POINTER DOWN tool=$activeToolKind activeTool=$_activeTool');
-    }
 
     if (activeToolKind == StrokeToolKind.eraser) {
       _handleEraserPointerDown(
@@ -2001,7 +1985,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (!_isFreeDrawMode || _activeStrokeStyle == null) return;
+    if (!PointerIntentRouter.shouldStartFreeDrawStroke(
+      isFreeDrawMode: _isFreeDrawMode,
+      hasActiveStrokeStyle: _activeStrokeStyle != null,
+    )) {
+      return;
+    }
 
     _cancelFreeDrawNavGesture();
     _activeStylusPointerId = event.pointer;
@@ -2019,7 +2008,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
-    if (!_isFreeDrawMode && _isStylusRequiredMarkerPlacementMode) {
+    if (_isStylusRequiredMarkerPlacementMode && !_isFreeDrawMode) {
       if (_markerTapStylusPointerId == event.pointer) {
         final startLocal = _markerTapStylusStartLocal;
         if (startLocal != null &&
@@ -2030,12 +2019,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
-      if (_activeStylusPointerId == null ||
-          event.pointer != _activeStylusPointerId ||
-          !_isStrictStylusKind(event.kind)) {
-        return;
-      }
+    if (PointerIntentRouter.shouldHandleShapeMove(
+      isFreeDrawMode: _isFreeDrawMode,
+      isShapeToolActive: _activeTool == DrawingTool.shape,
+      activeStylusPointerId: _activeStylusPointerId,
+      pointerId: event.pointer,
+      pointerKind: event.kind,
+    )) {
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal == null) {
         return;
@@ -2057,15 +2047,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (event.kind == PointerDeviceKind.touch) {
-      return;
-    }
-
-    if (!_isFreeDrawMode) {
-      return;
-    }
-
-    if (!_isStylusKind(event.kind)) {
+    if (!PointerIntentRouter.shouldProcessFreeDrawMove(
+      isFreeDrawMode: _isFreeDrawMode,
+      pointerKind: event.kind,
+    )) {
       return;
     }
 
@@ -2177,7 +2162,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size pageSize,
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
-    if (!_isFreeDrawMode && _isStylusRequiredMarkerPlacementMode) {
+    if (_isStylusRequiredMarkerPlacementMode && !_isFreeDrawMode) {
       final isTrackedStylus = _markerTapStylusPointerId == event.pointer;
       final moved = _markerTapStylusMoved;
       final startLocal = _markerTapStylusStartLocal;
@@ -2205,13 +2190,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_isFreeDrawMode &&
-        _activeTool == DrawingTool.shape &&
-        (event is PointerUpEvent || event is PointerCancelEvent)) {
-      final wasShapeStylus = _activeStylusPointerId == event.pointer;
-      if (!wasShapeStylus) {
-        return;
-      }
+    if ((event is PointerUpEvent || event is PointerCancelEvent) &&
+        PointerIntentRouter.shouldHandleShapeEnd(
+          isFreeDrawMode: _isFreeDrawMode,
+          isShapeToolActive: _activeTool == DrawingTool.shape,
+          activeStylusPointerId: _activeStylusPointerId,
+          pointerId: event.pointer,
+        )) {
       final pageLocal = drawingLocalToPageLocal(event.localPosition);
       if (pageLocal != null) {
         final norm = _overlayToNormalizedPoint(
@@ -3052,7 +3037,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     _pendingFreeDrawMove = null;
-    _recordFreeDrawPerfCall();
     _handleFreeDrawPointerUpdate(
       pending.normalized,
       pending.pageNumber,
@@ -3088,13 +3072,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         pointsNorm: <Offset>[normalized],
       );
       _inProgressStroke = stroke;
-      if (kDebugMode) {
-        debugPrint(
-          '[Drawing] NEW STROKE style: kind=${style.kind.name}, '
-          'variant=${style.variant.name}, width=${style.widthPx.toStringAsFixed(1)}, '
-          'color=${style.argbColor}, id=${stroke.id}',
-        );
-      }
       _canvasController.setLiveStroke(stroke);
     });
   }
@@ -3243,7 +3220,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         destSize: destSize,
         photoScale: photoScale,
       );
-      _recordFreeDrawPerfUiMutation();
       inProgressStroke.pointsNorm
         ..clear()
         ..addAll(newPoints);
@@ -3303,14 +3279,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (additions.isEmpty) {
       return;
     }
-    _recordFreeDrawPerfUiMutation();
     inProgressStroke.pointsNorm.addAll(additions);
     _canvasController.setLiveStroke(inProgressStroke, forceNotify: true);
-    if (kDebugMode) {
-      debugPrint(
-        '[Drawing] liveStroke move page=$pageNumber points=${inProgressStroke.pointsNorm.length}',
-      );
-    }
   }
 
   double _degToRad(double deg) => deg * math.pi / 180.0;

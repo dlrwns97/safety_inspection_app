@@ -448,13 +448,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     // accidental page flips. Allow swipe again when 2 fingers are down.
     final bool disablePageSwipe =
         _isFreeDrawMode && (isStylusActive || !isTwoFingerTouch);
-    if (kDebugMode) {
-      debugPrint(
-        '[FreeDraw] touchCount: $touchCount, isStylusActive: $isStylusActive, '
-        'isTwoFingerTouch: $isTwoFingerTouch, panEnabled: $enablePdfPanGestures, '
-        'scaleEnabled: $enablePdfScaleGestures, swipeDisabled: $disablePageSwipe',
-      );
-    }
     if (kDebugMode && enablePdfPanGestures && enablePdfScaleGestures) {
       _debugLogPhotoViewBaseStateOnce('viewer-build');
     }
@@ -733,11 +726,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             ..onUpdate = (details) {
                               if (_isStylusActive) {
                                 return;
-                              }
-                              if (kDebugMode) {
-                                debugPrint(
-                                  'SCALE UPDATE pointerCount=${details.pointerCount}',
-                                );
                               }
                               _handlePdfNavigationScaleUpdate(details);
                             }

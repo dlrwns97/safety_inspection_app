@@ -55,6 +55,8 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.da
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/controllers/marker_input_guard.dart';
+import 'package:safety_inspection_app/presentation/drawing/controllers/pointer_intent_router.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/history_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/marker_state.dart';

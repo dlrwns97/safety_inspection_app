@@ -110,12 +110,8 @@ class GestureState {
   PhotoViewControllerValue? navStartValue;
   int? navStartPage;
   Offset navAccumDelta = Offset.zero;
-  int debugNavUpdateLogCount = 0;
   Offset? pendingDrawDownViewportLocal;
   bool pendingDraw = false;
   PendingFreeDrawMove? pendingFreeDrawMove;
   bool isFreeDrawMoveScheduled = false;
-  int freeDrawCallsInWindow = 0;
-  int freeDrawUiMutationsInWindow = 0;
-  DateTime? freeDrawWindowStart;
 }

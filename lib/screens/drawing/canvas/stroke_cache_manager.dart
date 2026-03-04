@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 
@@ -13,7 +12,6 @@ import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 /// Builds and stores a per-page raster cache image for committed drawing strokes.
 class StrokeCacheManager extends ChangeNotifier {
   final Map<int, ui.Image> _cacheByPage = <int, ui.Image>{};
-  final Set<String> _debugLoggedStrokeIds = <String>{};
   final Set<int> _buildingPages = <int>{};
   final Map<int, int> _buildTokens = <int, int>{};
 
@@ -123,14 +121,6 @@ class StrokeCacheManager extends ChangeNotifier {
         )
         .toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
-
-    final style = stroke.style;
-    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
-      debugPrint(
-        '[Drawing] StrokeCacheManager draw stroke=${stroke.id} '
-        'variant=${style.variant.name}',
-      );
-    }
 
     _drawShapeFillIfNeeded(
       canvas: canvas,

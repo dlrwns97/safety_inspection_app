@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
@@ -70,7 +69,8 @@ class _DrawingCanvasWidgetState extends State<DrawingCanvasWidget> {
               return RepaintBoundary(
                 child: CustomPaint(
                   painter: PreviewStrokesPainter(
-                    strokes: pagePreview?.previewStrokes ?? const <DrawingStroke>[],
+                    strokes:
+                        pagePreview?.previewStrokes ?? const <DrawingStroke>[],
                   ),
                   size: widget.canvasSize,
                 ),
@@ -160,11 +160,8 @@ class _CachedCanvasLayerState extends State<_CachedCanvasLayer> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: widget.controller.cacheRebuildTick,
-      builder: (context, tick, child) {
+      builder: (context, _, child) {
         _pullStableImageFromCache();
-        if (kDebugMode) {
-          debugPrint('[Drawing] cached layer build page=${widget.page} tick=$tick');
-        }
         return AnimatedBuilder(
           animation: widget.cacheManager,
           builder: (context, child) {

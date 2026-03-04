@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 
@@ -12,7 +11,6 @@ class PreviewStrokesPainter extends CustomPainter {
   const PreviewStrokesPainter({required this.strokes});
 
   final List<DrawingStroke> strokes;
-  static final Set<String> _debugLoggedStrokeIds = <String>{};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -30,14 +28,6 @@ class PreviewStrokesPainter extends CustomPainter {
     final points = stroke.pointsNorm;
     if (points.isEmpty) {
       return;
-    }
-
-    final style = stroke.style;
-    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
-      debugPrint(
-        '[Drawing] PreviewStrokesPainter stroke=${stroke.id} '
-        'variant=${style.variant.name}',
-      );
     }
 
     final scaledPoints = points
@@ -119,7 +109,10 @@ class PreviewStrokesPainter extends CustomPainter {
     double strokeOpacity,
     List<Offset> points,
   ) {
-    final resolved = resolveCenterlineStyle(style: style, strokeOpacity: strokeOpacity);
+    final resolved = resolveCenterlineStyle(
+      style: style,
+      strokeOpacity: strokeOpacity,
+    );
     final paint = resolved.paint;
     if (shouldRenderCenterlineAsDot(points)) {
       canvas.drawCircle(points.first, paint.strokeWidth / 2, paint);

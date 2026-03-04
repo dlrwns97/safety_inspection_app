@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
@@ -24,15 +23,9 @@ class TempPolylinePainter extends CustomPainter {
 
   static ui.Picture? _cachedBasePicture;
   static int _cachedBaseHash = 0;
-  static int _cacheHit = 0;
-  static int _cacheMiss = 0;
-  static final Set<String> _debugLoggedStrokeIds = <String>{};
 
   @override
   void paint(Canvas canvas, Size size) {
-    _DrawingUiPerfProbe.instance.ensureInitialized();
-    final Stopwatch? stopwatch = kReleaseMode ? null : Stopwatch();
-    stopwatch?.start();
     if (!kReleaseMode) {
       developer.Timeline.startSync('DrawingCanvas.paint');
     }
@@ -65,29 +58,16 @@ class TempPolylinePainter extends CustomPainter {
       if (!kReleaseMode) {
         developer.Timeline.finishSync();
       }
-      if (stopwatch != null) {
-        _DrawingUiPerfProbe.instance.recordPaint(
-          elapsedMicros: stopwatch.elapsedMicroseconds,
-          strokeCount: strokes.length + (inProgress == null ? 0 : 1),
-        );
-      }
-      _DrawingUiPerfProbe.instance.recordCache(
-        hit: _cacheHit,
-        miss: _cacheMiss,
-        strokeCount: strokes.length,
-      );
     }
   }
 
   void _drawCachedBase(Canvas canvas, Size size) {
     final baseHash = _computeBaseHash();
     if (_cachedBasePicture != null && _cachedBaseHash == baseHash) {
-      _cacheHit += 1;
       canvas.drawPicture(_cachedBasePicture!);
       return;
     }
 
-    _cacheMiss += 1;
     final recorder = ui.PictureRecorder();
     final recordedCanvas = Canvas(recorder, Offset.zero & size);
     for (final stroke in strokes) {
@@ -130,11 +110,6 @@ class TempPolylinePainter extends CustomPainter {
     final points = pointsNorm.map(toPageLocal).toList(growable: false);
     final erasedMask = stroke.ensureErasedMask();
     final style = stroke.style;
-    if (kDebugMode && _debugLoggedStrokeIds.add(stroke.id)) {
-      debugPrint(
-        '[Drawing] TempPolylinePainter stroke=${stroke.id} variant=${style.variant.name}',
-      );
-    }
 
     _drawShapeFillIfNeeded(
       canvas: canvas,
@@ -348,113 +323,5 @@ class TempPolylinePainter extends CustomPainter {
         oldDelegate.inProgress != inProgress ||
         oldDelegate.pageSize != pageSize ||
         oldDelegate.debugLastPageLocal != debugLastPageLocal;
-  }
-}
-
-class _DrawingUiPerfProbe {
-  _DrawingUiPerfProbe._();
-
-  static final _DrawingUiPerfProbe instance = _DrawingUiPerfProbe._();
-
-  bool _initialized = false;
-  DateTime? _windowStart;
-  int _paintCalls = 0;
-  int _paintTotalMicros = 0;
-  int _paintMaxMicros = 0;
-  int _buildCalls = 0;
-  int _buildTotalMicros = 0;
-  int _buildMaxMicros = 0;
-  int _latestStrokeCount = 0;
-  int _cacheHit = 0;
-  int _cacheMiss = 0;
-
-  void ensureInitialized() {
-    if (kReleaseMode || _initialized) {
-      return;
-    }
-    _initialized = true;
-    SchedulerBinding.instance.addTimingsCallback(_onFrameTimings);
-  }
-
-  void recordPaint({required int elapsedMicros, required int strokeCount}) {
-    if (kReleaseMode) {
-      return;
-    }
-    _rolloverWindowIfNeeded();
-    _latestStrokeCount = strokeCount;
-    _paintCalls += 1;
-    _paintTotalMicros += elapsedMicros;
-    if (elapsedMicros > _paintMaxMicros) {
-      _paintMaxMicros = elapsedMicros;
-    }
-  }
-
-  void _onFrameTimings(List<FrameTiming> timings) {
-    if (kReleaseMode) {
-      return;
-    }
-    for (final timing in timings) {
-      _rolloverWindowIfNeeded();
-      final buildMicros = timing.buildDuration.inMicroseconds;
-      _buildCalls += 1;
-      _buildTotalMicros += buildMicros;
-      if (buildMicros > _buildMaxMicros) {
-        _buildMaxMicros = buildMicros;
-      }
-    }
-  }
-
-  void recordCache({
-    required int hit,
-    required int miss,
-    required int strokeCount,
-  }) {
-    if (kReleaseMode) {
-      return;
-    }
-    _rolloverWindowIfNeeded();
-    _cacheHit = hit;
-    _cacheMiss = miss;
-    _latestStrokeCount = strokeCount;
-  }
-
-  void _rolloverWindowIfNeeded() {
-    final now = DateTime.now();
-    final windowStart = _windowStart;
-    if (windowStart == null) {
-      _windowStart = now;
-      return;
-    }
-    if (now.difference(windowStart) < const Duration(seconds: 1)) {
-      return;
-    }
-
-    if (_paintCalls > 0 || _buildCalls > 0) {
-      final paintAvgMs = _paintCalls == 0
-          ? 0.0
-          : (_paintTotalMicros / _paintCalls) / 1000;
-      final buildAvgMs = _buildCalls == 0
-          ? 0.0
-          : (_buildTotalMicros / _buildCalls) / 1000;
-      debugPrint(
-        '[PerfUI] paint: avgMs=${paintAvgMs.toStringAsFixed(1)} '
-        'maxMs=${(_paintMaxMicros / 1000).toStringAsFixed(1)} '
-        'build: avgMs=${buildAvgMs.toStringAsFixed(1)} '
-        'maxMs=${(_buildMaxMicros / 1000).toStringAsFixed(1)} '
-        'strokes=$_latestStrokeCount',
-      );
-      debugPrint(
-        '[PerfCache] basePicture hit=$_cacheHit miss=$_cacheMiss '
-        'strokes=$_latestStrokeCount',
-      );
-    }
-
-    _windowStart = now;
-    _paintCalls = 0;
-    _paintTotalMicros = 0;
-    _paintMaxMicros = 0;
-    _buildCalls = 0;
-    _buildTotalMicros = 0;
-    _buildMaxMicros = 0;
   }
 }

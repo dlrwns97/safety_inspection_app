@@ -189,11 +189,6 @@ extension _DrawingScreenStateAccessors on _DrawingScreenState {
     _gestureState.navAccumDelta = value;
   }
 
-  int get _debugNavUpdateLogCount => _gestureState.debugNavUpdateLogCount;
-  set _debugNavUpdateLogCount(int value) {
-    _gestureState.debugNavUpdateLogCount = value;
-  }
-
   Offset? get _pendingDrawDownViewportLocal =>
       _gestureState.pendingDrawDownViewportLocal;
   set _pendingDrawDownViewportLocal(Offset? value) {
