@@ -66,6 +66,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildDrawingStackChildren() {
     final isPdf = _site.drawingType == DrawingType.pdf;
     final bool canMove = _isMoveMode && _hasMoveTarget;
+    final bool showFloatingToolSettings =
+        isPdf && _isFreeDrawMode && _selectedToolKindForToolbar != null;
     return [
       if (isPdf)
         AbsorbPointer(
@@ -94,7 +96,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
             onPanCancel: _handleMovePanCancel,
           ),
         ),
+      if (showFloatingToolSettings)
+        Positioned(
+          left: 12,
+          top: 12,
+          child: _buildFloatingToolSettingsButton(),
+        ),
     ];
+  }
+
+  Widget _buildFloatingToolSettingsButton() {
+    return Opacity(
+      opacity: 0.72,
+      child: Material(
+        color: Colors.black,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerUp: (_) => _openActiveToolSettingsPopover(),
+          child: const SizedBox(
+            width: 32,
+            height: 32,
+            child: Icon(Icons.tune, color: Colors.white, size: 18),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _colorCircle(
@@ -128,33 +156,65 @@ extension _DrawingScreenUi on _DrawingScreenState {
     if (kDebugMode) {
       debugPrint('TOOL change: $kind');
     }
-    if (_selectedToolKindForToolbar == kind) {
-      _settingsPopover.hide();
-      _deactivateActiveFreeDrawTool();
-      return;
-    }
+    _settingsPopover.hide();
 
     switch (kind) {
       case StrokeToolKind.pen:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
-        _showPenSettingsPopover();
-        return;
+        break;
       case StrokeToolKind.highlighter:
         _activateStrokeKind(kind);
         _handleDrawingToolChanged(DrawingTool.pen);
-        _showHighlighterSettingsPopover();
-        return;
+        break;
       case StrokeToolKind.shape:
         _handleDrawingToolChanged(DrawingTool.shape);
-        _showShapeSettingsPopover();
-        return;
+        break;
       case StrokeToolKind.eraser:
         final nextEraserTool = _activeTool == DrawingTool.strokeEraser
             ? DrawingTool.strokeEraser
             : DrawingTool.areaEraser;
         _handleDrawingToolChanged(nextEraserTool);
+        break;
+    }
+    _openToolSettingsPopoverFor(kind);
+  }
+
+  void _openToolSettingsPopoverFor(StrokeToolKind kind) {
+    switch (kind) {
+      case StrokeToolKind.pen:
+        _showPenSettingsPopover();
+        return;
+      case StrokeToolKind.highlighter:
+        _showHighlighterSettingsPopover();
+        return;
+      case StrokeToolKind.shape:
+        _showShapeSettingsPopover();
+        return;
+      case StrokeToolKind.eraser:
         _showEraserSettingsPopover();
+        return;
+    }
+  }
+
+  void _openActiveToolSettingsPopover() {
+    if (!mounted) {
+      return;
+    }
+    switch (_selectedToolKindForToolbar) {
+      case StrokeToolKind.pen:
+        _openToolSettingsPopoverFor(StrokeToolKind.pen);
+        return;
+      case StrokeToolKind.highlighter:
+        _openToolSettingsPopoverFor(StrokeToolKind.highlighter);
+        return;
+      case StrokeToolKind.shape:
+        _openToolSettingsPopoverFor(StrokeToolKind.shape);
+        return;
+      case StrokeToolKind.eraser:
+        _openToolSettingsPopoverFor(StrokeToolKind.eraser);
+        return;
+      case null:
         return;
     }
   }
@@ -503,7 +563,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     StrokeStyle? overlayPreviewStroke;
     int? overlayPreviewFillArgb;
     List<Offset>? overlayPreviewPointsNorm;
-    if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
+    if (_isFreeDrawMode &&
+        _activeTool == DrawingTool.shape &&
+        _activeShapeManipulator != null) {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         overlayPreviewType = _activeShapeType;
         overlayPreviewStroke = _activeShapeStrokeStyle;
@@ -522,6 +584,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
         }
       }
     }
+    final blockStylusFromPdfGestures =
+        _isFreeDrawMode || _isStylusRequiredMarkerPlacementMode;
 
     return _wrapWithPointerHandlers(
       tapRegionKey: tapKey,
@@ -538,6 +602,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
           overlayToPage(details.localPosition),
           pageSize,
           pageNumber,
+          details.kind,
         );
       },
       onLongPressStart: (details) {
@@ -559,13 +624,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
       ),
       child: RawGestureDetector(
         behavior: HitTestBehavior.translucent,
-        gestures: <Type, GestureRecognizerFactory>{
-          _StylusArenaBlocker:
-              GestureRecognizerFactoryWithHandlers<_StylusArenaBlocker>(
-                () => _StylusArenaBlocker(),
-                (_StylusArenaBlocker instance) {},
-              ),
-        },
+        gestures: blockStylusFromPdfGestures
+            ? <Type, GestureRecognizerFactory>{
+                _StylusArenaBlocker:
+                    GestureRecognizerFactoryWithHandlers<_StylusArenaBlocker>(
+                      () => _StylusArenaBlocker(),
+                      (_StylusArenaBlocker instance) {},
+                    ),
+              }
+            : const <Type, GestureRecognizerFactory>{},
         child: SizedBox.expand(
           child: Stack(
             clipBehavior: Clip.none,
@@ -613,7 +680,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                             eraserRadius: _areaEraserRadiusPx,
                           ),
                         ),
-                        if (_activeTool == DrawingTool.shape &&
+                        if (_isFreeDrawMode &&
+                            _activeTool == DrawingTool.shape &&
                             _activeShapeManipulator != null)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -753,7 +821,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
     StrokeStyle? overlayPreviewStroke;
     int? overlayPreviewFillArgb;
     List<Offset>? overlayPreviewPointsNorm;
-    if (_activeTool == DrawingTool.shape && _activeShapeManipulator != null) {
+    if (_isFreeDrawMode &&
+        _activeTool == DrawingTool.shape &&
+        _activeShapeManipulator != null) {
       if (_activeShapeEditOp == _ShapeEditOperation.create) {
         overlayPreviewType = _activeShapeType;
         overlayPreviewStroke = _activeShapeStrokeStyle;
@@ -850,7 +920,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 },
               ),
             ),
-            if (_activeTool == DrawingTool.shape &&
+            if (_isFreeDrawMode &&
+                _activeTool == DrawingTool.shape &&
                 _activeShapeManipulator != null)
               IgnorePointer(
                 child: ShapeHandlesOverlay(
@@ -1054,10 +1125,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const SizedBox(
-                        width: 72,
-                        child: Text('선 색상'),
-                      ),
+                      const SizedBox(width: 72, child: Text('선 색상')),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
@@ -1079,8 +1147,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                 },
                               ),
                             IconButton(
-                              tooltip:
-                                  '선 색상 직접 선택',
+                              tooltip: '선 색상 직접 선택',
                               visualDensity: VisualDensity.compact,
                               onPressed: () async {
                                 final originalStroke = _currentShapeStrokeColor;
@@ -1163,9 +1230,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                           },
                           child: Opacity(
                             opacity: fillEnabled ? 1.0 : 0.45,
-                            child: const Text(
-                              '채우기 색상',
-                            ),
+                            child: const Text('채우기 색상'),
                           ),
                         ),
                       ),
@@ -1195,8 +1260,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     },
                                   ),
                                 IconButton(
-                                  tooltip:
-                                      '채우기 색상 직접 선택',
+                                  tooltip: '채우기 색상 직접 선택',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
                                     final originalFill = _currentShapeFillColor;
@@ -1451,4 +1515,3 @@ class _TouchOnlyScaleGestureRecognizer extends ScaleGestureRecognizer {
     return true;
   }
 }
-

@@ -82,6 +82,9 @@ class GestureState {
 
   Offset? pointerDownPosition;
   bool tapCanceled = false;
+  int? markerTapStylusPointerId;
+  Offset? markerTapStylusStartLocal;
+  bool markerTapStylusMoved = false;
 
   Offset? eraserCursorPageLocal;
   int? eraserCursorPageNumber;

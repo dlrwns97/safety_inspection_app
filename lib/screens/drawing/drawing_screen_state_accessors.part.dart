@@ -85,6 +85,22 @@ extension _DrawingScreenStateAccessors on _DrawingScreenState {
     _gestureState.tapCanceled = value;
   }
 
+  int? get _markerTapStylusPointerId => _gestureState.markerTapStylusPointerId;
+  set _markerTapStylusPointerId(int? value) {
+    _gestureState.markerTapStylusPointerId = value;
+  }
+
+  Offset? get _markerTapStylusStartLocal =>
+      _gestureState.markerTapStylusStartLocal;
+  set _markerTapStylusStartLocal(Offset? value) {
+    _gestureState.markerTapStylusStartLocal = value;
+  }
+
+  bool get _markerTapStylusMoved => _gestureState.markerTapStylusMoved;
+  set _markerTapStylusMoved(bool value) {
+    _gestureState.markerTapStylusMoved = value;
+  }
+
   Offset? get _eraserCursorPageLocal => _gestureState.eraserCursorPageLocal;
   set _eraserCursorPageLocal(Offset? value) {
     _gestureState.eraserCursorPageLocal = value;

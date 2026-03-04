@@ -120,8 +120,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   bool _isStrictStylusKind(PointerDeviceKind kind) {
     return kind == PointerDeviceKind.stylus ||
-        kind == PointerDeviceKind.invertedStylus ||
-        kind == PointerDeviceKind.unknown;
+        kind == PointerDeviceKind.invertedStylus;
   }
 
   int get _activeTouchPointerCount => _activePointerKinds.values
@@ -418,7 +417,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isMoveMode) {
       return;
     }
-    if (_activeTool == DrawingTool.shape) {
+    if (_isStylusRequiredMarkerPlacementMode &&
+        !_isMarkerPlacementPointerAllowed(details.kind)) {
+      if (kDebugMode) {
+        debugPrint('[MarkerPlacement] blocked tap kind=${details.kind}');
+      }
+      return;
+    }
+    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
       final tapInfo = _resolveTapPosition(
         _canvasTapRegionKey.currentContext,
         details.globalPosition,
@@ -834,8 +840,16 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Offset pageLocal,
     Size pageSize,
     int pageIndex,
+    PointerDeviceKind pointerKind,
   ) async {
-    if (_activeTool == DrawingTool.shape) {
+    if (_isStylusRequiredMarkerPlacementMode &&
+        !_isMarkerPlacementPointerAllowed(pointerKind)) {
+      if (kDebugMode) {
+        debugPrint('[MarkerPlacement] blocked tap kind=$pointerKind');
+      }
+      return;
+    }
+    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
       final normalized = toNormalized(pageLocal, pageSize);
       _handleShapeTapSelection(
         normPoint: normalized,
@@ -1677,6 +1691,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     );
   }
 
+  bool get _isStylusRequiredMarkerPlacementMode {
+    return _mode == DrawMode.defect || _mode == DrawMode.equipment;
+  }
+
+  bool _isMarkerPlacementPointerAllowed(PointerDeviceKind kind) {
+    return _isStrictStylusKind(kind);
+  }
+
   void _handlePointerDown(Offset position) {
     _pointerDownPosition = position;
     _tapCanceled = false;
@@ -1692,7 +1714,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
   }
 
-  void _handlePointerUp() => _pointerDownPosition = null;
+  void _handlePointerUp() {
+    _pointerDownPosition = null;
+  }
 
   void _handlePointerCancel() {
     _pointerDownPosition = null;
@@ -1925,10 +1949,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }) {
     _handleOverlayPointerDown(event);
 
+    if (!_isFreeDrawMode &&
+        _isStylusRequiredMarkerPlacementMode &&
+        _isStrictStylusKind(event.kind)) {
+      _markerTapStylusPointerId = event.pointer;
+      _markerTapStylusStartLocal = event.localPosition;
+      _markerTapStylusMoved = false;
+      return;
+    }
+
     if (!_isStylusKind(event.kind)) {
       return;
     }
-    if (_activeTool == DrawingTool.shape) {
+    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
       if (!_isStrictStylusKind(event.kind)) {
         return;
       }
@@ -1955,11 +1988,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
 
     final activeToolKind = _activeToolKindForToolbar;
-    final eraserMode = _activeTool == DrawingTool.strokeEraser
-        ? DrawingTool.strokeEraser
-        : DrawingTool.areaEraser;
     if (kDebugMode) {
-      debugPrint('POINTER DOWN tool=$activeToolKind mode=$eraserMode');
+      debugPrint('POINTER DOWN tool=$activeToolKind activeTool=$_activeTool');
     }
 
     if (activeToolKind == StrokeToolKind.eraser) {
@@ -1989,7 +2019,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required OverlayToPageLocal drawingLocalToPageLocal,
     required double photoScale,
   }) {
-    if (_activeTool == DrawingTool.shape) {
+    if (!_isFreeDrawMode && _isStylusRequiredMarkerPlacementMode) {
+      if (_markerTapStylusPointerId == event.pointer) {
+        final startLocal = _markerTapStylusStartLocal;
+        if (startLocal != null &&
+            (event.localPosition - startLocal).distance > DrawingTapSlop) {
+          _markerTapStylusMoved = true;
+        }
+      }
+      return;
+    }
+
+    if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
       if (_activeStylusPointerId == null ||
           event.pointer != _activeStylusPointerId ||
           !_isStrictStylusKind(event.kind)) {
@@ -2136,7 +2177,36 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required Size pageSize,
     required OverlayToPageLocal drawingLocalToPageLocal,
   }) {
-    if (_activeTool == DrawingTool.shape &&
+    if (!_isFreeDrawMode && _isStylusRequiredMarkerPlacementMode) {
+      final isTrackedStylus = _markerTapStylusPointerId == event.pointer;
+      final moved = _markerTapStylusMoved;
+      final startLocal = _markerTapStylusStartLocal;
+      _markerTapStylusPointerId = null;
+      _markerTapStylusStartLocal = null;
+      _markerTapStylusMoved = false;
+
+      _handleOverlayPointerUpOrCancel(event);
+
+      if (!isTrackedStylus ||
+          event is PointerCancelEvent ||
+          moved ||
+          !_isStrictStylusKind(event.kind)) {
+        return;
+      }
+
+      Offset? pageLocal = drawingLocalToPageLocal(event.localPosition);
+      pageLocal ??= startLocal == null
+          ? null
+          : drawingLocalToPageLocal(startLocal);
+      if (pageLocal == null) {
+        return;
+      }
+      unawaited(_handlePdfTapAt(pageLocal, pageSize, pageNumber, event.kind));
+      return;
+    }
+
+    if (_isFreeDrawMode &&
+        _activeTool == DrawingTool.shape &&
         (event is PointerUpEvent || event is PointerCancelEvent)) {
       final wasShapeStylus = _activeStylusPointerId == event.pointer;
       if (!wasShapeStylus) {
@@ -2436,30 +2506,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (kDebugMode) {
       debugPrint('[Eraser] modeChanged next=$tool');
     }
-  }
-
-  void _deactivateActiveFreeDrawTool() {
-    if (_inProgressStroke != null) {
-      _handleFreeDrawEnd(_inProgressStroke?.pageNumber ?? _currentPage);
-    }
-    _clearShapeSelection();
-    _safeSetState(() {
-      _activeTool = DrawingTool.pen;
-      _activePresetIndex = null;
-      _isFreeDrawConsumingOneFinger = false;
-      _pendingDraw = false;
-      _pendingDrawDownViewportLocal = null;
-      _activeStylusPointerId = null;
-      _eraserCursorPageLocal = null;
-      _eraserCursorPageNumber = null;
-      _canvasController.setEraserCursor(null);
-      _canvasController.setEraserPreview(null);
-      _activeAreaEraserPointerId = null;
-      _activeAreaEraserSession = null;
-      _activeStrokeEraserPointerId = null;
-      _erasedStrokeIdsThisDrag.clear();
-      _erasedStrokeCountThisDrag = 0;
-    });
   }
 
   void _handleAreaEraserRadiusChanged(double value) {
@@ -3643,6 +3689,20 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             ? DrawingTool.strokeEraser
             : DrawingTool.pen;
       } else {
+        // Lock previous free-draw tool selection when switching tabs/modes.
+        _activeTool = DrawingTool.pen;
+        _activePresetIndex = null;
+        _selectedShapeStrokeId = null;
+        _activeShapeManipulator = null;
+        _activeShapeHandle = ShapeHandle.none;
+        _activeShapeEditOp = _ShapeEditOperation.none;
+        _shapeRotateSnappedAngleRad = null;
+        _shapeRotateGestureStartAngleRad = null;
+        _shapeRotateGestureStartRotationRad = null;
+        _shapeInteractionStartNorm = null;
+        _shapeInteractionLastNorm = null;
+        _shapeCreateHasMoved = false;
+        _shapeCreateThresholdNorm = 0.0;
         _inProgressStroke = null;
         _isFreeDrawConsumingOneFinger = false;
         _pendingDraw = false;
