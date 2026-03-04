@@ -55,6 +55,8 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.da
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/marker_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/tool_state.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -84,12 +86,6 @@ class DrawingScreen extends StatefulWidget {
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
 
-enum ToolFamily { pen, highlighter }
-
-enum PenUiType { pen, fountainPen, calligraphy, pencil }
-
-enum HighlighterUiType { highlighter, marker }
-
 enum _ShapeEditOperation { none, create, translate, resize, rotate }
 
 class _DrawingScreenState extends State<DrawingScreen>
@@ -109,21 +105,11 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
   final DrawingSessionState _sessionState = DrawingSessionState();
+  final MarkerState _markerState = MarkerState();
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
   DrawMode _mode = DrawMode.hand;
-  DefectCategory? _activeCategory;
-  EquipmentCategory? _activeEquipmentCategory;
-  DefectCategory? _sidePanelDefectCategory;
-  EquipmentCategory? _sidePanelEquipmentCategory;
-  final Set<DefectCategory> _visibleDefectCategories = DefectCategory.values
-      .toSet();
-  final Set<EquipmentCategory> _visibleEquipmentCategories = {};
-  final List<DefectCategory> _defectTabs = [];
-  String? _selectedDefectId;
-  String? _selectedEquipmentId;
-  Offset? _selectedMarkerScenePosition;
   String? _selectedShapeStrokeId;
   ShapeManipulator? _activeShapeManipulator;
   ShapeHandle _activeShapeHandle = ShapeHandle.none;
@@ -144,7 +130,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
   bool _isFreeDrawMode = false;
-  DrawingTool _activeTool = DrawingTool.pen;
+  final ToolState _toolState = ToolState();
   ShapeType _activeShapeType = ShapeType.rectangle;
   static const double _kMinAreaEraserRadiusPx = 6.0;
   static const double _kMaxAreaEraserRadiusPx = 60.0;
@@ -164,8 +150,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, PointerDeviceKind> _activePointerKinds =
       <int, PointerDeviceKind>{};
   int? _activeStylusPointerId;
-  bool _isStraightenModeEnabled = false;
-  bool _isStraightenSnapEnabled = true;
   final Map<int, double?> _straightenSnappedAngleByPointer = <int, double?>{};
   final Map<int, Offset> _straightenStartPageByPointer = <int, Offset>{};
   bool _isFreeDrawConsumingOneFinger = false;
@@ -228,33 +212,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     PenVariant.highlighter,
     PenVariant.marker,
   };
-  ToolFamily _activeFamily = ToolFamily.pen;
-  PenUiType _activePenType = PenUiType.pen;
-  HighlighterUiType _activeHighlighterType = HighlighterUiType.highlighter;
-  final Map<PenUiType, double> _penWidthByType = <PenUiType, double>{};
-  final Map<PenUiType, Color> _penColorByType = <PenUiType, Color>{};
-  final Map<HighlighterUiType, double> _hlWidthByType =
-      <HighlighterUiType, double>{};
-  final Map<HighlighterUiType, double> _hlOpacityByType =
-      <HighlighterUiType, double>{};
-  final Map<HighlighterUiType, Color> _hlColorByType =
-      <HighlighterUiType, Color>{};
-  final Map<ShapeType, double> _shapeWidthByType = <ShapeType, double>{};
-  final Map<ShapeType, double> _shapeOpacityByType = <ShapeType, double>{};
-  final Map<ShapeType, Color> _shapeStrokeColorByType = <ShapeType, Color>{};
-  final Map<ShapeType, Color?> _shapeFillColorByType = <ShapeType, Color?>{};
-  double _currentPenWidth = 3.0;
-  Color _currentPenColor = const Color(0xFF000000);
-  double _currentHlWidth = 3.0;
-  double _currentHlOpacity = _kDefaultHighlighterOpacity;
-  Color _currentHlColor = const Color(0xFF000000);
-  double _currentShapeWidth = 3.0;
-  double _currentShapeOpacity = 1.0;
-  Color _currentShapeStrokeColor = const Color(0xFF000000);
-  Color? _currentShapeFillColor;
-  bool _isShapeAspectLocked = false;
-  bool _isShapeRotateSnapEnabled = false;
-  double? _shapeRotateSnappedAngleRad;
   late final ValueNotifier<PenVariant> _penVariantNotifier;
   late final ValueNotifier<double> _penWidthNotifier;
   late final ValueNotifier<Color> _penColorNotifier;
@@ -313,6 +270,164 @@ class _DrawingScreenState extends State<DrawingScreen>
   int get _pageCount => _sessionState.pageCount;
   set _pageCount(int value) {
     _sessionState.pageCount = value;
+  }
+
+  DefectCategory? get _activeCategory => _markerState.activeCategory;
+  set _activeCategory(DefectCategory? value) {
+    _markerState.activeCategory = value;
+  }
+
+  EquipmentCategory? get _activeEquipmentCategory =>
+      _markerState.activeEquipmentCategory;
+  set _activeEquipmentCategory(EquipmentCategory? value) {
+    _markerState.activeEquipmentCategory = value;
+  }
+
+  DefectCategory? get _sidePanelDefectCategory =>
+      _markerState.sidePanelDefectCategory;
+  set _sidePanelDefectCategory(DefectCategory? value) {
+    _markerState.sidePanelDefectCategory = value;
+  }
+
+  EquipmentCategory? get _sidePanelEquipmentCategory =>
+      _markerState.sidePanelEquipmentCategory;
+  set _sidePanelEquipmentCategory(EquipmentCategory? value) {
+    _markerState.sidePanelEquipmentCategory = value;
+  }
+
+  Set<DefectCategory> get _visibleDefectCategories =>
+      _markerState.visibleDefectCategories;
+
+  Set<EquipmentCategory> get _visibleEquipmentCategories =>
+      _markerState.visibleEquipmentCategories;
+
+  List<DefectCategory> get _defectTabs => _markerState.defectTabs;
+
+  String? get _selectedDefectId => _markerState.selectedDefectId;
+  set _selectedDefectId(String? value) {
+    _markerState.selectedDefectId = value;
+  }
+
+  String? get _selectedEquipmentId => _markerState.selectedEquipmentId;
+  set _selectedEquipmentId(String? value) {
+    _markerState.selectedEquipmentId = value;
+  }
+
+  Offset? get _selectedMarkerScenePosition =>
+      _markerState.selectedMarkerScenePosition;
+  set _selectedMarkerScenePosition(Offset? value) {
+    _markerState.selectedMarkerScenePosition = value;
+  }
+
+  int get _sidePanelTabIndex => _markerState.sidePanelTabIndex;
+  set _sidePanelTabIndex(int value) {
+    _markerState.sidePanelTabIndex = value.clamp(0, 3).toInt();
+  }
+
+  DrawingTool get _activeTool => _toolState.activeTool;
+  set _activeTool(DrawingTool value) {
+    _toolState.activeTool = value;
+  }
+
+  ToolFamily get _activeFamily => _toolState.activeFamily;
+  set _activeFamily(ToolFamily value) {
+    _toolState.activeFamily = value;
+  }
+
+  PenUiType get _activePenType => _toolState.activePenType;
+  set _activePenType(PenUiType value) {
+    _toolState.activePenType = value;
+  }
+
+  HighlighterUiType get _activeHighlighterType =>
+      _toolState.activeHighlighterType;
+  set _activeHighlighterType(HighlighterUiType value) {
+    _toolState.activeHighlighterType = value;
+  }
+
+  Map<PenUiType, double> get _penWidthByType => _toolState.penWidthByType;
+  Map<PenUiType, Color> get _penColorByType => _toolState.penColorByType;
+  Map<HighlighterUiType, double> get _hlWidthByType => _toolState.hlWidthByType;
+  Map<HighlighterUiType, double> get _hlOpacityByType =>
+      _toolState.hlOpacityByType;
+  Map<HighlighterUiType, Color> get _hlColorByType => _toolState.hlColorByType;
+  Map<ShapeType, double> get _shapeWidthByType => _toolState.shapeWidthByType;
+  Map<ShapeType, double> get _shapeOpacityByType =>
+      _toolState.shapeOpacityByType;
+  Map<ShapeType, Color> get _shapeStrokeColorByType =>
+      _toolState.shapeStrokeColorByType;
+  Map<ShapeType, Color?> get _shapeFillColorByType =>
+      _toolState.shapeFillColorByType;
+
+  double get _currentPenWidth => _toolState.currentPenWidth;
+  set _currentPenWidth(double value) {
+    _toolState.currentPenWidth = value;
+  }
+
+  Color get _currentPenColor => _toolState.currentPenColor;
+  set _currentPenColor(Color value) {
+    _toolState.currentPenColor = value;
+  }
+
+  double get _currentHlWidth => _toolState.currentHlWidth;
+  set _currentHlWidth(double value) {
+    _toolState.currentHlWidth = value;
+  }
+
+  double get _currentHlOpacity => _toolState.currentHlOpacity;
+  set _currentHlOpacity(double value) {
+    _toolState.currentHlOpacity = value;
+  }
+
+  Color get _currentHlColor => _toolState.currentHlColor;
+  set _currentHlColor(Color value) {
+    _toolState.currentHlColor = value;
+  }
+
+  double get _currentShapeWidth => _toolState.currentShapeWidth;
+  set _currentShapeWidth(double value) {
+    _toolState.currentShapeWidth = value;
+  }
+
+  double get _currentShapeOpacity => _toolState.currentShapeOpacity;
+  set _currentShapeOpacity(double value) {
+    _toolState.currentShapeOpacity = value;
+  }
+
+  Color get _currentShapeStrokeColor => _toolState.currentShapeStrokeColor;
+  set _currentShapeStrokeColor(Color value) {
+    _toolState.currentShapeStrokeColor = value;
+  }
+
+  Color? get _currentShapeFillColor => _toolState.currentShapeFillColor;
+  set _currentShapeFillColor(Color? value) {
+    _toolState.currentShapeFillColor = value;
+  }
+
+  bool get _isStraightenModeEnabled => _toolState.isStraightenModeEnabled;
+  set _isStraightenModeEnabled(bool value) {
+    _toolState.isStraightenModeEnabled = value;
+  }
+
+  bool get _isStraightenSnapEnabled => _toolState.isStraightenSnapEnabled;
+  set _isStraightenSnapEnabled(bool value) {
+    _toolState.isStraightenSnapEnabled = value;
+  }
+
+  bool get _isShapeAspectLocked => _toolState.isShapeAspectLocked;
+  set _isShapeAspectLocked(bool value) {
+    _toolState.isShapeAspectLocked = value;
+  }
+
+  bool get _isShapeRotateSnapEnabled => _toolState.isShapeRotateSnapEnabled;
+  set _isShapeRotateSnapEnabled(bool value) {
+    _toolState.isShapeRotateSnapEnabled = value;
+  }
+
+  double? get _shapeRotateSnappedAngleRad =>
+      _toolState.shapeRotateSnappedAngleRad;
+  set _shapeRotateSnappedAngleRad(double? value) {
+    _toolState.shapeRotateSnappedAngleRad = value;
   }
 
   int _clampPresetIndex(int index) {
@@ -1162,6 +1277,14 @@ class _DrawingScreenState extends State<DrawingScreen>
     return _pdfTapRegionKeys.putIfAbsent(pageNumber, () => GlobalKey());
   }
 
+  void _handleSidePanelTabChanged() {
+    final index = _sidePanelController.index;
+    if (_sidePanelTabIndex == index) {
+      return;
+    }
+    _sidePanelTabIndex = index;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1194,7 +1317,12 @@ class _DrawingScreenState extends State<DrawingScreen>
     unawaited(_loadStrokesFromSite());
     _initializeDefectTabs();
     _initializeEquipmentTabs();
-    _sidePanelController = TabController(length: 4, vsync: this);
+    _sidePanelController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: _sidePanelTabIndex,
+    );
+    _sidePanelController.addListener(_handleSidePanelTabChanged);
     _resetScalePreferences(notify: false);
     _loadPdfPageSizeCache();
     _loadPdfController();
@@ -1251,6 +1379,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _sessionState.dispose();
     _resetPdfViewControllers();
     _transformationController.dispose();
+    _sidePanelController.removeListener(_handleSidePanelTabChanged);
     _sidePanelController.dispose();
     _settingsPopover.hide();
     _penVariantNotifier.dispose();
