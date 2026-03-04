@@ -54,6 +54,7 @@ import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_si
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_top_bar.dart';
@@ -107,12 +108,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
-  final Map<int, Size> _pdfPageSizes = {};
+  final DrawingSessionState _sessionState = DrawingSessionState();
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
-  PdfController? _pdfController;
-  String? _pdfLoadError;
   DrawMode _mode = DrawMode.hand;
   DefectCategory? _activeCategory;
   EquipmentCategory? _activeEquipmentCategory;
@@ -122,8 +121,6 @@ class _DrawingScreenState extends State<DrawingScreen>
       .toSet();
   final Set<EquipmentCategory> _visibleEquipmentCategories = {};
   final List<DefectCategory> _defectTabs = [];
-  int _currentPage = 1;
-  int _pageCount = 1;
   String? _selectedDefectId;
   String? _selectedEquipmentId;
   Offset? _selectedMarkerScenePosition;
@@ -295,6 +292,28 @@ class _DrawingScreenState extends State<DrawingScreen>
   EquipmentMarker? get _moveTargetEquipment => _moveTargetEquipmentId == null
       ? null
       : _findEquipmentById(_site, _moveTargetEquipmentId!);
+
+  Map<int, Size> get _pdfPageSizes => _sessionState.pdfPageSizes;
+
+  PdfController? get _pdfController => _sessionState.pdfController;
+  set _pdfController(PdfController? value) {
+    _sessionState.pdfController = value;
+  }
+
+  String? get _pdfLoadError => _sessionState.pdfLoadError;
+  set _pdfLoadError(String? value) {
+    _sessionState.pdfLoadError = value;
+  }
+
+  int get _currentPage => _sessionState.currentPage;
+  set _currentPage(int value) {
+    _sessionState.currentPage = value;
+  }
+
+  int get _pageCount => _sessionState.pageCount;
+  set _pageCount(int value) {
+    _sessionState.pageCount = value;
+  }
 
   int _clampPresetIndex(int index) {
     return index.clamp(0, _presets.length - 1).toInt();
@@ -1229,7 +1248,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     );
     _canvasController.dispose();
     _strokeCacheManager.dispose();
-    _pdfController?.dispose();
+    _sessionState.dispose();
     _resetPdfViewControllers();
     _transformationController.dispose();
     _sidePanelController.dispose();
