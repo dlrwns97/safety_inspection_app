@@ -56,7 +56,9 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/history_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/marker_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/persist_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/tool_state.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
@@ -108,6 +110,8 @@ class _DrawingScreenState extends State<DrawingScreen>
   final DrawingSessionState _sessionState = DrawingSessionState();
   final MarkerState _markerState = MarkerState();
   final GestureState _gestureState = GestureState();
+  final HistoryState _historyState = HistoryState();
+  final PersistState _persistState = PersistState();
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
@@ -158,12 +162,6 @@ class _DrawingScreenState extends State<DrawingScreen>
         siteRepository: _siteRepository,
       );
   DrawingStroke? _inProgressStroke;
-  bool _hasUnsavedChanges = false;
-  Timer? _persistDebounce;
-  bool _persistInFlight = false;
-  bool _persistPending = false;
-  int _persistEpoch = 0;
-  bool _didWarnUnsavedOnExit = false;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
   static const int _kMaxRecentColors = 5;
@@ -195,8 +193,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final ValueNotifier<double> _highlighterWidthNotifier;
   late final ValueNotifier<double> _highlighterOpacityNotifier;
   late final ValueNotifier<Color> _highlighterColorNotifier;
-  bool _canUndoDrawing = false;
-  bool _canRedoDrawing = false;
   static const int kMaxHistory = 300;
   static const String _kDrawingSettingsPrefix = 'drawing';
   late final HistoryManager _historyManager = HistoryManager(
@@ -412,6 +408,46 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool get _pendingDraw => _gestureState.pendingDraw;
   set _pendingDraw(bool value) {
     _gestureState.pendingDraw = value;
+  }
+
+  bool get _canUndoDrawing => _historyState.canUndoDrawing;
+  set _canUndoDrawing(bool value) {
+    _historyState.canUndoDrawing = value;
+  }
+
+  bool get _canRedoDrawing => _historyState.canRedoDrawing;
+  set _canRedoDrawing(bool value) {
+    _historyState.canRedoDrawing = value;
+  }
+
+  bool get _hasUnsavedChanges => _persistState.hasUnsavedChanges;
+  set _hasUnsavedChanges(bool value) {
+    _persistState.hasUnsavedChanges = value;
+  }
+
+  Timer? get _persistDebounce => _persistState.persistDebounce;
+  set _persistDebounce(Timer? value) {
+    _persistState.persistDebounce = value;
+  }
+
+  bool get _persistInFlight => _persistState.persistInFlight;
+  set _persistInFlight(bool value) {
+    _persistState.persistInFlight = value;
+  }
+
+  bool get _persistPending => _persistState.persistPending;
+  set _persistPending(bool value) {
+    _persistState.persistPending = value;
+  }
+
+  int get _persistEpoch => _persistState.persistEpoch;
+  set _persistEpoch(int value) {
+    _persistState.persistEpoch = value;
+  }
+
+  bool get _didWarnUnsavedOnExit => _persistState.didWarnUnsavedOnExit;
+  set _didWarnUnsavedOnExit(bool value) {
+    _persistState.didWarnUnsavedOnExit = value;
   }
 
   DrawingTool get _activeTool => _toolState.activeTool;
@@ -1460,7 +1496,7 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   @override
   void dispose() {
-    _persistDebounce?.cancel();
+    _persistState.dispose();
     _canvasController.cacheRebuildTick.removeListener(
       _handleCanvasCacheInvalidated,
     );
