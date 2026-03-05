@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v4.8 (업데이트: 2026-03-05, Phase 3-6 진행중)
+# DDD 리팩토링 로드맵 v5 (업데이트: 2026-03-05, Phase 3 완료 / Phase 4 시작)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -11,14 +11,14 @@
 
 ---
 
-## 0-1. 진행 현황 (v4.8)
+## 0-1. 진행 현황 (v5)
 - 완료 Phase
   - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
+  - `Phase 3` (`Step 3-1` ~ `Step 3-6F`)
 - Phase 3 진행 상태
-  - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`
-  - `진행중`: `Step 3-6` (`3-6A`~`3-6E` 완료, `3-6F` 진행중)
+  - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`, `Step 3-6` (`3-6A`~`3-6F`)
 - 최근 자동 검증 결과 (Phase 3 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -34,9 +34,10 @@
   - `Step 3-1` ~ `Step 3-5`: all pass
   - `Step 3-6` 진행 중 반영분(툴 전환/스타일러스 입력/미니 설정 아이콘): all pass
   - `Step 3-6A` 반영분(포인터 라우팅 분리/로그 정리/소형 도형 이동 보정): all pass
+  - `Step 3-6F` 반영분(`logic/ui` part 분리 + 라인 1차 목표): all pass
 - 다음 시작점
-  - `Phase 3 - Step 3-6F`: DrawingScreen 최종 정리(라인수 절감/part 책임 최소화) 수동 검증/마무리
-  - `1차 라인 목표` 달성 상태: `drawing_screen_logic.part.dart` 1,964줄 / `drawing_screen_ui.part.dart` 785줄
+  - `Phase 4 - Step 4-1`: 엔티티 직렬화 제거(`toJson/fromJson` -> mapper 이동)
+  - `Phase 4 - Step 4-2`: 모델의 프레젠테이션 의존 제거
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -612,8 +613,7 @@ lib/
    - `drawing_screen_logic.part.dart` 2k 미만, `drawing_screen_ui.part.dart` 1k 미만으로 1차 절감한다.
 
 실행 순서 조정(외부 리뷰 선택 반영):
-- `완료`: `3-6A`, `3-6B`, `3-6C`, `3-6D`, `3-6E`
-- `진행중`: `3-6F`
+- `완료`: `3-6A`, `3-6B`, `3-6C`, `3-6D`, `3-6E`, `3-6F`
 - 이유: accessor 포워딩을 먼저 줄여야 이후 최종 정리 단계(`3-6F`)에서 수정 파급을 줄일 수 있음
 
 분리 후 기대 효과:
@@ -930,14 +930,14 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 10. `완료` Phase 3-3 MarkerState 분리
 11. `완료` Phase 3-4 GestureState 분리
 12. `완료` Phase 3-5 History/PersistState 분리
-13. `진행중` Phase 3-6 DrawingScreen 경량화 (`3-6A`~`3-6F` 순차 수행)
+13. `완료` Phase 3-6 DrawingScreen 경량화 (`3-6A`~`3-6F`)
 14. `완료` `3-6A` 입력/제스처 라우팅 분리 + 핫패스 디버그 로그 정리(P0)
 15. `완료` `3-6E` 상태 접근 단일화(accessor 포워딩 축소 + facade 정리)
 16. `완료` `3-6B` PDF viewport + page size cache 경계 분리
 17. `완료` `3-6C` 마커 액션 오케스트레이션 분리
 18. `완료` `3-6D` UI 조립 블록 분리 + draw/move gesture 보정
-19. `진행중` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성: logic 1,964 / ui 785)
-20. `다음` `3-6F` 수동 검증 완료 후 Step 종료 처리
+19. `완료` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성: logic 1,964 / ui 785)
+20. `다음` Phase 4-1 엔티티 직렬화 분리
 21. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---

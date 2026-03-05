@@ -85,7 +85,13 @@ import 'package:safety_inspection_app/screens/drawing/widgets/pdf_view_layer.dar
 
 part 'drawing_screen_scale_prefs.part.dart';
 part 'drawing_screen_logic.part.dart';
+part 'drawing_screen_persistence.part.dart';
+part 'drawing_screen_detail_dialogs.part.dart';
+part 'drawing_screen_pointer_input.part.dart';
+part 'drawing_screen_history_cleanup.part.dart';
+part 'drawing_screen_move_actions.part.dart';
 part 'drawing_screen_ui.part.dart';
+part 'drawing_screen_ui_tool_popovers.part.dart';
 part 'drawing_screen_tooling.part.dart';
 part 'drawing_screen_marker_actions.part.dart';
 part 'drawing_screen_state_accessors.part.dart';
