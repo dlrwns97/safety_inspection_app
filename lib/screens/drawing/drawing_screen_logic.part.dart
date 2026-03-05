@@ -1247,7 +1247,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           : List<int>.from(before.erasedMask!),
       erasedSegments: before.erasedSegments == null
           ? null
-          : List<dynamic>.from(before.erasedSegments!),
+          : List<Object?>.from(before.erasedSegments!),
     );
     _historyManager.execute(
       ReplaceStrokeCommand(
@@ -1730,7 +1730,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _navAccumDelta = Offset.zero;
   }
 
-  double _resolveFreeDrawScale(dynamic value, {required double fallback}) {
+  double _resolveFreeDrawScale(Object? value, {required double fallback}) {
     if (value is num) {
       return value.toDouble();
     }
@@ -2896,7 +2896,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         erasedMask: nextMask,
         erasedSegments: sourceStroke.erasedSegments == null
             ? null
-            : List<dynamic>.from(sourceStroke.erasedSegments!),
+            : List<Object?>.from(sourceStroke.erasedSegments!),
       );
       removedStrokeIds.add(candidateId);
       processedStrokeIds.add(candidateId);

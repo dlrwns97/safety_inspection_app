@@ -471,6 +471,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   List<Widget> _buildMarkersForPage<T extends Object>({
     required Iterable<T> items,
     required int pageIndex,
+    required int Function(T) pageOf,
     required Size pageSize,
     required bool Function(T) isSelected,
     required double Function(T) nx,
@@ -486,7 +487,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     );
     final centerOffset = scaledSize / 2;
     final filteredItems = items
-        .where((item) => (item as dynamic).pageIndex == pageIndex)
+        .where((item) => pageOf(item) == pageIndex)
         .toList();
     return filteredItems.map((item) {
       final isTarget = _isMoveTargetItem(item);

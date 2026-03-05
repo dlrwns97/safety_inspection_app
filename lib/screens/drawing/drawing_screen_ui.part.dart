@@ -10,6 +10,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         (defect) => _visibleDefectCategories.contains(defect.category),
       ),
       pageIndex: pageIndex,
+      pageOf: (defect) => defect.pageIndex,
       pageSize: size,
       markerScale: _markerScale,
       isSelected: (defect) =>
@@ -30,6 +31,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
         (marker) => _visibleEquipmentCategories.contains(marker.category),
       ),
       pageIndex: pageIndex,
+      pageOf: (marker) => marker.pageIndex,
       pageSize: size,
       markerScale: _markerScale,
       isSelected: (marker) =>
