@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v4.5 (업데이트: 2026-03-04, Phase 3-6 진행중)
+# DDD 리팩토링 로드맵 v4.8 (업데이트: 2026-03-05, Phase 3-6 진행중)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -11,14 +11,14 @@
 
 ---
 
-## 0-1. 진행 현황 (v4.5)
+## 0-1. 진행 현황 (v4.8)
 - 완료 Phase
   - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
 - Phase 3 진행 상태
   - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`
-  - `진행중`: `Step 3-6` (`DrawingScreen` 경량화 + 대용량 part 분리)
+  - `진행중`: `Step 3-6` (`3-6A` 완료, `3-6E`부터 후속 진행)
 - 최근 자동 검증 결과 (Phase 3 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -33,8 +33,10 @@
   - `Step 2-4`: `D-08`, `D-09` all pass
   - `Step 3-1` ~ `Step 3-5`: all pass
   - `Step 3-6` 진행 중 반영분(툴 전환/스타일러스 입력/미니 설정 아이콘): all pass
+  - `Step 3-6A` 반영분(포인터 라우팅 분리/로그 정리/소형 도형 이동 보정): all pass
 - 다음 시작점
-  - `Phase 3 - Step 3-6`: `drawing_screen_logic.part.dart` / `drawing_screen_ui.part.dart` 구조 분할 지속
+  - `Phase 3 - Step 3-6E`: 상태 접근 단일화(accessor 제거) 선행
+  - 이후 `Step 3-6B`: PDF viewport + page size cache 저장 경계 분리
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -609,6 +611,11 @@ lib/
    - `drawing_screen.dart`는 `part` 선언 + 생명주기 + 의존성 조립 + 라우팅만 남긴다.
    - `drawing_screen_logic.part.dart` 2k 미만, `drawing_screen_ui.part.dart` 1k 미만으로 1차 절감한다.
 
+실행 순서 조정(외부 리뷰 선택 반영):
+- `완료`: `3-6A`
+- `다음`: `3-6E` -> `3-6B` -> `3-6C` -> `3-6D` -> `3-6F`
+- 이유: accessor 포워딩을 먼저 줄여야 이후 파일 이동 시 수정 파급을 줄일 수 있음
+
 분리 후 기대 효과:
 - 입력/좌표/오케스트레이션이 테스트 가능한 순수 단위로 분리되어 회귀 원인 추적 시간이 단축된다.
 - `DrawingScreen` 변경 시 수정 범위가 줄어 PR 리뷰/충돌 비용이 감소한다.
@@ -634,6 +641,20 @@ lib/
      - 대상: `Color.value`, `withOpacity`, 구버전 callback/API
    - 잔여 디버그 코드/스텁 제거
      - 대상: painter/cache/engine 계열의 개발용 로그/스텁
+
+외부 코드리뷰 선택 반영 항목(채택):
+1. Presentation 직접 저장소/설정 접근 제거
+   - 적용 Step: `3-6B`
+   - 내용: `drawing_screen_logic.part.dart`의 PDF page size cache(`SharedPreferences`)를 `PdfPageSizeCacheRepository` + UseCase 경유로 이관
+2. `DrawingScreen` 내부 하드코딩 DI 제거
+   - 적용 Step: `3-6B`
+   - 내용: `DrawingFileRepository`/`SitePrefsRepository` 직접 생성 제거, `DrawingScreen` 생성자 주입 방식으로 전환
+3. 과도한 state accessor 포워딩 축소
+   - 적용 Step: `3-6E` (선행)
+   - 내용: `drawing_screen_state_accessors.part.dart` 제거/축소 후 state 직접 접근 또는 facade로 단일화
+4. `dynamic` 캐스팅 제거
+   - 적용 Step: `3-6D`
+   - 내용: 마커 렌더링 경로에 타입 안전 모델(`PageIndexed` 성격의 공통 타입 또는 렌더 DTO) 도입
 
 검증:
 - 시나리오 `D-01` ~ `D-09` 전수.
@@ -849,6 +870,11 @@ flutter test
 flutter analyze
 ```
 
+5. Drawing 화면의 직접 저장소/설정 접근 감시
+```powershell
+rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/drawing
+```
+
 ---
 
 ## 7. 정량 완료 기준 (Definition of Done)
@@ -905,8 +931,10 @@ flutter analyze
 11. `완료` Phase 3-4 GestureState 분리
 12. `완료` Phase 3-5 History/PersistState 분리
 13. `진행중` Phase 3-6 DrawingScreen 경량화 (`3-6A`~`3-6F` 순차 수행)
-14. `다음` `3-6A` 입력/제스처 라우팅 분리 + 핫패스 디버그 로그 정리(P0)부터 시작
-15. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+14. `완료` `3-6A` 입력/제스처 라우팅 분리 + 핫패스 디버그 로그 정리(P0)
+15. `다음` `3-6E` 상태 접근 단일화(accessor 포워딩 축소)
+16. `다음` `3-6B` PDF viewport + page size cache 경계 분리
+17. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
