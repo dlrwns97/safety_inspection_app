@@ -67,6 +67,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (!_isFreeDrawMode) {
       return true;
     }
+    if (_activeTouchPointerCount >= 2) {
+      return true;
+    }
     if (_isStylusActive ||
         _pendingDraw ||
         _inProgressStroke != null ||
@@ -88,7 +91,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       .where((kind) => kind == PointerDeviceKind.touch)
       .length;
 
-  bool get _isStylusActive => _activeStylusPointerId != null;
+  bool get _isStylusActive {
+    final id = _activeStylusPointerId;
+    return id != null && _activePointerIds.contains(id);
+  }
 
   Offset? _mapPdfViewportPointToPageLocal({
     required Offset viewportLocal,
@@ -3835,15 +3841,39 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   void _handleMovePdfOverlayPanUpdate(DragUpdateDetails details) {
     final pageIndex = _currentPage;
+    final tapContext = _pdfTapRegionKeyForPage(pageIndex).currentContext;
+    final renderBox = tapContext?.findRenderObject() as RenderBox?;
+    final overlaySize = (renderBox != null && renderBox.hasSize)
+        ? renderBox.size
+        : _pdfPageSizes[pageIndex];
+    final destRect = overlaySize == null
+        ? null
+        : _pdfDestRectForPageOverlay(
+            pageIndex: pageIndex,
+            overlaySize: overlaySize,
+          );
     _updateMovePreviewFromGlobalDelta(
       globalPosition: details.globalPosition,
       pageIndex: pageIndex,
-      tapContext: _pdfTapRegionKeyForPage(pageIndex).currentContext,
-      overlaySize: _pdfPageSizes[pageIndex],
-      destRect: (_pdfPageSizes[pageIndex] == null)
-          ? null
-          : (Offset.zero & _pdfPageSizes[pageIndex]!),
+      tapContext: tapContext,
+      overlaySize: overlaySize,
+      destRect: destRect,
     );
+  }
+
+  Rect _pdfDestRectForPageOverlay({
+    required int pageIndex,
+    required Size overlaySize,
+  }) {
+    final pageSize = _pdfPageSizes[pageIndex];
+    if (pageSize == null || pageSize.isEmpty || overlaySize.isEmpty) {
+      return Offset.zero & overlaySize;
+    }
+    final fitted = applyBoxFit(BoxFit.contain, pageSize, overlaySize);
+    final destSize = fitted.destination;
+    final dx = (overlaySize.width - destSize.width) / 2;
+    final dy = (overlaySize.height - destSize.height) / 2;
+    return Offset(dx, dy) & destSize;
   }
 
   void _handleMoveCanvasPanUpdate(DragUpdateDetails details) {
@@ -4008,6 +4038,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       deltaNormalized = Offset(
         deltaImage.dx / imageSize.width,
         deltaImage.dy / imageSize.height,
+      );
+      final currentScale =
+          (_photoControllerForPage(pageIndex).value.scale ?? 1.0)
+              .clamp(1.0, 4.0)
+              .toDouble();
+      deltaNormalized = Offset(
+        deltaNormalized.dx * currentScale,
+        deltaNormalized.dy * currentScale,
       );
     }
     final nextX = (currentX + deltaNormalized.dx).clamp(0.0, 1.0);

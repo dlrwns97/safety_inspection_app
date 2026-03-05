@@ -63,46 +63,33 @@ extension _DrawingScreenUi on _DrawingScreenState {
     );
   }
 
-  List<Widget> _buildDrawingStackChildren() {
+  Widget _buildDrawingOverlayShell() {
     final isPdf = _site.drawingType == DrawingType.pdf;
     final bool canMove = _isMoveMode && _hasMoveTarget;
     final bool showFloatingToolSettings =
         isPdf && _isFreeDrawMode && _selectedToolKindForToolbar != null;
-    return [
-      if (isPdf)
-        AbsorbPointer(
-          absorbing: _isMoveMode,
-          child: PdfViewLayer(
-            pdfViewer: _buildPdfViewer(),
-            currentPage: _currentPage,
-            pageCount: _pageCount,
-            canPrev: _currentPage > 1,
-            canNext: _currentPage < _pageCount,
-            onPrevPage: _handlePrevPage,
-            onNextPage: _handleNextPage,
-          ),
-        )
-      else
-        _buildCanvasDrawingLayer(),
-      if (canMove)
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: _handleMoveOverlayPanStart,
-            onPanUpdate: isPdf
-                ? _handleMovePdfOverlayPanUpdate
-                : _handleMoveCanvasOverlayPanUpdate,
-            onPanEnd: (_) => _handleMovePanEnd(),
-            onPanCancel: _handleMovePanCancel,
-          ),
-        ),
-      if (showFloatingToolSettings)
-        Positioned(
-          left: 12,
-          top: 12,
-          child: _buildFloatingToolSettingsButton(),
-        ),
-    ];
+    return DrawingOverlayShell(
+      isPdf: isPdf,
+      canMove: canMove,
+      showFloatingToolSettings: showFloatingToolSettings,
+      pdfLayer: PdfViewLayer(
+        pdfViewer: _buildPdfViewer(),
+        currentPage: _currentPage,
+        pageCount: _pageCount,
+        canPrev: _currentPage > 1,
+        canNext: _currentPage < _pageCount,
+        onPrevPage: _handlePrevPage,
+        onNextPage: _handleNextPage,
+      ),
+      canvasLayer: _buildCanvasDrawingLayer(),
+      floatingToolSettingsButton: _buildFloatingToolSettingsButton(),
+      onMovePanStart: _handleMoveOverlayPanStart,
+      onMovePanUpdate: isPdf
+          ? _handleMovePdfOverlayPanUpdate
+          : _handleMoveCanvasOverlayPanUpdate,
+      onMovePanEnd: _handleMovePanEnd,
+      onMovePanCancel: _handleMovePanCancel,
+    );
   }
 
   Widget _buildFloatingToolSettingsButton() {
@@ -434,6 +421,61 @@ extension _DrawingScreenUi on _DrawingScreenState {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMarkerSidePanel({
+    required DefectCategory? defectFilter,
+    required EquipmentCategory? equipmentFilter,
+  }) {
+    return MarkerSidePanel(
+      tabController: _sidePanelController,
+      currentPage: _currentPage,
+      defects: _site.defects,
+      equipmentMarkers: _site.equipmentMarkers,
+      selectedDefect: _selectedDefect,
+      selectedEquipment: _selectedEquipment,
+      selectedDefectCategory: defectFilter,
+      selectedEquipmentCategory: equipmentFilter,
+      onSelectDefect: _selectDefectFromPanel,
+      onSelectEquipment: _selectEquipmentFromPanel,
+      onDefectCategorySelected: (category) => _safeSetState(() {
+        if (_activeCategory == category) {
+          _activeCategory = null;
+          _sidePanelDefectCategory = null;
+        } else {
+          _activeCategory = category;
+          _sidePanelDefectCategory = category;
+        }
+      }),
+      onEquipmentCategorySelected: (category) => _safeSetState(() {
+        if (_activeEquipmentCategory == category) {
+          _activeEquipmentCategory = null;
+          _sidePanelEquipmentCategory = null;
+        } else {
+          _activeEquipmentCategory = category;
+          _sidePanelEquipmentCategory = category;
+        }
+      }),
+      visibleDefectCategories: _visibleDefectCategories,
+      visibleEquipmentCategories: _visibleEquipmentCategories,
+      onDefectVisibilityChanged: (category, visible) => _safeSetState(() {
+        if (visible) {
+          _visibleDefectCategories.add(category);
+        } else {
+          _visibleDefectCategories.remove(category);
+        }
+      }),
+      onEquipmentVisibilityChanged: _handleEquipmentVisibilityChanged,
+      markerScale: _markerScale,
+      labelScale: _labelScale,
+      onMarkerScaleChanged: _handleMarkerScaleChanged,
+      onLabelScaleChanged: _handleLabelScaleChanged,
+      isMarkerScaleLocked: _isScaleLocked,
+      onToggleMarkerScaleLock: _toggleScaleLock,
+      onEditPressed: _handleEditPressed,
+      onMovePressed: _handleMovePressed,
+      onDeletePressed: _handleDeletePressed,
     );
   }
 
@@ -831,106 +873,122 @@ extension _DrawingScreenUi on _DrawingScreenState {
       }
     }
 
-    return InteractiveViewer(
-      transformationController: _transformationController,
-      minScale: DrawingCanvasMinScale,
-      maxScale: DrawingCanvasMaxScale,
-      panEnabled: !_isMoveMode && _isPanScaleAllowedDuringDraw,
-      scaleEnabled: !_isMoveMode && _isPanScaleAllowedDuringDraw,
-      constrained: false,
-      child: SizedBox(
-        key: _canvasKey,
-        width: DrawingCanvasSize.width,
-        height: DrawingCanvasSize.height,
-        child: Stack(
-          children: [
-            _buildMarkerLayer(
-              size: DrawingCanvasSize,
-              pageIndex: _currentPage,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: CustomPaint(
-                  painter: GridPainter(
-                    lineColor: theme.colorScheme.outlineVariant,
+    final blockStylusFromCanvasGestures = _isFreeDrawMode;
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: blockStylusFromCanvasGestures
+          ? <Type, GestureRecognizerFactory>{
+              _StylusArenaBlocker:
+                  GestureRecognizerFactoryWithHandlers<_StylusArenaBlocker>(
+                    () => _StylusArenaBlocker(),
+                    (_StylusArenaBlocker instance) {},
+                  ),
+            }
+          : const <Type, GestureRecognizerFactory>{},
+      child: InteractiveViewer(
+        transformationController: _transformationController,
+        minScale: DrawingCanvasMinScale,
+        maxScale: DrawingCanvasMaxScale,
+        panEnabled:
+            !_isMoveMode && (_isFreeDrawMode || _isPanScaleAllowedDuringDraw),
+        scaleEnabled:
+            !_isMoveMode && (_isFreeDrawMode || _isPanScaleAllowedDuringDraw),
+        constrained: false,
+        child: SizedBox(
+          key: _canvasKey,
+          width: DrawingCanvasSize.width,
+          height: DrawingCanvasSize.height,
+          child: Stack(
+            children: [
+              _buildMarkerLayer(
+                size: DrawingCanvasSize,
+                pageIndex: _currentPage,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: CustomPaint(
+                    painter: GridPainter(
+                      lineColor: theme.colorScheme.outlineVariant,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned.fill(
-              child: DrawingCanvasWidget(
-                controller: _canvasController,
-                cacheManager: _strokeCacheManager,
-                page: _currentPage,
-                canvasSize: DrawingCanvasSize,
-                devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-                eraserRadius: _areaEraserRadiusPx,
-              ),
-            ),
-            Positioned.fill(
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (e) {
-                  _handleOverlayPointerDownWithStylusDrawing(
-                    e,
-                    pageNumber: _currentPage,
-                    pageSize: DrawingCanvasSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                    photoScale: currentCanvasPhotoScale(),
-                  );
-                },
-                onPointerMove: (e) {
-                  _handleOverlayPointerMoveWithStylusDrawing(
-                    e,
-                    pageNumber: _currentPage,
-                    pageSize: DrawingCanvasSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                    photoScale: currentCanvasPhotoScale(),
-                  );
-                },
-                onPointerUp: (e) {
-                  _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                    e,
-                    pageNumber: _currentPage,
-                    pageSize: DrawingCanvasSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                  );
-                },
-                onPointerCancel: (e) {
-                  _handleOverlayPointerUpOrCancelWithStylusDrawing(
-                    e,
-                    pageNumber: _currentPage,
-                    pageSize: DrawingCanvasSize,
-                    drawingLocalToPageLocal: drawingLocalToPageLocal,
-                  );
-                },
-              ),
-            ),
-            if (_isFreeDrawMode &&
-                _activeTool == DrawingTool.shape &&
-                _activeShapeManipulator != null)
-              IgnorePointer(
-                child: ShapeHandlesOverlay(
-                  manipulator: _activeShapeManipulator!,
+              Positioned.fill(
+                child: DrawingCanvasWidget(
+                  controller: _canvasController,
+                  cacheManager: _strokeCacheManager,
+                  page: _currentPage,
                   canvasSize: DrawingCanvasSize,
-                  previewType: overlayPreviewType,
-                  previewStroke: overlayPreviewStroke,
-                  previewFillArgb: overlayPreviewFillArgb,
-                  previewPointsNorm: overlayPreviewPointsNorm,
-                  createStartNorm:
-                      _activeShapeEditOp == _ShapeEditOperation.create
-                      ? _shapeInteractionStartNorm
-                      : null,
-                  createCurrentNorm:
-                      _activeShapeEditOp == _ShapeEditOperation.create
-                      ? _shapeInteractionLastNorm
-                      : null,
-                  showBounds: _activeShapeEditOp != _ShapeEditOperation.create,
+                  devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                  eraserRadius: _areaEraserRadiusPx,
                 ),
               ),
-          ],
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (e) {
+                    _handleOverlayPointerDownWithStylusDrawing(
+                      e,
+                      pageNumber: _currentPage,
+                      pageSize: DrawingCanvasSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                      photoScale: currentCanvasPhotoScale(),
+                    );
+                  },
+                  onPointerMove: (e) {
+                    _handleOverlayPointerMoveWithStylusDrawing(
+                      e,
+                      pageNumber: _currentPage,
+                      pageSize: DrawingCanvasSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                      photoScale: currentCanvasPhotoScale(),
+                    );
+                  },
+                  onPointerUp: (e) {
+                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                      e,
+                      pageNumber: _currentPage,
+                      pageSize: DrawingCanvasSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    );
+                  },
+                  onPointerCancel: (e) {
+                    _handleOverlayPointerUpOrCancelWithStylusDrawing(
+                      e,
+                      pageNumber: _currentPage,
+                      pageSize: DrawingCanvasSize,
+                      drawingLocalToPageLocal: drawingLocalToPageLocal,
+                    );
+                  },
+                ),
+              ),
+              if (_isFreeDrawMode &&
+                  _activeTool == DrawingTool.shape &&
+                  _activeShapeManipulator != null)
+                IgnorePointer(
+                  child: ShapeHandlesOverlay(
+                    manipulator: _activeShapeManipulator!,
+                    canvasSize: DrawingCanvasSize,
+                    previewType: overlayPreviewType,
+                    previewStroke: overlayPreviewStroke,
+                    previewFillArgb: overlayPreviewFillArgb,
+                    previewPointsNorm: overlayPreviewPointsNorm,
+                    createStartNorm:
+                        _activeShapeEditOp == _ShapeEditOperation.create
+                        ? _shapeInteractionStartNorm
+                        : null,
+                    createCurrentNorm:
+                        _activeShapeEditOp == _ShapeEditOperation.create
+                        ? _shapeInteractionLastNorm
+                        : null,
+                    showBounds:
+                        _activeShapeEditOp != _ShapeEditOperation.create,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1428,31 +1486,24 @@ extension _DrawingScreenUi on _DrawingScreenState {
   }) {
     final bool allowTapInFreeDraw =
         _isFreeDrawMode && (_activeTool == DrawingTool.shape);
-    final GestureTapUpCallback? tapHandler =
-        (_isMoveMode || (_isFreeDrawMode && !allowTapInFreeDraw))
-        ? null
-        : onTapUp;
-    final GestureLongPressStartCallback? longPressHandler =
-        (_isMoveMode || _isFreeDrawMode) ? null : onLongPressStart;
-    final bool canMove = _isMoveMode && _hasMoveTarget;
-    final GestureDragUpdateCallback? movePanUpdate =
-        (_isFreeDrawMode || !canMove) ? null : onMovePanUpdate;
-    return Listener(
+    return DrawingCanvasShell(
       behavior: behavior,
-      onPointerDown: (e) => _handlePointerDown(e.localPosition),
-      onPointerMove: (e) => _handlePointerMove(e.localPosition),
-      onPointerUp: (_) => _handlePointerUp(),
-      onPointerCancel: (_) => _handlePointerCancel(),
-      child: GestureDetector(
-        behavior: behavior,
-        onTapUp: tapHandler,
-        onLongPressStart: longPressHandler,
-        onPanStart: canMove ? (_) => _handleMovePanStartGlobal() : null,
-        onPanUpdate: movePanUpdate,
-        onPanEnd: canMove ? (_) => _handleMovePanEnd() : null,
-        onPanCancel: canMove ? _handleMovePanCancel : null,
-        child: KeyedSubtree(key: tapRegionKey, child: child),
-      ),
+      tapRegionKey: tapRegionKey,
+      child: child,
+      isMoveMode: _isMoveMode,
+      isFreeDrawMode: _isFreeDrawMode,
+      allowTapInFreeDraw: allowTapInFreeDraw,
+      hasMoveTarget: _hasMoveTarget,
+      onPointerDown: _handlePointerDown,
+      onPointerMove: _handlePointerMove,
+      onPointerUp: _handlePointerUp,
+      onPointerCancel: _handlePointerCancel,
+      onTapUp: onTapUp,
+      onLongPressStart: onLongPressStart,
+      onMovePanUpdate: onMovePanUpdate,
+      onMovePanStart: _handleMovePanStartGlobal,
+      onMovePanEnd: _handleMovePanEnd,
+      onMovePanCancel: _handleMovePanCancel,
     );
   }
 }
