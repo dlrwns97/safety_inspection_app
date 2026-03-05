@@ -1523,7 +1523,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required double normalizedX,
     required double normalizedY,
   }) {
-    return handleTapCore(
+    return _markerActionCoordinator.handleTap(
       context: context,
       hitResult: hitResult,
       decision: decision,

@@ -53,12 +53,11 @@ import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.d
 import 'package:safety_inspection_app/screens/drawing/engines/shape_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/equipment_updated_site_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
-import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/marker_input_guard.dart';
+import 'package:safety_inspection_app/presentation/drawing/controllers/marker_action_coordinator.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pdf_viewport_controller.dart';
 import 'package:safety_inspection_app/presentation/drawing/models/pdf_viewport_snapshot.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pointer_intent_router.dart';
@@ -168,6 +167,7 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
   final Set<int> _strokeSpatialIndexDirtyPages = <int>{};
+  late final MarkerActionCoordinator _markerActionCoordinator;
   late final PdfViewportController _pdfViewportController;
   late final DrawingRepository _drawingRepository;
   late final SiteRepository _siteRepository;
@@ -239,6 +239,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void initState() {
     super.initState();
+    _markerActionCoordinator = const MarkerActionCoordinator();
     _pdfViewportController = const PdfViewportController();
     _drawingRepository = widget.drawingRepository ?? DrawingFileRepository();
     _siteRepository = widget.siteRepository ?? SitePrefsRepository();

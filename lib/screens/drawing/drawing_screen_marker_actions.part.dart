@@ -1,4 +1,4 @@
-﻿part of 'drawing_screen.dart';
+part of 'drawing_screen.dart';
 
 extension _DrawingScreenMarkerActions on _DrawingScreenState {
   void _handleEditPressed() async {
@@ -61,38 +61,22 @@ extension _DrawingScreenMarkerActions on _DrawingScreenState {
   }
 
   Future<EquipmentMarker?> _editEquipmentMarker(EquipmentMarker marker) async {
-    if (marker.category == EquipmentCategory.equipment8) {
-      final nextIndexByDirection = {
-        'Lx': nextSettlementIndex(_site, 'Lx'),
-        'Ly': nextSettlementIndex(_site, 'Ly'),
-      };
-      final details = await _showSettlementDialog(
-        baseTitle: '부동침하',
-        nextIndexByDirection: nextIndexByDirection,
-        initialDirection: settlementDirection(marker),
-        initialDisplacementText: marker.displacementText,
-      );
-      if (details == null) {
-        return null;
-      }
-      return marker.copyWith(
-        equipmentTypeId: details.direction,
-        tiltDirection: details.direction,
-        displacementText: details.displacementText,
-      );
-    }
-    final siteWithoutMarker = _site.copyWith(
-      equipmentMarkers: _site.equipmentMarkers
-          .where((item) => item.id != marker.id)
-          .toList(),
-    );
-    final updatedSite = await createEquipmentUpdatedSite(
+    return _markerActionCoordinator.editEquipmentMarker(
       context: context,
-      site: siteWithoutMarker,
-      activeEquipmentCategory: marker.category,
-      pendingMarker: marker,
-      prefix: equipmentLabelPrefix(marker.category),
-      allowRebarSpacingMulti: true,
+      site: _site,
+      marker: marker,
+      showSettlementDialog:
+          ({
+            required baseTitle,
+            required nextIndexByDirection,
+            initialDirection,
+            initialDisplacementText,
+          }) => _showSettlementDialog(
+            baseTitle: baseTitle,
+            nextIndexByDirection: nextIndexByDirection,
+            initialDirection: initialDirection,
+            initialDisplacementText: initialDisplacementText,
+          ),
       deflectionMemberOptions: DrawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
@@ -152,15 +136,6 @@ extension _DrawingScreenMarkerActions on _DrawingScreenState {
             initialEndCText: initialEndCText,
           ),
     );
-    if (updatedSite == null) {
-      return null;
-    }
-    for (final item in updatedSite.equipmentMarkers) {
-      if (item.id == marker.id) {
-        return item;
-      }
-    }
-    return null;
   }
 
   void _handleMovePressed() {
