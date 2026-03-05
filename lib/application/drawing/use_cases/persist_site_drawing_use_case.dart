@@ -1,5 +1,6 @@
 import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
 import 'package:safety_inspection_app/domain/site/repositories/site_repository.dart';
+import 'package:safety_inspection_app/infrastructure/mappers/drawing_stroke_mapper.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_history_action_persisted.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/site.dart';
@@ -26,7 +27,7 @@ class PersistSiteDrawingUseCase {
     await _drawingRepository.saveSiteDrawing(
       siteId: site.id,
       payloadJson: <String, dynamic>{
-        'drawingStrokes': flatList.map((stroke) => stroke.toJson()).toList(),
+        'drawingStrokes': flatList.map(DrawingStrokeMapper.toJson).toList(),
       },
     );
 

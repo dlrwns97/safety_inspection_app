@@ -17,7 +17,7 @@
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
   - `Phase 3` (`Step 3-1` ~ `Step 3-6F`)
-- Phase 3 진행 상태
+- Phase 3 완료 상태
   - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`, `Step 3-6` (`3-6A`~`3-6F`)
 - 최근 자동 검증 결과 (Phase 3 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
@@ -26,18 +26,21 @@
   - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`: 통과
   - `flutter test test/drawing_history_stress_test.dart`: 통과
   - `flutter test test/smoke/scenario_id_smoke_test.dart`: 통과
+  - `flutter test test/drawing_serialization_compat_test.dart`: 통과
+  - `flutter test`: 전체 통과
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
   - `Step 2-3`: `D-02`, `D-03`, `D-08` all pass
   - `Step 2-4`: `D-08`, `D-09` all pass
   - `Step 3-1` ~ `Step 3-5`: all pass
-  - `Step 3-6` 진행 중 반영분(툴 전환/스타일러스 입력/미니 설정 아이콘): all pass
+  - `Step 3-6` 반영분(툴 전환/스타일러스 입력/미니 설정 아이콘): all pass
   - `Step 3-6A` 반영분(포인터 라우팅 분리/로그 정리/소형 도형 이동 보정): all pass
   - `Step 3-6F` 반영분(`logic/ui` part 분리 + 라인 1차 목표): all pass
+  - `Step 4-1`: `D-04`, `D-05`, `D-08` all pass
 - 다음 시작점
-  - `Phase 4 - Step 4-1`: 엔티티 직렬화 제거(`toJson/fromJson` -> mapper 이동)
   - `Phase 4 - Step 4-2`: 모델의 프레젠테이션 의존 제거
+  - `Phase 4 - Step 4-3`: 라벨/순번 규칙 Domain Service화
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -506,7 +509,7 @@ lib/
 
 ---
 
-## Phase 3. DrawingScreen 상태 슬라이스 분해 (핵심, 7~10일)
+## Phase 3. DrawingScreen 상태 슬라이스 분해 (핵심, 7~10일) ✅ 완료
 목표: `_DrawingScreenState` 집중 상태를 책임별 state object로 절단.
 
 ### Step 3-1. SessionState 분리
@@ -664,7 +667,7 @@ lib/
 ## Phase 4. Domain 순수화 + Mapper 분리 (5~7일)
 목표: 엔티티를 프레젠테이션/직렬화 의존에서 분리.
 
-### Step 4-1. 엔티티 직렬화 제거
+### Step 4-1. 엔티티 직렬화 제거 ✅ 완료 (2026-03-05)
 대상:
 - `site.dart`, `defect.dart`, `equipment_marker.dart`, `drawing_stroke.dart`
 
@@ -675,6 +678,34 @@ lib/
 검증:
 - `test/drawing_serialization_compat_test.dart`
 - 기존 저장 데이터 로드 호환 수동 검증.
+
+실행 기록 (2026-03-05):
+- 수정 파일
+  - `lib/infrastructure/mappers/defect_mapper.dart` (신규)
+  - `lib/infrastructure/mappers/equipment_marker_mapper.dart` (신규)
+  - `lib/infrastructure/mappers/drawing_stroke_mapper.dart` (신규)
+  - `lib/infrastructure/mappers/site_mapper.dart` (신규)
+  - `lib/models/site.dart`
+  - `lib/models/defect.dart`
+  - `lib/models/equipment_marker.dart`
+  - `lib/models/drawing/drawing_stroke.dart`
+  - `lib/models/site_storage.dart`
+  - `lib/application/drawing/use_cases/load_site_drawing_use_case.dart`
+  - `lib/application/drawing/use_cases/persist_site_drawing_use_case.dart`
+  - `test/drawing_serialization_compat_test.dart`
+  - `test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`
+- 핵심 수정
+  - `Site/Defect/EquipmentMarker/DrawingStroke` 엔티티의 `toJson/fromJson` 제거.
+  - 직렬화/역직렬화 책임을 `infrastructure/mappers/*`로 이관.
+  - 저장소/유스케이스/테스트의 직렬화 경로를 매퍼 호출 기준으로 전환.
+- 자동 검증 결과
+  - `flutter test test/drawing_serialization_compat_test.dart` 통과
+  - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart` 통과
+  - `flutter test test/application/site/use_cases/site_use_cases_test.dart` 통과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `D-04`, `D-05`, `D-08` all pass
 
 ### Step 4-2. 도메인 역의존 제거
 즉시 해결 대상:
@@ -937,8 +968,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 17. `완료` `3-6C` 마커 액션 오케스트레이션 분리
 18. `완료` `3-6D` UI 조립 블록 분리 + draw/move gesture 보정
 19. `완료` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성: logic 1,964 / ui 785)
-20. `다음` Phase 4-1 엔티티 직렬화 분리
-21. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+20. `완료` Phase 4-1 엔티티 직렬화 분리(`toJson/fromJson` -> mapper)
+21. `다음` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
+22. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 

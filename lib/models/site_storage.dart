@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:safety_inspection_app/infrastructure/mappers/site_mapper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'site.dart';
@@ -27,7 +28,7 @@ class SiteStorage {
     }
     final decoded = jsonDecode(raw) as List<dynamic>;
     return decoded
-        .map((item) => Site.fromJson(item as Map<String, dynamic>))
+        .map((item) => SiteMapper.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
@@ -40,7 +41,7 @@ class SiteStorage {
   }
 
   static Map<String, dynamic> _siteMetadataOnlyJson(Site site) {
-    final siteJson = site.toJson();
+    final siteJson = SiteMapper.toJson(site);
     siteJson
       ..remove('drawingStrokes')
       ..remove('drawingUndoHistory')

@@ -1,4 +1,5 @@
 import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
+import 'package:safety_inspection_app/infrastructure/mappers/drawing_stroke_mapper.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 
 class LoadSiteDrawingUseCase {
@@ -17,7 +18,9 @@ class LoadSiteDrawingUseCase {
       return loaded;
     }
     for (final rawStroke in drawingStrokesJson.whereType<Map>()) {
-      final stroke = DrawingStroke.fromJson(rawStroke.cast<String, dynamic>());
+      final stroke = DrawingStrokeMapper.fromJson(
+        rawStroke.cast<String, dynamic>(),
+      );
       loaded
           .putIfAbsent(stroke.pageNumber, () => <DrawingStroke>[])
           .add(stroke);

@@ -1,5 +1,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:safety_inspection_app/infrastructure/mappers/drawing_stroke_mapper.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
@@ -22,7 +23,7 @@ void main() {
         ],
       };
 
-      final stroke = DrawingStroke.fromJson(legacyJson);
+      final stroke = DrawingStrokeMapper.fromJson(legacyJson);
 
       expect(stroke.toolType, DrawingTool.highlighter);
       expect(stroke.style.kind, StrokeToolKind.highlighter);
@@ -47,7 +48,7 @@ void main() {
         ],
       };
 
-      final stroke = DrawingStroke.fromJson(json);
+      final stroke = DrawingStrokeMapper.fromJson(json);
 
       expect(stroke.toolType, DrawingTool.shape);
     });
@@ -72,7 +73,7 @@ void main() {
         'erasedMask': const [1, 0],
       };
 
-      final stroke = DrawingStroke.fromJson(json);
+      final stroke = DrawingStrokeMapper.fromJson(json);
 
       expect(stroke.erasedMask, const [1, 0, 0, 0]);
       expect(stroke.erasedMaskAsBool(), const [true, false, false, false]);

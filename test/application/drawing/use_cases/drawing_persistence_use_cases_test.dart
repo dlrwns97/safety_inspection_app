@@ -3,6 +3,7 @@ import 'package:safety_inspection_app/application/drawing/use_cases/load_site_dr
 import 'package:safety_inspection_app/application/drawing/use_cases/persist_site_drawing_use_case.dart';
 import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
 import 'package:safety_inspection_app/domain/site/repositories/site_repository.dart';
+import 'package:safety_inspection_app/infrastructure/mappers/drawing_stroke_mapper.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
@@ -74,7 +75,10 @@ void main() {
       final s1 = _stroke(id: 'a', page: 1);
       final s2 = _stroke(id: 'b', page: 2);
       drawingRepository.loadedPayload = <String, dynamic>{
-        'drawingStrokes': <Map<String, dynamic>>[s1.toJson(), s2.toJson()],
+        'drawingStrokes': <Map<String, dynamic>>[
+          DrawingStrokeMapper.toJson(s1),
+          DrawingStrokeMapper.toJson(s2),
+        ],
       };
       final useCase = LoadSiteDrawingUseCase(
         drawingRepository: drawingRepository,
