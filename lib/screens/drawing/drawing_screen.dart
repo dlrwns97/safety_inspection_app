@@ -65,6 +65,7 @@ import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.
 import 'package:safety_inspection_app/presentation/drawing/states/history_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/marker_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/persist_state.dart';
+import 'package:safety_inspection_app/presentation/drawing/states/drawing_state_facade.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/tool_state.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/canvas_marker_layer.dart';
 import 'package:safety_inspection_app/screens/drawing/widgets/drawing_local_parts.dart';
@@ -110,7 +111,7 @@ class DrawingScreen extends StatefulWidget {
 enum _ShapeEditOperation { none, create, translate, resize, rotate }
 
 class _DrawingScreenState extends State<DrawingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final DrawingController _controller = DrawingController();
   late final DrawingCanvasController _canvasController;
   late final StrokeCacheManager _strokeCacheManager;
@@ -125,11 +126,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   final GlobalKey _canvasTapRegionKey = GlobalKey();
   final Map<int, GlobalKey> _pdfTapRegionKeys = <int, GlobalKey>{};
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
-  final DrawingSessionState _sessionState = DrawingSessionState();
-  final MarkerState _markerState = MarkerState();
-  final GestureState _gestureState = GestureState();
-  final HistoryState _historyState = HistoryState();
-  final PersistState _persistState = PersistState();
+  final DrawingStateFacade _state = DrawingStateFacade();
   int _pdfViewVersion = 0;
   late Site _site;
   late final TabController _sidePanelController;
@@ -152,7 +149,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   bool _isRightPanelCollapsed = false;
   bool _isMoveMode = false;
   bool _isFreeDrawMode = false;
-  final ToolState _toolState = ToolState();
   ShapeType _activeShapeType = ShapeType.rectangle;
   static const double _kMinAreaEraserRadiusPx = 6.0;
   static const double _kMaxAreaEraserRadiusPx = 60.0;
@@ -242,6 +238,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _markerActionCoordinator = const MarkerActionCoordinator();
     _pdfViewportController = const PdfViewportController();
     _drawingRepository = widget.drawingRepository ?? DrawingFileRepository();
@@ -326,6 +323,17 @@ class _DrawingScreenState extends State<DrawingScreen>
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (_persistPending || _hasUnsavedChanges) {
+        _requestPersistDrawing(immediate: true);
+      }
+    }
+  }
+
   Defect? _findDefectById(Site updatedSite, String defectId) {
     for (final defect in updatedSite.defects) {
       if (defect.id == defectId) {
@@ -346,13 +354,13 @@ class _DrawingScreenState extends State<DrawingScreen>
 
   @override
   void dispose() {
-    _persistState.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _state.dispose();
     _canvasController.cacheRebuildTick.removeListener(
       _handleCanvasCacheInvalidated,
     );
     _canvasController.dispose();
     _strokeCacheManager.dispose();
-    _sessionState.dispose();
     _resetPdfViewControllers();
     _transformationController.dispose();
     _sidePanelController.removeListener(_handleSidePanelTabChanged);

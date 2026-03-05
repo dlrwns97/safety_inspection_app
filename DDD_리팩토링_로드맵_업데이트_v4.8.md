@@ -18,7 +18,7 @@
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
 - Phase 3 진행 상태
   - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`
-  - `진행중`: `Step 3-6` (`3-6A` 완료, `3-6E`부터 후속 진행)
+  - `진행중`: `Step 3-6` (`3-6A`~`3-6D` 완료, `3-6E` 진행중)
 - 최근 자동 검증 결과 (Phase 3 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -35,8 +35,8 @@
   - `Step 3-6` 진행 중 반영분(툴 전환/스타일러스 입력/미니 설정 아이콘): all pass
   - `Step 3-6A` 반영분(포인터 라우팅 분리/로그 정리/소형 도형 이동 보정): all pass
 - 다음 시작점
-  - `Phase 3 - Step 3-6E`: 상태 접근 단일화(accessor 제거) 선행
-  - 이후 `Step 3-6B`: PDF viewport + page size cache 저장 경계 분리
+  - `Phase 3 - Step 3-6E`: 상태 접근 단일화(accessor 포워딩 축소 + facade 정리) 마무리
+  - 이후 `Step 3-6F`: DrawingScreen 최종 정리(라인수 절감/part 책임 최소화)
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -612,9 +612,10 @@ lib/
    - `drawing_screen_logic.part.dart` 2k 미만, `drawing_screen_ui.part.dart` 1k 미만으로 1차 절감한다.
 
 실행 순서 조정(외부 리뷰 선택 반영):
-- `완료`: `3-6A`
-- `다음`: `3-6E` -> `3-6B` -> `3-6C` -> `3-6D` -> `3-6F`
-- 이유: accessor 포워딩을 먼저 줄여야 이후 파일 이동 시 수정 파급을 줄일 수 있음
+- `완료`: `3-6A`, `3-6B`, `3-6C`, `3-6D`
+- `진행중`: `3-6E`
+- `다음`: `3-6F`
+- 이유: accessor 포워딩을 먼저 줄여야 이후 최종 정리 단계(`3-6F`)에서 수정 파급을 줄일 수 있음
 
 분리 후 기대 효과:
 - 입력/좌표/오케스트레이션이 테스트 가능한 순수 단위로 분리되어 회귀 원인 추적 시간이 단축된다.
@@ -932,9 +933,12 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 12. `완료` Phase 3-5 History/PersistState 분리
 13. `진행중` Phase 3-6 DrawingScreen 경량화 (`3-6A`~`3-6F` 순차 수행)
 14. `완료` `3-6A` 입력/제스처 라우팅 분리 + 핫패스 디버그 로그 정리(P0)
-15. `다음` `3-6E` 상태 접근 단일화(accessor 포워딩 축소)
-16. `다음` `3-6B` PDF viewport + page size cache 경계 분리
-17. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+15. `진행중` `3-6E` 상태 접근 단일화(accessor 포워딩 축소 + facade 정리)
+16. `완료` `3-6B` PDF viewport + page size cache 경계 분리
+17. `완료` `3-6C` 마커 액션 오케스트레이션 분리
+18. `완료` `3-6D` UI 조립 블록 분리 + draw/move gesture 보정
+19. `다음` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성)
+20. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 

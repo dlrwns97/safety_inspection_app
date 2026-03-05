@@ -413,9 +413,19 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _canvasController.setLiveStroke(null);
   }
 
-  void _requestPersistDrawing() {
+  void _requestPersistDrawing({bool immediate = false}) {
+    _hasUnsavedChanges = true;
+    _didWarnUnsavedOnExit = false;
     _persistPending = true;
     _persistDebounce?.cancel();
+    if (immediate) {
+      _persistDebounce = null;
+      if (!mounted || _persistInFlight) {
+        return;
+      }
+      unawaited(_runPersistLoop());
+      return;
+    }
     _persistDebounce = Timer(const Duration(milliseconds: 120), () {
       if (!mounted) {
         return;
@@ -3360,6 +3370,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       _updateDrawingHistoryAvailabilityState();
     });
+    _requestPersistDrawing(immediate: true);
   }
 
   void _handleRedoDrawing() {
@@ -3375,6 +3386,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
       _updateDrawingHistoryAvailabilityState();
     });
+    _requestPersistDrawing(immediate: true);
   }
 
   Future<bool> _confirmClear({
