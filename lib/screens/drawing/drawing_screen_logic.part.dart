@@ -90,65 +90,32 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
   bool get _isStylusActive => _activeStylusPointerId != null;
 
-  Matrix4 _buildPhotoViewChildMatrix({
-    required PhotoViewControllerValue value,
-    required Size viewportSize,
-    required Size childSize,
-  }) {
-    final scale = value.scale ?? 1.0;
-    final position = value.position;
-    final viewportCenter = viewportSize.center(Offset.zero);
-    final childCenter = childSize.center(Offset.zero);
-
-    return Matrix4.identity()
-      ..translate(viewportCenter.dx, viewportCenter.dy)
-      ..translate(position.dx, position.dy)
-      ..scale(scale, scale, 1.0)
-      ..translate(-childCenter.dx, -childCenter.dy);
-  }
-
   Offset? _mapPdfViewportPointToPageLocal({
     required Offset viewportLocal,
     required int pageIndex,
     required Size viewportSize,
     required Size childSize,
   }) {
-    if (viewportSize.isEmpty || childSize.isEmpty) {
-      return null;
-    }
     final controllerValue = _photoControllerForPage(pageIndex).value;
-    final matrix = _buildPhotoViewChildMatrix(
-      value: controllerValue,
+    final snapshot = PdfViewportSnapshot(
+      scale: controllerValue.scale ?? 1.0,
+      position: controllerValue.position,
       viewportSize: viewportSize,
       childSize: childSize,
     );
-    final inverted = Matrix4.inverted(matrix);
-    final pageLocal = MatrixUtils.transformPoint(inverted, viewportLocal);
-    if (pageLocal.dx < 0 ||
-        pageLocal.dx > childSize.width ||
-        pageLocal.dy < 0 ||
-        pageLocal.dy > childSize.height) {
-      return null;
-    }
-    return pageLocal;
+    return _pdfViewportController.mapViewportPointToPageLocal(
+      snapshot: snapshot,
+      viewportLocal: viewportLocal,
+    );
   }
 
   Offset? _overlayToNormalizedPoint({
     required Offset overlayLocal,
     required Size destSize,
   }) {
-    if (destSize.isEmpty) {
-      return null;
-    }
-    if (overlayLocal.dx < 0 ||
-        overlayLocal.dx > destSize.width ||
-        overlayLocal.dy < 0 ||
-        overlayLocal.dy > destSize.height) {
-      return null;
-    }
-    return Offset(
-      overlayLocal.dx / destSize.width,
-      overlayLocal.dy / destSize.height,
+    return _pdfViewportController.overlayToNormalizedPoint(
+      overlayLocal: overlayLocal,
+      destSize: destSize,
     );
   }
 
@@ -160,11 +127,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return _activeEquipmentCategory != null;
     }
     return false;
-  }
-
-  String _pdfPageSizeCacheKeyForSite(Site site) {
-    final path = site.pdfPath ?? '';
-    return 'drawing_pdf_page_sizes_cache_v1:${path.hashCode}';
   }
 
   void _initializeDefectTabs() {
@@ -193,36 +155,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Future<void> _loadPdfPageSizeCache() async {
-    final path = _site.pdfPath;
-    if (path == null || path.isEmpty) {
-      return;
-    }
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_pdfPageSizeCacheKeyForSite(_site));
-    if (raw == null || raw.isEmpty) {
-      return;
-    }
-    final decoded = jsonDecode(raw);
-    if (decoded is! Map<String, dynamic>) {
-      return;
-    }
-    final restored = <int, Size>{};
-    for (final entry in decoded.entries) {
-      final page = int.tryParse(entry.key);
-      final value = entry.value;
-      if (page == null || value is! Map) {
-        continue;
-      }
-      final width = (value['w'] as num?)?.toDouble();
-      final height = (value['h'] as num?)?.toDouble();
-      if (width == null || height == null) {
-        continue;
-      }
-      if (width < _kMinValidPdfPageSide || height < _kMinValidPdfPageSide) {
-        continue;
-      }
-      restored[page] = Size(width, height);
-    }
+    final restored = await _loadPdfPageSizeCacheUseCase.execute(site: _site);
     if (!mounted || restored.isEmpty) {
       return;
     }
@@ -235,16 +168,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   }
 
   Future<void> _persistPdfPageSizeCache() async {
-    final path = _site.pdfPath;
-    if (path == null || path.isEmpty) {
-      return;
-    }
-    final map = <String, Map<String, double>>{};
-    _pdfPageSizes.forEach((page, size) {
-      map['$page'] = {'w': size.width, 'h': size.height};
-    });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_pdfPageSizeCacheKeyForSite(_site), jsonEncode(map));
+    await _persistPdfPageSizeCacheUseCase.execute(
+      site: _site,
+      pageSizes: _pdfPageSizes,
+    );
   }
 
   void _applyPdfLoadResult({

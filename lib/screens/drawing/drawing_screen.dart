@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -8,12 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:safety_inspection_app/application/drawing/use_cases/load_pdf_page_size_cache_use_case.dart';
 import 'package:safety_inspection_app/application/drawing/use_cases/load_site_drawing_use_case.dart';
+import 'package:safety_inspection_app/application/drawing/use_cases/persist_pdf_page_size_cache_use_case.dart';
 import 'package:safety_inspection_app/application/drawing/use_cases/persist_site_drawing_use_case.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
 import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
+import 'package:safety_inspection_app/domain/drawing/repositories/pdf_page_size_cache_repository.dart';
 import 'package:safety_inspection_app/domain/site/repositories/site_repository.dart';
 import 'package:safety_inspection_app/infrastructure/persistence/file_store/drawing_file_repository.dart';
+import 'package:safety_inspection_app/infrastructure/persistence/shared_prefs/pdf_page_size_cache_repository.dart';
 import 'package:safety_inspection_app/infrastructure/persistence/shared_prefs/site_prefs_repository.dart';
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
@@ -56,6 +59,8 @@ import 'package:safety_inspection_app/screens/drawing/flows/marker_tap_flow.dart
 import 'package:safety_inspection_app/screens/drawing/flows/pdf_controller_flow.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/drawing_session_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/marker_input_guard.dart';
+import 'package:safety_inspection_app/presentation/drawing/controllers/pdf_viewport_controller.dart';
+import 'package:safety_inspection_app/presentation/drawing/models/pdf_viewport_snapshot.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pointer_intent_router.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/history_state.dart';
@@ -87,9 +92,15 @@ class DrawingScreen extends StatefulWidget {
     super.key,
     required this.site,
     required this.onSiteUpdated,
+    this.drawingRepository,
+    this.siteRepository,
+    this.pdfPageSizeCacheRepository,
   });
   final Site site;
   final Future<void> Function(Site site) onSiteUpdated;
+  final DrawingRepository? drawingRepository;
+  final SiteRepository? siteRepository;
+  final PdfPageSizeCacheRepository? pdfPageSizeCacheRepository;
   @override
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
@@ -157,15 +168,14 @@ class _DrawingScreenState extends State<DrawingScreen>
       <int, SpatialIndex>{};
   final Map<int, Size> _strokeSpatialIndexPageSizeByPage = <int, Size>{};
   final Set<int> _strokeSpatialIndexDirtyPages = <int>{};
-  final DrawingRepository _drawingRepository = DrawingFileRepository();
-  final SiteRepository _siteRepository = SitePrefsRepository();
-  late final LoadSiteDrawingUseCase _loadSiteDrawingUseCase =
-      LoadSiteDrawingUseCase(drawingRepository: _drawingRepository);
-  late final PersistSiteDrawingUseCase _persistSiteDrawingUseCase =
-      PersistSiteDrawingUseCase(
-        drawingRepository: _drawingRepository,
-        siteRepository: _siteRepository,
-      );
+  late final PdfViewportController _pdfViewportController;
+  late final DrawingRepository _drawingRepository;
+  late final SiteRepository _siteRepository;
+  late final PdfPageSizeCacheRepository _pdfPageSizeCacheRepository;
+  late final LoadSiteDrawingUseCase _loadSiteDrawingUseCase;
+  late final PersistSiteDrawingUseCase _persistSiteDrawingUseCase;
+  late final LoadPdfPageSizeCacheUseCase _loadPdfPageSizeCacheUseCase;
+  late final PersistPdfPageSizeCacheUseCase _persistPdfPageSizeCacheUseCase;
   DrawingStroke? _inProgressStroke;
   int? _activePresetIndex = 0;
   final List<int> _recentArgb = <int>[];
@@ -229,6 +239,27 @@ class _DrawingScreenState extends State<DrawingScreen>
   @override
   void initState() {
     super.initState();
+    _pdfViewportController = const PdfViewportController();
+    _drawingRepository = widget.drawingRepository ?? DrawingFileRepository();
+    _siteRepository = widget.siteRepository ?? SitePrefsRepository();
+    _pdfPageSizeCacheRepository =
+        widget.pdfPageSizeCacheRepository ??
+        SharedPrefsPdfPageSizeCacheRepository();
+    _loadSiteDrawingUseCase = LoadSiteDrawingUseCase(
+      drawingRepository: _drawingRepository,
+    );
+    _persistSiteDrawingUseCase = PersistSiteDrawingUseCase(
+      drawingRepository: _drawingRepository,
+      siteRepository: _siteRepository,
+    );
+    _loadPdfPageSizeCacheUseCase = LoadPdfPageSizeCacheUseCase(
+      repository: _pdfPageSizeCacheRepository,
+      minValidPageSide: _kMinValidPdfPageSide,
+    );
+    _persistPdfPageSizeCacheUseCase = PersistPdfPageSizeCacheUseCase(
+      repository: _pdfPageSizeCacheRepository,
+      minValidPageSide: _kMinValidPdfPageSide,
+    );
     _canvasController = DrawingCanvasController();
     _strokeCacheManager = StrokeCacheManager();
     _canvasController.cacheRebuildTick.addListener(
