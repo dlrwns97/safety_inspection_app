@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v5 (업데이트: 2026-03-05, Phase 3 완료 / Phase 4 시작)
+# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 4 완료 / Phase 5 시작)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -11,15 +11,16 @@
 
 ---
 
-## 0-1. 진행 현황 (v5)
+## 0-1. 진행 현황 (v6)
 - 완료 Phase
   - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
   - `Phase 3` (`Step 3-1` ~ `Step 3-6F`)
-- Phase 3 완료 상태
-  - `완료`: `Step 3-1`, `Step 3-2`, `Step 3-3`, `Step 3-4`, `Step 3-5`, `Step 3-6` (`3-6A`~`3-6F`)
-- 최근 자동 검증 결과 (Phase 3 작업 기준)
+  - `Phase 4` (`Step 4-1`, `Step 4-2`, `Step 4-3`)
+- Phase 4 완료 상태
+  - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
+- 최근 자동 검증 결과 (Phase 4 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
   - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: 통과
@@ -669,7 +670,7 @@ lib/
 
 ---
 
-## Phase 4. Domain 순수화 + Mapper 분리 (5~7일)
+## Phase 4. Domain 순수화 + Mapper 분리 (5~7일) ✅ 완료 (2026-03-06)
 목표: 엔티티를 프레젠테이션/직렬화 의존에서 분리.
 
 ### Step 4-1. 엔티티 직렬화 제거 ✅ 완료 (2026-03-05)
