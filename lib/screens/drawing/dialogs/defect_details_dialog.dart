@@ -1,13 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 
+import 'package:safety_inspection_app/application/inspection/services/defect_photo_attachment_service.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
+import 'package:safety_inspection_app/infrastructure/photo/defect_photo_repository.dart';
 import 'package:safety_inspection_app/models/defect_details.dart';
-import 'package:safety_inspection_app/screens/drawing/attachments/defect_photo_store.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/defect_photo_thumbnails_section.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/photo_source_bottom_sheet.dart';
 import 'photo_manager_dialog.dart';
@@ -64,8 +62,9 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
   final _lengthController = TextEditingController();
   final _otherTypeController = TextEditingController();
   final _otherCauseController = TextEditingController();
-  final _photoStore = DefectPhotoStore();
-  final _imagePicker = ImagePicker();
+  final _photoAttachmentService = DefectPhotoAttachmentService(
+    photoRepository: DefectPhotoRepository(),
+  );
 
   String? _structuralMember;
   String? _crackType;
@@ -132,124 +131,44 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (selection == null) {
       return;
     }
-    if (selection == _DefectPhotoSource.camera) {
-      await _pickFromCamera();
-    } else if (selection == _DefectPhotoSource.gallery) {
-      await _pickFromGallery();
-    } else {
-      await _pickFromFilePicker();
-    }
+    await _appendPhotosFromSource(_toInputSource(selection));
   }
 
   Future<_DefectPhotoSource?> _showPhotoSourceSheet(BuildContext sheetContext) {
     return showDefectPhotoSourceSheet(sheetContext);
   }
 
-  Future<void> _pickFromCamera() async {
-    final picked = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-    if (picked == null) {
-      return;
-    }
-    await _savePhotoPaths([
-      _PickedPhotoInfo(
-        path: picked.path,
-        originalName: _resolveCameraName(picked),
-      ),
-    ]);
-  }
-
-  Future<void> _pickFromGallery() async {
-    final pickedPhotos = await _pickFromGalleryPicker();
-    if (pickedPhotos.isEmpty) {
-      return;
-    }
-    await _savePhotoPaths(pickedPhotos);
-  }
-
-  Future<void> _pickFromFilePicker() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: true,
-    );
-    final allowedExtensions = {'jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'};
-    if (result == null) {
-      return;
-    }
-    final selectedFiles = result.files
-        .where((file) => file.path != null)
-        .toList();
-    final pickedPhotos = selectedFiles
-        .where((file) {
-          final extension =
-              (file.extension ?? p.extension(file.name).replaceFirst('.', ''))
-                  .toLowerCase();
-          return allowedExtensions.contains(extension);
-        })
-        .map((file) {
-          return _PickedPhotoInfo(path: file.path!, originalName: file.name);
-        })
-        .toList();
-    final ignoredCount = selectedFiles.length - pickedPhotos.length;
-    if (pickedPhotos.isEmpty) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('지원하지 않는 파일 형식입니다'),
-              SizedBox(height: 4),
-              Text('사진 파일(jpg, png, heic 등)만 선택할 수 있어요.'),
-            ],
-          ),
-        ),
-      );
-      return;
-    }
-    if (ignoredCount > 0) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('일부 파일은 사진 형식이 아니라 제외되었습니다.')),
-      );
-    }
-    await _savePhotoPaths(pickedPhotos);
-  }
-
-  Future<void> _savePhotoPaths(List<_PickedPhotoInfo> pickedPhotos) async {
-    if (pickedPhotos.isEmpty) {
-      return;
-    }
+  Future<void> _appendPhotosFromSource(DefectPhotoInputSource source) async {
     setState(() {
       _isSavingPhotos = true;
     });
-    final sourcePaths = pickedPhotos.map((photo) => photo.path).toList();
-    final originalNames = pickedPhotos
-        .map((photo) => photo.originalName)
-        .toList();
-    final savedPaths = await _photoStore.savePickedImages(
-      siteId: widget.siteId,
-      defectId: widget.defectId,
-      sourcePaths: sourcePaths,
-      originalNames: originalNames,
-    );
-    if (!mounted) {
-      return;
+    try {
+      final result = await _photoAttachmentService.pickAndSave(
+        source: source,
+        siteId: widget.siteId,
+        defectId: widget.defectId,
+        allowMultiple: true,
+      );
+      if (!mounted) {
+        return;
+      }
+      _showAttachmentFeedback(result, includeExtensionsHint: true);
+      setState(() {
+        _isSavingPhotos = false;
+        _photoPaths.addAll(result.savedPaths);
+        _photoOriginalNamesByPath.addAll(result.originalNamesBySavedPath);
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSavingPhotos = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('사진 처리 중 오류가 발생했습니다.')));
     }
-    setState(() {
-      _isSavingPhotos = false;
-      _photoPaths.addAll(savedPaths);
-      _storePhotoOriginalNames(savedPaths, originalNames);
-    });
   }
 
   Future<void> _replacePhotoAt({required int index}) async {
@@ -260,187 +179,79 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
     if (selection == null) {
       return;
     }
-    final pickedPath = await _pickSinglePhotoPath(selection);
-    if (pickedPath == null) {
-      return;
-    }
     setState(() {
       _isSavingPhotos = true;
     });
-    final originalNames = [pickedPath.originalName];
-    final savedPaths = await _photoStore.savePickedImages(
-      siteId: widget.siteId,
-      defectId: widget.defectId,
-      sourcePaths: [pickedPath.path],
-      originalNames: originalNames,
-    );
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _isSavingPhotos = false;
-      if (index < _photoPaths.length) {
-        final oldPath = _photoPaths[index];
-        _photoOriginalNamesByPath.remove(oldPath);
-        _photoPaths[index] = savedPaths.single;
-        _storePhotoOriginalNames(savedPaths, originalNames);
-      }
-    });
-  }
-
-  Future<_PickedPhotoInfo?> _pickSinglePhotoPath(
-    _DefectPhotoSource source,
-  ) async {
-    if (source == _DefectPhotoSource.camera) {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+    try {
+      final result = await _photoAttachmentService.pickAndSave(
+        source: _toInputSource(selection),
+        siteId: widget.siteId,
+        defectId: widget.defectId,
+        allowMultiple: false,
       );
-      if (picked == null) {
-        return null;
+      if (!mounted || index >= _photoPaths.length) {
+        return;
       }
-      return _PickedPhotoInfo(
-        path: picked.path,
-        originalName: _resolveCameraName(picked),
-      );
-    }
-    if (source == _DefectPhotoSource.gallery) {
-      final pickedPhotos = await _pickFromGalleryPicker();
-      if (pickedPhotos.isEmpty) {
-        return null;
-      }
-      return pickedPhotos.first;
-    }
-    return _pickSinglePathFromFilePicker();
-  }
-
-  Future<List<_PickedPhotoInfo>> _pickFromGalleryPicker() async {
-    final picker = ImagePicker();
-    final files = await picker.pickMultiImage();
-    if (files.isEmpty) {
-      return [];
-    }
-    return files
-        .map(
-          (file) => _PickedPhotoInfo(
-            path: file.path,
-            originalName: file.name.trim().isNotEmpty
-                ? file.name.trim()
-                : p.basename(file.path),
-          ),
-        )
-        .toList();
-  }
-
-  Future<_PickedPhotoInfo?> _pickSinglePathFromFilePicker() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: false,
-    );
-    if (result == null) {
-      return null;
-    }
-    final pickedFile = result.files.single;
-    final pickedPath = pickedFile.path;
-    if (pickedPath == null) {
-      return null;
-    }
-    final allowedExtensions = {'jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'};
-    final extension =
-        (pickedFile.extension ??
-                p.extension(pickedFile.name).replaceFirst('.', ''))
-            .toLowerCase();
-    if (!allowedExtensions.contains(extension)) {
+      _showAttachmentFeedback(result, includeExtensionsHint: false);
+      setState(() {
+        _isSavingPhotos = false;
+        if (result.savedPaths.isNotEmpty) {
+          final oldPath = _photoPaths[index];
+          _photoOriginalNamesByPath.remove(oldPath);
+          _photoPaths[index] = result.savedPaths.first;
+          _photoOriginalNamesByPath.addAll(result.originalNamesBySavedPath);
+        }
+      });
+    } catch (_) {
       if (!mounted) {
-        return null;
+        return;
       }
+      setState(() {
+        _isSavingPhotos = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('사진 처리 중 오류가 발생했습니다.')));
+    }
+  }
+
+  DefectPhotoInputSource _toInputSource(_DefectPhotoSource source) {
+    switch (source) {
+      case _DefectPhotoSource.camera:
+        return DefectPhotoInputSource.camera;
+      case _DefectPhotoSource.gallery:
+        return DefectPhotoInputSource.gallery;
+      case _DefectPhotoSource.file:
+        return DefectPhotoInputSource.file;
+    }
+  }
+
+  void _showAttachmentFeedback(
+    DefectPhotoAttachmentResult result, {
+    required bool includeExtensionsHint,
+  }) {
+    if (result.unsupportedOnlySelection) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('지원하지 않는 파일 형식입니다'),
-              SizedBox(height: 4),
-              Text('사진 파일만 선택할 수 있어요.'),
+              const Text('지원하지 않는 파일 형식입니다'),
+              if (includeExtensionsHint) ...const [
+                SizedBox(height: 4),
+                Text('사진 파일(jpg, png, heic 등)만 선택할 수 있어요.'),
+              ] else ...const [SizedBox(height: 4), Text('사진 파일만 선택할 수 있어요.')],
             ],
           ),
         ),
       );
-      return null;
+      return;
     }
-    return _PickedPhotoInfo(path: pickedPath, originalName: pickedFile.name);
-  }
-
-  String _resolveCameraName(XFile picked) {
-    final pickedName = picked.name.trim();
-    if (_isMeaningfulCameraFileName(pickedName)) {
-      return pickedName;
-    }
-    final pathName = p.basename(picked.path).trim();
-    if (_isMeaningfulCameraFileName(pathName)) {
-      return pathName;
-    }
-    return _cameraFallbackName(picked.path);
-  }
-
-  bool _isMeaningfulCameraFileName(String name) {
-    if (name.isEmpty) {
-      return false;
-    }
-    final extension = p.extension(name).toLowerCase();
-    const allowedExtensions = {
-      '.jpg',
-      '.jpeg',
-      '.png',
-      '.webp',
-      '.heic',
-      '.heif',
-    };
-    if (!allowedExtensions.contains(extension)) {
-      return false;
-    }
-    final lower = name.toLowerCase();
-    const blockedPrefixes = {
-      'image_picker',
-      'scaled_',
-      'cache_',
-      'temp_',
-      'tmp_',
-    };
-    if (blockedPrefixes.any(lower.startsWith)) {
-      return false;
-    }
-    return !lower.contains('image_picker');
-  }
-
-  String _cameraFallbackName(String sourcePath) {
-    final now = DateTime.now();
-    final year = now.year.toString().padLeft(4, '0');
-    final month = now.month.toString().padLeft(2, '0');
-    final day = now.day.toString().padLeft(2, '0');
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-    final second = now.second.toString().padLeft(2, '0');
-    final extension = p.extension(sourcePath).isEmpty
-        ? '.jpg'
-        : p.extension(sourcePath);
-    return '${year}${month}${day}_$hour$minute$second$extension';
-  }
-
-  void _storePhotoOriginalNames(
-    List<String> savedPaths,
-    List<String> originalNames,
-  ) {
-    final count = min(savedPaths.length, originalNames.length);
-    for (var i = 0; i < count; i++) {
-      final savedPath = savedPaths[i];
-      final originalName = originalNames[i].isNotEmpty
-          ? originalNames[i]
-          : p.basename(savedPath);
-      _photoOriginalNamesByPath[savedPath] = originalName;
+    if (result.ignoredFileCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('일부 파일은 사진 형식이 아니라 제외되었습니다.')),
+      );
     }
   }
 
@@ -722,11 +533,4 @@ class _DefectDetailsDialogState extends State<_DefectDetailsDialog> {
       const SizedBox(height: 8),
     ];
   }
-}
-
-class _PickedPhotoInfo {
-  const _PickedPhotoInfo({required this.path, required this.originalName});
-
-  final String path;
-  final String originalName;
 }

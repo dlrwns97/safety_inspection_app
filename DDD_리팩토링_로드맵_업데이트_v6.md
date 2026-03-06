@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 4 완료 / Phase 5 시작)
+# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 5 Step 5-1 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -20,6 +20,8 @@
   - `Phase 4` (`Step 4-1`, `Step 4-2`, `Step 4-3`)
 - Phase 4 완료 상태
   - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
+- Phase 5 진행 상태
+  - `완료`: `Step 5-1`
 - 최근 자동 검증 결과 (Phase 4 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -32,6 +34,8 @@
   - `rg -n "package:safety_inspection_app/screens/" lib/domain lib/models`: no match
   - `rg -n "strings_ko" lib/models lib/domain`: no match
   - `flutter test test/marker_presenters_label_test.dart`: 통과
+  - `flutter test`: 전체 통과 (`Step 5-1`)
+  - `flutter analyze`: 기존 info 80건 유지(신규 warning/error 없음)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -44,9 +48,10 @@
   - `Step 4-1`: `D-04`, `D-05`, `D-08` all pass
   - `Step 4-2`: `D-04`, `D-05`, `D-06` all pass
   - `Step 4-3`: `D-04`, `D-05` all pass
+  - `Step 5-1`: `P-01`, `P-02`, `P-03` all pass
 - 다음 시작점
-  - `Phase 5 - Step 5-1`: Defect Dialog의 파일 접근 제거
   - `Phase 5 - Step 5-2`: Equipment Dialog군 정리
+  - `Phase 5 - Step 5-3`: SidePanel ViewModel 도입
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -782,7 +787,7 @@ lib/
 ## Phase 5. Dialog/SidePanel 프레젠테이션 정리 (3~5일)
 목표: Dialog가 I/O를 몰라도 되도록 입력 수집 전용화.
 
-### Step 5-1. Defect Dialog의 파일 접근 제거
+### Step 5-1. Defect Dialog의 파일 접근 제거 ✅ 완료 (2026-03-06)
 대상:
 - `dialogs/defect_details_dialog.dart`
 - `dialogs/photo_manager_dialog.dart`
@@ -793,6 +798,21 @@ lib/
 
 검증:
 - 시나리오 `P-01`, `P-02`, `P-03`.
+
+실행 기록 (2026-03-06):
+- 수정 파일
+  - `lib/application/inspection/services/defect_photo_attachment_service.dart` (신규)
+  - `lib/screens/drawing/dialogs/defect_details_dialog.dart`
+- 핵심 수정
+  - 파일 선택(`camera/gallery/file`) + 확장자 필터 + 저장 호출을 `DefectPhotoAttachmentService`로 이관.
+  - `defect_details_dialog.dart`에서 `ImagePicker/FilePicker/DefectPhotoStore` 직접 의존 제거.
+  - Dialog는 소스 선택/결과 반영(DTO 상태 갱신, 사용자 피드백)만 담당하도록 경량화.
+  - 사진 교체 경로도 동일 서비스(`allowMultiple: false`)를 사용하도록 통일.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+  - `flutter analyze`: 기존 info 80건 유지(신규 warning/error 없음)
+- 수동 검증 결과
+  - `P-01`, `P-02`, `P-03` all pass
 
 ### Step 5-2. Equipment Dialog군 정리
 대상:
@@ -1018,8 +1038,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 20. `완료` Phase 4-1 엔티티 직렬화 분리(`toJson/fromJson` -> mapper)
 21. `완료` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
 22. `완료` Phase 4-3 라벨/순번 규칙 Domain Service화
-23. `다음` Phase 5-1 Defect Dialog의 파일 접근 제거
-24. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+23. `완료` Phase 5-1 Defect Dialog의 파일 접근 제거
+24. `다음` Phase 5-2 Equipment Dialog군 정리
+25. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
