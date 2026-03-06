@@ -11,22 +11,58 @@ void main() {
       expect(result, 'required');
     });
 
-    test('optional decimal validator allows empty and valid decimal', () {
-      expect(
-        EquipmentInputValidationService.validateOptionalDecimal(''),
-        isNull,
+    test('required selection validator trims whitespace before validation', () {
+      final result = EquipmentInputValidationService.validateRequiredSelection(
+        '   ',
+        requiredMessage: 'required',
       );
+      expect(result, 'required');
       expect(
-        EquipmentInputValidationService.validateOptionalDecimal('12.5'),
+        EquipmentInputValidationService.validateRequiredSelection(
+          '  ok  ',
+          requiredMessage: 'required',
+        ),
         isNull,
       );
     });
+
+    test(
+      'optional decimal validator allows empty, spaced, and signed values',
+      () {
+        expect(
+          EquipmentInputValidationService.validateOptionalDecimal(''),
+          isNull,
+        );
+        expect(
+          EquipmentInputValidationService.validateOptionalDecimal(null),
+          isNull,
+        );
+        expect(
+          EquipmentInputValidationService.validateOptionalDecimal('12.5'),
+          isNull,
+        );
+        expect(
+          EquipmentInputValidationService.validateOptionalDecimal('  -3.25  '),
+          isNull,
+        );
+      },
+    );
 
     test('optional decimal validator rejects invalid text', () {
       final result = EquipmentInputValidationService.validateOptionalDecimal(
         '12a',
       );
       expect(result, isNotNull);
+    });
+
+    test('optional decimal validator supports custom error message', () {
+      expect(
+        EquipmentInputValidationService.validateOptionalDecimal(
+          '1.2.3',
+          invalidMessage: 'invalid-decimal',
+        ),
+        'invalid-decimal',
+      );
     });
 
     test('optional integer validator respects max digits', () {
@@ -43,6 +79,32 @@ void main() {
           maxDigits: 6,
         ),
         isNotNull,
+      );
+    });
+
+    test('optional integer validator trims and rejects non-integer forms', () {
+      expect(
+        EquipmentInputValidationService.validateOptionalInteger(' 123 '),
+        isNull,
+      );
+      expect(
+        EquipmentInputValidationService.validateOptionalInteger('12.3'),
+        isNotNull,
+      );
+      expect(
+        EquipmentInputValidationService.validateOptionalInteger('1e3'),
+        isNotNull,
+      );
+    });
+
+    test('optional integer validator supports custom error message', () {
+      expect(
+        EquipmentInputValidationService.validateOptionalInteger(
+          '12345',
+          maxDigits: 4,
+          invalidMessage: 'invalid-int',
+        ),
+        'invalid-int',
       );
     });
   });

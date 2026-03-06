@@ -680,6 +680,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
       }
 
       _shapeCreateHasMoved = false;
+      _handleOverlayPointerUpOrCancel(event);
 
       return;
     }

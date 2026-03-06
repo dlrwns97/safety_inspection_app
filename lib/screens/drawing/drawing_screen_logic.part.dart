@@ -574,7 +574,18 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             manipulator.translate(delta);
             break;
           case _ShapeEditOperation.resize:
-            manipulator.resizeByHandle(_activeShapeHandle, delta);
+            final currentBounds = manipulator.boundsNorm;
+            final lockedAspectRatio =
+                _isShapeAspectLocked &&
+                    currentBounds.width > 0 &&
+                    currentBounds.height > 0
+                ? currentBounds.width / currentBounds.height
+                : null;
+            manipulator.resizeByHandle(
+              _activeShapeHandle,
+              delta,
+              lockedAspectRatio: lockedAspectRatio,
+            );
             break;
           case _ShapeEditOperation.rotate:
             if (_isShapeRotateSnapEnabled) {
@@ -1075,6 +1086,8 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _activeStrokeEraserPointerId = null;
       _erasedStrokeIdsThisDrag.clear();
       _erasedStrokeCountThisDrag = 0;
+      _activeStylusPointerId = null;
+      _isFreeDrawConsumingOneFinger = false;
       _pendingDraw = false;
       _pendingDrawDownViewportLocal = null;
     });

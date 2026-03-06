@@ -175,11 +175,16 @@ class ShapeManipulator {
     return boundsNorm.contains(localPoint);
   }
 
-  void resizeByHandle(ShapeHandle handle, Offset deltaNorm) {
+  void resizeByHandle(
+    ShapeHandle handle,
+    Offset deltaNorm, {
+    double? lockedAspectRatio,
+  }) {
     if (handle == ShapeHandle.none || handle == ShapeHandle.rotate) {
       return;
     }
 
+    final beforeRect = boundsNorm;
     final localDelta = _rotateDeltaInverse(deltaNorm, rotationRad);
     final moveLeft =
         handle == ShapeHandle.topLeft ||
@@ -264,7 +269,18 @@ class ShapeManipulator {
       }
     }
 
-    boundsNorm = _clampNormRect(Rect.fromLTRB(l, t, r, b));
+    var nextRect = Rect.fromLTRB(l, t, r, b);
+    final ratio = lockedAspectRatio;
+    if (ratio != null && ratio.isFinite && ratio > 0) {
+      nextRect = _enforceAspectRatio(
+        rect: nextRect,
+        beforeRect: beforeRect,
+        handle: handle,
+        ratio: ratio,
+      );
+    }
+
+    boundsNorm = _clampNormRect(nextRect);
   }
 
   void rotateTo(Offset pNorm) {
@@ -303,5 +319,141 @@ class ShapeManipulator {
     final bottom = ys.reduce(math.max);
 
     return _clampNormRect(Rect.fromLTRB(left, top, right, bottom));
+  }
+
+  Rect _enforceAspectRatio({
+    required Rect rect,
+    required Rect beforeRect,
+    required ShapeHandle handle,
+    required double ratio,
+  }) {
+    final moveLeft =
+        handle == ShapeHandle.topLeft ||
+        handle == ShapeHandle.left ||
+        handle == ShapeHandle.bottomLeft;
+    final moveRight =
+        handle == ShapeHandle.topRight ||
+        handle == ShapeHandle.right ||
+        handle == ShapeHandle.bottomRight;
+    final moveTop =
+        handle == ShapeHandle.topLeft ||
+        handle == ShapeHandle.top ||
+        handle == ShapeHandle.topRight;
+    final moveBottom =
+        handle == ShapeHandle.bottomLeft ||
+        handle == ShapeHandle.bottom ||
+        handle == ShapeHandle.bottomRight;
+
+    final isHorizontalEdge =
+        handle == ShapeHandle.left || handle == ShapeHandle.right;
+    final isVerticalEdge =
+        handle == ShapeHandle.top || handle == ShapeHandle.bottom;
+    final isCorner = !isHorizontalEdge && !isVerticalEdge;
+
+    var widthDriver = true;
+    if (isVerticalEdge) {
+      widthDriver = false;
+    } else if (isCorner) {
+      final beforeWidth = beforeRect.width <= 0 ? 1e-6 : beforeRect.width;
+      final beforeHeight = beforeRect.height <= 0 ? 1e-6 : beforeRect.height;
+      final relativeWidthChange =
+          (rect.width - beforeWidth).abs() / beforeWidth;
+      final relativeHeightChange =
+          (rect.height - beforeHeight).abs() / beforeHeight;
+      widthDriver = relativeWidthChange >= relativeHeightChange;
+    }
+
+    var targetWidth = rect.width;
+    var targetHeight = rect.height;
+    if (widthDriver) {
+      targetHeight = targetWidth / ratio;
+    } else {
+      targetWidth = targetHeight * ratio;
+    }
+
+    if (targetWidth < minSizeNorm) {
+      targetWidth = minSizeNorm;
+      targetHeight = targetWidth / ratio;
+    }
+    if (targetHeight < minSizeNorm) {
+      targetHeight = minSizeNorm;
+      targetWidth = targetHeight * ratio;
+    }
+
+    if (targetWidth > 1.0) {
+      targetWidth = 1.0;
+      targetHeight = targetWidth / ratio;
+    }
+    if (targetHeight > 1.0) {
+      targetHeight = 1.0;
+      targetWidth = targetHeight * ratio;
+    }
+
+    double left;
+    double right;
+    if (moveLeft && !moveRight) {
+      right = rect.right;
+      left = right - targetWidth;
+    } else if (moveRight && !moveLeft) {
+      left = rect.left;
+      right = left + targetWidth;
+    } else {
+      final centerX = rect.center.dx;
+      left = centerX - targetWidth * 0.5;
+      right = centerX + targetWidth * 0.5;
+    }
+
+    double top;
+    double bottom;
+    if (moveTop && !moveBottom) {
+      bottom = rect.bottom;
+      top = bottom - targetHeight;
+    } else if (moveBottom && !moveTop) {
+      top = rect.top;
+      bottom = top + targetHeight;
+    } else {
+      final centerY = rect.center.dy;
+      top = centerY - targetHeight * 0.5;
+      bottom = centerY + targetHeight * 0.5;
+    }
+
+    return _shiftRectInsideNorm(Rect.fromLTRB(left, top, right, bottom));
+  }
+
+  Rect _shiftRectInsideNorm(Rect rect) {
+    final width = rect.width.clamp(0.0, 1.0);
+    final height = rect.height.clamp(0.0, 1.0);
+
+    var left = rect.left;
+    var right = left + width;
+    if (left < 0.0) {
+      right -= left;
+      left = 0.0;
+    }
+    if (right > 1.0) {
+      left -= (right - 1.0);
+      right = 1.0;
+    }
+    if (left < 0.0) {
+      left = 0.0;
+      right = width;
+    }
+
+    var top = rect.top;
+    var bottom = top + height;
+    if (top < 0.0) {
+      bottom -= top;
+      top = 0.0;
+    }
+    if (bottom > 1.0) {
+      top -= (bottom - 1.0);
+      bottom = 1.0;
+    }
+    if (top < 0.0) {
+      top = 0.0;
+      bottom = height;
+    }
+
+    return Rect.fromLTRB(left, top, right, bottom);
   }
 }

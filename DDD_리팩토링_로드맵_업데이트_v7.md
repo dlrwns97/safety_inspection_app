@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 5 완료)
+# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 6 Step 6-1 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -23,6 +23,8 @@
   - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
 - Phase 5 완료 상태
   - `완료`: `Step 5-1`, `Step 5-2`, `Step 5-3`
+- Phase 6 진행 상태
+  - `완료`: `Step 6-1`
 - 최근 자동 검증 결과 (Phase 5 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -41,6 +43,11 @@
   - `flutter test test/marker_presenters_label_test.dart`: 통과 (`Step 5-3`)
   - `flutter test test/smoke/scenario_id_smoke_test.dart`: 통과 (`Step 5-3`)
   - `flutter test`: 전체 통과 (`Step 5-3`)
+  - `flutter test test/domain/inspection/services/marker_label_domain_service_test.dart`: 통과 (`Step 6-1`)
+  - `flutter test test/presentation/drawing/view_models/marker_side_panel_view_model_test.dart`: 통과 (`Step 6-1`)
+  - `flutter test test/drawing_coordinate_accuracy_test.dart`: 통과 (`Step 6-1`)
+  - `flutter test test/application/inspection/services/equipment_input_validation_service_test.dart`: 통과 (`Step 6-1`)
+  - `flutter test`: 전체 통과 (`Step 6-1`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -56,8 +63,9 @@
   - `Step 5-1`: `P-01`, `P-02`, `P-03` all pass
   - `Step 5-2`: `D-05` all pass
   - `Step 5-3`: `D-04`, `D-05` all pass
+  - `Step 6-1`: `D-04`, `D-05`, `D-06` all pass
 - 다음 시작점
-  - `Phase 6 - Step 6-1`: Domain 테스트 확장
+  - `Phase 6 - Step 6-2`: Application 테스트 확장
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -892,12 +900,27 @@ lib/
 ## Phase 6. 테스트 체계 확장 (지속, 5~7일)
 목표: 구조 리팩토링 이후 회귀 감시망 강화.
 
-### Step 6-1. Domain 테스트 확장
-추가 테스트:
-- 라벨 순번/접두어 규칙
-- 가시성 필터 규칙
-- shape bounds/rotation 계산
-- 경계값 입력 검증
+### Step 6-1. Domain 테스트 확장 ✅ 완료 (2026-03-06)
+- 수정 파일
+  - `test/domain/inspection/services/marker_label_domain_service_test.dart`
+  - `test/presentation/drawing/view_models/marker_side_panel_view_model_test.dart`
+  - `test/drawing_coordinate_accuracy_test.dart`
+  - `test/application/inspection/services/equipment_input_validation_service_test.dart`
+  - `lib/screens/drawing/engines/shape_manipulator.dart`
+  - `lib/screens/drawing/drawing_screen_logic.part.dart`
+  - `lib/screens/drawing/drawing_screen_pointer_input.part.dart`
+- 핵심 변경
+  - 라벨 순번/접두어 규칙, 가시성 필터 규칙, shape bounds/rotation, 경계값 입력 검증 테스트를 확장.
+  - 도형 편집 후 펜/형광펜 입력이 막히던 포인터 상태 정리 누락을 수정.
+  - 도형 비율 잠금(`isShapeAspectLocked`)이 생성뿐 아니라 수정(resize)에도 적용되도록 보강.
+- 자동 검증 결과
+  - `flutter test test/domain/inspection/services/marker_label_domain_service_test.dart` 통과
+  - `flutter test test/presentation/drawing/view_models/marker_side_panel_view_model_test.dart` 통과
+  - `flutter test test/drawing_coordinate_accuracy_test.dart` 통과
+  - `flutter test test/application/inspection/services/equipment_input_validation_service_test.dart` 통과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `D-04`, `D-05`, `D-06` all pass
 
 ### Step 6-2. Application 테스트 확장
 추가 테스트:
@@ -1092,8 +1115,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 23. `완료` Phase 5-1 Defect Dialog의 파일 접근 제거
 24. `완료` Phase 5-2 Equipment Dialog군 정리
 25. `완료` Phase 5-3 SidePanel ViewModel 도입
-26. `다음` Phase 6-1 Domain 테스트 확장
-27. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+26. `완료` Phase 6-1 Domain 테스트 확장
+27. `다음` Phase 6-2 Application 테스트 확장
+28. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
@@ -1104,6 +1128,23 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 ---
 
 ## 11. 로드맵 외 기능 수정 로그
+
+### 2026-03-06 / 도형 편집 후 펜/형광펜 입력 누락 + 비율 잠금 편집 보정
+- 상황
+  - 도형 그리기/수정 이후 같은 페이지에서 펜/형광펜 입력이 바로 반영되지 않고, 페이지 이동 후에만 다시 그려지는 회귀가 발생함.
+  - 도형 비율 잠금 옵션이 생성 단계에만 적용되고, 수정(resize) 단계에서는 비율이 유지되지 않는 문제가 있었음.
+- 수정 내용
+  - shape interaction 종료 시 포인터 상태 정리 루틴이 누락되던 분기를 정리해 입력 상태를 일관화.
+  - `ShapeManipulator.resizeByHandle`에 비율 잠금 인자를 도입하고, 수정 핸들(코너/변) 리사이즈 시 비율 유지 로직을 적용.
+  - 관련 파일
+    - `lib/screens/drawing/drawing_screen_pointer_input.part.dart`
+    - `lib/screens/drawing/drawing_screen_logic.part.dart`
+    - `lib/screens/drawing/engines/shape_manipulator.dart`
+    - `test/drawing_coordinate_accuracy_test.dart`
+- 검증
+  - `flutter test test/drawing_coordinate_accuracy_test.dart` 통과
+  - `flutter test` 전체 통과
+  - 수동 확인에서 `D-04`, `D-05`, `D-06` all pass
 
 ### 2026-03-03 / 결함 사진 카메라 원본명 표시 보정
 - 상황
