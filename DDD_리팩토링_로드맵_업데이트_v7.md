@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 5 Step 5-2 완료)
+# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 5 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -11,18 +11,19 @@
 
 ---
 
-## 0-1. 진행 현황 (v6)
+## 0-1. 진행 현황 (v7)
 - 완료 Phase
   - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
   - `Phase 2` (`Step 2-1`, `Step 2-2`, `Step 2-3`, `Step 2-4`)
   - `Phase 3` (`Step 3-1` ~ `Step 3-6F`)
   - `Phase 4` (`Step 4-1`, `Step 4-2`, `Step 4-3`)
+  - `Phase 5` (`Step 5-1`, `Step 5-2`, `Step 5-3`)
 - Phase 4 완료 상태
   - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
-- Phase 5 진행 상태
-  - `완료`: `Step 5-1`, `Step 5-2`
-- 최근 자동 검증 결과 (Phase 4 작업 기준)
+- Phase 5 완료 상태
+  - `완료`: `Step 5-1`, `Step 5-2`, `Step 5-3`
+- 최근 자동 검증 결과 (Phase 5 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
   - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: 통과
@@ -37,6 +38,9 @@
   - `flutter test`: 전체 통과 (`Step 5-1`)
   - `flutter analyze`: 기존 info 80건 유지(신규 warning/error 없음)
   - `flutter test`: 전체 통과 (`Step 5-2`)
+  - `flutter test test/marker_presenters_label_test.dart`: 통과 (`Step 5-3`)
+  - `flutter test test/smoke/scenario_id_smoke_test.dart`: 통과 (`Step 5-3`)
+  - `flutter test`: 전체 통과 (`Step 5-3`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -51,8 +55,9 @@
   - `Step 4-3`: `D-04`, `D-05` all pass
   - `Step 5-1`: `P-01`, `P-02`, `P-03` all pass
   - `Step 5-2`: `D-05` all pass
+  - `Step 5-3`: `D-04`, `D-05` all pass
 - 다음 시작점
-  - `Phase 5 - Step 5-3`: SidePanel ViewModel 도입
+  - `Phase 6 - Step 6-1`: Domain 테스트 확장
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -849,7 +854,7 @@ lib/
 - 수동 검증 결과
   - `D-05` all pass
 
-### Step 5-3. SidePanel ViewModel 도입
+### Step 5-3. SidePanel ViewModel 도입 ✅ 완료 (2026-03-06)
 대상:
 - `widgets/side_panel/marker_side_panel.dart`
 
@@ -859,6 +864,28 @@ lib/
 
 검증:
 - 시나리오 `D-04`, `D-05`.
+
+실행 기록 (2026-03-06):
+- 수정 파일
+  - `lib/presentation/drawing/view_models/marker_side_panel_view_model.dart` (신규)
+  - `lib/screens/drawing/widgets/side_panel/marker_side_panel.dart`
+  - `lib/screens/drawing/flows/marker_presenters.dart`
+  - `lib/domain/inspection/services/marker_label_domain_service.dart`
+  - `lib/screens/drawing/drawing_screen_ui.part.dart`
+  - `lib/screens/drawing/drawing_screen_detail_dialogs.part.dart`
+  - `lib/screens/drawing/dialogs/rebar_spacing_dialog.dart`
+  - `test/marker_presenters_label_test.dart`
+- 핵심 수정
+  - SidePanel의 문자열/필터/상세 row 구성 로직을 `MarkerSidePanelViewModel`로 이관하고 위젯을 렌더링 전용으로 단순화.
+  - 결함 라벨을 페이지/카테고리 단위 동적 재번호 계산으로 전환해 삭제 후 번호가 자동으로 당겨지도록 수정.
+  - 철탐(`equipment2`) 라벨을 그룹 길이 누적 기반 재시퀀싱으로 전환해 `1~3` 삭제 시 후속 `4,5`가 `1,2`로 재배치되도록 보정.
+  - 철탐 다이얼로그(`rebar_spacing_dialog.dart`)에 행 제거(`-`) 버튼을 추가해 `+`로 잘못 추가한 행을 즉시 취소 가능하도록 개선.
+- 자동 검증 결과
+  - `flutter test test/marker_presenters_label_test.dart` 통과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `D-04`, `D-05` all pass
 
 ---
 
@@ -1064,8 +1091,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 22. `완료` Phase 4-3 라벨/순번 규칙 Domain Service화
 23. `완료` Phase 5-1 Defect Dialog의 파일 접근 제거
 24. `완료` Phase 5-2 Equipment Dialog군 정리
-25. `다음` Phase 5-3 SidePanel ViewModel 도입
-26. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+25. `완료` Phase 5-3 SidePanel ViewModel 도입
+26. `다음` Phase 6-1 Domain 테스트 확장
+27. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
