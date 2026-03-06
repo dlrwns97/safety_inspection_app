@@ -1156,6 +1156,19 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
   - 수동 확인 all pass
   - 확대/이동/툴 전환 이후에도 아이콘 접근성 유지
 
+### 2026-03-06 / 자유그리기 모드 손가락 제스처 정책 정합화
+- 상황
+  - 자유그리기 모드에서 손가락 페이지 이동/확대/축소/이동 동작이 결함/장비 모드와 다르게 동작하거나 차단되는 구간이 있었음.
+  - 사용자 요구사항: 손가락은 네비게이션 제스처, 스타일러스는 그리기/마커 입력 전용.
+- 수정 내용
+  - PDF 뷰어 제스처 게이트를 재정렬해 손가락 입력은 결함/장비 모드와 동일하게 페이지 스와이프 + 핀치/팬이 가능하도록 조정.
+  - 스타일러스 네비게이션 차단(`_StylusArenaBlocker`)은 유지해 펜 입력이 그리기/마커 경로로만 흐르도록 유지.
+  - 관련 파일
+    - `lib/screens/drawing/drawing_screen_ui.part.dart`
+- 검증
+  - `flutter test` 전체 통과
+  - 수동 확인에서 정상 작동(all pass)
+
 ---
 
 ## 12. 협업 작업 규칙

@@ -1,4 +1,4 @@
-﻿part of 'drawing_screen.dart';
+part of 'drawing_screen.dart';
 
 extension _DrawingScreenUi on _DrawingScreenState {
   List<Widget> _buildMarkerWidgetsForPage({
@@ -189,15 +189,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
 
   Widget _buildPdfViewer() {
     _ensurePdfFallbackPageSize(context);
-    final int touchCount = _activeTouchPointerCount;
-    final bool isTwoFingerTouch = touchCount >= 2;
-    final bool isStylusActive = _isStylusActive;
+    // Keep touch behavior identical to defect/equipment modes:
+    // finger can swipe pages and pinch pan/zoom.
+    // Stylus navigation is still blocked by stylus arena blocker in free-draw.
     final bool enablePdfPanGestures = true;
     final bool enablePdfScaleGestures = true;
-    // Keep page swipe disabled while drawing with 1 finger to prevent
-    // accidental page flips. Allow swipe again when 2 fingers are down.
-    final bool disablePageSwipe =
-        _isFreeDrawMode && (isStylusActive || !isTwoFingerTouch);
+    final bool disablePageSwipe = false;
     if (kDebugMode && enablePdfPanGestures && enablePdfScaleGestures) {
       _debugLogPhotoViewBaseStateOnce('viewer-build');
     }
@@ -456,40 +453,41 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   ),
                 ),
               ),
-              Positioned.fill(
-                child: RawGestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  gestures: <Type, GestureRecognizerFactory>{
-                    _TouchOnlyScaleGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          _TouchOnlyScaleGestureRecognizer
-                        >(_TouchOnlyScaleGestureRecognizer.new, (
-                          _TouchOnlyScaleGestureRecognizer instance,
-                        ) {
-                          instance
-                            ..onStart = (details) {
-                              if (_isStylusActive) {
-                                return;
+              if (!_isFreeDrawMode)
+                Positioned.fill(
+                  child: RawGestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    gestures: <Type, GestureRecognizerFactory>{
+                      _TouchOnlyScaleGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            _TouchOnlyScaleGestureRecognizer
+                          >(_TouchOnlyScaleGestureRecognizer.new, (
+                            _TouchOnlyScaleGestureRecognizer instance,
+                          ) {
+                            instance
+                              ..onStart = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleStart(details);
                               }
-                              _handlePdfNavigationScaleStart(details);
-                            }
-                            ..onUpdate = (details) {
-                              if (_isStylusActive) {
-                                return;
+                              ..onUpdate = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleUpdate(details);
                               }
-                              _handlePdfNavigationScaleUpdate(details);
-                            }
-                            ..onEnd = (details) {
-                              if (_isStylusActive) {
-                                return;
-                              }
-                              _handlePdfNavigationScaleEnd(details);
-                            };
-                        }),
-                  },
-                  child: const ColoredBox(color: Colors.transparent),
+                              ..onEnd = (details) {
+                                if (_isStylusActive) {
+                                  return;
+                                }
+                                _handlePdfNavigationScaleEnd(details);
+                              };
+                          }),
+                    },
+                    child: const ColoredBox(color: Colors.transparent),
+                  ),
                 ),
-              ),
               Positioned.fill(
                 child: Listener(
                   behavior: stylusOverlayBehavior,
