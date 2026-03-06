@@ -93,6 +93,65 @@ void main() {
       },
     );
 
+    testWidgets(
+      'CreateDefectMarkerUseCase returns null when dialog is canceled',
+      (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+        final context = tester.element(find.byType(SizedBox));
+        final useCase = CreateDefectMarkerUseCase();
+        final site = _siteWithDefects(<Defect>[]);
+
+        final updated = await useCase.execute(
+          context: context,
+          site: site,
+          pageIndex: 1,
+          normalizedX: 0.2,
+          normalizedY: 0.2,
+          activeCategory: DefectCategory.generalCrack,
+          showDefectDetailsDialog: (_, __) async => null,
+        );
+
+        expect(updated, isNull);
+        expect(site.defects, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'CreateDefectMarkerUseCase uses category prefix rule for non-crack labels',
+      (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+        final context = tester.element(find.byType(SizedBox));
+        final useCase = CreateDefectMarkerUseCase();
+        final site = _siteWithDefects(<Defect>[
+          _defect(
+            id: 'd1',
+            label: '1',
+            pageIndex: 1,
+            category: DefectCategory.waterLeakage,
+          ),
+        ]);
+
+        final updated = await useCase.execute(
+          context: context,
+          site: site,
+          pageIndex: 1,
+          normalizedX: 0.3,
+          normalizedY: 0.4,
+          activeCategory: DefectCategory.waterLeakage,
+          showDefectDetailsDialog: (_, __) async => DefectDetails(
+            structuralMember: '보',
+            crackType: '',
+            widthMm: 0,
+            lengthMm: 0,
+            cause: '',
+          ),
+        );
+
+        expect(updated, isNotNull);
+        expect(updated!.defects.last.label, '2');
+      },
+    );
+
     test(
       'MarkerTapUseCase applyTapDecision selects hit and stops creation',
       () {
@@ -119,5 +178,67 @@ void main() {
         expect(cleared, isFalse);
       },
     );
+
+    test('MarkerTapUseCase applyTapDecision resets canceled tap first', () {
+      final useCase = MarkerTapUseCase();
+      var reset = false;
+
+      final shouldCreate = useCase.applyTapDecision(
+        decision: const TapDecision(resetTapCanceled: true),
+        hitResult: null,
+        onResetTapCanceled: () => reset = true,
+        onSelectHit: (_) {},
+        onClearSelection: () {},
+        onShowDefectCategoryHint: () {},
+      );
+
+      expect(reset, isTrue);
+      expect(shouldCreate, isFalse);
+    });
+
+    test(
+      'MarkerTapUseCase applyTapDecision clears and hints when requested',
+      () {
+        final useCase = MarkerTapUseCase();
+        var cleared = false;
+        var hinted = false;
+
+        final shouldCreate = useCase.applyTapDecision(
+          decision: const TapDecision(
+            shouldClearSelection: true,
+            shouldShowDefectCategoryHint: true,
+          ),
+          hitResult: null,
+          onResetTapCanceled: () {},
+          onSelectHit: (_) {},
+          onClearSelection: () => cleared = true,
+          onShowDefectCategoryHint: () => hinted = true,
+        );
+
+        expect(cleared, isTrue);
+        expect(hinted, isTrue);
+        expect(shouldCreate, isFalse);
+      },
+    );
+
+    test('MarkerTapUseCase applyTapDecision can proceed marker creation', () {
+      final useCase = MarkerTapUseCase();
+      var cleared = false;
+
+      final shouldCreate = useCase.applyTapDecision(
+        decision: const TapDecision(
+          shouldClearSelection: true,
+          shouldCreateMarker: true,
+        ),
+        hitResult: null,
+        onResetTapCanceled: () {},
+        onSelectHit: (_) {},
+        onClearSelection: () => cleared = true,
+        onShowDefectCategoryHint: () {},
+      );
+
+      expect(cleared, isTrue);
+      expect(shouldCreate, isTrue);
+    });
   });
 }

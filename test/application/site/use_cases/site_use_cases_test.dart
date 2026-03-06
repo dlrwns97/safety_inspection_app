@@ -69,6 +69,24 @@ void main() {
       ]);
     });
 
+    test('CreateSiteUseCase does not mutate the input list', () async {
+      final repository = _FakeSiteRepository();
+      final existing = _site(id: 's1');
+      final currentSites = <Site>[existing];
+      final useCase = CreateSiteUseCase(repository: repository);
+
+      await useCase.execute(
+        currentSites: currentSites,
+        newSite: _site(id: 's2'),
+      );
+
+      expect(currentSites.map((site) => site.id), <String>['s1']);
+      expect(repository.storedSites.map((site) => site.id), <String>[
+        's1',
+        's2',
+      ]);
+    });
+
     test('TrashSiteUseCase marks deletedAt and isDeleted', () async {
       final repository = _FakeSiteRepository();
       final target = _site(id: 's1');
@@ -92,6 +110,32 @@ void main() {
         isTrue,
       );
     });
+
+    test(
+      'TrashSiteUseCase keeps all sites unchanged when target is missing',
+      () async {
+        final repository = _FakeSiteRepository();
+        final s1 = _site(id: 's1');
+        final s2 = _site(id: 's2');
+        final useCase = TrashSiteUseCase(repository: repository);
+
+        final updated = await useCase.execute(
+          currentSites: <Site>[s1, s2],
+          targetSite: _site(id: 'missing'),
+          deletedAt: DateTime(2026, 3, 6, 11, 0),
+        );
+
+        expect(updated.every((site) => site.isDeleted == false), isTrue);
+        expect(
+          repository.storedSites.every((site) => site.isDeleted == false),
+          isTrue,
+        );
+        expect(repository.storedSites.map((site) => site.id), <String>[
+          's1',
+          's2',
+        ]);
+      },
+    );
 
     test('RestoreSiteUseCase clears deleted markers', () async {
       final repository = _FakeSiteRepository();
@@ -118,5 +162,34 @@ void main() {
         isFalse,
       );
     });
+
+    test(
+      'RestoreSiteUseCase keeps all sites unchanged when target is missing',
+      () async {
+        final repository = _FakeSiteRepository();
+        final deleted = _site(
+          id: 's1',
+          isDeleted: true,
+          deletedAt: DateTime(2026, 3, 3, 11, 0),
+        );
+        final keep = _site(id: 's2');
+        final useCase = RestoreSiteUseCase(repository: repository);
+
+        final updated = await useCase.execute(
+          currentSites: <Site>[deleted, keep],
+          targetSite: _site(id: 'missing'),
+        );
+
+        final unchangedDeleted = updated.firstWhere((site) => site.id == 's1');
+        expect(unchangedDeleted.isDeleted, isTrue);
+        expect(unchangedDeleted.deletedAt, isNotNull);
+        expect(
+          repository.storedSites
+              .firstWhere((site) => site.id == 's1')
+              .isDeleted,
+          isTrue,
+        );
+      },
+    );
   });
 }

@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 6 Step 6-1 완료)
+# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 6 Step 6-2 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -24,7 +24,7 @@
 - Phase 5 완료 상태
   - `완료`: `Step 5-1`, `Step 5-2`, `Step 5-3`
 - Phase 6 진행 상태
-  - `완료`: `Step 6-1`
+  - `완료`: `Step 6-1`, `Step 6-2`
 - 최근 자동 검증 결과 (Phase 5 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -48,6 +48,11 @@
   - `flutter test test/drawing_coordinate_accuracy_test.dart`: 통과 (`Step 6-1`)
   - `flutter test test/application/inspection/services/equipment_input_validation_service_test.dart`: 통과 (`Step 6-1`)
   - `flutter test`: 전체 통과 (`Step 6-1`)
+  - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과 (`Step 6-2`)
+  - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과 (`Step 6-2`)
+  - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`: 통과 (`Step 6-2`)
+  - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: 통과 (`Step 6-2`)
+  - `flutter test`: 전체 통과 (`Step 6-2`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -64,8 +69,9 @@
   - `Step 5-2`: `D-05` all pass
   - `Step 5-3`: `D-04`, `D-05` all pass
   - `Step 6-1`: `D-04`, `D-05`, `D-06` all pass
+  - `Step 6-2`: `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
 - 다음 시작점
-  - `Phase 6 - Step 6-2`: Application 테스트 확장
+  - `Phase 6 - Step 6-3`: 회귀 시나리오 테스트
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -922,12 +928,25 @@ lib/
 - 수동 검증 결과
   - `D-04`, `D-05`, `D-06` all pass
 
-### Step 6-2. Application 테스트 확장
-추가 테스트:
-- site create/trash/restore usecase
-- marker interaction usecase
-- drawing persistence usecase
-- pdf replace/load usecase
+### Step 6-2. Application 테스트 확장 ✅ 완료 (2026-03-06)
+- 수정 파일
+  - `test/application/site/use_cases/site_use_cases_test.dart`
+  - `test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`
+  - `test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`
+  - `test/application/drawing/use_cases/pdf_use_cases_test.dart`
+- 핵심 변경
+  - site create/trash/restore usecase 경계 케이스(입력 리스트 불변성, 대상 없음 분기)를 추가 검증.
+  - marker interaction usecase의 결함 다이얼로그 취소, 카테고리별 라벨 규칙, tap decision 분기 케이스를 확장.
+  - drawing persistence usecase의 payload 유효성/비유효성 분기 및 site append 분기를 확장.
+  - pdf replace/load usecase의 빈 경로, file length 예외, persist 호출 조건 분기를 확장.
+- 자동 검증 결과
+  - `flutter test test/application/site/use_cases/site_use_cases_test.dart` 통과
+  - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart` 통과
+  - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart` 통과
+  - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart` 통과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
 
 ### Step 6-3. 회귀 시나리오 테스트
 추가 테스트:
@@ -1116,8 +1135,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 24. `완료` Phase 5-2 Equipment Dialog군 정리
 25. `완료` Phase 5-3 SidePanel ViewModel 도입
 26. `완료` Phase 6-1 Domain 테스트 확장
-27. `다음` Phase 6-2 Application 테스트 확장
-28. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+27. `완료` Phase 6-2 Application 테스트 확장
+28. `다음` Phase 6-3 회귀 시나리오 테스트
+29. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 

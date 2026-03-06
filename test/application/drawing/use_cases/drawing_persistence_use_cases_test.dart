@@ -94,6 +94,45 @@ void main() {
     });
 
     test(
+      'LoadSiteDrawingUseCase returns empty when payload has no stroke list',
+      () async {
+        final drawingRepository = _FakeDrawingRepository()
+          ..loadedPayload = <String, dynamic>{'drawingStrokes': 'invalid'};
+        final useCase = LoadSiteDrawingUseCase(
+          drawingRepository: drawingRepository,
+        );
+
+        final loaded = await useCase.execute(siteId: 's1');
+
+        expect(loaded, isEmpty);
+      },
+    );
+
+    test(
+      'LoadSiteDrawingUseCase skips non-map entries in stroke list',
+      () async {
+        final drawingRepository = _FakeDrawingRepository();
+        final s1 = _stroke(id: 'a', page: 1);
+        drawingRepository.loadedPayload = <String, dynamic>{
+          'drawingStrokes': <dynamic>[
+            DrawingStrokeMapper.toJson(s1),
+            'not-a-map',
+            1,
+          ],
+        };
+        final useCase = LoadSiteDrawingUseCase(
+          drawingRepository: drawingRepository,
+        );
+
+        final loaded = await useCase.execute(siteId: 's1');
+
+        expect(loaded.keys.toSet(), <int>{1});
+        expect(loaded[1], hasLength(1));
+        expect(loaded[1]!.first.id, 'a');
+      },
+    );
+
+    test(
       'PersistSiteDrawingUseCase saves file payload and site metadata',
       () async {
         final drawingRepository = _FakeDrawingRepository();
@@ -125,6 +164,33 @@ void main() {
         expect(siteRepository.savedSites, isNotNull);
         expect(siteRepository.savedSites, hasLength(1));
         expect(siteRepository.savedSites!.first.id, 's1');
+      },
+    );
+
+    test(
+      'PersistSiteDrawingUseCase appends site when repository has no match',
+      () async {
+        final drawingRepository = _FakeDrawingRepository();
+        final siteRepository = _FakeSiteRepository()
+          ..storedSites = <Site>[_site(id: 'existing')];
+        final useCase = PersistSiteDrawingUseCase(
+          drawingRepository: drawingRepository,
+          siteRepository: siteRepository,
+        );
+
+        final updatedSite = await useCase.execute(
+          site: _site(id: 'missing'),
+          strokesByPage: <int, List<DrawingStroke>>{
+            1: <DrawingStroke>[_stroke(id: 'a', page: 1)],
+          },
+        );
+
+        expect(updatedSite.id, 'missing');
+        expect(siteRepository.savedSites, isNotNull);
+        expect(siteRepository.savedSites!.map((site) => site.id), <String>[
+          'existing',
+          'missing',
+        ]);
       },
     );
   });
