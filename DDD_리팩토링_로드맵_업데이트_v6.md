@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 5 Step 5-1 완료)
+# DDD 리팩토링 로드맵 v6 (업데이트: 2026-03-06, Phase 5 Step 5-2 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -21,7 +21,7 @@
 - Phase 4 완료 상태
   - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
 - Phase 5 진행 상태
-  - `완료`: `Step 5-1`
+  - `완료`: `Step 5-1`, `Step 5-2`
 - 최근 자동 검증 결과 (Phase 4 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -36,6 +36,7 @@
   - `flutter test test/marker_presenters_label_test.dart`: 통과
   - `flutter test`: 전체 통과 (`Step 5-1`)
   - `flutter analyze`: 기존 info 80건 유지(신규 warning/error 없음)
+  - `flutter test`: 전체 통과 (`Step 5-2`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -49,8 +50,8 @@
   - `Step 4-2`: `D-04`, `D-05`, `D-06` all pass
   - `Step 4-3`: `D-04`, `D-05` all pass
   - `Step 5-1`: `P-01`, `P-02`, `P-03` all pass
+  - `Step 5-2`: `D-05` all pass
 - 다음 시작점
-  - `Phase 5 - Step 5-2`: Equipment Dialog군 정리
   - `Phase 5 - Step 5-3`: SidePanel ViewModel 도입
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
@@ -814,7 +815,7 @@ lib/
 - 수동 검증 결과
   - `P-01`, `P-02`, `P-03` all pass
 
-### Step 5-2. Equipment Dialog군 정리
+### Step 5-2. Equipment Dialog군 정리 ✅ 완료 (2026-03-06)
 대상:
 - `equipment_details_dialog.dart`, `rebar_spacing_dialog.dart`, 기타 장비 다이얼로그
 
@@ -824,6 +825,29 @@ lib/
 
 검증:
 - 시나리오 `D-05`.
+
+실행 기록 (2026-03-06):
+- 수정 파일
+  - `lib/application/inspection/services/equipment_input_validation_service.dart` (신규)
+  - `lib/screens/drawing/dialogs/dialog_field_builders.dart`
+  - `lib/screens/drawing/dialogs/equipment_details_dialog.dart`
+  - `lib/screens/drawing/dialogs/rebar_spacing_dialog.dart`
+  - `lib/screens/drawing/dialogs/structural_tilt_dialog.dart`
+  - `lib/screens/drawing/dialogs/settlement_dialog.dart`
+  - `lib/screens/drawing/dialogs/core_sampling_dialog.dart`
+  - `lib/screens/drawing/dialogs/carbonation_dialog.dart`
+  - `lib/screens/drawing/dialogs/deflection_dialog.dart`
+  - `lib/screens/drawing/dialogs/schmidt_hammer_dialog.dart`
+  - `test/application/inspection/services/equipment_input_validation_service_test.dart` (신규)
+- 핵심 수정
+  - 숫자/정수/필수 선택 검증을 `EquipmentInputValidationService`로 이관.
+  - 공통 필드 빌더(`dialog_field_builders.dart`)에 validator 주입 경로를 추가해 다이얼로그는 필드 렌더링 + submit 중심으로 정리.
+  - `equipment_details_dialog.dart`를 Form + 공통 validator 기반으로 전환.
+  - `rebar_spacing_dialog.dart` 번호 필드 및 기타 장비 다이얼로그 수치 입력에 공통 validator 적용.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `D-05` all pass
 
 ### Step 5-3. SidePanel ViewModel 도입
 대상:
@@ -1039,8 +1063,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 21. `완료` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
 22. `완료` Phase 4-3 라벨/순번 규칙 Domain Service화
 23. `완료` Phase 5-1 Defect Dialog의 파일 접근 제거
-24. `다음` Phase 5-2 Equipment Dialog군 정리
-25. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+24. `완료` Phase 5-2 Equipment Dialog군 정리
+25. `다음` Phase 5-3 SidePanel ViewModel 도입
+26. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 

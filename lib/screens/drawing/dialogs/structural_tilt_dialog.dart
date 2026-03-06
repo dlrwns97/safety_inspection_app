@@ -92,33 +92,19 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
   }
 
   List<Widget> _buildHeader(TextStyle? titleStyle) {
-    return [
-      Text(
-        widget.title,
-        style: titleStyle,
-      ),
-      const SizedBox(height: 16),
-    ];
+    return [Text(widget.title, style: titleStyle), const SizedBox(height: 16)];
   }
 
   List<Widget> _buildFields() {
-    final keyboardType = const TextInputType.numberWithOptions(
-      decimal: true,
-    );
+    final keyboardType = const TextInputType.numberWithOptions(decimal: true);
 
     return [
       buildDialogDropdownField(
         value: _selectedDirection,
         labelText: '방향',
         items: const [
-          DropdownMenuItem(
-            value: '+',
-            child: Text('+'),
-          ),
-          DropdownMenuItem(
-            value: '-',
-            child: Text('-'),
-          ),
+          DropdownMenuItem(value: '+', child: Text('+')),
+          DropdownMenuItem(value: '-', child: Text('-')),
         ],
         onChanged: (value) {
           setState(() {
@@ -132,15 +118,13 @@ class _StructuralTiltDialogState extends State<_StructuralTiltDialog> {
         controller: _displacementController,
         labelText: '변위량',
         keyboardType: keyboardType,
+        validator: dialogOptionalDecimalValidator(),
       ),
     ];
   }
 
   Widget _buildActions(BuildContext context, {required VoidCallback? onSave}) {
-    return buildDialogActionButtons(
-      context,
-      onSave: onSave,
-    );
+    return buildDialogActionButtons(context, onSave: onSave);
   }
 
   void _handleSave() {

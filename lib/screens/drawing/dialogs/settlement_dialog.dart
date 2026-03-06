@@ -77,11 +77,7 @@ class _SettlementDialogState extends State<_SettlementDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.4,
-      maxWidth: 280.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.4, maxWidth: 280.0);
     final isSaveEnabled = _selectedDirection != null;
     final title = _dialogTitle();
     final titleStyle = Theme.of(context).textTheme.titleMedium;
@@ -123,10 +119,7 @@ class _SettlementDialogState extends State<_SettlementDialog> {
   }
 
   Widget _buildHeader(String title, TextStyle? titleStyle) {
-    return Text(
-      title,
-      style: titleStyle,
-    );
+    return Text(title, style: titleStyle);
   }
 
   Widget _buildDirectionField() {
@@ -134,14 +127,8 @@ class _SettlementDialogState extends State<_SettlementDialog> {
       value: _selectedDirection,
       labelText: '방향',
       items: const [
-        DropdownMenuItem(
-          value: 'Lx',
-          child: Text('Lx'),
-        ),
-        DropdownMenuItem(
-          value: 'Ly',
-          child: Text('Ly'),
-        ),
+        DropdownMenuItem(value: 'Lx', child: Text('Lx')),
+        DropdownMenuItem(value: 'Ly', child: Text('Ly')),
       ],
       onChanged: (value) {
         setState(() {
@@ -157,13 +144,11 @@ class _SettlementDialogState extends State<_SettlementDialog> {
       controller: _displacementController,
       labelText: '변위량',
       keyboardType: keyboardType,
+      validator: dialogOptionalDecimalValidator(),
     );
   }
 
   Widget _buildActions(BuildContext context, VoidCallback? onSave) {
-    return buildDialogActionButtons(
-      context,
-      onSave: onSave,
-    );
+    return buildDialogActionButtons(context, onSave: onSave);
   }
 }

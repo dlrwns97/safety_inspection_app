@@ -77,11 +77,7 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.5,
-      maxWidth: 360.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.5, maxWidth: 360.0);
     final isSaveEnabled = _selectedMember != null;
 
     return NarrowDialogFrame(
@@ -106,10 +102,7 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.title,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 16),
       ],
     );
@@ -117,12 +110,7 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
 
   Widget _buildMemberSection(BuildContext context) {
     final memberItems = widget.memberOptions
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
 
     return Column(
@@ -154,12 +142,14 @@ class _CarbonationDialogState extends State<_CarbonationDialog> {
           controller: _coverThicknessController,
           labelText: '피복두께',
           keyboardType: keyboardType,
+          validator: dialogOptionalDecimalValidator(),
         ),
         const SizedBox(height: 12),
         buildDialogTextField(
           controller: _depthController,
           labelText: '깊이',
           keyboardType: keyboardType,
+          validator: dialogOptionalDecimalValidator(),
         ),
         const SizedBox(height: 16),
       ],

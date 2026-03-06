@@ -367,6 +367,7 @@ class _RebarSpacingRowFields extends StatelessWidget {
                         LengthLimitingTextInputFormatter(6),
                       ],
                       maxLength: 6,
+                      validator: dialogOptionalIntegerValidator(maxDigits: 6),
                     ),
                   ),
                 ],

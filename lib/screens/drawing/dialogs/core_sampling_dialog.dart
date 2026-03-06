@@ -68,11 +68,7 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.6,
-      maxWidth: 520.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.6, maxWidth: 520.0);
     final isSaveEnabled = _selectedMember != null;
 
     return NarrowDialogFrame(
@@ -97,20 +93,12 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Text(
-      widget.title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(widget.title, style: Theme.of(context).textTheme.titleMedium);
   }
 
   Widget _buildMemberSection() {
     final memberItems = widget.memberOptions
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
 
     return buildDialogDropdownField(
@@ -127,14 +115,13 @@ class _CoreSamplingDialogState extends State<_CoreSamplingDialog> {
   }
 
   Widget _buildFieldsSection() {
-    final keyboardType = const TextInputType.numberWithOptions(
-      decimal: true,
-    );
+    final keyboardType = const TextInputType.numberWithOptions(decimal: true);
 
     return buildDialogTextField(
       controller: _avgValueController,
       labelText: '평균값',
       keyboardType: keyboardType,
+      validator: dialogOptionalDecimalValidator(),
     );
   }
 

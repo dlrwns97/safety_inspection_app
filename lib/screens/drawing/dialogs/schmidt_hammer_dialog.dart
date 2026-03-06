@@ -86,27 +86,13 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.6,
-      maxWidth: 520.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.6, maxWidth: 520.0);
     final isSaveEnabled = _selectedMember != null;
     final memberItems = widget.memberOptions
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
     final angleItems = const [0, 45, 90]
-        .map(
-          (angle) => DropdownMenuItem(
-            value: angle,
-            child: Text('$angle'),
-          ),
-        )
+        .map((angle) => DropdownMenuItem(value: angle, child: Text('$angle')))
         .toList();
     const decimalInputType = TextInputType.numberWithOptions(
       decimal: true,
@@ -136,10 +122,7 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
               decimalFormatter: decimalFormatter,
             ),
             const SizedBox(height: 16),
-            _buildActions(
-              context,
-              isSaveEnabled: isSaveEnabled,
-            ),
+            _buildActions(context, isSaveEnabled: isSaveEnabled),
           ],
         ),
       ),
@@ -147,10 +130,7 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Text(
-      widget.title,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(widget.title, style: Theme.of(context).textTheme.titleMedium);
   }
 
   Widget _buildSelectionRow({
@@ -203,9 +183,8 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
             controller: _minValueController,
             labelText: '최솟값',
             keyboardType: decimalInputType,
-            inputFormatters: [
-              decimalFormatter,
-            ],
+            inputFormatters: [decimalFormatter],
+            validator: dialogOptionalDecimalValidator(),
           ),
         ),
         const SizedBox(width: 12),
@@ -214,19 +193,15 @@ class _SchmidtHammerDialogState extends State<_SchmidtHammerDialog> {
             controller: _maxValueController,
             labelText: '최댓값',
             keyboardType: decimalInputType,
-            inputFormatters: [
-              decimalFormatter,
-            ],
+            inputFormatters: [decimalFormatter],
+            validator: dialogOptionalDecimalValidator(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildActions(
-    BuildContext context, {
-    required bool isSaveEnabled,
-  }) {
+  Widget _buildActions(BuildContext context, {required bool isSaveEnabled}) {
     return buildDialogActionButtons(
       context,
       onSave: isSaveEnabled

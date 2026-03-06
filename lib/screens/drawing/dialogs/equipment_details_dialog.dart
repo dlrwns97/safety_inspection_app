@@ -83,6 +83,7 @@ class _EquipmentDetailsDialog extends StatefulWidget {
 }
 
 class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
+  final _formKey = GlobalKey<FormState>();
   String? _selectedMember;
   List<String> _sizeLabels = [];
   List<TextEditingController> _sizeControllers = [];
@@ -169,29 +170,25 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
   }
 
   Set<String> _completionKeysForMember() {
-    return _sizeLabels.asMap().entries.fold<Set<String>>(
-      <String>{},
-      (keys, entry) {
-        final key = _completionKeyForMember(
-          memberType: _selectedMember,
-          index: entry.key,
-          label: entry.value,
-        );
-        if (key != null) {
-          keys.add(key);
-        }
-        return keys;
-      },
-    );
+    return _sizeLabels.asMap().entries.fold<Set<String>>(<String>{}, (
+      keys,
+      entry,
+    ) {
+      final key = _completionKeyForMember(
+        memberType: _selectedMember,
+        index: entry.key,
+        label: entry.value,
+      );
+      if (key != null) {
+        keys.add(key);
+      }
+      return keys;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.6,
-      maxWidth: 520.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.6, maxWidth: 520.0);
 
     return _buildDialogScaffold(context, maxWidth);
   }
@@ -204,16 +201,19 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(context),
-              _buildMemberTypeSection(context),
-              _buildSizeSection(context),
-              _buildRemarksSection(context),
-              _buildActionButtons(context),
-            ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(context),
+                _buildMemberTypeSection(context),
+                _buildSizeSection(context),
+                _buildRemarksSection(context),
+                _buildActionButtons(context),
+              ],
+            ),
           ),
         ),
       ),
@@ -227,10 +227,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.title,
-          style: titleStyle,
-        ),
+        Text(widget.title, style: titleStyle),
         const SizedBox(height: 16),
       ],
     );
@@ -238,29 +235,23 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
 
   Widget _buildMemberTypeSection(BuildContext context) {
     final memberItems = widget.memberOptions
-        .map(
-          (option) => DropdownMenuItem(
-            value: option,
-            child: Text(option),
-          ),
-        )
+        .map((option) => DropdownMenuItem(value: option, child: Text(option)))
         .toList();
 
-    return DropdownButtonFormField<String>(
-      initialValue: _selectedMember,
-      decoration: const InputDecoration(
-        labelText: '부재',
-        border: OutlineInputBorder(),
-      ),
+    return buildDialogDropdownField(
+      value: _selectedMember,
+      labelText: '부재',
       items: memberItems,
       onChanged: (value) {
         setState(() {
           _selectedMember = value;
-          _sizeLabels =
-              value == null ? [] : widget.sizeLabelsByMember[value] ?? [];
+          _sizeLabels = value == null
+              ? []
+              : widget.sizeLabelsByMember[value] ?? [];
           _resetSizeControllers(_sizeLabels);
         });
       },
+      requiredMessage: '부재를 선택하세요.',
     );
   }
 
@@ -280,10 +271,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 16),
-        Text(
-          '사이즈',
-          style: labelStyle,
-        ),
+        Text('사이즈', style: labelStyle),
         const SizedBox(height: 8),
         ...List.generate(_sizeLabels.length, (index) {
           final label = _sizeLabels[index];
@@ -300,13 +288,13 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
               labelText: label,
               keyboardType: keyboardType,
               inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                  RegExp(r'^\d*\.?\d*$'),
-                ),
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
               ],
-              textInputAction:
-                  isLastField ? TextInputAction.done : TextInputAction.next,
+              textInputAction: isLastField
+                  ? TextInputAction.done
+                  : TextInputAction.next,
               suffixIcon: _buildCompletionToggle(completionKey),
+              validator: dialogOptionalDecimalValidator(),
             ),
           );
         }),
@@ -330,18 +318,16 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
             labelText: '비고',
             border: OutlineInputBorder(),
           ),
-          items: const [
-            '마감 포함',
-            '슬래브 제외',
-            '마감 포함+벽체 간섭',
-            '슬래브+단열재 제외',
-            '슬래브 제외+단열재 포함',
-          ].map((option) {
-            return DropdownMenuItem(
-              value: option,
-              child: Text(option),
-            );
-          }).toList(),
+          items:
+              const [
+                '마감 포함',
+                '슬래브 제외',
+                '마감 포함+벽체 간섭',
+                '슬래브+단열재 제외',
+                '슬래브 제외+단열재 포함',
+              ].map((option) {
+                return DropdownMenuItem(value: option, child: Text(option));
+              }).toList(),
           onChanged: (value) {
             setState(() {
               _selectedRemark = value;
@@ -361,6 +347,9 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
         buildDialogActionButtons(
           context,
           onSave: () {
+            if (!(_formKey.currentState?.validate() ?? false)) {
+              return;
+            }
             final completionKeys = _completionKeysForMember();
             final sizeValues = _sizeControllers
                 .map((controller) => controller.text)
@@ -423,10 +412,7 @@ class _EquipmentDetailsDialogState extends State<_EquipmentDetailsDialog> {
       width: 48,
       height: 48,
       child: Center(
-        child: Checkbox(
-          value: value,
-          onChanged: onChanged,
-        ),
+        child: Checkbox(value: value, onChanged: onChanged),
       ),
     );
   }

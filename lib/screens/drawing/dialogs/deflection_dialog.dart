@@ -86,11 +86,7 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = dialogMaxWidth(
-      context,
-      widthFactor: 0.5,
-      maxWidth: 360.0,
-    );
+    final maxWidth = dialogMaxWidth(context, widthFactor: 0.5, maxWidth: 360.0);
     final isSaveEnabled = _selectedMember != null;
 
     return NarrowDialogFrame(
@@ -101,20 +97,15 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
             buildDialogDropdownField(
               value: _selectedMember,
               labelText: '부재',
               items: widget.memberOptions
                   .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
+                    (option) =>
+                        DropdownMenuItem(value: option, child: Text(option)),
                   )
                   .toList(),
               onChanged: (value) {
@@ -131,6 +122,7 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              validator: dialogOptionalDecimalValidator(),
             ),
             const SizedBox(height: 12),
             buildDialogTextField(
@@ -139,6 +131,7 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              validator: dialogOptionalDecimalValidator(),
             ),
             const SizedBox(height: 12),
             buildDialogTextField(
@@ -147,6 +140,7 @@ class _DeflectionDialogState extends State<_DeflectionDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              validator: dialogOptionalDecimalValidator(),
             ),
             const SizedBox(height: 16),
             buildDialogActionButtons(
