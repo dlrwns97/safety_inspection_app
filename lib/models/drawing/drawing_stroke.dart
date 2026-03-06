@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_tool.dart';
 
 enum StrokeToolKind { pen, highlighter, eraser, shape }
 

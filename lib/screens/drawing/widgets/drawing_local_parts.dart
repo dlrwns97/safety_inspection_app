@@ -55,7 +55,7 @@ class DefectMarkerWidget extends StatelessWidget {
     return IgnorePointer(
       ignoring: true,
       child: Tooltip(
-        message: category.label,
+        message: defectCategoryDisplayNameKo(category),
         child: Container(
           width: scaledSize,
           height: scaledSize,

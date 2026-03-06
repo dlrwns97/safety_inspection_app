@@ -194,7 +194,7 @@ class MarkerSidePanel extends StatelessWidget {
                   selectedDefectCategory != null && !isDefectVisible
                       ? MarkerInfoBanner(
                         message:
-                            "보기 탭에서 '${selectedDefectCategory?.label ?? '결함'}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
+                            "보기 탭에서 '${selectedDefectCategory == null ? '결함' : defectCategoryDisplayNameKo(selectedDefectCategory!)}' 표시가 꺼져 있어요. 켜면 목록이 보입니다.",
                       )
                       : null,
               defectItems: filteredDefects,
@@ -275,7 +275,8 @@ class MarkerSidePanel extends StatelessWidget {
       children: [
         MarkerDetailSection(
           title: defectPanelTitle(defect),
-          subtitle: '${defect.category.label} · 페이지 ${defect.pageIndex}',
+          subtitle:
+              '${defectCategoryDisplayNameKo(defect.category)} · 페이지 ${defect.pageIndex}',
           rows: rows,
         ),
         if (photoPreview != null) photoPreview,

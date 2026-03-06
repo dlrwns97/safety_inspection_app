@@ -1,9 +1,1 @@
-/// Shared drawing tool types used across the drawing screen and widgets.
-enum DrawingTool {
-  pen,
-  highlighter,
-  strokeEraser,
-  areaEraser,
-  shape,
-  // lasso,
-}
+export 'package:safety_inspection_app/models/drawing/drawing_tool.dart';

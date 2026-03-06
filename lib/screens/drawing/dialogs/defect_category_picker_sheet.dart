@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
 Future<DefectCategory?> showDefectCategoryPickerSheet({
   required BuildContext context,
@@ -44,7 +45,7 @@ class _DefectCategoryPickerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ListTile(
-      title: Text(category.label),
+      title: Text(defectCategoryDisplayNameKo(category)),
       enabled: onTap != null,
       trailing: isSelected
           ? Icon(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
 Future<bool?> showDeleteDefectTabDialog({
   required BuildContext context,
@@ -11,7 +12,7 @@ Future<bool?> showDeleteDefectTabDialog({
     builder: (context) {
       return AlertDialog(
         title: const Text('결함 탭 삭제'),
-        content: Text("'${category.label}' 탭을 삭제할까요?"),
+        content: Text("'${defectCategoryDisplayNameKo(category)}' 탭을 삭제할까요?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),

@@ -28,6 +28,8 @@
   - `flutter test test/smoke/scenario_id_smoke_test.dart`: 통과
   - `flutter test test/drawing_serialization_compat_test.dart`: 통과
   - `flutter test`: 전체 통과
+  - `rg -n "package:safety_inspection_app/screens/" lib/domain lib/models`: no match
+  - `rg -n "strings_ko" lib/models lib/domain`: no match
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -38,9 +40,10 @@
   - `Step 3-6A` 반영분(포인터 라우팅 분리/로그 정리/소형 도형 이동 보정): all pass
   - `Step 3-6F` 반영분(`logic/ui` part 분리 + 라인 1차 목표): all pass
   - `Step 4-1`: `D-04`, `D-05`, `D-08` all pass
+  - `Step 4-2`: `D-04`, `D-05`, `D-06` all pass
 - 다음 시작점
-  - `Phase 4 - Step 4-2`: 모델의 프레젠테이션 의존 제거
   - `Phase 4 - Step 4-3`: 라벨/순번 규칙 Domain Service화
+  - `Phase 5 - Step 5-1`: Defect Dialog의 파일 접근 제거
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -707,7 +710,7 @@ lib/
 - 수동 검증 결과
   - `D-04`, `D-05`, `D-08` all pass
 
-### Step 4-2. 도메인 역의존 제거
+### Step 4-2. 도메인 역의존 제거 ✅ 완료 (2026-03-06)
 즉시 해결 대상:
 - `drawing_stroke.dart -> drawing_types.dart`
 - `drawing_enums.dart -> strings_ko.dart`
@@ -718,6 +721,33 @@ lib/
 
 정량 목표:
 - `models/domain -> screens` import 0
+
+실행 기록 (2026-03-06):
+- 수정 파일
+  - `lib/models/drawing/drawing_tool.dart` (신규)
+  - `lib/screens/drawing/drawing_types.dart`
+  - `lib/models/drawing/drawing_stroke.dart`
+  - `lib/infrastructure/mappers/drawing_stroke_mapper.dart`
+  - `lib/models/drawing_enums.dart`
+  - `lib/screens/drawing/flows/marker_presenters.dart`
+  - `lib/screens/drawing/dialogs/defect_category_picker_sheet.dart`
+  - `lib/screens/drawing/dialogs/delete_defect_tab_dialog.dart`
+  - `lib/screens/drawing/widgets/drawing_local_parts.dart`
+  - `lib/screens/drawing/widgets/tool_header_row.dart`
+  - `lib/screens/drawing/widgets/side_panel/marker_side_panel.dart`
+  - `lib/screens/drawing/widgets/side_panel/marker_view_tab.dart`
+- 핵심 수정
+  - `DrawingTool` enum을 도메인(`models/drawing`)으로 승격하고 `drawing_types.dart`는 재노출(export) 전용으로 전환.
+  - `drawing_stroke.dart`와 stroke mapper의 `screens` 의존을 제거.
+  - `drawing_enums.dart`에서 `strings_ko` 및 enum 라벨 필드를 제거하고, UI 라벨은 presenter 함수(`defectCategoryDisplayNameKo`, `equipmentChipLabel`)로 이동.
+  - 결함/장비 카테고리 라벨 표시 경로를 presenter 호출 기준으로 치환.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+  - `flutter analyze` 기존 info 수준 이슈만 유지(신규 warning/error 없음)
+  - `rg -n "package:safety_inspection_app/screens/" lib/domain lib/models`: no match
+  - `rg -n "strings_ko" lib/models lib/domain`: no match
+- 수동 검증 결과
+  - `D-04`, `D-05`, `D-06` all pass
 
 ### Step 4-3. 라벨/순번 규칙 Domain Service화
 대상:
@@ -969,8 +999,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 18. `완료` `3-6D` UI 조립 블록 분리 + draw/move gesture 보정
 19. `완료` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성: logic 1,964 / ui 785)
 20. `완료` Phase 4-1 엔티티 직렬화 분리(`toJson/fromJson` -> mapper)
-21. `다음` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
-22. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+21. `완료` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
+22. `다음` Phase 4-3 라벨/순번 규칙 Domain Service화
+23. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 

@@ -247,7 +247,7 @@ String _shortTopDefectLabel(DefectCategory category) {
       return '기타';
     case DefectCategory.generalCrack:
     case DefectCategory.waterLeakage:
-      return category.label;
+      return defectCategoryDisplayNameKo(category);
   }
 }
 

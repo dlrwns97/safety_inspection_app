@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
+import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
 
 class MarkerViewTab extends StatelessWidget {
   const MarkerViewTab({
@@ -32,7 +33,7 @@ class MarkerViewTab extends StatelessWidget {
             onChanged: (value) =>
                 onDefectVisibilityChanged(category, value ?? false),
             title: Text(
-              category.label,
+              defectCategoryDisplayNameKo(category),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

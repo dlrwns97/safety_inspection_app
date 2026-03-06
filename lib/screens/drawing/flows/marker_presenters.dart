@@ -206,7 +206,39 @@ String equipmentPanelTitle(EquipmentMarker marker, List<EquipmentMarker> all) {
 }
 
 String equipmentChipLabel(EquipmentCategory category) {
-  return category.shortLabel;
+  switch (category) {
+    case EquipmentCategory.equipment1:
+      return '치수';
+    case EquipmentCategory.equipment2:
+      return '철근';
+    case EquipmentCategory.equipment3:
+      return '슈미트';
+    case EquipmentCategory.equipment4:
+      return '코어';
+    case EquipmentCategory.equipment5:
+      return '탄산화';
+    case EquipmentCategory.equipment6:
+      return '기울기';
+    case EquipmentCategory.equipment7:
+      return '처짐';
+    case EquipmentCategory.equipment8:
+      return '부동침하';
+  }
+}
+
+String defectCategoryDisplayNameKo(DefectCategory category) {
+  switch (category) {
+    case DefectCategory.generalCrack:
+      return StringsKo.defectCategoryGeneralCrack;
+    case DefectCategory.waterLeakage:
+      return StringsKo.defectCategoryWaterLeakage;
+    case DefectCategory.concreteSpalling:
+      return StringsKo.defectCategoryConcreteSpalling;
+    case DefectCategory.steelDefect:
+      return StringsKo.defectCategorySteelDefect;
+    case DefectCategory.other:
+      return StringsKo.defectCategoryOther;
+  }
 }
 
 String equipmentCategoryDisplayNameKo(EquipmentCategory category) {
