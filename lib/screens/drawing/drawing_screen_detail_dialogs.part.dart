@@ -217,7 +217,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
   String _overlapMarkerTitle(MarkerHitResult hit) {
     final defect = hit.defect;
     if (defect != null) {
-      return defectPanelTitle(defect);
+      return defectPanelTitle(defect, allDefects: _site.defects);
     }
     return equipmentPanelTitle(hit.equipment!, _site.equipmentMarkers);
   }

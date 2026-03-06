@@ -18,7 +18,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       nx: (defect) => defect.normalizedX,
       ny: (defect) => defect.normalizedY,
       buildMarker: (defect, selected) => DefectMarkerWidget(
-        label: defectDisplayLabel(defect),
+        label: defectDisplayLabel(defect, allDefects: _site.defects),
         category: defect.category,
         color: defectCategoryConfig(defect.category).color,
         isSelected: selected,

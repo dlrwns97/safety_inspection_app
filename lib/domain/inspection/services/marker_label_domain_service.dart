@@ -19,7 +19,13 @@ class MarkerLabelDomainService {
     return _defectCategoryLabelPrefixes[category] ?? '';
   }
 
-  String defectDisplayLabel(Defect defect) {
+  String defectDisplayLabel(Defect defect, {List<Defect>? allDefects}) {
+    if (allDefects != null) {
+      final sequence = defectSequenceWithinPageCategory(defect, allDefects);
+      if (sequence > 0) {
+        return '${defectPrefixForCategory(defect.category)}$sequence';
+      }
+    }
     final match = RegExp(r'(\d+)$').firstMatch(defect.label);
     if (match == null) {
       return defect.label;
@@ -31,19 +37,37 @@ class MarkerLabelDomainService {
     return '${defectPrefixForCategory(defect.category)}$digits';
   }
 
+  int defectSequenceWithinPageCategory(Defect defect, List<Defect> allDefects) {
+    final pageCategoryDefects = allDefects
+        .where(
+          (item) =>
+              item.pageIndex == defect.pageIndex &&
+              item.category == defect.category,
+        )
+        .toList();
+    final indexById = defect.id.isNotEmpty
+        ? pageCategoryDefects.indexWhere((item) => item.id == defect.id)
+        : -1;
+    final resolvedIndex = indexById != -1
+        ? indexById
+        : pageCategoryDefects.indexOf(defect);
+    return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
+  }
+
   int defectNumberForPage({
     required Defect defect,
     required int pageIndex,
     required List<Defect> allDefects,
   }) {
-    final pageDefects =
-        allDefects.where((item) => item.pageIndex == pageIndex).toList();
-    final indexById =
-        defect.id.isNotEmpty
-            ? pageDefects.indexWhere((item) => item.id == defect.id)
-            : -1;
-    final resolvedIndex =
-        indexById != -1 ? indexById : pageDefects.indexOf(defect);
+    final pageDefects = allDefects
+        .where((item) => item.pageIndex == pageIndex)
+        .toList();
+    final indexById = defect.id.isNotEmpty
+        ? pageDefects.indexWhere((item) => item.id == defect.id)
+        : -1;
+    final resolvedIndex = indexById != -1
+        ? indexById
+        : pageDefects.indexOf(defect);
     return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
   }
 
@@ -73,12 +97,12 @@ class MarkerLabelDomainService {
     required EquipmentMarker equipment,
     required List<EquipmentMarker> allEquipment,
   }) {
-    final indexById =
-        equipment.id.isNotEmpty
-            ? allEquipment.indexWhere((item) => item.id == equipment.id)
-            : -1;
-    final resolvedIndex =
-        indexById != -1 ? indexById : allEquipment.indexOf(equipment);
+    final indexById = equipment.id.isNotEmpty
+        ? allEquipment.indexWhere((item) => item.id == equipment.id)
+        : -1;
+    final resolvedIndex = indexById != -1
+        ? indexById
+        : allEquipment.indexOf(equipment);
     return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
   }
 
@@ -107,8 +131,9 @@ class MarkerLabelDomainService {
     EquipmentMarker marker,
     List<EquipmentMarker> all,
   ) {
-    final categoryMarkers =
-        all.where((item) => item.category == marker.category).toList();
+    final categoryMarkers = all
+        .where((item) => item.category == marker.category)
+        .toList();
     return _equipmentIndexInList(marker, categoryMarkers);
   }
 
@@ -120,14 +145,13 @@ class MarkerLabelDomainService {
     if (direction == null || direction.isEmpty) {
       return 0;
     }
-    final directionMarkers =
-        all
-            .where(
-              (item) =>
-                  item.category == EquipmentCategory.equipment8 &&
-                  settlementDirection(item) == direction,
-            )
-            .toList();
+    final directionMarkers = all
+        .where(
+          (item) =>
+              item.category == EquipmentCategory.equipment8 &&
+              settlementDirection(item) == direction,
+        )
+        .toList();
     return _equipmentIndexInList(marker, directionMarkers);
   }
 
@@ -136,17 +160,20 @@ class MarkerLabelDomainService {
     List<EquipmentMarker> all,
   ) {
     if (marker.category == EquipmentCategory.equipment2) {
-      final group = RebarSpacingGroupDetails.fromJsonString(marker.details);
-      if (group != null) {
-        return group.rangeLabel();
+      final displayGroup = equipment2DisplayGroup(marker, all);
+      if (displayGroup != null) {
+        return displayGroup.rangeLabel();
       }
-      final trimmedLabel = marker.label.trim();
-      final isRangeLabel = RegExp(r'^[A-Za-z]+\d+(?:~\d+)?$').hasMatch(
-        trimmedLabel,
-      );
-      if (isRangeLabel) {
-        return trimmedLabel;
+      final start = _equipment2SequenceStart(marker, all);
+      if (start <= 0) {
+        return marker.label;
       }
+      final count = _equipment2SlotCount(marker);
+      final prefix = _equipment2DisplayPrefix(marker);
+      if (count <= 1) {
+        return '$prefix$start';
+      }
+      return '$prefix$start~${start + count - 1}';
     }
     if (marker.category == EquipmentCategory.equipment8) {
       final direction = settlementDirection(marker);
@@ -172,6 +199,29 @@ class MarkerLabelDomainService {
     return '$normalizedPrefix$sequence';
   }
 
+  RebarSpacingGroupDetails? equipment2DisplayGroup(
+    EquipmentMarker marker,
+    List<EquipmentMarker> all,
+  ) {
+    if (marker.category != EquipmentCategory.equipment2) {
+      return null;
+    }
+    final group = RebarSpacingGroupDetails.fromJsonString(marker.details);
+    if (group == null) {
+      return null;
+    }
+    final start = _equipment2SequenceStart(marker, all);
+    if (start <= 0) {
+      return group;
+    }
+    return RebarSpacingGroupDetails(
+      baseLabelIndex: start,
+      labelPrefix: _equipment2DisplayPrefix(marker, group: group),
+      memberType: group.memberType,
+      measurements: group.measurements,
+    );
+  }
+
   String _normalizeSymbolCase(String raw) {
     final s = raw.trim();
     if (s.isEmpty) return raw;
@@ -189,12 +239,62 @@ class MarkerLabelDomainService {
     EquipmentMarker marker,
     List<EquipmentMarker> markers,
   ) {
-    final indexById =
-        marker.id.isNotEmpty
-            ? markers.indexWhere((item) => item.id == marker.id)
-            : -1;
-    final resolvedIndex =
-        indexById != -1 ? indexById : markers.indexOf(marker);
+    final indexById = marker.id.isNotEmpty
+        ? markers.indexWhere((item) => item.id == marker.id)
+        : -1;
+    final resolvedIndex = indexById != -1 ? indexById : markers.indexOf(marker);
     return resolvedIndex == -1 ? 0 : resolvedIndex + 1;
+  }
+
+  int _equipment2SequenceStart(
+    EquipmentMarker marker,
+    List<EquipmentMarker> all,
+  ) {
+    final equipment2Markers = all
+        .where((item) => item.category == EquipmentCategory.equipment2)
+        .toList();
+    final indexById = marker.id.isNotEmpty
+        ? equipment2Markers.indexWhere((item) => item.id == marker.id)
+        : -1;
+    final resolvedIndex = indexById != -1
+        ? indexById
+        : equipment2Markers.indexOf(marker);
+    if (resolvedIndex == -1) {
+      return 0;
+    }
+    var start = 1;
+    for (var i = 0; i < resolvedIndex; i += 1) {
+      start += _equipment2SlotCount(equipment2Markers[i]);
+    }
+    return start;
+  }
+
+  int _equipment2SlotCount(EquipmentMarker marker) {
+    final group = RebarSpacingGroupDetails.fromJsonString(marker.details);
+    if (group != null) {
+      return group.measurements.isEmpty ? 1 : group.measurements.length;
+    }
+    final label = marker.label.trim();
+    final match = RegExp(r'^[A-Za-z]+(\d+)(?:~(\d+))?$').firstMatch(label);
+    if (match == null) {
+      return 1;
+    }
+    final start = int.tryParse(match.group(1) ?? '');
+    final end = int.tryParse(match.group(2) ?? '');
+    if (start != null && end != null && end >= start) {
+      return end - start + 1;
+    }
+    return 1;
+  }
+
+  String _equipment2DisplayPrefix(
+    EquipmentMarker marker, {
+    RebarSpacingGroupDetails? group,
+  }) {
+    final rawPrefix = group?.labelPrefix ?? equipmentPrefixFor(marker.category);
+    if (rawPrefix.trim().isEmpty) {
+      return _normalizeSymbolCase(equipmentPrefixFor(marker.category));
+    }
+    return _normalizeSymbolCase(rawPrefix);
   }
 }

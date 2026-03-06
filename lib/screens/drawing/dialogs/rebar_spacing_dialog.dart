@@ -90,6 +90,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
   }
 
   bool get _canAddRow => widget.allowMultiple && _rows.length < _maxRows;
+  bool get _canRemoveRow => widget.allowMultiple && _rows.length > 1;
 
   bool get _showRowLabels =>
       widget.baseLabelIndex != null && widget.labelPrefix != null;
@@ -106,6 +107,16 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
     }
     setState(() {
       _rows.add(_RebarSpacingRowVm());
+    });
+  }
+
+  void _removeRow() {
+    if (!_canRemoveRow) {
+      return;
+    }
+    setState(() {
+      final removed = _rows.removeLast();
+      removed.dispose();
     });
   }
 
@@ -191,6 +202,7 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
 
   Widget _buildActions(BuildContext context, {required bool isSaveEnabled}) {
     final canAddRow = _canAddRow;
+    final canRemoveRow = _canRemoveRow;
 
     return Row(
       children: [
@@ -199,6 +211,12 @@ class _RebarSpacingDialogState extends State<_RebarSpacingDialog> {
             onPressed: canAddRow ? _addRow : null,
             icon: const Icon(Icons.add_circle_outline),
             tooltip: '행 추가',
+          ),
+        if (widget.allowMultiple)
+          IconButton(
+            onPressed: canRemoveRow ? _removeRow : null,
+            icon: const Icon(Icons.remove_circle_outline),
+            tooltip: '행 삭제',
           ),
         const Spacer(),
         TextButton(

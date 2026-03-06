@@ -1,6 +1,7 @@
 import 'package:safety_inspection_app/models/defect.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/equipment_marker.dart';
+import 'package:safety_inspection_app/models/rebar_spacing_group_details.dart';
 import 'package:safety_inspection_app/models/site.dart';
 import 'package:safety_inspection_app/domain/inspection/services/marker_label_domain_service.dart';
 import 'package:safety_inspection_app/constants/strings_ko.dart';
@@ -11,12 +12,15 @@ String defectPrefixForCategory(DefectCategory category) {
   return _markerLabelDomainService.defectPrefixForCategory(category);
 }
 
-String defectDisplayLabel(Defect defect) {
-  return _markerLabelDomainService.defectDisplayLabel(defect);
+String defectDisplayLabel(Defect defect, {List<Defect>? allDefects}) {
+  return _markerLabelDomainService.defectDisplayLabel(
+    defect,
+    allDefects: allDefects,
+  );
 }
 
-String defectPanelTitle(Defect defect) {
-  return defectDisplayLabel(defect);
+String defectPanelTitle(Defect defect, {List<Defect>? allDefects}) {
+  return defectDisplayLabel(defect, allDefects: allDefects);
 }
 
 String? settlementDirection(EquipmentMarker marker) {
@@ -64,7 +68,10 @@ int settlementSequenceWithinDirection(
   EquipmentMarker marker,
   List<EquipmentMarker> all,
 ) {
-  return _markerLabelDomainService.settlementSequenceWithinDirection(marker, all);
+  return _markerLabelDomainService.settlementSequenceWithinDirection(
+    marker,
+    all,
+  );
 }
 
 String equipmentDisplayLabel(
@@ -72,6 +79,13 @@ String equipmentDisplayLabel(
   List<EquipmentMarker> all,
 ) {
   return _markerLabelDomainService.equipmentDisplayLabel(marker, all);
+}
+
+RebarSpacingGroupDetails? equipment2DisplayGroup(
+  EquipmentMarker marker,
+  List<EquipmentMarker> all,
+) {
+  return _markerLabelDomainService.equipment2DisplayGroup(marker, all);
 }
 
 String equipmentPanelTitle(EquipmentMarker marker, List<EquipmentMarker> all) {
