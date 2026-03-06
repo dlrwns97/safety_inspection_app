@@ -30,6 +30,7 @@
   - `flutter test`: 전체 통과
   - `rg -n "package:safety_inspection_app/screens/" lib/domain lib/models`: no match
   - `rg -n "strings_ko" lib/models lib/domain`: no match
+  - `flutter test test/marker_presenters_label_test.dart`: 통과
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -41,9 +42,10 @@
   - `Step 3-6F` 반영분(`logic/ui` part 분리 + 라인 1차 목표): all pass
   - `Step 4-1`: `D-04`, `D-05`, `D-08` all pass
   - `Step 4-2`: `D-04`, `D-05`, `D-06` all pass
+  - `Step 4-3`: `D-04`, `D-05` all pass
 - 다음 시작점
-  - `Phase 4 - Step 4-3`: 라벨/순번 규칙 Domain Service화
   - `Phase 5 - Step 5-1`: Defect Dialog의 파일 접근 제거
+  - `Phase 5 - Step 5-2`: Equipment Dialog군 정리
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -749,7 +751,7 @@ lib/
 - 수동 검증 결과
   - `D-04`, `D-05`, `D-06` all pass
 
-### Step 4-3. 라벨/순번 규칙 Domain Service화
+### Step 4-3. 라벨/순번 규칙 Domain Service화 ✅ 완료 (2026-03-06)
 대상:
 - `flows/marker_presenters.dart`
 
@@ -759,6 +761,20 @@ lib/
 
 검증:
 - `test/marker_presenters_label_test.dart`
+
+실행 기록 (2026-03-06):
+- 수정 파일
+  - `lib/domain/inspection/services/marker_label_domain_service.dart` (신규)
+  - `lib/screens/drawing/flows/marker_presenters.dart`
+- 핵심 수정
+  - 라벨/순번/접두어 계산 로직을 `MarkerLabelDomainService`로 이관.
+  - `marker_presenters.dart`는 도메인 서비스 호출 + UI 표현 조합만 담당하도록 경량화.
+- 자동 검증 결과
+  - `flutter test test/marker_presenters_label_test.dart` 통과
+  - `flutter test test/smoke/scenario_id_smoke_test.dart` 통과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - `D-04`, `D-05` all pass
 
 ---
 
@@ -1000,8 +1016,9 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 19. `완료` `3-6F` DrawingScreen 최종 정리(라인 수 1차 목표 달성: logic 1,964 / ui 785)
 20. `완료` Phase 4-1 엔티티 직렬화 분리(`toJson/fromJson` -> mapper)
 21. `완료` Phase 4-2 도메인 역의존 제거(`drawing_stroke -> drawing_types`, `drawing_enums -> strings_ko`)
-22. `다음` Phase 4-3 라벨/순번 규칙 Domain Service화
-23. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+22. `완료` Phase 4-3 라벨/순번 규칙 Domain Service화
+23. `다음` Phase 5-1 Defect Dialog의 파일 접근 제거
+24. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
