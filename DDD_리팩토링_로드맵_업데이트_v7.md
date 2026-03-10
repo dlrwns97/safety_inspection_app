@@ -1,4 +1,4 @@
-# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-06, Phase 6 Step 6-2 완료)
+﻿# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-10, Phase 6 Step 6-3 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -25,6 +25,7 @@
   - `완료`: `Step 5-1`, `Step 5-2`, `Step 5-3`
 - Phase 6 진행 상태
   - `완료`: `Step 6-1`, `Step 6-2`
+  - `Step 6-3`: `D-10`, `P-03` all pass
 - 최근 자동 검증 결과 (Phase 5 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -71,7 +72,7 @@
   - `Step 6-1`: `D-04`, `D-05`, `D-06` all pass
   - `Step 6-2`: `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
 - 다음 시작점
-  - `Phase 6 - Step 6-3`: 회귀 시나리오 테스트
+  - `Phase 6 - Step 6-4`: 장기 안정성
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -948,11 +949,18 @@ lib/
 - 수동 검증 결과
   - `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
 
-### Step 6-3. 회귀 시나리오 테스트
-추가 테스트:
-- PDF 교체 -> 페이지 이동 -> 마커 생성 -> 저장 -> 재실행 복원
-- pen/highlighter/shape/eraser 혼합 후 undo/redo 안정성
-- orphan photo scan/restore/cleanup
+### Step 6-3. Regression scenario tests ✅ 완료 (2026-03-10)
+- added tests
+  - PDF replace -> page move -> marker create -> save -> reload restore
+  - pen/highlighter/shape/eraser mixed undo/redo stability
+  - orphan photo scan/restore/cleanup
+- modified files
+  - `test/smoke/scenario_id_smoke_test.dart`
+  - `test/drawing_history_stress_test.dart`
+- automated verification
+  - `flutter test test/drawing_history_stress_test.dart test/smoke/scenario_id_smoke_test.dart`: pass
+- manual verification
+  - `D-10`, `P-03` all pass
 
 ### Step 6-4. 장기 안정성
 추가 테스트:
@@ -1136,7 +1144,7 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 25. `완료` Phase 5-3 SidePanel ViewModel 도입
 26. `완료` Phase 6-1 Domain 테스트 확장
 27. `완료` Phase 6-2 Application 테스트 확장
-28. `다음` Phase 6-3 회귀 시나리오 테스트
+28. `완료` Phase 6-3 regression scenario tests
 29. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
