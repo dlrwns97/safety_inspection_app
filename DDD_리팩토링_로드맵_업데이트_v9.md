@@ -1,4 +1,4 @@
-﻿# DDD 리팩토링 로드맵 v8 (업데이트: 2026-03-10, Phase 6 완료 / Phase 7 시작)
+﻿# DDD 리팩토링 로드맵 v9 (업데이트: 2026-03-10, Phase 7 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -11,7 +11,7 @@
 
 ---
 
-## 0-1. 진행 현황 (v8)
+## 0-1. 진행 현황 (v9)
 - 완료 Phase
   - `Phase 0` (`Step 0-1`, `Step 0-2`, `Step 0-3`)
   - `Phase 1` (`Step 1-1`, `Step 1-2`, `Step 1-3`)
@@ -19,6 +19,8 @@
   - `Phase 3` (`Step 3-1` ~ `Step 3-6F`)
   - `Phase 4` (`Step 4-1`, `Step 4-2`, `Step 4-3`)
   - `Phase 5` (`Step 5-1`, `Step 5-2`, `Step 5-3`)
+  - `Phase 6` (`Step 6-1`, `Step 6-2`, `Step 6-3`, `Step 6-4`)
+  - `Phase 7` (`Step 7-1`, `Step 7-2`, `Step 7-3`)
 - Phase 4 완료 상태
   - `완료`: `Step 4-1`, `Step 4-2`, `Step 4-3`
 - Phase 5 완료 상태
@@ -28,9 +30,10 @@
   - `Step 6-3`: `D-10`, `P-03` all pass
   - `Step 6-4`: `D-08`(force-kill reopen page restore), `100+ undo/redo`, `10p+ multi-page` all pass
 - Phase 7 진행 상태
-  - `완료`: `Step 7-1`, `Step 7-2`
+  - `완료`: `Step 7-1`, `Step 7-2`, `Step 7-3`
   - `Step 7-1`: drawing dead code/stub 정리 + verbose logger 도입 + 펜/형광펜 직교/스냅 설정 분리
   - `Step 7-2`: painter/cache 렌더 경로 정리 + deprecated API 치환
+  - `Step 7-3`: 아키텍처/레이어 규칙/신규 기능 가이드 문서화
 - 최근 자동 검증 결과 (Phase 7 작업 반영)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -63,6 +66,7 @@
   - `flutter analyze`: 기존 info 유지, 신규 warning/error 없음 (`Step 7-1`)
   - `flutter test`: 전체 통과 (`Step 7-2`)
   - `flutter analyze`: info 75건(신규 warning/error 없음) (`Step 7-2`)
+  - `flutter test`: 전체 통과 (`Step 7-3`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -82,8 +86,9 @@
   - `Step 6-2`: `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
   - `Step 7-1`: `D-01`, `D-06`, `D-07` all pass
   - `Step 7-2`: `D-01`, `D-03`, `D-06`, `D-07` all pass
+  - `Step 7-3`: 문서 산출물(아키텍처 개요/레이어 규칙/신규 기능 가이드) 검토 all pass
 - 다음 시작점
-  - `Phase 7 - Step 7-3`: 문서/온보딩 마감
+  - `Phase 7 완료`: 차기 Phase 계획 수립/백로그 정리
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -1071,11 +1076,26 @@ lib/
 - 수동 검증 결과
   - `D-01`, `D-03`, `D-06`, `D-07` all pass
 
-### Step 7-3. 문서/온보딩 마감
+### Step 7-3. 문서/온보딩 마감 ✅ 완료 (2026-03-10)
 산출물:
 - 아키텍처 개요 문서
 - 레이어 규칙 문서
 - 신규 기능 추가 가이드
+
+실행 기록 (2026-03-10):
+- 수정 파일
+  - `docs/architecture-overview.md` (신규)
+  - `docs/layer-rules.md` (신규)
+  - `docs/new-feature-guide.md` (신규)
+  - `README.md`
+- 핵심 수정
+  - Drawing 리팩토링 이후 코드 기준으로 아키텍처 개요 문서를 작성.
+  - 계층 의존 방향/금지 패턴/점검 명령을 레이어 규칙 문서로 명문화.
+  - 신규 기능 투입 시 Domain->Application->Presentation/Screens->Infrastructure 순서로 작업할 수 있도록 실무 가이드 제공.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+- 수동 검증 결과
+  - 문서 산출물(3종) 검토 all pass
 
 ---
 
@@ -1222,7 +1242,7 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 27. `완료` Phase 6-2 Application 테스트 확장
 28. `완료` Phase 6-3 regression scenario tests
 29. `완료` Phase 6-4 long-term stability + force-kill page restore fix
-30. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+30. `완료` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
@@ -1393,3 +1413,4 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
    - `macos/Flutter/GeneratedPluginRegistrant.swift`
    - `windows/flutter/generated_plugin_registrant.cc`
    - `windows/flutter/generated_plugins.cmake`
+
