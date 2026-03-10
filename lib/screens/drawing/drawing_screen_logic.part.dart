@@ -657,7 +657,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         effectiveStart,
         effectiveEnd,
         _activeShapeStrokeStyle,
-        fillArgb: _currentShapeFillColor?.value,
+        fillArgb: _currentShapeFillColor?.toARGB32(),
       );
       _historyManager.execute(
         AddStrokeCommand(page: pageNumber, strokeSnapshot: created.deepCopy()),

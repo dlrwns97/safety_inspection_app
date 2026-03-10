@@ -27,7 +27,11 @@
   - `완료`: `Step 6-1`, `Step 6-2`, `Step 6-3`, `Step 6-4`
   - `Step 6-3`: `D-10`, `P-03` all pass
   - `Step 6-4`: `D-08`(force-kill reopen page restore), `100+ undo/redo`, `10p+ multi-page` all pass
-- 최근 자동 검증 결과 (Phase 5 작업 기준)
+- Phase 7 진행 상태
+  - `완료`: `Step 7-1`, `Step 7-2`
+  - `Step 7-1`: drawing dead code/stub 정리 + verbose logger 도입 + 펜/형광펜 직교/스냅 설정 분리
+  - `Step 7-2`: painter/cache 렌더 경로 정리 + deprecated API 치환
+- 최근 자동 검증 결과 (Phase 7 작업 반영)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
   - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: 통과
@@ -55,6 +59,10 @@
   - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`: 통과 (`Step 6-2`)
   - `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: 통과 (`Step 6-2`)
   - `flutter test`: 전체 통과 (`Step 6-2`)
+  - `flutter test`: 전체 통과 (`Step 7-1`)
+  - `flutter analyze`: 기존 info 유지, 신규 warning/error 없음 (`Step 7-1`)
+  - `flutter test`: 전체 통과 (`Step 7-2`)
+  - `flutter analyze`: info 75건(신규 warning/error 없음) (`Step 7-2`)
 - 최근 수동 검증 결과
   - `Step 2-1`: `H-01`, `D-08`, `P-01` all pass
   - `Step 2-2`: `D-04`, `D-05` all pass
@@ -72,8 +80,10 @@
   - `Step 5-3`: `D-04`, `D-05` all pass
   - `Step 6-1`: `D-04`, `D-05`, `D-06` all pass
   - `Step 6-2`: `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
+  - `Step 7-1`: `D-01`, `D-06`, `D-07` all pass
+  - `Step 7-2`: `D-01`, `D-03`, `D-06`, `D-07` all pass
 - 다음 시작점
-  - `Phase 7 - Step 7-1`: 죽은 코드/스텁 정리
+  - `Phase 7 - Step 7-3`: 문서/온보딩 마감
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -990,7 +1000,7 @@ lib/
 ## Phase 7. 성능/정리 마무리 (3~4일)
 목표: 코드 품질 체감 개선과 유지보수성 마감.
 
-### Step 7-1. 죽은 코드/스텁 정리
+### Step 7-1. 죽은 코드/스텁 정리 ✅ 완료 (2026-03-10)
 대상:
 - `engines/eraser_engine_v2.dart`
 - `engines/text_engine.dart`
@@ -1001,7 +1011,36 @@ lib/
 2. 향후 계획이 있으면 TODO가 아니라 명시 이슈 링크로 관리.
 3. 핫패스(pointer move/build) 로그는 기본 제거하고 필요 시 토글형 verbose 로거로 대체.
 
-### Step 7-2. 페인터/캐시 경로 정리
+실행 기록 (2026-03-10):
+- 수정 파일
+  - `lib/screens/drawing/drawing_verbose_logger.dart` (신규)
+  - `lib/screens/drawing/engines/eraser_engine_v2.dart` (삭제)
+  - `lib/screens/drawing/engines/text_engine.dart` (삭제)
+  - `lib/screens/drawing/drawing_screen.dart`
+  - `lib/screens/drawing/drawing_screen_logic.part.dart`
+  - `lib/screens/drawing/drawing_screen_pointer_input.part.dart`
+  - `lib/screens/drawing/drawing_screen_persistence.part.dart`
+  - `lib/screens/drawing/drawing_screen_history_cleanup.part.dart`
+  - `lib/screens/drawing/drawing_screen_ui.part.dart`
+  - `lib/screens/drawing/drawing_screen_ui_tool_popovers.part.dart`
+  - `lib/screens/drawing/drawing_screen_move_actions.part.dart`
+  - `lib/screens/drawing/drawing_screen_tooling.part.dart`
+  - `lib/screens/drawing/drawing_screen_state_accessors.part.dart`
+  - `lib/screens/drawing/canvas/drawing_canvas_controller.dart`
+  - `lib/screens/drawing/history/history_commands.dart`
+  - `lib/presentation/drawing/states/tool_state.dart`
+  - `test/presentation/drawing/states/tool_state_test.dart`
+- 핵심 수정
+  - 미사용 스텁 엔진(`eraser_engine_v2`, `text_engine`) 제거.
+  - drawing 영역 개발용 로그를 정리하고 토글형 verbose 로거(`kDrawingVerboseLogging`)로 전환.
+  - 수동 검증 피드백 반영: 펜/형광펜의 직교/스냅 설정 상태를 완전 분리하고 저장 키를 독립화.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+  - `flutter analyze`: 기존 info 수준 이슈만 유지(신규 warning/error 없음)
+- 수동 검증 결과
+  - `D-01`, `D-06`, `D-07` all pass
+
+### Step 7-2. 페인터/캐시 경로 정리 ✅ 완료 (2026-03-10)
 대상:
 - `temp_polyline_painter.dart`
 - `stroke_cache_manager.dart`
@@ -1012,6 +1051,25 @@ lib/
 1. 중복 렌더링 경로 최소화.
 2. deprecated API 교체 완료.
 3. `Color.value`, `withOpacity`, 구버전 callback/API를 최신 API로 일괄 교체.
+
+실행 기록 (2026-03-10):
+- 수정 파일
+  - `lib/screens/drawing/canvas/stroke_outline_path.dart` (신규)
+  - `lib/screens/drawing/canvas/stroke_cache_manager.dart`
+  - `lib/widgets/drawing/temp_polyline_painter.dart`
+  - `lib/screens/drawing/drawing_screen_logic.part.dart`
+  - `lib/screens/drawing/drawing_screen_ui.part.dart`
+  - `lib/screens/drawing/drawing_screen.dart`
+- 핵심 수정
+  - stroke outline path 생성을 공통 유틸(`buildStrokeOutlinePath`)로 통합해 페인터/캐시 경로 중복 제거.
+  - `TempPolylinePainter`의 centerline 경로를 `resolveCenterlineStyle` 기반으로 정리해 캐시 렌더 경로와 동작 정합화.
+  - `withOpacity` -> `withValues(alpha: ...)`, `Color.value` -> `toARGB32()`, `onPopInvoked` -> `onPopInvokedWithResult`로 교체.
+  - shape overlay preview 계산 중복을 `_resolveShapeOverlayPreview`로 통합.
+- 자동 검증 결과
+  - `flutter test` 전체 통과
+  - `flutter analyze`: info 75건(신규 warning/error 없음)
+- 수동 검증 결과
+  - `D-01`, `D-03`, `D-06`, `D-07` all pass
 
 ### Step 7-3. 문서/온보딩 마감
 산출물:

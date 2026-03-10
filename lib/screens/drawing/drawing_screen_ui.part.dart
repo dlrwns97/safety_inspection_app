@@ -299,31 +299,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final stylusOverlayBehavior = (_isFreeDrawMode && _isStylusActive)
         ? HitTestBehavior.opaque
         : HitTestBehavior.translucent;
-    ShapeType? overlayPreviewType;
-    StrokeStyle? overlayPreviewStroke;
-    int? overlayPreviewFillArgb;
-    List<Offset>? overlayPreviewPointsNorm;
-    if (_isFreeDrawMode &&
-        _activeTool == DrawingTool.shape &&
-        _activeShapeManipulator != null) {
-      if (_activeShapeEditOp == _ShapeEditOperation.create) {
-        overlayPreviewType = _activeShapeType;
-        overlayPreviewStroke = _activeShapeStrokeStyle;
-        overlayPreviewFillArgb = _activeShapeFillColor?.value;
-      } else if (_selectedShapeStrokeId != null) {
-        final selected = _canvasController.findStrokeById(
-          pageNumber,
-          _selectedShapeStrokeId!,
-        );
-        final resolvedType = _shapeTypeFromStored(selected?.shapeType);
-        if (selected != null && resolvedType != null) {
-          overlayPreviewType = resolvedType;
-          overlayPreviewStroke = selected.style;
-          overlayPreviewFillArgb = selected.shapeFillArgb;
-          overlayPreviewPointsNorm = selected.pointsNorm;
-        }
-      }
-    }
+    final overlayPreview = _resolveShapeOverlayPreview(pageNumber: pageNumber);
     final blockStylusFromPdfGestures =
         _isFreeDrawMode || _isStylusRequiredMarkerPlacementMode;
 
@@ -428,10 +404,11 @@ extension _DrawingScreenUi on _DrawingScreenState {
                               child: ShapeHandlesOverlay(
                                 manipulator: _activeShapeManipulator!,
                                 canvasSize: pageSize,
-                                previewType: overlayPreviewType,
-                                previewStroke: overlayPreviewStroke,
-                                previewFillArgb: overlayPreviewFillArgb,
-                                previewPointsNorm: overlayPreviewPointsNorm,
+                                previewType: overlayPreview.previewType,
+                                previewStroke: overlayPreview.previewStroke,
+                                previewFillArgb: overlayPreview.previewFillArgb,
+                                previewPointsNorm:
+                                    overlayPreview.previewPointsNorm,
                                 createStartNorm:
                                     _activeShapeEditOp ==
                                         _ShapeEditOperation.create
@@ -553,31 +530,9 @@ extension _DrawingScreenUi on _DrawingScreenState {
       return scale;
     }
 
-    ShapeType? overlayPreviewType;
-    StrokeStyle? overlayPreviewStroke;
-    int? overlayPreviewFillArgb;
-    List<Offset>? overlayPreviewPointsNorm;
-    if (_isFreeDrawMode &&
-        _activeTool == DrawingTool.shape &&
-        _activeShapeManipulator != null) {
-      if (_activeShapeEditOp == _ShapeEditOperation.create) {
-        overlayPreviewType = _activeShapeType;
-        overlayPreviewStroke = _activeShapeStrokeStyle;
-        overlayPreviewFillArgb = _activeShapeFillColor?.value;
-      } else if (_selectedShapeStrokeId != null) {
-        final selected = _canvasController.findStrokeById(
-          _currentPage,
-          _selectedShapeStrokeId!,
-        );
-        final resolvedType = _shapeTypeFromStored(selected?.shapeType);
-        if (selected != null && resolvedType != null) {
-          overlayPreviewType = resolvedType;
-          overlayPreviewStroke = selected.style;
-          overlayPreviewFillArgb = selected.shapeFillArgb;
-          overlayPreviewPointsNorm = selected.pointsNorm;
-        }
-      }
-    }
+    final overlayPreview = _resolveShapeOverlayPreview(
+      pageNumber: _currentPage,
+    );
 
     final blockStylusFromCanvasGestures = _isFreeDrawMode;
     return RawGestureDetector(
@@ -677,10 +632,10 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   child: ShapeHandlesOverlay(
                     manipulator: _activeShapeManipulator!,
                     canvasSize: DrawingCanvasSize,
-                    previewType: overlayPreviewType,
-                    previewStroke: overlayPreviewStroke,
-                    previewFillArgb: overlayPreviewFillArgb,
-                    previewPointsNorm: overlayPreviewPointsNorm,
+                    previewType: overlayPreview.previewType,
+                    previewStroke: overlayPreview.previewStroke,
+                    previewFillArgb: overlayPreview.previewFillArgb,
+                    previewPointsNorm: overlayPreview.previewPointsNorm,
                     createStartNorm:
                         _activeShapeEditOp == _ShapeEditOperation.create
                         ? _shapeInteractionStartNorm
@@ -697,6 +652,65 @@ extension _DrawingScreenUi on _DrawingScreenState {
           ),
         ),
       ),
+    );
+  }
+
+  ({
+    ShapeType? previewType,
+    StrokeStyle? previewStroke,
+    int? previewFillArgb,
+    List<Offset>? previewPointsNorm,
+  })
+  _resolveShapeOverlayPreview({required int pageNumber}) {
+    if (!(_isFreeDrawMode &&
+        _activeTool == DrawingTool.shape &&
+        _activeShapeManipulator != null)) {
+      return (
+        previewType: null,
+        previewStroke: null,
+        previewFillArgb: null,
+        previewPointsNorm: null,
+      );
+    }
+
+    if (_activeShapeEditOp == _ShapeEditOperation.create) {
+      return (
+        previewType: _activeShapeType,
+        previewStroke: _activeShapeStrokeStyle,
+        previewFillArgb: _activeShapeFillColor?.toARGB32(),
+        previewPointsNorm: null,
+      );
+    }
+
+    final selectedShapeStrokeId = _selectedShapeStrokeId;
+    if (selectedShapeStrokeId == null) {
+      return (
+        previewType: null,
+        previewStroke: null,
+        previewFillArgb: null,
+        previewPointsNorm: null,
+      );
+    }
+
+    final selected = _canvasController.findStrokeById(
+      pageNumber,
+      selectedShapeStrokeId,
+    );
+    final resolvedType = _shapeTypeFromStored(selected?.shapeType);
+    if (selected == null || resolvedType == null) {
+      return (
+        previewType: null,
+        previewStroke: null,
+        previewFillArgb: null,
+        previewPointsNorm: null,
+      );
+    }
+
+    return (
+      previewType: resolvedType,
+      previewStroke: selected.style,
+      previewFillArgb: selected.shapeFillArgb,
+      previewPointsNorm: selected.pointsNorm,
     );
   }
 

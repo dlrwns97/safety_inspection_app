@@ -7,6 +7,7 @@ import 'package:perfect_freehand/perfect_freehand.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/pen_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/centerline_style_utils.dart';
+import 'package:safety_inspection_app/screens/drawing/canvas/stroke_outline_path.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
 
 /// Builds and stores a per-page raster cache image for committed drawing strokes.
@@ -214,18 +215,7 @@ class StrokeCacheManager extends ChangeNotifier {
     if (outline.isEmpty) {
       return;
     }
-    final path = Path()..moveTo(outline.first.dx, outline.first.dy);
-    for (var i = 0; i < outline.length - 1; i += 1) {
-      final p0 = outline[i];
-      final p1 = outline[i + 1];
-      path.quadraticBezierTo(
-        p0.dx,
-        p0.dy,
-        (p0.dx + p1.dx) / 2,
-        (p0.dy + p1.dy) / 2,
-      );
-    }
-    path.close();
+    final path = buildStrokeOutlinePath(outline);
     canvas.drawPath(
       path,
       Paint()
