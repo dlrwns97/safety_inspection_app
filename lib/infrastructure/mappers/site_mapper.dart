@@ -18,17 +18,22 @@ class SiteMapper {
     'inspectionDate': site.inspectionDate?.toIso8601String(),
     'pdfPath': site.pdfPath,
     'pdfName': site.pdfName,
+    'lastViewedPdfPage': site.lastViewedPdfPage,
     'isDeleted': site.isDeleted,
     'deletedAt': site.deletedAt?.toIso8601String(),
     'defects': site.defects.map(DefectMapper.toJson).toList(),
-    'equipmentMarkers':
-        site.equipmentMarkers.map(EquipmentMarkerMapper.toJson).toList(),
-    'drawingStrokes':
-        site.drawingStrokes.map(DrawingStrokeMapper.toJson).toList(),
-    'drawingUndoHistory':
-        site.drawingUndoHistory.map((action) => action.toJson()).toList(),
-    'drawingRedoHistory':
-        site.drawingRedoHistory.map((action) => action.toJson()).toList(),
+    'equipmentMarkers': site.equipmentMarkers
+        .map(EquipmentMarkerMapper.toJson)
+        .toList(),
+    'drawingStrokes': site.drawingStrokes
+        .map(DrawingStrokeMapper.toJson)
+        .toList(),
+    'drawingUndoHistory': site.drawingUndoHistory
+        .map((action) => action.toJson())
+        .toList(),
+    'drawingRedoHistory': site.drawingRedoHistory
+        .map((action) => action.toJson())
+        .toList(),
     'visibleDefectCategoryNames': site.visibleDefectCategoryNames,
     'visibleEquipmentCategoryNames': site.visibleEquipmentCategoryNames,
   };
@@ -42,18 +47,16 @@ class SiteMapper {
             .toList();
     final visibleEquipmentCategoryNames =
         json.containsKey('visibleEquipmentCategoryNames')
-            ? (json['visibleEquipmentCategoryNames'] as List<dynamic>?)
-                ?.whereType<String>()
-                .toList()
-            : null;
+        ? (json['visibleEquipmentCategoryNames'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList()
+        : null;
 
     final drawingStrokesJson = json['drawingStrokes'] as List? ?? const [];
     final drawingStrokes = drawingStrokesJson
         .whereType<Map>()
         .map(
-          (item) => DrawingStrokeMapper.fromJson(
-            item.cast<String, dynamic>(),
-          ),
+          (item) => DrawingStrokeMapper.fromJson(item.cast<String, dynamic>()),
         )
         .toList();
     final List<dynamic> drawingUndoHistoryJson =
@@ -93,21 +96,20 @@ class SiteMapper {
       inspectionDate: inspectionDate,
       pdfPath: json['pdfPath'] as String?,
       pdfName: json['pdfName'] as String?,
+      lastViewedPdfPage: (json['lastViewedPdfPage'] as num?)?.toInt(),
       isDeleted: json['isDeleted'] as bool? ?? false,
       deletedAt: deletedAt,
-      defects:
-          (json['defects'] as List<dynamic>? ?? [])
-              .whereType<Map>()
-              .map((item) => DefectMapper.fromJson(item.cast<String, dynamic>()))
-              .toList(),
-      equipmentMarkers:
-          (json['equipmentMarkers'] as List<dynamic>? ?? [])
-              .whereType<Map>()
-              .map(
-                (item) =>
-                    EquipmentMarkerMapper.fromJson(item.cast<String, dynamic>()),
-              )
-              .toList(),
+      defects: (json['defects'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((item) => DefectMapper.fromJson(item.cast<String, dynamic>()))
+          .toList(),
+      equipmentMarkers: (json['equipmentMarkers'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                EquipmentMarkerMapper.fromJson(item.cast<String, dynamic>()),
+          )
+          .toList(),
       drawingStrokes: drawingStrokes,
       drawingUndoHistory: drawingUndoHistory,
       drawingRedoHistory: drawingRedoHistory,

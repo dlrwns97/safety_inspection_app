@@ -35,6 +35,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
     required int pageCount,
 
     required int currentPage,
+    required int restoredPage,
   }) {
     _safeSetState(() {
       _pdfViewVersion += 1;
@@ -55,7 +56,10 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
 
       _pageCount = pageCount;
 
-      _currentPage = currentPage;
+      final targetPage = restoredPage > 0 ? restoredPage : currentPage;
+      _currentPage = targetPage;
+      _pendingPdfRestorePage = targetPage > 1 ? targetPage : null;
+      _didRetryPendingPdfRestoreJump = false;
     });
   }
 
@@ -65,6 +69,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
     if (path == null || path.isEmpty) {
       return;
     }
+    final restoredPage = await _loadPersistedPdfPage(site: _site);
 
     final previousController = _pdfController;
 
@@ -96,6 +101,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
       pageCount: result.pageCount,
 
       currentPage: result.currentPage,
+      restoredPage: restoredPage,
     );
   }
 
@@ -127,6 +133,10 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
         _pdfPageSizes.clear();
 
         _currentPage = 1;
+        _pendingPdfRestorePage = null;
+        _didRetryPendingPdfRestoreJump = false;
+        unawaited(_persistCurrentPdfPage(page: 1));
+        _schedulePersistCurrentPdfPageToSite(page: 1);
 
         _pageCount = 1;
 
@@ -318,6 +328,38 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
     await widget.onSiteUpdated(_site);
   }
 
+  void _schedulePersistCurrentPdfPageToSite({required int page}) {
+    if (_site.drawingType != DrawingType.pdf) {
+      return;
+    }
+    final safePage = page <= 0 ? 1 : page;
+    if (_queuedPdfPageForSitePersist == safePage &&
+        _site.lastViewedPdfPage == safePage) {
+      return;
+    }
+    _queuedPdfPageForSitePersist = safePage;
+    _persistPdfPageSiteTask = _persistPdfPageSiteTask.then((_) async {
+      final targetPage = _queuedPdfPageForSitePersist;
+      _queuedPdfPageForSitePersist = null;
+      if (!mounted || targetPage == null) {
+        return;
+      }
+      if (_site.drawingType != DrawingType.pdf) {
+        return;
+      }
+      if (_site.lastViewedPdfPage == targetPage) {
+        return;
+      }
+      final updatedSite = _site.copyWith(lastViewedPdfPage: targetPage);
+      _site = updatedSite;
+      try {
+        await widget.onSiteUpdated(updatedSite);
+      } catch (_) {
+        // Ignore metadata save failure to avoid blocking draw flow.
+      }
+    });
+  }
+
   Future<void> _loadStrokesFromSite() async {
     final targetSiteId = _site.id;
 
@@ -408,6 +450,9 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
         site: _site,
 
         strokesByPage: _strokesByPage,
+        lastViewedPdfPage: _site.drawingType == DrawingType.pdf
+            ? _currentPage
+            : null,
       );
 
       if (!mounted || epoch != _persistEpoch) {

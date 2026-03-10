@@ -134,6 +134,10 @@ class _DrawingScreenState extends State<DrawingScreen>
   final Map<int, GlobalKey> _pdfPageContentKeys = <int, GlobalKey>{};
   final DrawingStateFacade _state = DrawingStateFacade();
   int _pdfViewVersion = 0;
+  int? _pendingPdfRestorePage;
+  bool _didRetryPendingPdfRestoreJump = false;
+  Future<void> _persistPdfPageSiteTask = Future<void>.value();
+  int? _queuedPdfPageForSitePersist;
   late Site _site;
   late final TabController _sidePanelController;
   DrawMode _mode = DrawMode.hand;
@@ -334,6 +338,8 @@ class _DrawingScreenState extends State<DrawingScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      unawaited(_persistCurrentPdfPage(page: _currentPage));
+      _schedulePersistCurrentPdfPageToSite(page: _currentPage);
       if (_persistPending || _hasUnsavedChanges) {
         _requestPersistDrawing(immediate: true);
       }

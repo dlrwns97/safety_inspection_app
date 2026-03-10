@@ -18,6 +18,7 @@ class PersistSiteDrawingUseCase {
   Future<Site> execute({
     required Site site,
     required Map<int, List<DrawingStroke>> strokesByPage,
+    int? lastViewedPdfPage,
   }) async {
     final flatList = strokesByPage.entries
         .expand((entry) => entry.value)
@@ -35,6 +36,7 @@ class PersistSiteDrawingUseCase {
       drawingStrokes: const <DrawingStroke>[],
       drawingUndoHistory: const <DrawingHistoryActionPersisted>[],
       drawingRedoHistory: const <DrawingHistoryActionPersisted>[],
+      lastViewedPdfPage: lastViewedPdfPage ?? site.lastViewedPdfPage,
     );
 
     final sites = await _siteRepository.loadSites();

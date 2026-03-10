@@ -971,8 +971,25 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
   }
 
   void _handlePdfPageChanged(int page) {
+    final normalizedPage = page <= 0 ? 1 : page;
+    final pendingRestorePage = _pendingPdfRestorePage;
+    if (pendingRestorePage != null) {
+      if (normalizedPage == pendingRestorePage) {
+        _pendingPdfRestorePage = null;
+        _didRetryPendingPdfRestoreJump = false;
+      } else if (pendingRestorePage > 1 && normalizedPage == 1) {
+        if (!_didRetryPendingPdfRestoreJump) {
+          _didRetryPendingPdfRestoreJump = true;
+          _pdfController?.jumpToPage(pendingRestorePage);
+          return;
+        }
+        _pendingPdfRestorePage = null;
+        _didRetryPendingPdfRestoreJump = false;
+      }
+    }
+
     _setPdfState(() {
-      _currentPage = page;
+      _currentPage = normalizedPage;
 
       _activePointerIds.clear();
 
@@ -989,21 +1006,28 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
       _canvasController.setLiveStroke(null);
 
       _canvasController.setEraserCursor(
-        _eraserCursorPageNumber == page ? _eraserCursorPageLocal : null,
+        _eraserCursorPageNumber == normalizedPage
+            ? _eraserCursorPageLocal
+            : null,
       );
     });
 
-    final hasPageStrokes = _canvasController.getStrokes(page).isNotEmpty;
+    final hasPageStrokes = _canvasController
+        .getStrokes(normalizedPage)
+        .isNotEmpty;
 
     if (hasPageStrokes &&
-        (_canvasController.isCacheDirty(page) ||
-            !_strokeCacheManager.hasCache(page))) {
-      unawaited(_rebuildStrokeCacheForPage(page));
+        (_canvasController.isCacheDirty(normalizedPage) ||
+            !_strokeCacheManager.hasCache(normalizedPage))) {
+      unawaited(_rebuildStrokeCacheForPage(normalizedPage));
     }
 
     if (!_isFreeDrawMode) {
       _debugLogPhotoViewBaseStateOnce('page-change');
     }
+
+    unawaited(_persistCurrentPdfPage(page: normalizedPage));
+    _schedulePersistCurrentPdfPageToSite(page: normalizedPage);
   }
 
   void _handlePdfDocumentLoaded(PdfDocument document) async {
@@ -1014,13 +1038,14 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
     if (!mounted) {
       return;
     }
+    final requestedRestorePage = _pendingPdfRestorePage;
+    final basePage =
+        requestedRestorePage ?? (_currentPage <= 0 ? 1 : _currentPage);
+    final resolvedPage = basePage.clamp(1, pageCount).toInt();
 
     _setPdfState(() {
       _pageCount = pageCount;
-
-      if (_currentPage > _pageCount) {
-        _currentPage = 1;
-      }
+      _currentPage = resolvedPage;
 
       _pdfLoadError = null;
 
@@ -1032,6 +1057,20 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
         _pdfViewVersion += 1;
       }
     });
+
+    if (resolvedPage > 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _pdfController?.jumpToPage(resolvedPage);
+      });
+    } else {
+      _pendingPdfRestorePage = null;
+      _didRetryPendingPdfRestoreJump = false;
+    }
+    unawaited(_persistCurrentPdfPage(page: resolvedPage));
+    _schedulePersistCurrentPdfPageToSite(page: resolvedPage);
 
     debugPrint('PDF loaded with ${document.pagesCount} pages.');
   }
@@ -1064,18 +1103,22 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
   }
 
   void _handlePrevPage() {
-    final nextPage = _currentPage - 1;
+    final nextPage = (_currentPage - 1).clamp(1, _pageCount).toInt();
 
     _safeSetState(() => _currentPage = nextPage);
 
     _pdfController?.jumpToPage(nextPage);
+    unawaited(_persistCurrentPdfPage(page: nextPage));
+    _schedulePersistCurrentPdfPageToSite(page: nextPage);
   }
 
   void _handleNextPage() {
-    final nextPage = _currentPage + 1;
+    final nextPage = (_currentPage + 1).clamp(1, _pageCount).toInt();
 
     _safeSetState(() => _currentPage = nextPage);
 
     _pdfController?.jumpToPage(nextPage);
+    unawaited(_persistCurrentPdfPage(page: nextPage));
+    _schedulePersistCurrentPdfPageToSite(page: nextPage);
   }
 }

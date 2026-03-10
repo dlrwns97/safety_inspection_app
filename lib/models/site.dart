@@ -15,6 +15,7 @@ class Site {
     this.inspectionDate,
     this.pdfPath,
     this.pdfName,
+    this.lastViewedPdfPage,
     this.isDeleted = false,
     this.deletedAt,
     List<Defect>? defects,
@@ -24,19 +25,17 @@ class Site {
     List<DrawingHistoryActionPersisted>? drawingRedoHistory,
     List<String>? visibleDefectCategoryNames,
     List<String>? visibleEquipmentCategoryNames,
-  })  : defects = defects ?? [],
-        equipmentMarkers = equipmentMarkers ?? [],
-        drawingStrokes = drawingStrokes ?? [],
-        drawingUndoHistory = drawingUndoHistory ?? [],
-        drawingRedoHistory = drawingRedoHistory ?? [],
-        visibleDefectCategoryNames =
-            visibleDefectCategoryNames ??
-            DefectCategory.values.map((category) => category.name).toList(),
-        visibleEquipmentCategoryNames =
-            visibleEquipmentCategoryNames ??
-            kEquipmentCategoryOrder
-                .map((category) => category.name)
-                .toList();
+  }) : defects = defects ?? [],
+       equipmentMarkers = equipmentMarkers ?? [],
+       drawingStrokes = drawingStrokes ?? [],
+       drawingUndoHistory = drawingUndoHistory ?? [],
+       drawingRedoHistory = drawingRedoHistory ?? [],
+       visibleDefectCategoryNames =
+           visibleDefectCategoryNames ??
+           DefectCategory.values.map((category) => category.name).toList(),
+       visibleEquipmentCategoryNames =
+           visibleEquipmentCategoryNames ??
+           kEquipmentCategoryOrder.map((category) => category.name).toList();
 
   final String id;
   final String name;
@@ -47,6 +46,7 @@ class Site {
   final DateTime? inspectionDate;
   final String? pdfPath;
   final String? pdfName;
+  final int? lastViewedPdfPage;
   final bool isDeleted;
   final DateTime? deletedAt;
   final List<Defect> defects;
@@ -69,6 +69,7 @@ class Site {
     DateTime? inspectionDate,
     String? pdfPath,
     String? pdfName,
+    int? lastViewedPdfPage,
     bool? isDeleted,
     Object? deletedAt = _deletedAtSentinel,
     List<Defect>? defects,
@@ -89,11 +90,11 @@ class Site {
       inspectionDate: inspectionDate ?? this.inspectionDate,
       pdfPath: pdfPath ?? this.pdfPath,
       pdfName: pdfName ?? this.pdfName,
+      lastViewedPdfPage: lastViewedPdfPage ?? this.lastViewedPdfPage,
       isDeleted: isDeleted ?? this.isDeleted,
-      deletedAt:
-          deletedAt == _deletedAtSentinel
-              ? this.deletedAt
-              : deletedAt as DateTime?,
+      deletedAt: deletedAt == _deletedAtSentinel
+          ? this.deletedAt
+          : deletedAt as DateTime?,
       defects: defects ?? List<Defect>.from(this.defects),
       equipmentMarkers:
           equipmentMarkers ?? List<EquipmentMarker>.from(this.equipmentMarkers),

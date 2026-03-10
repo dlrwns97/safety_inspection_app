@@ -14,6 +14,15 @@ DrawingStroke _stroke(int index, {int page = 1}) {
   );
 }
 
+DrawingStroke _strokeWithId({required String id, required int page}) {
+  return DrawingStroke(
+    id: id,
+    pageNumber: page,
+    style: const StrokeStyle(),
+    pointsNorm: const <Offset>[Offset(0.1, 0.1), Offset(0.2, 0.2)],
+  );
+}
+
 DrawingStroke _toolStroke({
   required String id,
   required int page,
@@ -181,5 +190,88 @@ void main() {
         );
       },
     );
+
+    test('120 undo/redo repeated cycles stay stable', () {
+      final controller = DrawingCanvasController();
+      final history = HistoryManager(maxHistory: 500);
+
+      for (var i = 0; i < 120; i += 1) {
+        history.execute(
+          AddStrokeCommand(page: 1, strokeSnapshot: _stroke(i)),
+          controller,
+        );
+      }
+      expect(controller.getStrokes(1).length, 120);
+      expect(history.undoCount, 120);
+      expect(history.redoCount, 0);
+
+      for (var cycle = 0; cycle < 3; cycle += 1) {
+        for (var i = 0; i < 120; i += 1) {
+          expect(history.undo(controller), 1);
+        }
+        expect(controller.getStrokes(1), isEmpty);
+        expect(history.undoCount, 0);
+        expect(history.redoCount, 120);
+
+        for (var i = 0; i < 120; i += 1) {
+          expect(history.redo(controller), 1);
+        }
+        final ids = controller.getStrokes(1).map((s) => s.id).toList();
+        expect(ids.length, 120);
+        expect(ids.first, 's0');
+        expect(ids.last, 's119');
+        expect(history.undoCount, 120);
+        expect(history.redoCount, 0);
+      }
+    });
+
+    test('12-page mixed history keeps page isolation after full undo/redo', () {
+      final controller = DrawingCanvasController();
+      final history = HistoryManager(maxHistory: 1000);
+      const pageCount = 12;
+      const strokesPerPage = 25;
+      const totalCommands = pageCount * strokesPerPage;
+
+      for (var page = 1; page <= pageCount; page += 1) {
+        for (var i = 0; i < strokesPerPage; i += 1) {
+          history.execute(
+            AddStrokeCommand(
+              page: page,
+              strokeSnapshot: _strokeWithId(id: 'p$page-s$i', page: page),
+            ),
+            controller,
+          );
+        }
+      }
+
+      for (var page = 1; page <= pageCount; page += 1) {
+        final ids = controller.getStrokes(page).map((s) => s.id).toList();
+        expect(ids.length, strokesPerPage);
+        expect(ids.first, 'p$page-s0');
+        expect(ids.last, 'p$page-s24');
+      }
+      expect(history.undoCount, totalCommands);
+
+      for (var i = 0; i < totalCommands; i += 1) {
+        expect(history.undo(controller), isNotNull);
+      }
+      for (var page = 1; page <= pageCount; page += 1) {
+        expect(controller.getStrokes(page), isEmpty);
+      }
+      expect(history.undoCount, 0);
+      expect(history.redoCount, totalCommands);
+
+      for (var i = 0; i < totalCommands; i += 1) {
+        expect(history.redo(controller), isNotNull);
+      }
+      for (var page = 1; page <= pageCount; page += 1) {
+        final ids = controller.getStrokes(page).map((s) => s.id).toList();
+        expect(ids.length, strokesPerPage);
+        expect(ids.first, 'p$page-s0');
+        expect(ids.last, 'p$page-s24');
+      }
+      expect(history.undoCount, totalCommands);
+      expect(history.redoCount, 0);
+    });
   });
 }

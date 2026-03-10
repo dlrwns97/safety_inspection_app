@@ -1,4 +1,4 @@
-﻿# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-10, Phase 6 Step 6-3 완료)
+﻿# DDD 리팩토링 로드맵 v7 (업데이트: 2026-03-10, Phase 6 Step 6-4 완료)
 
 ## 0. 문서 목적과 사용법
 이 문서는 현재 `safety_inspection_app` 코드베이스를 기준으로, 기능 회귀 없이 DDD 구조로 단계적으로 이관하기 위한 실행 문서다.
@@ -24,8 +24,9 @@
 - Phase 5 완료 상태
   - `완료`: `Step 5-1`, `Step 5-2`, `Step 5-3`
 - Phase 6 진행 상태
-  - `완료`: `Step 6-1`, `Step 6-2`
+  - `완료`: `Step 6-1`, `Step 6-2`, `Step 6-3`, `Step 6-4`
   - `Step 6-3`: `D-10`, `P-03` all pass
+  - `Step 6-4`: `D-08`(force-kill reopen page restore), `100+ undo/redo`, `10p+ multi-page` all pass
 - 최근 자동 검증 결과 (Phase 5 작업 기준)
   - `flutter test test/application/site/use_cases/site_use_cases_test.dart`: 통과
   - `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`: 통과
@@ -72,7 +73,7 @@
   - `Step 6-1`: `D-04`, `D-05`, `D-06` all pass
   - `Step 6-2`: `H-01`, `H-02`, `D-02`, `D-03`, `D-04`, `D-05`, `D-08` all pass
 - 다음 시작점
-  - `Phase 6 - Step 6-4`: 장기 안정성
+  - `Phase 7 - Step 7-1`: 죽은 코드/스텁 정리
 
 ## 0-2. Phase 1 완료 상세 (Step별 수정)
 ### Step 1-1. 도메인 Repository 인터페이스 정의
@@ -962,10 +963,27 @@ lib/
 - manual verification
   - `D-10`, `P-03` all pass
 
-### Step 6-4. 장기 안정성
-추가 테스트:
-- 100회 이상 undo/redo 반복
-- 다중 페이지(10p+)에서 성능/메모리 확인
+### Step 6-4. Long-term stability ✅ 완료 (2026-03-10)
+- modified files
+  - `test/drawing_history_stress_test.dart`
+  - `lib/screens/drawing/drawing_screen.dart`
+  - `lib/screens/drawing/drawing_screen_move_actions.part.dart`
+  - `lib/screens/drawing/drawing_screen_persistence.part.dart`
+  - `lib/screens/drawing/drawing_screen_scale_prefs.part.dart`
+  - `lib/application/drawing/use_cases/persist_site_drawing_use_case.dart`
+  - `lib/models/site.dart`
+  - `lib/infrastructure/mappers/site_mapper.dart`
+- key changes
+  - Added stress scenarios for `120 undo/redo` repeat cycles and `12-page` mixed history isolation.
+  - Fixed cold-start restore regression where force-kill reopen started at page 1 instead of last viewed page.
+  - Persisted current PDF page using both prefs and site metadata fallback to avoid async flush races on force-kill.
+- automated verification
+  - `flutter test test/drawing_history_stress_test.dart`: pass
+  - `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`: pass
+  - `flutter analyze lib/screens/drawing/drawing_screen.dart`: existing deprecation info only (no new warning/error)
+- manual verification
+  - `100+ undo/redo`, `10p+ multi-page` interaction: all pass
+  - `D-08` style flow (force-kill reopen page restore): all pass
 
 ---
 
@@ -1145,7 +1163,8 @@ rg -n "SharedPreferences|DrawingFileRepository|SitePrefsRepository" lib/screens/
 26. `완료` Phase 6-1 Domain 테스트 확장
 27. `완료` Phase 6-2 Application 테스트 확장
 28. `완료` Phase 6-3 regression scenario tests
-29. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
+29. `완료` Phase 6-4 long-term stability + force-kill page restore fix
+30. `다음` 각 Step 종료 후 시나리오 ID 기준 수동 검증 로그 남기기
 
 ---
 
