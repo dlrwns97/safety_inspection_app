@@ -49,9 +49,6 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    if (kDebugMode) {
-      debugPrint('TOOL change: $kind');
-    }
     _settingsPopover.hide();
 
     switch (kind) {
@@ -176,15 +173,15 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
           standardPaletteColors: _standardPaletteArgb
               .map(Color.new)
               .toList(growable: false),
-          isStraightenModeEnabled: _isStraightenModeEnabled,
-          straightenSnapEnabled: _isStraightenSnapEnabled,
+          isStraightenModeEnabled: _isHighlighterStraightenModeEnabled,
+          straightenSnapEnabled: _isHighlighterStraightenSnapEnabled,
           onVariantChanged: _handleHighlighterVariantChanged,
           onWidthChanged: _handleHighlighterWidthChanged,
           onOpacityChanged: _handleHighlighterOpacityChanged,
           onColorChanged: _handleHighlighterColorChanged,
           onStraightenModeChanged: (enabled) {
             _safeSetState(() {
-              _isStraightenModeEnabled = enabled;
+              _isHighlighterStraightenModeEnabled = enabled;
               if (!enabled) {
                 _straightenSnappedAngleByPointer.clear();
                 _straightenStartPageByPointer.clear();
@@ -195,7 +192,7 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
           },
           onStraightenSnapChanged: (enabled) {
             _safeSetState(() {
-              _isStraightenSnapEnabled = enabled;
+              _isHighlighterStraightenSnapEnabled = enabled;
               if (!enabled) {
                 _straightenSnappedAngleByPointer.clear();
               }
@@ -232,14 +229,14 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
           standardPaletteColors: _standardPaletteArgb
               .map(Color.new)
               .toList(growable: false),
-          isStraightenModeEnabled: _isStraightenModeEnabled,
-          straightenSnapEnabled: _isStraightenSnapEnabled,
+          isStraightenModeEnabled: _isPenStraightenModeEnabled,
+          straightenSnapEnabled: _isPenStraightenSnapEnabled,
           onVariantChanged: _handlePenVariantChanged,
           onWidthChanged: _handlePenWidthChanged,
           onColorChanged: _handlePenColorChanged,
           onStraightenModeChanged: (enabled) {
             _safeSetState(() {
-              _isStraightenModeEnabled = enabled;
+              _isPenStraightenModeEnabled = enabled;
               if (!enabled) {
                 _straightenSnappedAngleByPointer.clear();
                 _straightenStartPageByPointer.clear();
@@ -250,7 +247,7 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
           },
           onStraightenSnapChanged: (enabled) {
             _safeSetState(() {
-              _isStraightenSnapEnabled = enabled;
+              _isPenStraightenSnapEnabled = enabled;
               if (!enabled) {
                 _straightenSnappedAngleByPointer.clear();
               }
@@ -271,11 +268,6 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
     final currentStyle = _activeStrokeStyleOrFallback;
     final originalColor = Color(currentStyle.argbColor);
     final recentColors = _recentArgb.map(Color.new).toList(growable: false);
-
-    assert(() {
-      debugPrint('OPEN NEW COLOR PICKER');
-      return true;
-    }());
 
     final kept = await showDrawingColorPickerDialog(
       context,

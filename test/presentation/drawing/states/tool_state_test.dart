@@ -13,8 +13,10 @@ void main() {
       expect(state.currentPenWidth, 3.0);
       expect(state.currentPenColor, const Color(0xFF000000));
       expect(state.currentHlOpacity, 0.35);
-      expect(state.isStraightenModeEnabled, isFalse);
-      expect(state.isStraightenSnapEnabled, isTrue);
+      expect(state.isPenStraightenModeEnabled, isFalse);
+      expect(state.isPenStraightenSnapEnabled, isTrue);
+      expect(state.isHighlighterStraightenModeEnabled, isFalse);
+      expect(state.isHighlighterStraightenSnapEnabled, isTrue);
     });
 
     test('stores variant maps and mutable tool options', () {

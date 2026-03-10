@@ -206,7 +206,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
   }
 
   void _debugLogPhotoViewBaseStateOnce(String tag) {
-    if (!kDebugMode || !mounted || _isFreeDrawMode) {
+    if (!kDrawingVerboseLogging || !mounted || _isFreeDrawMode) {
       return;
     }
 
@@ -225,12 +225,12 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
 
       final v = controller.value;
 
-      debugPrint(
+      drawingVerboseLog(
         '[$tag] page=$_currentPage scale=${v.scale} '
         'pos=${v.position} rot=${v.rotation}',
       );
 
-      debugPrint(
+      drawingVerboseLog(
         '[$tag] bounds min=$PdfDrawingMinScale '
         'initial=$PdfDrawingInitialScale '
         'maxMul=$PdfDrawingMaxScaleMultiplier',
@@ -750,9 +750,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
     }
 
     if (_activeTool == DrawingTool.strokeEraser) {
-      if (kDebugMode) {
-        debugPrint('[Eraser] down mode=stroke');
-      }
+      drawingVerboseLog('[Eraser] down mode=stroke');
 
       _cancelFreeDrawNavGesture();
 
@@ -769,9 +767,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
       return;
     }
 
-    if (kDebugMode) {
-      debugPrint('[Eraser] down mode=area');
-    }
+    drawingVerboseLog('[Eraser] down mode=area');
 
     _cancelFreeDrawNavGesture();
 
@@ -908,9 +904,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
     required bool wasAreaSession,
   }) {
     if (_activeTool == DrawingTool.areaEraser && wasAreaSession) {
-      if (kDebugMode) {
-        debugPrint('[Eraser] up mode=area');
-      }
+      drawingVerboseLog('[Eraser] up mode=area');
 
       _flushPendingAreaEraserMove();
 
@@ -930,11 +924,9 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
     }
 
     if (_activeTool == DrawingTool.strokeEraser && wasStylus) {
-      if (kDebugMode) {
-        debugPrint(
-          '[Eraser] up mode=stroke removed=$_erasedStrokeCountThisDrag',
-        );
-      }
+      drawingVerboseLog(
+        '[Eraser] up mode=stroke removed=$_erasedStrokeCountThisDrag',
+      );
 
       _safeSetState(() {
         _activeStrokeEraserPointerId = null;

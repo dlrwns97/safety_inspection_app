@@ -251,13 +251,23 @@ extension _DrawingScreenStateAccessors on _DrawingScreenState {
   set _currentShapeFillColor(Color? value) =>
       _toolState.currentShapeFillColor = value;
 
-  bool get _isStraightenModeEnabled => _toolState.isStraightenModeEnabled;
-  set _isStraightenModeEnabled(bool value) =>
-      _toolState.isStraightenModeEnabled = value;
+  bool get _isPenStraightenModeEnabled => _toolState.isPenStraightenModeEnabled;
+  set _isPenStraightenModeEnabled(bool value) =>
+      _toolState.isPenStraightenModeEnabled = value;
 
-  bool get _isStraightenSnapEnabled => _toolState.isStraightenSnapEnabled;
-  set _isStraightenSnapEnabled(bool value) =>
-      _toolState.isStraightenSnapEnabled = value;
+  bool get _isPenStraightenSnapEnabled => _toolState.isPenStraightenSnapEnabled;
+  set _isPenStraightenSnapEnabled(bool value) =>
+      _toolState.isPenStraightenSnapEnabled = value;
+
+  bool get _isHighlighterStraightenModeEnabled =>
+      _toolState.isHighlighterStraightenModeEnabled;
+  set _isHighlighterStraightenModeEnabled(bool value) =>
+      _toolState.isHighlighterStraightenModeEnabled = value;
+
+  bool get _isHighlighterStraightenSnapEnabled =>
+      _toolState.isHighlighterStraightenSnapEnabled;
+  set _isHighlighterStraightenSnapEnabled(bool value) =>
+      _toolState.isHighlighterStraightenSnapEnabled = value;
 
   bool get _isShapeAspectLocked => _toolState.isShapeAspectLocked;
   set _isShapeAspectLocked(bool value) =>

@@ -50,6 +50,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/schmidt_hammer_dia
 import 'package:safety_inspection_app/screens/drawing/dialogs/settlement_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_dialog.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_verbose_logger.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_engine.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
@@ -276,9 +277,6 @@ class _DrawingScreenState extends State<DrawingScreen>
     _canvasController.cacheRebuildTick.addListener(
       _handleCanvasCacheInvalidated,
     );
-    if (kDebugMode) {
-      debugPrint('legacy painter removed / using DrawingCanvasWidget');
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;

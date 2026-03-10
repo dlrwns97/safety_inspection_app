@@ -23,8 +23,10 @@ class ToolState {
     this.currentShapeOpacity = 1.0,
     this.currentShapeStrokeColor = const Color(0xFF000000),
     this.currentShapeFillColor,
-    this.isStraightenModeEnabled = false,
-    this.isStraightenSnapEnabled = true,
+    this.isPenStraightenModeEnabled = false,
+    this.isPenStraightenSnapEnabled = true,
+    this.isHighlighterStraightenModeEnabled = false,
+    this.isHighlighterStraightenSnapEnabled = true,
     this.isShapeAspectLocked = false,
     this.isShapeRotateSnapEnabled = false,
     this.shapeRotateSnappedAngleRad,
@@ -58,8 +60,10 @@ class ToolState {
   Color currentShapeStrokeColor;
   Color? currentShapeFillColor;
 
-  bool isStraightenModeEnabled;
-  bool isStraightenSnapEnabled;
+  bool isPenStraightenModeEnabled;
+  bool isPenStraightenSnapEnabled;
+  bool isHighlighterStraightenModeEnabled;
+  bool isHighlighterStraightenSnapEnabled;
   bool isShapeAspectLocked;
   bool isShapeRotateSnapEnabled;
   double? shapeRotateSnappedAngleRad;

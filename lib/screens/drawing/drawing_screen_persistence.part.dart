@@ -217,9 +217,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
 
     if (_isStylusRequiredMarkerPlacementMode &&
         !_isMarkerPlacementPointerAllowed(details.kind)) {
-      if (kDebugMode) {
-        debugPrint('[MarkerPlacement] blocked tap kind=${details.kind}');
-      }
+      drawingVerboseLog('[MarkerPlacement] blocked tap kind=${details.kind}');
 
       return;
     }

@@ -195,7 +195,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
     final bool enablePdfPanGestures = true;
     final bool enablePdfScaleGestures = true;
     final bool disablePageSwipe = false;
-    if (kDebugMode && enablePdfPanGestures && enablePdfScaleGestures) {
+    if (enablePdfPanGestures && enablePdfScaleGestures) {
       _debugLogPhotoViewBaseStateOnce('viewer-build');
     }
     return LayoutBuilder(

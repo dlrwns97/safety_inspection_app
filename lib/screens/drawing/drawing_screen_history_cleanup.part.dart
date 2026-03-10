@@ -76,11 +76,9 @@ extension _DrawingScreenHistoryCleanupLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
 
-    if (kDebugMode) {
-      debugPrint(
-        '[Eraser] clearAll page=$page removed=${removedStrokeIds.length}',
-      );
-    }
+    drawingVerboseLog(
+      '[Eraser] clearAll page=$page removed=${removedStrokeIds.length}',
+    );
 
     _requestPersistDrawing();
 
@@ -125,11 +123,9 @@ extension _DrawingScreenHistoryCleanupLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
 
-    if (kDebugMode) {
-      debugPrint(
-        '[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}',
-      );
-    }
+    drawingVerboseLog(
+      '[Eraser] clearHighlighter page=$page removed=${removedStrokeIds.length}',
+    );
 
     _requestPersistDrawing();
 
@@ -174,11 +170,9 @@ extension _DrawingScreenHistoryCleanupLogic on _DrawingScreenState {
       _clearSelectionAndPopup();
     });
 
-    if (kDebugMode) {
-      debugPrint(
-        '[Eraser] clearPen page=$page removed=${removedStrokeIds.length}',
-      );
-    }
+    drawingVerboseLog(
+      '[Eraser] clearPen page=$page removed=${removedStrokeIds.length}',
+    );
 
     _requestPersistDrawing();
 

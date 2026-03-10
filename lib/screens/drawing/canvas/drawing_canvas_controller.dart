@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:safety_inspection_app/models/drawing/eraser_preview.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_verbose_logger.dart';
 
 /// Manages per-page drawing strokes and cache invalidation signals.
 class DrawingCanvasController extends ChangeNotifier {
@@ -46,9 +47,7 @@ class DrawingCanvasController extends ChangeNotifier {
   /// Restores all committed strokes for [page] using deep copied snapshots.
   void restoreStrokes(int page, List<DrawingStroke> strokes) {
     // Must remain growable because undo/redo and erase commands mutate this list.
-    strokesByPage[page] = strokes
-        .map((stroke) => stroke.deepCopy())
-        .toList();
+    strokesByPage[page] = strokes.map((stroke) => stroke.deepCopy()).toList();
   }
 
   /// Adds one committed [stroke] to [page].
@@ -165,12 +164,10 @@ class DrawingCanvasController extends ChangeNotifier {
 
     cacheInvalidatedPage.value = page;
     cacheRebuildTick.value++;
-    if (kDebugMode) {
-      debugPrint(
-        '[Drawing] invalidateCache(page=$page, reason=$reason, '
-        'tick=${cacheRebuildTick.value})',
-      );
-    }
+    drawingVerboseLog(
+      '[Drawing] invalidateCache(page=$page, reason=$reason, '
+      'tick=${cacheRebuildTick.value})',
+    );
   }
 
   /// Returns whether cache for [page] is currently marked dirty.

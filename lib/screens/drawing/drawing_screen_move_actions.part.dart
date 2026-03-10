@@ -1071,8 +1071,6 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
     }
     unawaited(_persistCurrentPdfPage(page: resolvedPage));
     _schedulePersistCurrentPdfPageToSite(page: resolvedPage);
-
-    debugPrint('PDF loaded with ${document.pagesCount} pages.');
   }
 
   void _handlePdfDocumentError(Object error) {

@@ -212,9 +212,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   ) async {
     if (_isStylusRequiredMarkerPlacementMode &&
         !_isMarkerPlacementPointerAllowed(pointerKind)) {
-      if (kDebugMode) {
-        debugPrint('[MarkerPlacement] blocked tap kind=$pointerKind');
-      }
+      drawingVerboseLog('[MarkerPlacement] blocked tap kind=$pointerKind');
       return;
     }
     if (_isFreeDrawMode && _activeTool == DrawingTool.shape) {
@@ -229,9 +227,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_isMoveMode || _isStrokeEraserActive || _isAreaEraserActive) {
       return;
     }
-    if (kDebugMode) {
-      debugPrint('[PDF] tap: $pageLocal');
-    }
+    drawingVerboseLog('[PDF] tap: $pageLocal');
     final localPosition = pageLocal;
     final imageSize = pageSize;
     final imageLocal = localPosition;
@@ -1091,9 +1087,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       _pendingDraw = false;
       _pendingDrawDownViewportLocal = null;
     });
-    if (kDebugMode) {
-      debugPrint('[Eraser] modeChanged next=$tool');
-    }
+    drawingVerboseLog('[Eraser] modeChanged next=$tool');
   }
 
   void _handleAreaEraserRadiusChanged(double value) {
@@ -1110,9 +1104,9 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         );
       }
     });
-    if (kDebugMode) {
-      debugPrint('[Eraser] radiusChanged px=${nextRadius.toStringAsFixed(1)}');
-    }
+    drawingVerboseLog(
+      '[Eraser] radiusChanged px=${nextRadius.toStringAsFixed(1)}',
+    );
   }
 
   bool get _isAreaEraserActive =>
@@ -1460,12 +1454,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           _canvasController,
         );
         _syncStrokesByPageFromControllerPage(page);
-        if (kDebugMode) {
-          debugPrint(
-            '[Drawing] eraserCommit page=$page candidates=${items.length} '
-            'maskedDelta=$totalMaskedDelta tick=${_canvasController.cacheRebuildTick.value}',
-          );
-        }
+        drawingVerboseLog(
+          '[Drawing] eraserCommit page=$page candidates=${items.length} '
+          'maskedDelta=$totalMaskedDelta tick=${_canvasController.cacheRebuildTick.value}',
+        );
       }
       if (itemsByPage.isNotEmpty) {
         _updateDrawingHistoryAvailabilityState();
@@ -1705,8 +1697,14 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final bool isPenFamily =
         inProgressStroke.style.kind == StrokeToolKind.pen &&
         !isHighlighterFamily;
+    final bool isStraightenModeEnabled = isHighlighterFamily
+        ? _isHighlighterStraightenModeEnabled
+        : _isPenStraightenModeEnabled;
+    final bool isStraightenSnapEnabled = isHighlighterFamily
+        ? _isHighlighterStraightenSnapEnabled
+        : _isPenStraightenSnapEnabled;
     final shouldRenderStraightPreview =
-        _isStraightenModeEnabled && (isPenFamily || isHighlighterFamily);
+        isStraightenModeEnabled && (isPenFamily || isHighlighterFamily);
     if (shouldRenderStraightPreview) {
       if (destSize.shortestSide <= 0) {
         return;
@@ -1746,7 +1744,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       }
 
       final didSnap =
-          _isStraightenSnapEnabled && nearestDiff <= snapToleranceRad;
+          isStraightenSnapEnabled && nearestDiff <= snapToleranceRad;
       final snappedPageExact = didSnap
           ? Offset(
               startPage.dx +
@@ -1805,18 +1803,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           (processedNormalized - previousEnd).distance >=
           straightenAppendEpsilonNorm;
 
-      assert(() {
+      if (kDrawingVerboseLogging) {
         final start = inProgressStroke.pointsNorm.first;
         final dx = (normalized.dx - start.dx) * destSize.width;
         final dy = (normalized.dy - start.dy) * destSize.height;
-        debugPrint(
+        drawingVerboseLog(
           '[Drawing][Straighten] update rawDx=${dx.toStringAsFixed(2)} '
           'rawDy=${dy.toStringAsFixed(2)} snapped=$processedNormalized '
           'appended=$didAppend '
           'highlighter=$isHighlighterFamily',
         );
-        return true;
-      }());
+      }
       final newPoints = _buildStraightLinePointsNorm(
         startNorm: startNorm,
         endNorm: processedNormalized,
@@ -1995,13 +1992,11 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         ),
         _canvasController,
       );
-      if (kDebugMode) {
-        debugPrint(
-          '[Drawing] commit stroke=${committedStroke.id} '
-          'page=$pageNumber points=${committedStroke.pointsNorm.length} '
-          'tick=${_canvasController.cacheRebuildTick.value}',
-        );
-      }
+      drawingVerboseLog(
+        '[Drawing] commit stroke=${committedStroke.id} '
+        'page=$pageNumber points=${committedStroke.pointsNorm.length} '
+        'tick=${_canvasController.cacheRebuildTick.value}',
+      );
       _syncStrokesByPageFromControllerPage(pageNumber);
       _updateDrawingHistoryAvailabilityState();
       _inProgressStroke = null;

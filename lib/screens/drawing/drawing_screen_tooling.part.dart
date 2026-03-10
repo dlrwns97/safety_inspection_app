@@ -280,12 +280,28 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       }
     }
 
-    final straightenEnabled = prefs.getBool(
+    final legacyStraightenEnabled = prefs.getBool(
       '$_kDrawingSettingsPrefix.straighten.enabled',
     );
-    final straightenSnapEnabled = prefs.getBool(
+    final legacyStraightenSnapEnabled = prefs.getBool(
       '$_kDrawingSettingsPrefix.straighten.snapEnabled',
     );
+    final penStraightenEnabled =
+        prefs.getBool('$_kDrawingSettingsPrefix.straighten.pen.enabled') ??
+        legacyStraightenEnabled;
+    final penStraightenSnapEnabled =
+        prefs.getBool('$_kDrawingSettingsPrefix.straighten.pen.snapEnabled') ??
+        legacyStraightenSnapEnabled;
+    final highlighterStraightenEnabled =
+        prefs.getBool(
+          '$_kDrawingSettingsPrefix.straighten.highlighter.enabled',
+        ) ??
+        legacyStraightenEnabled;
+    final highlighterStraightenSnapEnabled =
+        prefs.getBool(
+          '$_kDrawingSettingsPrefix.straighten.highlighter.snapEnabled',
+        ) ??
+        legacyStraightenSnapEnabled;
     final activePenTypeName = prefs.getString(
       '$_kDrawingSettingsPrefix.last.penType',
     );
@@ -329,11 +345,17 @@ extension _DrawingScreenTooling on _DrawingScreenState {
         _activeHighlighterType = savedHlType;
       }
 
-      if (straightenEnabled != null) {
-        _isStraightenModeEnabled = straightenEnabled;
+      if (penStraightenEnabled != null) {
+        _isPenStraightenModeEnabled = penStraightenEnabled;
       }
-      if (straightenSnapEnabled != null) {
-        _isStraightenSnapEnabled = straightenSnapEnabled;
+      if (penStraightenSnapEnabled != null) {
+        _isPenStraightenSnapEnabled = penStraightenSnapEnabled;
+      }
+      if (highlighterStraightenEnabled != null) {
+        _isHighlighterStraightenModeEnabled = highlighterStraightenEnabled;
+      }
+      if (highlighterStraightenSnapEnabled != null) {
+        _isHighlighterStraightenSnapEnabled = highlighterStraightenSnapEnabled;
       }
 
       _loadPenType(_activePenType);
@@ -396,12 +418,20 @@ extension _DrawingScreenTooling on _DrawingScreenState {
     }
 
     await prefs.setBool(
-      '$_kDrawingSettingsPrefix.straighten.enabled',
-      _isStraightenModeEnabled,
+      '$_kDrawingSettingsPrefix.straighten.pen.enabled',
+      _isPenStraightenModeEnabled,
     );
     await prefs.setBool(
-      '$_kDrawingSettingsPrefix.straighten.snapEnabled',
-      _isStraightenSnapEnabled,
+      '$_kDrawingSettingsPrefix.straighten.pen.snapEnabled',
+      _isPenStraightenSnapEnabled,
+    );
+    await prefs.setBool(
+      '$_kDrawingSettingsPrefix.straighten.highlighter.enabled',
+      _isHighlighterStraightenModeEnabled,
+    );
+    await prefs.setBool(
+      '$_kDrawingSettingsPrefix.straighten.highlighter.snapEnabled',
+      _isHighlighterStraightenSnapEnabled,
     );
     await prefs.setString(
       '$_kDrawingSettingsPrefix.last.penType',

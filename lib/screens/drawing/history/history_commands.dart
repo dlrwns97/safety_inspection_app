@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/screens/drawing/canvas/drawing_canvas_controller.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_verbose_logger.dart';
 import 'package:safety_inspection_app/screens/drawing/history/history_types.dart';
 
 abstract class HistoryCommand {
@@ -190,7 +189,9 @@ class ReplaceStrokeCommand extends HistoryCommand {
   @override
   void execute(DrawingCanvasController controller) {
     final strokes = controller.getStrokes(page);
-    _originalIndex = strokes.indexWhere((stroke) => stroke.id == afterSnapshot.id);
+    _originalIndex = strokes.indexWhere(
+      (stroke) => stroke.id == afterSnapshot.id,
+    );
     _apply(controller, afterSnapshot);
   }
 
@@ -280,7 +281,7 @@ class BatchEraseCommand extends HistoryCommand {
     required List<BatchEraseCommandItem> items,
     DateTime? timestamp,
   }) : items = (List<BatchEraseCommandItem>.from(items, growable: false)
-           ..sort((a, b) => a.strokeId.compareTo(b.strokeId))),
+         ..sort((a, b) => a.strokeId.compareTo(b.strokeId))),
        super(timestamp: timestamp);
 
   @override
@@ -300,7 +301,10 @@ class BatchEraseCommand extends HistoryCommand {
     _applyMasks(controller, useAfterMask: false);
   }
 
-  void _applyMasks(DrawingCanvasController controller, {required bool useAfterMask}) {
+  void _applyMasks(
+    DrawingCanvasController controller, {
+    required bool useAfterMask,
+  }) {
     for (final item in items) {
       final normalizedItem = _normalizeItem(item, controller);
       final applied = controller.setErasedMaskBool(
@@ -308,8 +312,8 @@ class BatchEraseCommand extends HistoryCommand {
         normalizedItem.strokeId,
         useAfterMask ? normalizedItem.afterMask : normalizedItem.beforeMask,
       );
-      if (!applied && kDebugMode) {
-        debugPrint(
+      if (!applied) {
+        drawingVerboseLog(
           '[Drawing] BatchEraseCommand skip missing stroke '
           'page=$page id=${normalizedItem.strokeId}',
         );
@@ -330,4 +334,3 @@ class BatchEraseCommandItem {
   final List<bool> beforeMask;
   final List<bool> afterMask;
 }
-
