@@ -3,6 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.dart';
+import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
+import 'package:safety_inspection_app/screens/drawing/drawing_types.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/shape_interaction_coordinator.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 
 void main() {
@@ -142,6 +145,99 @@ void main() {
       expect(rotated.top, greaterThanOrEqualTo(0.0));
       expect(rotated.right, lessThanOrEqualTo(1.0));
       expect(rotated.bottom, lessThanOrEqualTo(1.0));
+    });
+  });
+
+  group('ShapeInteractionCoordinator', () {
+    DrawingStroke shapeStroke({required String id, required Rect bounds}) {
+      return DrawingStroke(
+        id: id,
+        pageNumber: 1,
+        style: const StrokeStyle(kind: StrokeToolKind.shape),
+        toolType: DrawingTool.shape,
+        pointsNorm: [
+          bounds.topLeft,
+          bounds.topRight,
+          bounds.bottomRight,
+          bounds.bottomLeft,
+        ],
+      );
+    }
+
+    test('findTapSelection chooses topmost matching shape', () {
+      const coordinator = ShapeInteractionCoordinator();
+      final bottom = shapeStroke(
+        id: 'bottom',
+        bounds: const Rect.fromLTWH(0.1, 0.1, 0.4, 0.4),
+      );
+      final top = shapeStroke(
+        id: 'top',
+        bounds: const Rect.fromLTWH(0.2, 0.2, 0.4, 0.4),
+      );
+
+      final selection = coordinator.findTapSelection(
+        strokes: [bottom, top],
+        normPoint: const Offset(0.3, 0.3),
+        pageSize: const Size(1200, 1700),
+      );
+
+      expect(selection?.strokeId, 'top');
+      expect(
+        selection?.manipulator.boundsNorm,
+        const Rect.fromLTWH(0.2, 0.2, 0.4, 0.4),
+      );
+    });
+
+    test('start returns translate for tiny shape body hit', () {
+      const coordinator = ShapeInteractionCoordinator();
+      final tiny = shapeStroke(
+        id: 'tiny',
+        bounds: const Rect.fromLTWH(0.4, 0.4, 0.02, 0.02),
+      );
+
+      final start = coordinator.start(
+        strokes: [tiny],
+        startNorm: const Offset(0.41, 0.41),
+        pageSize: const Size(1200, 1700),
+      );
+
+      expect(start.operation, ShapeInteractionOperation.translate);
+      expect(start.strokeId, 'tiny');
+    });
+
+    test('start returns create when no shape is hit', () {
+      const coordinator = ShapeInteractionCoordinator();
+
+      final start = coordinator.start(
+        strokes: const [],
+        startNorm: const Offset(0.2, 0.3),
+        pageSize: const Size(1200, 1700),
+      );
+
+      expect(start.operation, ShapeInteractionOperation.create);
+      expect(start.strokeId, isNull);
+      expect(start.createThresholdNorm, greaterThan(0));
+    });
+
+    test('transformPointsByBounds scales and rotates in page space', () {
+      final transformed = ShapeInteractionCoordinator.transformPointsByBounds(
+        points: const [
+          Offset(0.2, 0.2),
+          Offset(0.4, 0.2),
+          Offset(0.4, 0.4),
+          Offset(0.2, 0.4),
+        ],
+        fromBounds: const Rect.fromLTWH(0.2, 0.2, 0.2, 0.2),
+        toBounds: const Rect.fromLTWH(0.3, 0.3, 0.2, 0.2),
+        rotationRad: math.pi / 2,
+        pageSize: const Size(1000, 1000),
+      );
+
+      expect(transformed, hasLength(4));
+      for (final point in transformed) {
+        expect(point.dx, inInclusiveRange(0.0, 1.0));
+        expect(point.dy, inInclusiveRange(0.0, 1.0));
+      }
     });
   });
 }

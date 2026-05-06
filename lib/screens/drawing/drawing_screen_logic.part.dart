@@ -303,74 +303,35 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     Size? pageSize,
   }) {
     _clearShapeSelection();
-    final pageStrokes = _canvasController.getStrokes(pageNumber);
-    final hitPaddingNorm = pageSize == null || pageSize.isEmpty
-        ? 0.02
-        : (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
-    for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
-      final stroke = pageStrokes[i];
-      if (stroke.toolType != DrawingTool.shape) {
-        continue;
-      }
-      final rawBounds = _shapeStrokeBounds(stroke.pointsNorm);
-      if (rawBounds == null) {
-        continue;
-      }
-      final hitBounds = Rect.fromLTRB(
-        (rawBounds.left - hitPaddingNorm).clamp(0.0, 1.0),
-        (rawBounds.top - hitPaddingNorm).clamp(0.0, 1.0),
-        (rawBounds.right + hitPaddingNorm).clamp(0.0, 1.0),
-        (rawBounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
-      );
-      if (hitBounds.contains(normPoint)) {
-        _safeSetState(() {
-          _selectedShapeStrokeId = stroke.id;
-          _activeShapeManipulator = ShapeManipulator(
-            boundsNorm: rawBounds,
-            rotationRad: 0.0,
-          );
-          _activeShapeHandle = ShapeHandle.none;
-          _activeShapeEditOp = _ShapeEditOperation.none;
-          _shapeInteractionStartNorm = null;
-          _shapeInteractionLastNorm = null;
-          _shapeCreateHasMoved = false;
-          _shapeCreateThresholdNorm = 0.0;
-        });
-        return;
-      }
+    final selection = _shapeInteractionCoordinator.findTapSelection(
+      strokes: _canvasController.getStrokes(pageNumber),
+      normPoint: normPoint,
+      pageSize: pageSize,
+    );
+    if (selection == null) {
+      return;
     }
+    _safeSetState(() {
+      _selectedShapeStrokeId = selection.strokeId;
+      _activeShapeManipulator = selection.manipulator;
+      _activeShapeHandle = ShapeHandle.none;
+      _activeShapeEditOp = ShapeInteractionOperation.none;
+      _shapeInteractionStartNorm = null;
+      _shapeInteractionLastNorm = null;
+      _shapeCreateHasMoved = false;
+      _shapeCreateThresholdNorm = 0.0;
+    });
   }
 
-  Rect? _shapeStrokeBounds(List<Offset> pointsNorm) {
-    if (pointsNorm.isEmpty) {
-      return null;
-    }
-    var left = 1.0;
-    var right = 0.0;
-    var top = 1.0;
-    var bottom = 0.0;
-    for (final point in pointsNorm) {
-      final clamped = Offset(
-        point.dx.clamp(0.0, 1.0),
-        point.dy.clamp(0.0, 1.0),
-      );
-      left = left < clamped.dx ? left : clamped.dx;
-      right = right > clamped.dx ? right : clamped.dx;
-      top = top < clamped.dy ? top : clamped.dy;
-      bottom = bottom > clamped.dy ? bottom : clamped.dy;
-    }
-    if (left > right || top > bottom) {
-      return null;
-    }
-    return Rect.fromLTRB(left, top, right, bottom);
-  }
+  Rect? _shapeStrokeBounds(List<Offset> pointsNorm) =>
+      ShapeInteractionCoordinator.strokeBounds(pointsNorm);
 
   void _clearShapeSelection() {
     _safeSetState(() {
       _selectedShapeStrokeId = null;
       _activeShapeManipulator = null;
       _activeShapeHandle = ShapeHandle.none;
-      _activeShapeEditOp = _ShapeEditOperation.none;
+      _activeShapeEditOp = ShapeInteractionOperation.none;
       _shapeRotateSnappedAngleRad = null;
       _shapeRotateGestureStartAngleRad = null;
       _shapeRotateGestureStartRotationRad = null;
@@ -384,7 +345,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
   void _clearShapeInteractionState() {
     _safeSetState(() {
       _activeShapeHandle = ShapeHandle.none;
-      _activeShapeEditOp = _ShapeEditOperation.none;
+      _activeShapeEditOp = ShapeInteractionOperation.none;
       _shapeRotateSnappedAngleRad = null;
       _shapeRotateGestureStartAngleRad = null;
       _shapeRotateGestureStartRotationRad = null;
@@ -406,129 +367,23 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final pageStrokes = _canvasController.getStrokes(pageNumber);
-    final hitPaddingNorm = (12.0 / pageSize.shortestSide).clamp(0.005, 0.06);
-    final createThresholdNorm = (8.0 / pageSize.shortestSide).clamp(
-      0.004,
-      0.03,
+    final start = _shapeInteractionCoordinator.start(
+      strokes: _canvasController.getStrokes(pageNumber),
+      startNorm: startNorm,
+      pageSize: pageSize,
     );
-    DrawingStroke? handleCandidate;
-    ShapeManipulator? handleManipulator;
-    ShapeHandle handleHit = ShapeHandle.none;
-    DrawingStroke? candidate;
-    Rect? candidateBounds;
-    for (var i = pageStrokes.length - 1; i >= 0; i -= 1) {
-      final stroke = pageStrokes[i];
-      if (stroke.toolType != DrawingTool.shape) {
-        continue;
-      }
-      final bounds = _shapeStrokeBounds(stroke.pointsNorm);
-      if (bounds == null) {
-        continue;
-      }
-      final manipulator = ShapeManipulator(
-        boundsNorm: bounds,
-        rotationRad: 0.0,
-      );
-      final minSideNorm = math.min(bounds.width.abs(), bounds.height.abs());
-      final tinyShapeThresholdNorm = (manipulator.handleHitRadiusNorm * 2.2)
-          .clamp(0.02, 0.10);
-      final isTinyShape = minSideNorm <= tinyShapeThresholdNorm;
-      final bodyHit = manipulator.hitTestBody(startNorm);
-      // For very small shapes, handle hit zones overlap most of the body.
-      // Prioritize translation so users can still move the selected shape.
-      if (isTinyShape && bodyHit) {
-        candidate = stroke;
-        candidateBounds = bounds;
-        break;
-      }
-      final hitHandle = manipulator.hitTestHandle(startNorm);
-      if (hitHandle != ShapeHandle.none) {
-        handleCandidate = stroke;
-        handleManipulator = manipulator;
-        handleHit = hitHandle;
-        break;
-      }
-      final paddedBounds = Rect.fromLTRB(
-        (bounds.left - hitPaddingNorm).clamp(0.0, 1.0),
-        (bounds.top - hitPaddingNorm).clamp(0.0, 1.0),
-        (bounds.right + hitPaddingNorm).clamp(0.0, 1.0),
-        (bounds.bottom + hitPaddingNorm).clamp(0.0, 1.0),
-      );
-      if (paddedBounds.contains(startNorm) || bodyHit) {
-        candidate = stroke;
-        candidateBounds = bounds;
-        break;
-      }
-    }
-
-    if (handleCandidate != null && handleManipulator != null) {
-      final center = handleManipulator.boundsNorm.center;
-      final gestureStartAngle = _shapePointerAngleForPageSpace(
-        centerNorm: center,
-        pointerNorm: startNorm,
-        pageSize: pageSize,
-      );
-      final gestureStartRotation = handleManipulator.rotationRad;
-      _safeSetState(() {
-        _selectedShapeStrokeId = handleCandidate!.id;
-        _activeShapeManipulator = handleManipulator;
-        _activeShapeHandle = handleHit;
-        _activeShapeEditOp = handleHit == ShapeHandle.rotate
-            ? _ShapeEditOperation.rotate
-            : _ShapeEditOperation.resize;
-        _shapeInteractionStartNorm = startNorm;
-        _shapeInteractionLastNorm = startNorm;
-        _shapeRotateSnappedAngleRad = null;
-        _shapeRotateGestureStartAngleRad = handleHit == ShapeHandle.rotate
-            ? gestureStartAngle
-            : null;
-        _shapeRotateGestureStartRotationRad = handleHit == ShapeHandle.rotate
-            ? gestureStartRotation
-            : null;
-        _shapeCreateHasMoved = false;
-        _shapeCreateThresholdNorm = 0.0;
-      });
-      return;
-    }
-
-    if (candidate != null && candidateBounds != null) {
-      final manipulator = ShapeManipulator(
-        boundsNorm: candidateBounds,
-        rotationRad: 0.0,
-      );
-      if (manipulator.hitTestBody(startNorm)) {
-        _safeSetState(() {
-          _selectedShapeStrokeId = candidate!.id;
-          _activeShapeManipulator = manipulator;
-          _activeShapeHandle = ShapeHandle.none;
-          _activeShapeEditOp = _ShapeEditOperation.translate;
-          _shapeInteractionStartNorm = startNorm;
-          _shapeInteractionLastNorm = startNorm;
-          _shapeRotateSnappedAngleRad = null;
-          _shapeRotateGestureStartAngleRad = null;
-          _shapeRotateGestureStartRotationRad = null;
-          _shapeCreateHasMoved = false;
-          _shapeCreateThresholdNorm = 0.0;
-        });
-        return;
-      }
-    }
-
     _safeSetState(() {
-      _activeShapeManipulator = ShapeManipulator(
-        boundsNorm: Rect.fromLTWH(startNorm.dx, startNorm.dy, 0.0, 0.0),
-      );
-      _selectedShapeStrokeId = null;
-      _activeShapeHandle = ShapeHandle.none;
-      _activeShapeEditOp = _ShapeEditOperation.create;
-      _shapeInteractionStartNorm = startNorm;
-      _shapeInteractionLastNorm = startNorm;
+      _selectedShapeStrokeId = start.strokeId;
+      _activeShapeManipulator = start.manipulator;
+      _activeShapeHandle = start.handle;
+      _activeShapeEditOp = start.operation;
+      _shapeInteractionStartNorm = start.startNorm;
+      _shapeInteractionLastNorm = start.startNorm;
       _shapeRotateSnappedAngleRad = null;
-      _shapeRotateGestureStartAngleRad = null;
-      _shapeRotateGestureStartRotationRad = null;
+      _shapeRotateGestureStartAngleRad = start.rotateGestureStartAngleRad;
+      _shapeRotateGestureStartRotationRad = start.rotateGestureStartRotationRad;
       _shapeCreateHasMoved = false;
-      _shapeCreateThresholdNorm = createThresholdNorm;
+      _shapeCreateThresholdNorm = start.createThresholdNorm;
     });
   }
 
@@ -550,12 +405,13 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final delta = norm - last;
 
     _safeSetState(() {
-      if (_activeShapeEditOp == _ShapeEditOperation.create) {
+      if (_activeShapeEditOp == ShapeInteractionOperation.create) {
         final start = _shapeInteractionStartNorm ?? norm;
-        final adjustedEnd = _constrainShapeCreateEndNorm(
+        final adjustedEnd = ShapeInteractionCoordinator.constrainCreateEndNorm(
           start,
           norm,
           pageSize: pageSize,
+          aspectLocked: _isShapeAspectLocked,
         );
         final bounds = Rect.fromPoints(start, adjustedEnd);
         manipulator.boundsNorm = Rect.fromLTRB(
@@ -566,10 +422,10 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         );
       } else {
         switch (_activeShapeEditOp) {
-          case _ShapeEditOperation.translate:
+          case ShapeInteractionOperation.translate:
             manipulator.translate(delta);
             break;
-          case _ShapeEditOperation.resize:
+          case ShapeInteractionOperation.resize:
             final currentBounds = manipulator.boundsNorm;
             final lockedAspectRatio =
                 _isShapeAspectLocked &&
@@ -583,20 +439,29 @@ extension _DrawingScreenLogic on _DrawingScreenState {
               lockedAspectRatio: lockedAspectRatio,
             );
             break;
-          case _ShapeEditOperation.rotate:
+          case ShapeInteractionOperation.rotate:
             if (_isShapeRotateSnapEnabled) {
-              _rotateShapeManipulatorWithSnap(
-                manipulator,
-                norm,
+              final rotationUpdate = ShapeInteractionCoordinator.rotateWithSnap(
+                manipulator: manipulator,
+                norm: norm,
                 pageSize: pageSize,
+                gestureStartAngleRad: _shapeRotateGestureStartAngleRad,
+                gestureStartRotationRad: _shapeRotateGestureStartRotationRad,
+                currentSnappedAngleRad: _shapeRotateSnappedAngleRad,
               );
+              _shapeRotateSnappedAngleRad = rotationUpdate.snappedAngleRad;
+              manipulator.rotationRad = rotationUpdate.rotationRad;
             } else {
               _shapeRotateSnappedAngleRad = null;
-              manipulator.rotationRad = _shapeRawRotateTargetAngle(
-                manipulator,
-                norm,
-                pageSize: pageSize,
-              );
+              manipulator.rotationRad =
+                  ShapeInteractionCoordinator.rawRotateTargetAngle(
+                    manipulator: manipulator,
+                    norm: norm,
+                    pageSize: pageSize,
+                    gestureStartAngleRad: _shapeRotateGestureStartAngleRad,
+                    gestureStartRotationRad:
+                        _shapeRotateGestureStartRotationRad,
+                  );
             }
             break;
           default:
@@ -629,12 +494,12 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    if (_activeShapeEditOp == _ShapeEditOperation.none) {
+    if (_activeShapeEditOp == ShapeInteractionOperation.none) {
       _clearShapeInteractionState();
       return;
     }
 
-    if (_activeShapeEditOp == _ShapeEditOperation.create) {
+    if (_activeShapeEditOp == ShapeInteractionOperation.create) {
       final createBounds = manipulator.boundsNorm;
       final createWidth = createBounds.width.abs();
       final createHeight = createBounds.height.abs();
@@ -672,7 +537,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
           rotationRad: 0.0,
         );
         _activeShapeHandle = ShapeHandle.none;
-        _activeShapeEditOp = _ShapeEditOperation.none;
+        _activeShapeEditOp = ShapeInteractionOperation.none;
         _shapeInteractionStartNorm = null;
         _shapeInteractionLastNorm = null;
         _shapeRotateSnappedAngleRad = null;
@@ -703,7 +568,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
 
-    final afterPoints = _transformShapePointsByBounds(
+    final afterPoints = ShapeInteractionCoordinator.transformPointsByBounds(
       points: before.pointsNorm,
       fromBounds: beforeBounds,
       toBounds: manipulator.boundsNorm,
@@ -741,7 +606,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _safeSetState(() {
       _activeShapeManipulator = manipulator;
       _activeShapeHandle = ShapeHandle.none;
-      _activeShapeEditOp = _ShapeEditOperation.none;
+      _activeShapeEditOp = ShapeInteractionOperation.none;
       _shapeRotateSnappedAngleRad = null;
       _shapeRotateGestureStartAngleRad = null;
       _shapeRotateGestureStartRotationRad = null;
@@ -753,176 +618,6 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     _syncStrokesByPageFromControllerPage(pageNumber);
     _updateDrawingHistoryAvailabilityState();
     _requestPersistDrawing();
-  }
-
-  Offset _constrainShapeCreateEndNorm(
-    Offset start,
-    Offset current, {
-    required Size pageSize,
-  }) {
-    if (!_isShapeAspectLocked) {
-      return current;
-    }
-    final dx = current.dx - start.dx;
-    final dy = current.dy - start.dy;
-    if (dx.abs() < 1e-6 || dy.abs() < 1e-6) {
-      return current;
-    }
-    final dxPx = dx * pageSize.width;
-    final dyPx = dy * pageSize.height;
-    final lockedPx = math.max(dxPx.abs(), dyPx.abs());
-    final lockedDx = (lockedPx / pageSize.width) * (dx.isNegative ? -1.0 : 1.0);
-    final lockedDy =
-        (lockedPx / pageSize.height) * (dy.isNegative ? -1.0 : 1.0);
-    final adjusted = Offset(start.dx + lockedDx, start.dy + lockedDy);
-    return Offset(adjusted.dx.clamp(0.0, 1.0), adjusted.dy.clamp(0.0, 1.0));
-  }
-
-  void _rotateShapeManipulatorWithSnap(
-    ShapeManipulator manipulator,
-    Offset norm, {
-    required Size pageSize,
-  }) {
-    final rawAngle = _shapeRawRotateTargetAngle(
-      manipulator,
-      norm,
-      pageSize: pageSize,
-    );
-    const enterSnapDeg = 7.0;
-    const exitSnapDeg = 11.0;
-    final enterSnapRad = _degToRad(enterSnapDeg);
-    final exitSnapRad = _degToRad(exitSnapDeg);
-
-    final snapped = _shapeRotateSnappedAngleRad;
-    if (snapped != null) {
-      final diff = _wrapAngleDiff(rawAngle, snapped).abs();
-      if (diff <= exitSnapRad) {
-        manipulator.rotationRad = snapped;
-        return;
-      }
-      _shapeRotateSnappedAngleRad = null;
-    }
-
-    final candidateAngles = <double>[];
-    const divisions = 24; // 15-degree increments
-    for (var i = 0; i < divisions; i += 1) {
-      candidateAngles.add(-math.pi + (2 * math.pi * i / divisions));
-    }
-
-    var nearest = candidateAngles.first;
-    var minDiff = _wrapAngleDiff(rawAngle, nearest).abs();
-    for (final angle in candidateAngles.skip(1)) {
-      final diff = _wrapAngleDiff(rawAngle, angle).abs();
-      if (diff < minDiff) {
-        minDiff = diff;
-        nearest = angle;
-      }
-    }
-
-    if (minDiff <= enterSnapRad) {
-      _shapeRotateSnappedAngleRad = nearest;
-      manipulator.rotationRad = nearest;
-      return;
-    }
-
-    manipulator.rotationRad = rawAngle;
-  }
-
-  double _shapeRawRotateTargetAngle(
-    ShapeManipulator manipulator,
-    Offset norm, {
-    required Size pageSize,
-  }) {
-    final center = manipulator.boundsNorm.center;
-    final pointerAngle = _shapePointerAngleForPageSpace(
-      centerNorm: center,
-      pointerNorm: norm,
-      pageSize: pageSize,
-    );
-    final gestureStartAngle = _shapeRotateGestureStartAngleRad;
-    final gestureStartRotation = _shapeRotateGestureStartRotationRad;
-    if (gestureStartAngle == null || gestureStartRotation == null) {
-      return pointerAngle;
-    }
-    return gestureStartRotation +
-        _wrapAngleDiff(pointerAngle, gestureStartAngle);
-  }
-
-  List<Offset> _transformShapePointsByBounds({
-    required List<Offset> points,
-    required Rect fromBounds,
-    required Rect toBounds,
-    required double rotationRad,
-    required Size pageSize,
-  }) {
-    final fromWidth = fromBounds.width <= 0 ? 1.0 : fromBounds.width;
-    final fromHeight = fromBounds.height <= 0 ? 1.0 : fromBounds.height;
-    final toWidth = toBounds.width;
-    final toHeight = toBounds.height;
-    final toLeft = toBounds.left;
-    final toTop = toBounds.top;
-    final toCenter = toBounds.center;
-    return points
-        .map((point) {
-          final ratioX = (point.dx - fromBounds.left) / fromWidth;
-          final ratioY = (point.dy - fromBounds.top) / fromHeight;
-          final scaled = Offset(
-            toLeft + ratioX * toWidth,
-            toTop + ratioY * toHeight,
-          );
-          final rotated = _rotateAroundCenterInPageSpace(
-            point: scaled,
-            center: toCenter,
-            angleRad: rotationRad,
-            pageSize: pageSize,
-          );
-          return Offset(rotated.dx.clamp(0.0, 1.0), rotated.dy.clamp(0.0, 1.0));
-        })
-        .toList(growable: false);
-  }
-
-  Offset _rotateAroundCenterInPageSpace({
-    required Offset point,
-    required Offset center,
-    required double angleRad,
-    required Size pageSize,
-  }) {
-    if (pageSize.width <= 0 || pageSize.height <= 0) {
-      return point;
-    }
-    final pointPx = Offset(
-      point.dx * pageSize.width,
-      point.dy * pageSize.height,
-    );
-    final centerPx = Offset(
-      center.dx * pageSize.width,
-      center.dy * pageSize.height,
-    );
-    final cosA = math.cos(angleRad);
-    final sinA = math.sin(angleRad);
-    final dx = pointPx.dx - centerPx.dx;
-    final dy = pointPx.dy - centerPx.dy;
-    final rotatedPx = Offset(
-      centerPx.dx + dx * cosA - dy * sinA,
-      centerPx.dy + dx * sinA + dy * cosA,
-    );
-    return Offset(
-      rotatedPx.dx / pageSize.width,
-      rotatedPx.dy / pageSize.height,
-    );
-  }
-
-  double _shapePointerAngleForPageSpace({
-    required Offset centerNorm,
-    required Offset pointerNorm,
-    required Size pageSize,
-  }) {
-    final dx = (pointerNorm.dx - centerNorm.dx) * pageSize.width;
-    final dy = (pointerNorm.dy - centerNorm.dy) * pageSize.height;
-    if (dx.abs() < 1e-9 && dy.abs() < 1e-9) {
-      return 0.0;
-    }
-    return math.atan2(dy, dx);
   }
 
   int? _createdIndexFromId(String id) {
@@ -2077,7 +1772,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
         _selectedShapeStrokeId = null;
         _activeShapeManipulator = null;
         _activeShapeHandle = ShapeHandle.none;
-        _activeShapeEditOp = _ShapeEditOperation.none;
+        _activeShapeEditOp = ShapeInteractionOperation.none;
         _shapeRotateSnappedAngleRad = null;
         _shapeRotateGestureStartAngleRad = null;
         _shapeRotateGestureStartRotationRad = null;

@@ -29,8 +29,8 @@
 
 ### 1-2. 최신 자동 검증
 
-- `flutter test`: 100개 테스트 통과
-- `flutter analyze lib`: No issues found (`Step 8-3` 반영 후)
+- `flutter test`: 104개 테스트 통과
+- `flutter analyze lib`: No issues found (`Step 9-1` 반영 후)
 
 ### 1-3. 코드 볼륨
 
@@ -39,7 +39,7 @@
 
 ### 1-4. 고복잡도 파일 Top 20
 
-1. `lib/screens/drawing/drawing_screen_logic.part.dart` (1,972)
+1. `lib/screens/drawing/drawing_screen_logic.part.dart` (1,681)
 2. `lib/screens/drawing/drawing_screen_ui.part.dart` (792)
 3. `lib/screens/drawing/drawing_screen_move_actions.part.dart` (792)
 4. `lib/screens/drawing/drawing_screen.dart` (790)
@@ -80,7 +80,7 @@
 
 ### 1-6. 외부 검토 반영 메모
 
-- 현재 실측 기준 `drawing_screen_logic.part.dart`는 1,972줄, `drawing_screen_pointer_input.part.dart`는 682줄로 이 문서의 기준선과 일치한다.
+- `Step 9-1` 이후 `drawing_screen_logic.part.dart`는 1,681줄, 신규 `shape_interaction_coordinator.dart`는 375줄이다.
 - 다만 외부 검토에서 지적한 누락 항목은 타당하므로 아래 Phase에 반영한다.
 - 보강 항목:
   - `marker_tap_use_case.dart` 분해 계획 추가
@@ -274,28 +274,58 @@
 - DrawingScreen 관련 part 파일의 책임을 더 작은 coordinator/service/widget로 분리한다.
 - 한 번에 큰 수술하지 않고 입력, 페이지, 도구, 저장 순서로 나눈다.
 
+진행 상태:
+
+- `Step 9-1`: 완료
+- `Step 9-2`: 대기
+- `Step 9-3`: 대기
+- `Step 9-4`: 대기
+- `Step 9-5`: 대기
+
 ### Step 9-1. Shape Interaction Coordinator 분리
+
+상태: 완료
 
 대상:
 
 - `drawing_screen_logic.part.dart`
 - `drawing_screen_pointer_input.part.dart`
 - `shape_manipulator.dart`
+- `shape_interaction_coordinator.dart`
+- `test/drawing_coordinate_accuracy_test.dart`
 
 작업:
 
 - 도형 hit test, 선택, 이동, resize, 비율 잠금 적용 흐름을 coordinator로 분리
 - DrawingScreen은 이벤트를 넘기고 결과만 반영하도록 축소
+- shape 선택/시작/생성/회전 snap/좌표 transform 계산을 `ShapeInteractionCoordinator`로 이동
+- coordinator 단위 테스트 추가
+
+수정 파일:
+
+- `lib/screens/drawing/drawing_screen.dart`
+- `lib/screens/drawing/drawing_screen_logic.part.dart`
+- `lib/screens/drawing/drawing_screen_ui.part.dart`
+- `lib/screens/drawing/engines/shape_interaction_coordinator.dart`
+- `test/drawing_coordinate_accuracy_test.dart`
 
 검증:
 
-- `flutter test test/drawing_coordinate_accuracy_test.dart`
-- `flutter test`
+- `flutter analyze lib test/drawing_coordinate_accuracy_test.dart`: No issues found
+- `flutter test test/drawing_coordinate_accuracy_test.dart`: all pass
+- `flutter test`: 104개 all pass
 
 수동 확인:
 
-- `D-06`: 도형 생성/이동/리사이즈/비율 잠금
-- `D-07`: 스냅/직교 조합
+- `D-06`: 도형 생성/이동/리사이즈/비율 잠금 PASS
+- `D-07`: 스냅/직교 조합 PASS
+- 작은 도형 이동 확인 PASS
+
+결과:
+
+- `drawing_screen_logic.part.dart`: 1,972줄 -> 1,681줄
+- `shape_interaction_coordinator.dart`: 375줄 신규 생성
+- 테스트: 100개 -> 104개
 
 ### Step 9-2. Page Navigation/Pdf Viewport 흐름 분리
 
@@ -672,8 +702,8 @@
 
 추천 시작점:
 
-1. `Phase 9 / Step 9-1`부터 시작한다.
-2. Shape Interaction Coordinator를 분리해 DrawingScreen 2차 분해를 시작한다.
+1. `Phase 9 / Step 9-2`부터 시작한다.
+2. Page Navigation/Pdf Viewport 흐름을 분리한다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
 4. DrawingScreen 관련 part 파일의 책임과 줄 수를 계속 줄인다.
 

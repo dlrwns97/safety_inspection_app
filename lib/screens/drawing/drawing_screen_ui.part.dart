@@ -411,17 +411,17 @@ extension _DrawingScreenUi on _DrawingScreenState {
                                     overlayPreview.previewPointsNorm,
                                 createStartNorm:
                                     _activeShapeEditOp ==
-                                        _ShapeEditOperation.create
+                                        ShapeInteractionOperation.create
                                     ? _shapeInteractionStartNorm
                                     : null,
                                 createCurrentNorm:
                                     _activeShapeEditOp ==
-                                        _ShapeEditOperation.create
+                                        ShapeInteractionOperation.create
                                     ? _shapeInteractionLastNorm
                                     : null,
                                 showBounds:
                                     _activeShapeEditOp !=
-                                    _ShapeEditOperation.create,
+                                    ShapeInteractionOperation.create,
                               ),
                             ),
                           ),
@@ -637,15 +637,15 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     previewFillArgb: overlayPreview.previewFillArgb,
                     previewPointsNorm: overlayPreview.previewPointsNorm,
                     createStartNorm:
-                        _activeShapeEditOp == _ShapeEditOperation.create
+                        _activeShapeEditOp == ShapeInteractionOperation.create
                         ? _shapeInteractionStartNorm
                         : null,
                     createCurrentNorm:
-                        _activeShapeEditOp == _ShapeEditOperation.create
+                        _activeShapeEditOp == ShapeInteractionOperation.create
                         ? _shapeInteractionLastNorm
                         : null,
                     showBounds:
-                        _activeShapeEditOp != _ShapeEditOperation.create,
+                        _activeShapeEditOp != ShapeInteractionOperation.create,
                   ),
                 ),
             ],
@@ -673,7 +673,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       );
     }
 
-    if (_activeShapeEditOp == _ShapeEditOperation.create) {
+    if (_activeShapeEditOp == ShapeInteractionOperation.create) {
       return (
         previewType: _activeShapeType,
         previewStroke: _activeShapeStrokeStyle,

@@ -52,6 +52,7 @@ import 'package:safety_inspection_app/screens/drawing/dialogs/structural_tilt_di
 import 'package:safety_inspection_app/screens/drawing/drawing_coordinate_utils.dart';
 import 'package:safety_inspection_app/screens/drawing/drawing_verbose_logger.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_engine.dart';
+import 'package:safety_inspection_app/screens/drawing/engines/shape_interaction_coordinator.dart';
 import 'package:safety_inspection_app/screens/drawing/engines/shape_manipulator.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/drawing_lookup_helpers.dart';
 import 'package:safety_inspection_app/screens/drawing/flows/marker_presenters.dart';
@@ -115,8 +116,6 @@ class DrawingScreen extends StatefulWidget {
   State<DrawingScreen> createState() => _DrawingScreenState();
 }
 
-enum _ShapeEditOperation { none, create, translate, resize, rotate }
-
 class _DrawingScreenState extends State<DrawingScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final DrawingController _controller = DrawingController();
@@ -143,9 +142,11 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final TabController _sidePanelController;
   DrawMode _mode = DrawMode.hand;
   String? _selectedShapeStrokeId;
+  final ShapeInteractionCoordinator _shapeInteractionCoordinator =
+      const ShapeInteractionCoordinator();
   ShapeManipulator? _activeShapeManipulator;
   ShapeHandle _activeShapeHandle = ShapeHandle.none;
-  _ShapeEditOperation _activeShapeEditOp = _ShapeEditOperation.none;
+  ShapeInteractionOperation _activeShapeEditOp = ShapeInteractionOperation.none;
   Offset? _shapeInteractionStartNorm;
   Offset? _shapeInteractionLastNorm;
   double? _shapeRotateGestureStartAngleRad;
