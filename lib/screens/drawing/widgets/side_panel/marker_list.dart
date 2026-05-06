@@ -19,13 +19,11 @@ class MarkerList<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Center(
-        child: Text(emptyLabel),
-      );
+      return Center(child: Text(emptyLabel));
     }
     return ListView.separated(
       itemCount: items.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final item = items[index];
         final subtitle = subtitleBuilder(item);
@@ -36,11 +34,7 @@ class MarkerList<T> extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: subtitle != null
-              ? Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                )
+              ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis)
               : null,
           onTap: () => onTap(item),
         );

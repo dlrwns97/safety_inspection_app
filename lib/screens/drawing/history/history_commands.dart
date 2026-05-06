@@ -20,9 +20,8 @@ class AddStrokeCommand extends HistoryCommand {
   AddStrokeCommand({
     required this.page,
     required DrawingStroke strokeSnapshot,
-    DateTime? timestamp,
-  }) : strokeSnapshot = strokeSnapshot.deepCopy(),
-       super(timestamp: timestamp);
+    super.timestamp,
+  }) : strokeSnapshot = strokeSnapshot.deepCopy();
 
   @override
   final int page;
@@ -47,9 +46,8 @@ class DeleteStrokeCommand extends HistoryCommand {
     required this.page,
     required DrawingStroke deletedSnapshot,
     this.originalIndex,
-    DateTime? timestamp,
-  }) : deletedSnapshot = deletedSnapshot.deepCopy(),
-       super(timestamp: timestamp);
+    super.timestamp,
+  }) : deletedSnapshot = deletedSnapshot.deepCopy();
 
   @override
   final int page;
@@ -82,10 +80,9 @@ class EraseAreaCommand extends HistoryCommand {
     required this.strokeId,
     required List<bool> previousMask,
     required List<bool> newMask,
-    DateTime? timestamp,
+    super.timestamp,
   }) : previousMask = List<bool>.from(previousMask, growable: false),
-       newMask = List<bool>.from(newMask, growable: false),
-       super(timestamp: timestamp);
+       newMask = List<bool>.from(newMask, growable: false);
 
   @override
   final int page;
@@ -108,8 +105,7 @@ class EraseAreaCommand extends HistoryCommand {
 }
 
 class ClearAllCommand extends HistoryCommand {
-  ClearAllCommand({required this.page, DateTime? timestamp})
-    : super(timestamp: timestamp);
+  ClearAllCommand({required this.page, super.timestamp});
 
   @override
   final int page;
@@ -137,8 +133,8 @@ class ClearToolKindCommand extends HistoryCommand {
   ClearToolKindCommand({
     required this.page,
     required this.kind,
-    DateTime? timestamp,
-  }) : super(timestamp: timestamp);
+    super.timestamp,
+  });
 
   @override
   final int page;
@@ -172,10 +168,9 @@ class ReplaceStrokeCommand extends HistoryCommand {
     required this.page,
     required DrawingStroke beforeSnapshot,
     required DrawingStroke afterSnapshot,
-    DateTime? timestamp,
+    super.timestamp,
   }) : beforeSnapshot = beforeSnapshot.deepCopy(),
-       afterSnapshot = afterSnapshot.deepCopy(),
-       super(timestamp: timestamp);
+       afterSnapshot = afterSnapshot.deepCopy();
 
   @override
   final int page;
@@ -218,9 +213,8 @@ class BatchRemoveStrokesCommand extends HistoryCommand {
   BatchRemoveStrokesCommand({
     required this.page,
     required List<String> strokeIds,
-    DateTime? timestamp,
-  }) : strokeIds = List<String>.from(strokeIds, growable: false),
-       super(timestamp: timestamp);
+    super.timestamp,
+  }) : strokeIds = List<String>.from(strokeIds, growable: false);
 
   @override
   final int page;
@@ -279,10 +273,9 @@ class BatchEraseCommand extends HistoryCommand {
   BatchEraseCommand({
     required this.page,
     required List<BatchEraseCommandItem> items,
-    DateTime? timestamp,
+    super.timestamp,
   }) : items = (List<BatchEraseCommandItem>.from(items, growable: false)
-         ..sort((a, b) => a.strokeId.compareTo(b.strokeId))),
-       super(timestamp: timestamp);
+         ..sort((a, b) => a.strokeId.compareTo(b.strokeId)));
 
   @override
   final int page;

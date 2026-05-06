@@ -30,7 +30,7 @@
 ### 1-2. 최신 자동 검증
 
 - `flutter test`: 100개 테스트 통과
-- `flutter analyze lib`: info 12건, warning/error 없음 (`Step 8-2` 반영 후)
+- `flutter analyze lib`: No issues found (`Step 8-3` 반영 후)
 
 ### 1-3. 코드 볼륨
 
@@ -62,7 +62,7 @@
 
 ### 1-5. 현재 품질 부채
 
-- Analyzer info 12건
+- Analyzer info 0건
   - `constant_identifier_names`
   - `deprecated_member_use`
   - `unnecessary_this`
@@ -136,7 +136,8 @@
 
 - `Step 8-1`: 완료
 - `Step 8-2`: 완료
-- `Step 8-3`: 대기
+- `Step 8-3`: 완료
+- `Phase 8`: 완료
 
 ### Step 8-1. 상수/스타일 Lint 정리
 
@@ -225,6 +226,8 @@
 
 ### Step 8-3. 생성자/위젯 스타일 정리
 
+상태: 완료
+
 대상:
 
 - `lib/screens/drawing/history/history_commands.dart`
@@ -239,20 +242,28 @@
 - `child` 인자 위치 정리
 - 불필요한 다중 underscore 제거
 
+수정 파일:
+
+- `lib/screens/drawing/history/history_commands.dart`
+- `lib/screens/drawing/drawing_screen_ui.part.dart`
+- `lib/screens/drawing/drawing_screen_detail_dialogs.part.dart`
+- `lib/screens/drawing/widgets/side_panel/marker_list.dart`
+- `lib/screens/drawing/widgets/side_panel/marker_side_panel_list_section.dart`
+
 검증:
 
-- `flutter analyze lib`
-- `flutter test`
+- `flutter analyze lib`: No issues found
+- `flutter test`: 100개 all pass
 
 수동 확인:
 
-- `D-04`: 결함 리스트/상세 진입
-- `D-05`: 장비 리스트/상세 진입
-- `D-08`: 저장 후 재진입
+- `D-04`: 결함 리스트/상세 진입 all pass
+- `D-05`: 장비 리스트/상세 진입 all pass
+- `D-08`: 저장 후 재진입 all pass
 
 완료 기준:
 
-- `flutter analyze lib`: warning/error 없음, info 0~5건 이내
+- `flutter analyze lib`: No issues found
 - `flutter test`: 전체 통과
 - 사용자 수동 확인 all pass
 
@@ -661,10 +672,10 @@
 
 추천 시작점:
 
-1. `Phase 8 / Step 8-3`부터 시작한다.
-2. 생성자/위젯 스타일 lint를 정리해 analyzer info zero에 도달한다.
+1. `Phase 9 / Step 9-1`부터 시작한다.
+2. Shape Interaction Coordinator를 분리해 DrawingScreen 2차 분해를 시작한다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
-4. Phase 8 완료 후 DrawingScreen 2차 분해로 넘어간다.
+4. DrawingScreen 관련 part 파일의 책임과 줄 수를 계속 줄인다.
 
 이 순서가 좋은 이유:
 

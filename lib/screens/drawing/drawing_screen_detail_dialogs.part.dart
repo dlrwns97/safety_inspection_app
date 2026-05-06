@@ -232,7 +232,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
           child: ListView.separated(
             shrinkWrap: true,
             itemCount: orderedHits.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final hit = orderedHits[index];
               return ListTile(

@@ -759,7 +759,6 @@ extension _DrawingScreenUi on _DrawingScreenState {
     return DrawingCanvasShell(
       behavior: behavior,
       tapRegionKey: tapRegionKey,
-      child: child,
       isMoveMode: _isMoveMode,
       isFreeDrawMode: _isFreeDrawMode,
       allowTapInFreeDraw: allowTapInFreeDraw,
@@ -774,6 +773,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
       onMovePanStart: _handleMovePanStartGlobal,
       onMovePanEnd: _handleMovePanEnd,
       onMovePanCancel: _handleMovePanCancel,
+      child: child,
     );
   }
 }
