@@ -74,6 +74,19 @@
 - DrawingScreen 관련 part 파일이 아직 상위 복잡도 대부분을 차지함
 - Color API, Material API 변경 대응이 남아 있음
 - Dialog와 Tool Popup이 화면/상태/검증 책임을 일부 섞어 갖고 있음
+- `marker_tap_use_case.dart`가 dialog callback을 다수 직접 받아 Application 계층 책임이 무거움
+- `home_screen.dart`가 site list, PDF 선택, orphan photo scan UI/복구 흐름을 함께 갖고 있음
+- `marker_side_panel_view_model.dart` 안의 `EquipmentDetailViewModel`이 커져 장비별 표시 모델 분리가 필요함
+
+### 1-6. 외부 검토 반영 메모
+
+- 현재 실측 기준 `drawing_screen_logic.part.dart`는 1,972줄, `drawing_screen_pointer_input.part.dart`는 682줄로 이 문서의 기준선과 일치한다.
+- 다만 외부 검토에서 지적한 누락 항목은 타당하므로 아래 Phase에 반영한다.
+- 보강 항목:
+  - `marker_tap_use_case.dart` 분해 계획 추가
+  - `home_screen.dart` 분리 우선순위 상향
+  - `EquipmentDetailViewModel` 분리 계획 추가
+  - Home/orphan scan 자동 테스트 확장 추가
 
 ## 2. 작업 규칙
 
@@ -319,12 +332,46 @@
 - `drawing_screen.dart`: 650줄 이하 목표
 - 전체 테스트 통과
 
+### Step 9-5. Marker Tap UseCase 책임 재분리
+
+대상:
+
+- `lib/application/inspection/use_cases/marker_tap_use_case.dart`
+- `lib/screens/drawing/flows/marker_tap_flow.dart`
+- `lib/application/inspection/use_cases/create_defect_marker_use_case.dart`
+- `lib/application/inspection/use_cases/create_equipment_updated_site_use_case.dart`
+
+작업:
+
+- `MarkerTapUseCase`가 직접 받는 dialog callback 묶음을 입력 포트 또는 request handler로 정리
+- 결함 생성, 일반 장비 생성, 철탐/침하 등 특수 장비 생성 흐름을 더 작은 Application 서비스로 분리
+- Application 계층이 UI dialog 자체를 알지 않고 "필요한 입력 요청"과 "결과 반영"만 다루도록 경계 명확화
+- `marker_tap_flow.dart`는 화면 callback을 Application 입력 포트에 연결하는 adapter 역할로 축소
+
+검증:
+
+- `flutter test test/application/inspection/use_cases/marker_interaction_use_cases_test.dart`
+- `flutter test test/domain/inspection/services/marker_label_domain_service_test.dart`
+- `flutter test`
+
+수동 확인:
+
+- `D-04`: 결함 마커 생성/수정/삭제/번호 재정렬
+- `D-05`: 장비 마커 생성/수정/삭제/번호 재정렬
+
+완료 기준:
+
+- `marker_tap_use_case.dart`: 350줄 이하 목표
+- dialog callback 파라미터 묶음이 adapter 또는 request handler로 이동
+- 기존 마커 생성/라벨/취소 동작 회귀 없음
+
 ## 6. Phase 10: Dialog/Form 구조 정리
 
 목표:
 
 - 결함/장비 입력 Dialog의 UI, 검증, 데이터 변환 책임을 분리한다.
 - 장비별 특수 입력 규칙을 Application Service 또는 Presentation ViewModel로 이동한다.
+- Home 화면의 orphan scan/복구 UI도 이 Phase에서 먼저 분리해 화면 책임을 줄인다.
 
 ### Step 10-1. Defect Details Dialog 분리
 
@@ -356,11 +403,14 @@
 - `equipment_details_dialog.dart`
 - `rebar_spacing_dialog.dart`
 - 기타 장비별 dialog
+- `lib/presentation/drawing/view_models/marker_side_panel_view_model.dart`
 
 작업:
 
 - 철탐, 반발경도, 코어, 탄산화 등 장비별 입력 모델 정리
 - 철탐 다중 행 추가/삭제 정책 테스트 보강
+- `EquipmentDetailViewModel`을 장비 표시 모델/라벨 모델/상세 payload 모델로 나누는 방안 검토 후 분리
+- 사이드패널 표시용 ViewModel과 Dialog 입력 모델이 서로 과하게 의존하지 않도록 경계 정리
 
 검증:
 
@@ -393,6 +443,38 @@
 
 - `D-01`: 색상/투명도 변경
 - `D-06`: 도형 색상 변경
+
+### Step 10-4. HomeScreen Orphan Scan UI 분리
+
+대상:
+
+- `lib/screens/home/home_screen.dart`
+- `lib/screens/home/site_photo_orphan_scanner.dart`
+- 신규 Home 하위 widget/controller 파일
+
+작업:
+
+- `_OrphanScanResultList`와 `_OrphanScanResultListState`를 별도 widget 파일로 분리
+- orphan photo restore/cleanup 흐름을 화면 본체 밖 controller 또는 flow로 이동
+- `HomeScreen`은 현장 목록, 주요 버튼, dialog 호출 조립에 집중하도록 축소
+- PDF 선택/저장 흐름과 orphan scan 흐름의 책임 경계를 정리
+
+검증:
+
+- `flutter test test/smoke/scenario_id_smoke_test.dart`
+- `flutter test`
+
+수동 확인:
+
+- `H-01`: 현장 생성 후 목록 재로드
+- `H-02`: 휴지통 이동/복원/영구삭제
+- `H-03`: 앱 재진입 후 휴지통 상태 유지
+- `P-03`: orphan photo scan/restore/cleanup
+
+완료 기준:
+
+- `home_screen.dart`: 550줄 이하 목표
+- orphan scan UI와 복구/정리 흐름이 HomeScreen 본체에서 분리됨
 
 ## 7. Phase 11: 테스트/회귀 방어선 확장
 
@@ -451,6 +533,23 @@
 
 - `D-08`, `D-09`, `D-10`
 
+### Step 11-4. Home/Orphan Scan Regression Test 확장
+
+대상:
+
+- `test/smoke/scenario_id_smoke_test.dart`
+- 신규 Home/orphan scan 단위 테스트
+
+작업:
+
+- `H-01`, `H-02`, `H-03` 시나리오 자동 테스트 보강
+- orphan photo scan 결과 정렬/복구/cleanup 정책 테스트 추가
+- HomeScreen 분리 후 controller/flow 단위 테스트 가능 지점 확보
+
+수동 확인:
+
+- `H-01`, `H-02`, `H-03`, `P-03`
+
 ## 8. Phase 12: 성능과 유지보수성
 
 목표:
@@ -485,8 +584,9 @@
 
 작업:
 
-- `home_screen.dart` 분리
-- orphan photo scan, trash restore, site list load 흐름 점검
+- Phase 10에서 분리된 Home/orphan scan 구조를 기준으로 site list load 병목 점검
+- orphan photo scan, trash restore, site list load의 체감 지연 지점 계측
+- 필요 시 목록 렌더링과 scan 실행 타이밍을 분리
 
 수동 확인:
 
