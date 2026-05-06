@@ -23,6 +23,17 @@ Future<bool> showDrawingColorPickerDialog(
   return kept ?? false;
 }
 
+int _colorChannel255(double value) =>
+    (value * 255.0).round().clamp(0, 255).toInt();
+
+int _red255(Color color) => _colorChannel255(color.r);
+
+int _green255(Color color) => _colorChannel255(color.g);
+
+int _blue255(Color color) => _colorChannel255(color.b);
+
+int _alphaPercent(Color color) => (color.a * 100).round();
+
 class _DrawingColorPickerDialog extends StatefulWidget {
   const _DrawingColorPickerDialog({
     required this.initialColor,
@@ -37,7 +48,8 @@ class _DrawingColorPickerDialog extends StatefulWidget {
   final ValueChanged<Color> onCommitChanged;
 
   @override
-  State<_DrawingColorPickerDialog> createState() => _DrawingColorPickerDialogState();
+  State<_DrawingColorPickerDialog> createState() =>
+      _DrawingColorPickerDialogState();
 }
 
 class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
@@ -53,7 +65,7 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
   void initState() {
     super.initState();
     _hsv = HSVColor.fromColor(widget.initialColor.withValues(alpha: 1));
-    _alpha = widget.initialColor.opacity;
+    _alpha = widget.initialColor.a;
   }
 
   Color get _selectedColor => _hsv.toColor().withValues(alpha: _alpha);
@@ -62,7 +74,11 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
 
   void _emitCommit() => widget.onCommitChanged(_selectedColor);
 
-  void _updateSaturationValue(Offset localPosition, Size size, {bool commit = false}) {
+  void _updateSaturationValue(
+    Offset localPosition,
+    Size size, {
+    bool commit = false,
+  }) {
     final saturation = (localPosition.dx / size.width).clamp(0.0, 1.0);
     final value = (1 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
     setState(() => _hsv = _hsv.withSaturation(saturation).withValue(value));
@@ -116,9 +132,9 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
     for (var row = 0; row < _kMosaicRows; row++) {
       for (var column = 0; column < _kMosaicColumns; column++) {
         final candidate = _mosaicColorAt(column, row);
-        final dr = (candidate.red - color.red).toDouble();
-        final dg = (candidate.green - color.green).toDouble();
-        final db = (candidate.blue - color.blue).toDouble();
+        final dr = (_red255(candidate) - _red255(color)).toDouble();
+        final dg = (_green255(candidate) - _green255(color)).toDouble();
+        final db = (_blue255(candidate) - _blue255(color)).toDouble();
         final distance = dr * dr + dg * dg + db * db;
         if (distance < bestDistance) {
           bestDistance = distance;
@@ -177,7 +193,10 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text('색상 선택', style: theme.textTheme.titleMedium),
+                            child: Text(
+                              '색상 선택',
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
                           Semantics(
                             label: '닫기',
@@ -195,7 +214,10 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
                       ),
                       const SizedBox(height: 4),
                       TabBar(
-                        tabs: const [Tab(text: '표준'), Tab(text: '사용자 지정')],
+                        tabs: const [
+                          Tab(text: '표준'),
+                          Tab(text: '사용자 지정'),
+                        ],
                         labelColor: theme.colorScheme.primary,
                         dividerColor: theme.colorScheme.outlineVariant,
                       ),
@@ -275,8 +297,10 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
                   selectedColumn: selectedCell.column,
                   selectedRow: selectedCell.row,
                   colorAt: _mosaicColorAt,
-                  onChanged: (column, row) => _updateMosaicSelection(column, row),
-                  onInteractionEnd: (column, row) => _updateMosaicSelection(column, row, commit: true),
+                  onChanged: (column, row) =>
+                      _updateMosaicSelection(column, row),
+                  onInteractionEnd: (column, row) =>
+                      _updateMosaicSelection(column, row, commit: true),
                 ),
               ),
             ),
@@ -301,22 +325,25 @@ class _DrawingColorPickerDialogState extends State<_DrawingColorPickerDialog> {
           hsv: _hsv,
           height: compact ? 180 : 210,
           onChanged: (pos, size) => _updateSaturationValue(pos, size),
-          onInteractionEnd: (pos, size) => _updateSaturationValue(pos, size, commit: true),
+          onInteractionEnd: (pos, size) =>
+              _updateSaturationValue(pos, size, commit: true),
         ),
         SizedBox(height: compact ? 8 : 10),
         _GradientSlider(
           value: _hsv.hue,
           min: 0,
           max: 360,
-          gradient: const LinearGradient(colors: [
-            Color(0xFFFF0000),
-            Color(0xFFFFFF00),
-            Color(0xFF00FF00),
-            Color(0xFF00FFFF),
-            Color(0xFF0000FF),
-            Color(0xFFFF00FF),
-            Color(0xFFFF0000),
-          ]),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFFF0000),
+              Color(0xFFFFFF00),
+              Color(0xFF00FF00),
+              Color(0xFF00FFFF),
+              Color(0xFF0000FF),
+              Color(0xFFFF00FF),
+              Color(0xFFFF0000),
+            ],
+          ),
           onChanged: (value) {
             setState(() => _hsv = _hsv.withHue(value));
             _emitLive();
@@ -434,7 +461,12 @@ class _MosaicPalettePanelPainter extends CustomPainter {
     canvas.clipRRect(rrect);
     for (var row = 0; row < rows; row++) {
       for (var column = 0; column < columns; column++) {
-        final cellRect = Rect.fromLTWH(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
+        final cellRect = Rect.fromLTWH(
+          column * cellWidth,
+          row * cellHeight,
+          cellWidth,
+          cellHeight,
+        );
         canvas.drawRect(cellRect, Paint()..color = colorAt(column, row));
         canvas.drawRect(
           cellRect,
@@ -515,9 +547,7 @@ class _SaturationValuePanel extends StatelessWidget {
               );
               onInteractionEnd(last, size);
             },
-            child: CustomPaint(
-              painter: _SaturationValuePanelPainter(hsv: hsv),
-            ),
+            child: CustomPaint(painter: _SaturationValuePanelPainter(hsv: hsv)),
           ),
         );
       },
@@ -607,7 +637,10 @@ class _AlphaSliderRow extends StatelessWidget {
           children: [
             Text('투명도', style: Theme.of(context).textTheme.bodyMedium),
             const Spacer(),
-            Text('$alphaPercent%', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              '$alphaPercent%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -639,8 +672,8 @@ class _ColorInfoSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hex =
-        '#${color.red.toRadixString(16).padLeft(2, '0').toUpperCase()}${color.green.toRadixString(16).padLeft(2, '0').toUpperCase()}${color.blue.toRadixString(16).padLeft(2, '0').toUpperCase()}';
-    final alphaPercent = (color.opacity * 100).round();
+        '#${_red255(color).toRadixString(16).padLeft(2, '0').toUpperCase()}${_green255(color).toRadixString(16).padLeft(2, '0').toUpperCase()}${_blue255(color).toRadixString(16).padLeft(2, '0').toUpperCase()}';
+    final alphaPercent = _alphaPercent(color);
 
     return Row(
       children: [
@@ -658,9 +691,17 @@ class _ColorInfoSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('HEX  $hex', style: compact ? theme.textTheme.bodyMedium : theme.textTheme.titleSmall),
+              Text(
+                'HEX  $hex',
+                style: compact
+                    ? theme.textTheme.bodyMedium
+                    : theme.textTheme.titleSmall,
+              ),
               const SizedBox(height: 2),
-              Text('RGB  ${color.red}, ${color.green}, ${color.blue}', style: theme.textTheme.bodyMedium),
+              Text(
+                'RGB  ${_red255(color)}, ${_green255(color)}, ${_blue255(color)}',
+                style: theme.textTheme.bodyMedium,
+              ),
               const SizedBox(height: 2),
               Text('A  $alphaPercent%', style: theme.textTheme.bodyMedium),
             ],

@@ -30,7 +30,7 @@
 ### 1-2. 최신 자동 검증
 
 - `flutter test`: 100개 테스트 통과
-- `flutter analyze lib`: info 44건, warning/error 없음 (`Step 8-1` 반영 후)
+- `flutter analyze lib`: info 12건, warning/error 없음 (`Step 8-2` 반영 후)
 
 ### 1-3. 코드 볼륨
 
@@ -62,7 +62,7 @@
 
 ### 1-5. 현재 품질 부채
 
-- Analyzer info 44건
+- Analyzer info 12건
   - `constant_identifier_names`
   - `deprecated_member_use`
   - `unnecessary_this`
@@ -135,7 +135,7 @@
 진행 상태:
 
 - `Step 8-1`: 완료
-- `Step 8-2`: 대기
+- `Step 8-2`: 완료
 - `Step 8-3`: 대기
 
 ### Step 8-1. 상수/스타일 Lint 정리
@@ -185,6 +185,8 @@
 
 ### Step 8-2. Deprecated Color/Material API 정리
 
+상태: 완료
+
 대상:
 
 - `lib/screens/drawing/drawing_screen_tooling.part.dart`
@@ -201,17 +203,25 @@
 - `MaterialStateProperty`를 `WidgetStateProperty`로 전환
 - `surfaceVariant`를 `surfaceContainerHighest`로 전환
 
+수정 파일:
+
+- `lib/screens/drawing/drawing_screen_tooling.part.dart`
+- `lib/screens/drawing/drawing_screen_ui_tool_popovers.part.dart`
+- `lib/screens/drawing/widgets/color_picker_dialog.dart`
+- `lib/screens/drawing/widgets/eraser_settings_popup.dart`
+- `lib/screens/drawing/widgets/side_panel/marker_side_panel.dart`
+
 검증:
 
-- `flutter analyze lib`
-- `flutter test`
+- `flutter analyze lib`: info 44건 -> 12건, warning/error 없음
+- `flutter test`: 100개 all pass
 
 수동 확인:
 
-- `D-01`: 펜/형광펜 색상 변경
-- `D-03`: 지우개 크기/동작
-- `D-04`: 결함 마커 표시 색상/라벨
-- `D-05`: 장비 마커 표시 색상/라벨
+- `D-01`: 펜/형광펜 색상 변경 all pass
+- `D-03`: 지우개 크기/동작 all pass
+- `D-04`: 결함 마커 표시 색상/라벨 all pass
+- `D-05`: 장비 마커 표시 색상/라벨 all pass
 
 ### Step 8-3. 생성자/위젯 스타일 정리
 
@@ -651,8 +661,8 @@
 
 추천 시작점:
 
-1. `Phase 8 / Step 8-2`부터 시작한다.
-2. Deprecated Color/Material API를 정리해 analyzer info를 더 줄인다.
+1. `Phase 8 / Step 8-3`부터 시작한다.
+2. 생성자/위젯 스타일 lint를 정리해 analyzer info zero에 도달한다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
 4. Phase 8 완료 후 DrawingScreen 2차 분해로 넘어간다.
 

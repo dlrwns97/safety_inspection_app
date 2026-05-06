@@ -226,7 +226,7 @@ class MarkerSidePanel extends StatelessWidget {
             width: double.infinity,
             height: 160,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant,
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: theme.dividerColor),
             ),

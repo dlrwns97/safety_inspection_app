@@ -605,7 +605,7 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
                                     final originalFill = _currentShapeFillColor;
                                     final seedColor = Color(
                                       draftFillColor ??
-                                          _currentShapeStrokeColor.value,
+                                          _currentShapeStrokeColor.toARGB32(),
                                     );
                                     _settingsPopover.hide();
                                     await Future<void>.delayed(
@@ -627,14 +627,16 @@ extension _DrawingScreenUiToolPopovers on _DrawingScreenState {
                                           onLiveChanged: (color) {
                                             _safeSetState(() {
                                               _currentShapeFillColor = Color(
-                                                color.withAlpha(0xFF).value,
+                                                color
+                                                    .withAlpha(0xFF)
+                                                    .toARGB32(),
                                               );
                                             });
                                           },
                                           onCommitChanged: (color) {
                                             final picked = color
                                                 .withAlpha(0xFF)
-                                                .value;
+                                                .toARGB32();
                                             _safeSetState(() {
                                               _currentShapeFillColor = Color(
                                                 picked,

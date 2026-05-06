@@ -22,7 +22,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
     kind: StrokeToolKind.shape,
     variant: PenVariant.pen,
     widthPx: _currentShapeWidth,
-    argbColor: _currentShapeStrokeColor.value,
+    argbColor: _currentShapeStrokeColor.toARGB32(),
     opacity: _currentShapeOpacity,
   );
 
@@ -52,7 +52,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
   }
 
   List<int> _buildRecentColors(List<int> current, int nextArgb) {
-    final nextRgb = Color(nextArgb).withAlpha(0xFF).value;
+    final nextRgb = Color(nextArgb).withAlpha(0xFF).toARGB32();
     final updated = <int>[nextRgb, ...current.where((argb) => argb != nextRgb)];
     return updated
         .take(_DrawingScreenState._kMaxRecentColors)
@@ -376,7 +376,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       );
       await prefs.setInt(
         _penColorKey(type),
-        (_penColorByType[type] ?? _currentPenColor).value,
+        (_penColorByType[type] ?? _currentPenColor).toARGB32(),
       );
     }
     for (final type in HighlighterUiType.values) {
@@ -393,7 +393,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       );
       await prefs.setInt(
         _hlColorKey(type),
-        (_hlColorByType[type] ?? _currentHlColor).value,
+        (_hlColorByType[type] ?? _currentHlColor).toARGB32(),
       );
     }
     for (final type in ShapeType.values) {
@@ -407,13 +407,13 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       );
       await prefs.setInt(
         _shapeStrokeColorKey(type),
-        (_shapeStrokeColorByType[type] ?? _currentShapeStrokeColor).value,
+        (_shapeStrokeColorByType[type] ?? _currentShapeStrokeColor).toARGB32(),
       );
       final fill = _shapeFillColorByType[type];
       if (fill == null) {
         await prefs.remove(_shapeFillColorKey(type));
       } else {
-        await prefs.setInt(_shapeFillColorKey(type), fill.value);
+        await prefs.setInt(_shapeFillColorKey(type), fill.toARGB32());
       }
     }
 
@@ -478,7 +478,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
         variant: _highlighterVariantFromUiType(_activeHighlighterType),
         widthPx: _currentHlWidth,
         opacity: _currentHlOpacity,
-        argbColor: _currentHlColor.value,
+        argbColor: _currentHlColor.toARGB32(),
       );
       return;
     }
@@ -486,7 +486,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       kind: StrokeToolKind.pen,
       variant: _penVariantFromUiType(_activePenType),
       widthPx: _currentPenWidth,
-      argbColor: _currentPenColor.value,
+      argbColor: _currentPenColor.toARGB32(),
     );
   }
 
@@ -550,7 +550,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       _savePenType(_activePenType);
       _syncCurrentFamilyStyleToPreset();
 
-      final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+      final updatedRecent = _buildRecentColors(_recentArgb, color.toARGB32());
       _recentArgb
         ..clear()
         ..addAll(updatedRecent);
@@ -582,7 +582,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       _saveHighlighterType(_activeHighlighterType);
       _syncCurrentFamilyStyleToPreset();
 
-      final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+      final updatedRecent = _buildRecentColors(_recentArgb, color.toARGB32());
       _recentArgb
         ..clear()
         ..addAll(updatedRecent);
@@ -608,7 +608,7 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       }
       _syncCurrentFamilyStyleToPreset();
       if (pushRecentColor && color != null) {
-        final updatedRecent = _buildRecentColors(_recentArgb, color.value);
+        final updatedRecent = _buildRecentColors(_recentArgb, color.toARGB32());
         _recentArgb
           ..clear()
           ..addAll(updatedRecent);
