@@ -34,17 +34,18 @@ extension _DrawingScreenScalePrefs on _DrawingScreenState {
   String _pdfLastPageLegacyKeyFor(Site site) =>
       '$_kPdfLastPageKey:${_drawingIdentityKey(site)}';
 
+  void resetScaleState() {
+    _markerScale = 1.0;
+    _labelScale = 1.0;
+    _isScaleLocked = false;
+    _didLoadScalePrefs = false;
+  }
+
   void _resetScalePreferences({bool notify = true}) {
-    final reset = () {
-      _markerScale = 1.0;
-      _labelScale = 1.0;
-      _isScaleLocked = false;
-      _didLoadScalePrefs = false;
-    };
     if (notify) {
-      _safeSetState(reset);
+      _safeSetState(resetScaleState);
     } else {
-      reset();
+      resetScaleState();
     }
   }
 

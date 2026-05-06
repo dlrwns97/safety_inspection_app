@@ -30,7 +30,7 @@
 ### 1-2. 최신 자동 검증
 
 - `flutter test`: 100개 테스트 통과
-- `flutter analyze lib`: info 71건, warning/error 없음
+- `flutter analyze lib`: info 44건, warning/error 없음 (`Step 8-1` 반영 후)
 
 ### 1-3. 코드 볼륨
 
@@ -62,7 +62,7 @@
 
 ### 1-5. 현재 품질 부채
 
-- Analyzer info 71건
+- Analyzer info 44건
   - `constant_identifier_names`
   - `deprecated_member_use`
   - `unnecessary_this`
@@ -132,7 +132,15 @@
 - 동작 변경 없이 스타일/Deprecated API/언어 업데이트만 처리한다.
 - 이 Phase는 감 다시 잡기용으로도 좋다. 리스크 낮고 보상 확실함.
 
+진행 상태:
+
+- `Step 8-1`: 완료
+- `Step 8-2`: 대기
+- `Step 8-3`: 대기
+
 ### Step 8-1. 상수/스타일 Lint 정리
+
+상태: 완료
 
 대상:
 
@@ -149,16 +157,31 @@
 - 단일 줄 `if`에 중괄호 적용
 - 함수 변수 선언을 함수 선언으로 전환
 
+수정 파일:
+
+- `lib/screens/drawing/drawing_constants.dart`
+- `lib/screens/drawing/drawing_screen_detail_dialogs.part.dart`
+- `lib/screens/drawing/drawing_screen_logic.part.dart`
+- `lib/screens/drawing/drawing_screen_marker_actions.part.dart`
+- `lib/screens/drawing/drawing_screen_move_actions.part.dart`
+- `lib/screens/drawing/drawing_screen_persistence.part.dart`
+- `lib/screens/drawing/drawing_screen_pointer_input.part.dart`
+- `lib/screens/drawing/drawing_screen_scale_prefs.part.dart`
+- `lib/screens/drawing/drawing_screen_ui.part.dart`
+- `lib/screens/drawing/flows/drawing_lookup_helpers.dart`
+- `lib/screens/drawing/widgets/drawing_scaffold_body.dart`
+- `lib/screens/drawing/widgets/pdf_drawing_view.dart`
+
 검증:
 
-- `flutter analyze lib`
-- `flutter test`
+- `flutter analyze lib`: info 71건 -> 44건, warning/error 없음
+- `flutter test`: 100개 all pass
 
 수동 확인:
 
-- `D-01`: 자유선/형광펜 기본 그리기
-- `D-06`: 도형 생성/수정/삭제
-- `D-07`: 직교/스냅/비율 잠금 설정
+- `D-01`: 자유선/형광펜 기본 그리기 all pass
+- `D-06`: 도형 생성/수정/삭제 all pass
+- `D-07`: 직교/스냅/비율 잠금 설정 all pass
 
 ### Step 8-2. Deprecated Color/Material API 정리
 
@@ -628,8 +651,8 @@
 
 추천 시작점:
 
-1. `Phase 8 / Step 8-1`부터 시작한다.
-2. Analyzer info를 줄이면서 코드 감을 되찾는다.
+1. `Phase 8 / Step 8-2`부터 시작한다.
+2. Deprecated Color/Material API를 정리해 analyzer info를 더 줄인다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
 4. Phase 8 완료 후 DrawingScreen 2차 분해로 넘어간다.
 

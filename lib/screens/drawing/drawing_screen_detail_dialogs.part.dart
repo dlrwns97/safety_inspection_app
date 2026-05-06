@@ -39,8 +39,8 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showEquipmentDetailsDialog(
         context: context,
         title: title,
-        memberOptions: DrawingEquipmentMemberOptions,
-        sizeLabelsByMember: DrawingEquipmentMemberSizeLabels,
+        memberOptions: drawingEquipmentMemberOptions,
+        sizeLabelsByMember: drawingEquipmentMemberSizeLabels,
         initialMemberType: initialMemberType,
         initialSizeValues: initialSizeValues,
         initialRemark: initialRemark,
@@ -63,7 +63,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showRebarSpacingDialog(
         context: context,
         title: title,
-        memberOptions: DrawingRebarSpacingMemberOptions,
+        memberOptions: drawingRebarSpacingMemberOptions,
         initialMemberType: initialMemberType,
         initialMeasurements: initialMeasurements,
         allowMultiple: allowMultiple,
@@ -84,7 +84,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showSchmidtHammerDialog(
         context: context,
         title: title,
-        memberOptions: DrawingSchmidtHammerMemberOptions,
+        memberOptions: drawingSchmidtHammerMemberOptions,
         initialMemberType: initialMemberType,
         initialAngleDeg: initialAngleDeg,
         initialMaxValueText: initialMaxValueText,
@@ -102,7 +102,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showCoreSamplingDialog(
         context: context,
         title: title,
-        memberOptions: DrawingCoreSamplingMemberOptions,
+        memberOptions: drawingCoreSamplingMemberOptions,
         initialMemberType: initialMemberType,
         initialAvgValueText: initialAvgValueText,
       ),
@@ -119,7 +119,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showCarbonationDialog(
         context: context,
         title: title,
-        memberOptions: DrawingCarbonationMemberOptions,
+        memberOptions: drawingCarbonationMemberOptions,
         initialMemberType: initialMemberType,
         initialCoverThicknessText: initialCoverThicknessText,
         initialDepthText: initialDepthText,
@@ -170,7 +170,7 @@ extension _DrawingScreenDetailDialogsLogic on _DrawingScreenState {
       () => showDeflectionDialog(
         context: context,
         title: title,
-        memberOptions: DrawingDeflectionMemberOptions,
+        memberOptions: drawingDeflectionMemberOptions,
         initialMemberType: initialMemberType,
         initialEndAText: initialEndAText,
         initialMidBText: initialMidBText,

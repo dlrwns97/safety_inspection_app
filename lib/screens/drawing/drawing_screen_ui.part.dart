@@ -515,8 +515,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
     Offset? drawingLocalToPageLocal(Offset local) {
       if (local.dx < 0 ||
           local.dy < 0 ||
-          local.dx > DrawingCanvasSize.width ||
-          local.dy > DrawingCanvasSize.height) {
+          local.dx > drawingCanvasSize.width ||
+          local.dy > drawingCanvasSize.height) {
         return null;
       }
       return local;
@@ -548,8 +548,8 @@ extension _DrawingScreenUi on _DrawingScreenState {
           : const <Type, GestureRecognizerFactory>{},
       child: InteractiveViewer(
         transformationController: _transformationController,
-        minScale: DrawingCanvasMinScale,
-        maxScale: DrawingCanvasMaxScale,
+        minScale: drawingCanvasMinScale,
+        maxScale: drawingCanvasMaxScale,
         panEnabled:
             !_isMoveMode && (_isFreeDrawMode || _isPanScaleAllowedDuringDraw),
         scaleEnabled:
@@ -557,12 +557,12 @@ extension _DrawingScreenUi on _DrawingScreenState {
         constrained: false,
         child: SizedBox(
           key: _canvasKey,
-          width: DrawingCanvasSize.width,
-          height: DrawingCanvasSize.height,
+          width: drawingCanvasSize.width,
+          height: drawingCanvasSize.height,
           child: Stack(
             children: [
               _buildMarkerLayer(
-                size: DrawingCanvasSize,
+                size: drawingCanvasSize,
                 pageIndex: _currentPage,
                 child: Container(
                   decoration: BoxDecoration(
@@ -581,7 +581,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                   controller: _canvasController,
                   cacheManager: _strokeCacheManager,
                   page: _currentPage,
-                  canvasSize: DrawingCanvasSize,
+                  canvasSize: drawingCanvasSize,
                   devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
                   eraserRadius: _areaEraserRadiusPx,
                 ),
@@ -593,7 +593,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleOverlayPointerDownWithStylusDrawing(
                       e,
                       pageNumber: _currentPage,
-                      pageSize: DrawingCanvasSize,
+                      pageSize: drawingCanvasSize,
                       drawingLocalToPageLocal: drawingLocalToPageLocal,
                       photoScale: currentCanvasPhotoScale(),
                     );
@@ -602,7 +602,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleOverlayPointerMoveWithStylusDrawing(
                       e,
                       pageNumber: _currentPage,
-                      pageSize: DrawingCanvasSize,
+                      pageSize: drawingCanvasSize,
                       drawingLocalToPageLocal: drawingLocalToPageLocal,
                       photoScale: currentCanvasPhotoScale(),
                     );
@@ -611,7 +611,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleOverlayPointerUpOrCancelWithStylusDrawing(
                       e,
                       pageNumber: _currentPage,
-                      pageSize: DrawingCanvasSize,
+                      pageSize: drawingCanvasSize,
                       drawingLocalToPageLocal: drawingLocalToPageLocal,
                     );
                   },
@@ -619,7 +619,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                     _handleOverlayPointerUpOrCancelWithStylusDrawing(
                       e,
                       pageNumber: _currentPage,
-                      pageSize: DrawingCanvasSize,
+                      pageSize: drawingCanvasSize,
                       drawingLocalToPageLocal: drawingLocalToPageLocal,
                     );
                   },
@@ -631,7 +631,7 @@ extension _DrawingScreenUi on _DrawingScreenState {
                 IgnorePointer(
                   child: ShapeHandlesOverlay(
                     manipulator: _activeShapeManipulator!,
-                    canvasSize: DrawingCanvasSize,
+                    canvasSize: drawingCanvasSize,
                     previewType: overlayPreview.previewType,
                     previewStroke: overlayPreview.previewStroke,
                     previewFillArgb: overlayPreview.previewFillArgb,

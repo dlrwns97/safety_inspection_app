@@ -188,8 +188,9 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
   void _clearSelectionAndPopup({bool inSetState = true}) {
     if (_selectedDefect == null &&
         _selectedEquipment == null &&
-        _selectedMarkerScenePosition == null)
+        _selectedMarkerScenePosition == null) {
       return;
+    }
 
     void clearSelection() {
       _selectedDefectId = null;
@@ -233,7 +234,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
 
       final scenePoint = _transformationController.toScene(localPosition);
 
-      final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+      final normalized = toNormalized(scenePoint, drawingCanvasSize);
 
       _handleShapeTapSelection(normPoint: normalized, pageNumber: _currentPage);
 
@@ -253,7 +254,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
     final hitResult = _hitTestMarker(
       point: scenePoint,
 
-      size: DrawingCanvasSize,
+      size: drawingCanvasSize,
 
       pageIndex: _currentPage,
     );
@@ -276,7 +277,7 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
       hasActiveEquipmentCategory: _activeEquipmentCategory != null,
     );
 
-    final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+    final normalized = toNormalized(scenePoint, drawingCanvasSize);
 
     final updatedSite = await _handleTapFlow(
       hitResult: hitResult,

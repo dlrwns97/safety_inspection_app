@@ -419,7 +419,7 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
     if (transformToScene) {
       final scenePoint = _transformationController.toScene(localPosition);
 
-      final normalized = toNormalized(scenePoint, DrawingCanvasSize);
+      final normalized = toNormalized(scenePoint, drawingCanvasSize);
 
       nextX = normalized.dx;
 
@@ -530,9 +530,9 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
       final deltaScene = nextScene - prevScene;
 
       deltaNormalized = Offset(
-        deltaScene.dx / DrawingCanvasSize.width,
+        deltaScene.dx / drawingCanvasSize.width,
 
-        deltaScene.dy / DrawingCanvasSize.height,
+        deltaScene.dy / drawingCanvasSize.height,
       );
     } else {
       final resolvedOverlaySize = overlaySize ?? prevTapInfo.size;
@@ -649,7 +649,7 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
       return _pdfPageSizes[pageIndex];
     }
 
-    return DrawingCanvasSize;
+    return drawingCanvasSize;
   }
 
   Future<void> _commitMovePreview() async {

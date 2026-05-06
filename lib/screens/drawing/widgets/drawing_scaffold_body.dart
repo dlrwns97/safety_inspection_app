@@ -79,8 +79,8 @@ class DrawingScaffoldBody extends StatelessWidget {
                         onTapUp: onCanvasTapUp,
                         child: InteractiveViewer(
                           transformationController: transformationController,
-                          minScale: DrawingCanvasMinScale,
-                          maxScale: DrawingCanvasMaxScale,
+                          minScale: drawingCanvasMinScale,
+                          maxScale: drawingCanvasMaxScale,
                           constrained: false,
                           child: SizedBox(
                             key: canvasKey,

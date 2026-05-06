@@ -77,7 +77,7 @@ extension _DrawingScreenMarkerActions on _DrawingScreenState {
             initialDirection: initialDirection,
             initialDisplacementText: initialDisplacementText,
           ),
-      deflectionMemberOptions: DrawingDeflectionMemberOptions,
+      deflectionMemberOptions: drawingDeflectionMemberOptions,
       showEquipmentDetailsDialog: _showEquipmentDetailsDialog,
       showRebarSpacingDialog:
           (

@@ -37,14 +37,15 @@ class PdfDrawingView extends StatelessWidget {
   final void Function(int pageNumber, Size pageSize) onUpdatePageSize;
   final PhotoViewController Function(int pageNumber) photoControllerForPage;
   final PhotoViewScaleStateController Function(int pageNumber)
-      scaleStateControllerForPage;
+  scaleStateControllerForPage;
   final Widget Function({
     required Size pageSize,
     required Size renderSize,
     required int pageNumber,
     required ImageProvider imageProvider,
     required Key pageContentKey,
-  }) buildPageOverlay;
+  })
+  buildPageOverlay;
   final GlobalKey Function(int pageNumber) pageContentKeyForPage;
   final bool enablePdfPanGestures;
   final bool enablePdfScaleGestures;
@@ -85,12 +86,10 @@ class PdfDrawingView extends StatelessWidget {
             options: const DefaultBuilderOptions(
               loaderSwitchDuration: Duration(milliseconds: 300),
             ),
-            documentLoaderBuilder: (_) => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            pageLoaderBuilder: (_) => const Center(
-              child: CircularProgressIndicator(),
-            ),
+            documentLoaderBuilder: (_) =>
+                const Center(child: CircularProgressIndicator()),
+            pageLoaderBuilder: (_) =>
+                const Center(child: CircularProgressIndicator()),
             pageBuilder: (context, pageImage, pageIndex, document) {
               final pageNumber = pageIndex + 1;
               final imageProvider = PdfPageImageProvider(
@@ -98,7 +97,7 @@ class PdfDrawingView extends StatelessWidget {
                 pageNumber,
                 document.id,
               );
-              final fallbackSize = DrawingCanvasSize;
+              final fallbackSize = drawingCanvasSize;
               return PhotoViewGalleryPageOptions.customChild(
                 controller: photoControllerForPage(pageNumber),
                 scaleStateController: scaleStateControllerForPage(pageNumber),
@@ -116,8 +115,7 @@ class PdfDrawingView extends StatelessWidget {
                       (data.width ?? 1).toDouble(),
                       (data.height ?? 1).toDouble(),
                     );
-                    final resolvedSize =
-                        pageSizes[pageNumber] ?? fallbackSize;
+                    final resolvedSize = pageSizes[pageNumber] ?? fallbackSize;
                     if (pageSizes[pageNumber] == null &&
                         pageSizes[pageNumber] != imageSize) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -134,11 +132,11 @@ class PdfDrawingView extends StatelessWidget {
                     );
                   },
                 ),
-                initialScale: PdfDrawingInitialScale,
-                minScale: PdfDrawingMinScale,
+                initialScale: pdfDrawingInitialScale,
+                minScale: pdfDrawingMinScale,
                 maxScale:
                     PhotoViewComputedScale.covered *
-                    PdfDrawingMaxScaleMultiplier,
+                    pdfDrawingMaxScaleMultiplier,
                 basePosition: Alignment.center,
               );
             },

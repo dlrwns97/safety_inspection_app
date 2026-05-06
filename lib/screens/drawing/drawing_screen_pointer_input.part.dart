@@ -118,7 +118,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
   }
 
   double _freeDrawMinScaleForPage(int pageNumber) {
-    final minScale = _resolveFreeDrawScale(PdfDrawingMinScale, fallback: 1.0);
+    final minScale = _resolveFreeDrawScale(pdfDrawingMinScale, fallback: 1.0);
 
     if (!minScale.isFinite || minScale <= 0) {
       return 1.0;
@@ -130,7 +130,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
   double _freeDrawMaxScaleForPage(int pageNumber) {
     final minScale = _freeDrawMinScaleForPage(pageNumber);
 
-    final maxScale = minScale * PdfDrawingMaxScaleMultiplier;
+    final maxScale = minScale * pdfDrawingMaxScaleMultiplier;
 
     if (!maxScale.isFinite || maxScale <= minScale) {
       return 5.0;
@@ -143,7 +143,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
     final minScale = _freeDrawMinScaleForPage(pageNumber);
 
     final initialScale = _resolveFreeDrawScale(
-      PdfDrawingInitialScale,
+      pdfDrawingInitialScale,
 
       fallback: minScale,
     );
@@ -231,9 +231,9 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
       );
 
       drawingVerboseLog(
-        '[$tag] bounds min=$PdfDrawingMinScale '
-        'initial=$PdfDrawingInitialScale '
-        'maxMul=$PdfDrawingMaxScaleMultiplier',
+        '[$tag] bounds min=$pdfDrawingMinScale '
+        'initial=$pdfDrawingInitialScale '
+        'maxMul=$pdfDrawingMaxScaleMultiplier',
       );
     });
   }
@@ -342,7 +342,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
         return;
       }
 
-      this._handleShapeStrokeInteractionStart(
+      _handleShapeStrokeInteractionStart(
         pointerId: event.pointer,
 
         pageNumber: pageNumber,
@@ -406,7 +406,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
         final startLocal = _markerTapStylusStartLocal;
 
         if (startLocal != null &&
-            (event.localPosition - startLocal).distance > DrawingTapSlop) {
+            (event.localPosition - startLocal).distance > drawingTapSlop) {
           _markerTapStylusMoved = true;
         }
       }
@@ -441,7 +441,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
         return;
       }
 
-      this._handleShapeStrokeInteractionUpdate(
+      _handleShapeStrokeInteractionUpdate(
         pointerId: event.pointer,
 
         pageNumber: pageNumber,
@@ -665,7 +665,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
         );
 
         if (norm != null) {
-          this._handleShapeStrokeInteractionEnd(
+          _handleShapeStrokeInteractionEnd(
             pointerId: event.pointer,
 
             pageNumber: pageNumber,
@@ -676,7 +676,7 @@ extension _DrawingScreenPointerInputLogic on _DrawingScreenState {
           );
         }
       } else {
-        this._clearShapeInteractionState();
+        _clearShapeInteractionState();
       }
 
       _shapeCreateHasMoved = false;

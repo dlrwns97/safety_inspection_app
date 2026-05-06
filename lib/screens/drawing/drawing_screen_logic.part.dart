@@ -41,7 +41,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     if (_site.drawingType == DrawingType.pdf) {
       return _pdfPageSizes[page] ?? Size.zero;
     }
-    return DrawingCanvasSize;
+    return drawingCanvasSize;
   }
 
   Future<void> _rebuildStrokeCacheForPage(int page) async {
@@ -271,7 +271,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     final scenePoint = _transformationController.toScene(localPosition);
     final hits = _hitTestMarkers(
       point: scenePoint,
-      size: DrawingCanvasSize,
+      size: drawingCanvasSize,
       pageIndex: _currentPage,
     );
     await _handleOverlapSelection(hits);
@@ -302,7 +302,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     required int pageNumber,
     Size? pageSize,
   }) {
-    this._clearShapeSelection();
+    _clearShapeSelection();
     final pageStrokes = _canvasController.getStrokes(pageNumber);
     final hitPaddingNorm = pageSize == null || pageSize.isEmpty
         ? 0.02
@@ -625,7 +625,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
     }
     final manipulator = _activeShapeManipulator;
     if (manipulator == null) {
-      this._clearShapeInteractionState();
+      _clearShapeInteractionState();
       return;
     }
 
@@ -689,17 +689,17 @@ extension _DrawingScreenLogic on _DrawingScreenState {
 
     final selectedId = _selectedShapeStrokeId;
     if (selectedId == null) {
-      this._clearShapeInteractionState();
+      _clearShapeInteractionState();
       return;
     }
     final before = _canvasController.findStrokeById(pageNumber, selectedId);
     if (before == null) {
-      this._clearShapeInteractionState();
+      _clearShapeInteractionState();
       return;
     }
     final beforeBounds = _shapeStrokeBounds(before.pointsNorm);
     if (beforeBounds == null) {
-      this._clearShapeInteractionState();
+      _clearShapeInteractionState();
       return;
     }
 
@@ -1018,7 +1018,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
             initialMidBText: initialMidBText,
             initialEndCText: initialEndCText,
           ),
-      deflectionMemberOptions: DrawingDeflectionMemberOptions,
+      deflectionMemberOptions: drawingDeflectionMemberOptions,
       nextSettlementIndex: nextSettlementIndex,
     );
   }
@@ -1044,7 +1044,7 @@ extension _DrawingScreenLogic on _DrawingScreenState {
       return;
     }
     final distance = (position - _pointerDownPosition!).distance;
-    if (distance > DrawingTapSlop) {
+    if (distance > drawingTapSlop) {
       _tapCanceled = true;
     }
   }

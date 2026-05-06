@@ -80,14 +80,14 @@ String equipmentLabelPrefix(EquipmentCategory category) {
   if (category == EquipmentCategory.equipment8) {
     return 'Lx';
   }
-  return DrawingEquipmentFlowConfigs[category]?.labelPrefix ?? '';
+  return drawingEquipmentFlowConfigs[category]?.labelPrefix ?? '';
 }
 
 Color equipmentColor(EquipmentCategory category) {
   if (category == EquipmentCategory.equipment8) {
     return Colors.deepPurpleAccent;
   }
-  return DrawingEquipmentFlowConfigs[category]?.color ?? Colors.pinkAccent;
+  return drawingEquipmentFlowConfigs[category]?.color ?? Colors.pinkAccent;
 }
 
 String formatNumber(double value) {
