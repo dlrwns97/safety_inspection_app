@@ -8,7 +8,8 @@ import 'package:safety_inspection_app/models/site.dart';
 
 typedef PdfFileExists = Future<bool> Function(String path);
 typedef PdfFileLength = Future<int> Function(String path);
-typedef PdfControllerFactory = PdfController Function(String path);
+typedef PdfControllerFactory =
+    PdfController Function(String path, int initialPage);
 
 class LoadPdfControllerUseCase {
   LoadPdfControllerUseCase({
@@ -19,7 +20,10 @@ class LoadPdfControllerUseCase {
        _fileLength = fileLength ?? ((path) => File(path).length()),
        _controllerFactory =
            controllerFactory ??
-           ((path) => PdfController(document: PdfDocument.openFile(path)));
+           ((path, initialPage) => PdfController(
+             document: PdfDocument.openFile(path),
+             initialPage: initialPage,
+           ));
 
   final PdfFileExists _fileExists;
   final PdfFileLength _fileLength;
@@ -28,6 +32,7 @@ class LoadPdfControllerUseCase {
   Future<PdfControllerLoadResult?> execute({
     required Site site,
     required PdfController? previousController,
+    int initialPage = 1,
   }) async {
     final path = site.pdfPath;
     if (path == null || path.isEmpty) {
@@ -50,14 +55,17 @@ class LoadPdfControllerUseCase {
       final fileSize = await _fileLength(path);
       debugPrint(
         'Loading PDF: name=${site.pdfName ?? File(path).uri.pathSegments.last}, '
-        'path=$path, bytes=$fileSize',
+        'path=$path, bytes=$fileSize, initialPage=${initialPage <= 0 ? 1 : initialPage}',
       );
       return PdfControllerLoadResult(
-        controller: _controllerFactory(path),
+        controller: _controllerFactory(
+          path,
+          initialPage <= 0 ? 1 : initialPage,
+        ),
         error: null,
         clearedPageSizes: const <int, Size>{},
         pageCount: 1,
-        currentPage: 1,
+        currentPage: initialPage <= 0 ? 1 : initialPage,
       );
     } catch (error) {
       debugPrint('Failed to load PDF at $path: $error');

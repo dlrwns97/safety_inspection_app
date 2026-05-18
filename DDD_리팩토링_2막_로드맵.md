@@ -29,7 +29,7 @@
 
 ### 1-2. 최신 자동 검증
 
-- `flutter test`: 104개 테스트 통과
+- `flutter test`: 114개 테스트 통과
 - `flutter analyze lib`: No issues found (`Step 9-1` 반영 후)
 
 ### 1-3. 코드 볼륨
@@ -277,7 +277,7 @@
 진행 상태:
 
 - `Step 9-1`: 완료
-- `Step 9-2`: 대기
+- `Step 9-2`: 완료
 - `Step 9-3`: 대기
 - `Step 9-4`: 대기
 - `Step 9-5`: 대기
@@ -329,28 +329,50 @@
 
 ### Step 9-2. Page Navigation/Pdf Viewport 흐름 분리
 
+상태: 완료
+
 대상:
 
 - `drawing_screen_move_actions.part.dart`
 - `drawing_screen_persistence.part.dart`
 - `drawing_screen_logic.part.dart`
+- `load_pdf_controller_use_case.dart`
+- `pdf_page_navigation_controller.dart`
+- `pdf_viewport_controller.dart`
 
 작업:
 
 - 페이지 이동, 현재 페이지 복원, PDF page size cache 흐름을 별도 controller로 분리
 - 강종 복원과 일반 뒤로가기 복원 정책을 명시화
+- `PdfPageNavigationController`를 추가해 페이지 정규화, 이전/다음 이동, 복원 pending/retry 정책을 분리
+- `PdfViewportController`로 PDF overlay destination rect 계산을 이동
+- 마지막 PDF 페이지 저장을 `SharedPreferences`와 `SiteRepository` 양쪽에 반영하는 `PersistPdfPagePositionUseCase` 추가
+- `drawing_` prefix 레거시 cleanup이 마지막 페이지 키를 지우던 문제를 피하도록 새 키 `inspection_pdf_last_page:{siteId}` 적용
+- `PdfController(initialPage: restoredPage)`로 컨트롤러 생성 시점부터 복원 페이지를 지정
+- PDF document 실제 pageCount를 알기 전 임시 `pageCount=1` 기준으로 restoredPage를 1로 clamp하던 버그 수정
 
 검증:
 
-- `flutter test test/application/drawing/use_cases/pdf_page_size_cache_use_cases_test.dart`
-- `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`
-- `flutter test`
+- `flutter test test/application/drawing/use_cases/pdf_page_size_cache_use_cases_test.dart`: all pass
+- `flutter test test/application/drawing/use_cases/drawing_persistence_use_cases_test.dart`: all pass
+- `flutter test test/application/drawing/use_cases/pdf_use_cases_test.dart`: all pass
+- `flutter test test/presentation/drawing/controllers/pdf_page_navigation_controller_test.dart`: all pass
+- `flutter test test/presentation/drawing/controllers/pdf_viewport_controller_test.dart`: all pass
+- `flutter analyze lib test`: No issues found
+- `flutter test`: 114개 all pass
 
 수동 확인:
 
-- `D-08`: 강종 후 마지막 페이지 복원
-- `D-09`: 다중 페이지 드로잉 복원
-- `D-10`: PDF 교체 후 페이지 이동/저장/재진입
+- `D-08`: 10페이지 이상 PDF 페이지 왕복/확대/축소/이동 PASS
+- `D-09`: 뒤로가기/강종 후 마지막 PDF 페이지 복원 PASS
+- `D-10`: PDF 교체 후 페이지 이동/마커/저장/재진입 PASS
+
+결과:
+
+- `pdf_page_navigation_controller.dart` 신규 생성
+- `persist_pdf_page_position_use_case.dart` 신규 생성
+- `pdf_viewport_controller.dart`에 PDF overlay destination rect 계산 추가
+- 마지막 페이지 복원 회귀를 테스트로 고정
 
 ### Step 9-3. Tool Settings Controller 분리
 
@@ -689,6 +711,15 @@
 
 계획 외 버그 수정이나 사용자 요청 기능은 여기에 날짜별로 기록한다.
 
+### 2026-05-18
+
+- 날짜: 2026-05-18
+- 상황: Step 9-2 수동 확인 중 PDF 마지막 페이지가 뒤로가기/강종 후 1페이지로 복원되는 회귀 발견
+- 수정 내용: 마지막 페이지 저장 키를 `inspection_pdf_last_page:{siteId}`로 변경하고, `PersistPdfPagePositionUseCase`로 Site metadata에도 즉시 저장하도록 보강. `PdfController(initialPage: restoredPage)` 적용 및 실제 PDF pageCount 확인 전 restoredPage를 1로 clamp하던 버그 수정.
+- 관련 파일: `load_pdf_controller_use_case.dart`, `persist_pdf_page_position_use_case.dart`, `drawing_screen_scale_prefs.part.dart`, `drawing_screen_persistence.part.dart`, `drawing_screen_move_actions.part.dart`
+- 자동 검증: `flutter analyze lib test`, `flutter test`
+- 수동 검증: `D-08`, `D-09`, `D-10` PASS
+
 ### 템플릿
 
 - 날짜:
@@ -702,8 +733,8 @@
 
 추천 시작점:
 
-1. `Phase 9 / Step 9-2`부터 시작한다.
-2. Page Navigation/Pdf Viewport 흐름을 분리한다.
+1. `Phase 9 / Step 9-3`부터 시작한다.
+2. Tool Settings Controller 흐름을 분리한다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
 4. DrawingScreen 관련 part 파일의 책임과 줄 수를 계속 줄인다.
 

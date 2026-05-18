@@ -63,7 +63,7 @@ void main() {
         fileLength: (_) async {
           fail('fileLength should not run for missing file');
         },
-        controllerFactory: (_) {
+        controllerFactory: (_, initialPage) {
           fail('controllerFactory should not run for missing file');
         },
       );
@@ -87,7 +87,7 @@ void main() {
         final useCase = LoadPdfControllerUseCase(
           fileExists: (_) async => true,
           fileLength: (_) async => 1234,
-          controllerFactory: (_) => throw Exception('open failed'),
+          controllerFactory: (_, initialPage) => throw Exception('open failed'),
         );
 
         final result = await useCase.execute(

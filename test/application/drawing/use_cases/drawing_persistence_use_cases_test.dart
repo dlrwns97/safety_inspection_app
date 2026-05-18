@@ -1,12 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safety_inspection_app/application/drawing/use_cases/load_site_drawing_use_case.dart';
+import 'package:safety_inspection_app/application/drawing/use_cases/persist_pdf_page_position_use_case.dart';
 import 'package:safety_inspection_app/application/drawing/use_cases/persist_site_drawing_use_case.dart';
 import 'package:safety_inspection_app/domain/drawing/repositories/drawing_repository.dart';
 import 'package:safety_inspection_app/domain/site/repositories/site_repository.dart';
 import 'package:safety_inspection_app/infrastructure/mappers/drawing_stroke_mapper.dart';
+import 'package:safety_inspection_app/models/site_storage.dart';
 import 'package:safety_inspection_app/models/drawing/drawing_stroke.dart';
 import 'package:safety_inspection_app/models/drawing_enums.dart';
 import 'package:safety_inspection_app/models/site.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeDrawingRepository implements DrawingRepository {
   DrawingPayloadJson? loadedPayload;
@@ -56,6 +59,18 @@ Site _site({required String id}) {
     name: '현장$id',
     createdAt: DateTime(2026, 3, 3),
     drawingType: DrawingType.blank,
+  );
+}
+
+Site _pdfSite({required String id, int? lastViewedPdfPage}) {
+  return Site(
+    id: id,
+    name: 'PDF site $id',
+    createdAt: DateTime(2026, 3, 3),
+    drawingType: DrawingType.pdf,
+    pdfPath: '/tmp/$id.pdf',
+    pdfName: '$id.pdf',
+    lastViewedPdfPage: lastViewedPdfPage,
   );
 }
 
@@ -193,5 +208,53 @@ void main() {
         ]);
       },
     );
+
+    test(
+      'PersistPdfPagePositionUseCase updates PDF last viewed page',
+      () async {
+        final siteRepository = _FakeSiteRepository()
+          ..storedSites = <Site>[_pdfSite(id: 's1', lastViewedPdfPage: 1)];
+        final useCase = PersistPdfPagePositionUseCase(
+          siteRepository: siteRepository,
+        );
+
+        final updatedSite = await useCase.execute(
+          site: _pdfSite(id: 's1', lastViewedPdfPage: 1),
+          page: 8,
+        );
+
+        expect(updatedSite.lastViewedPdfPage, 8);
+        expect(siteRepository.savedSites, isNotNull);
+        expect(siteRepository.savedSites!.single.lastViewedPdfPage, 8);
+      },
+    );
+
+    test('PersistPdfPagePositionUseCase ignores non-PDF sites', () async {
+      final siteRepository = _FakeSiteRepository()
+        ..storedSites = <Site>[_site(id: 's1')];
+      final useCase = PersistPdfPagePositionUseCase(
+        siteRepository: siteRepository,
+      );
+
+      final updatedSite = await useCase.execute(site: _site(id: 's1'), page: 8);
+
+      expect(updatedSite.lastViewedPdfPage, isNull);
+      expect(siteRepository.savedSites, isNull);
+    });
+
+    test('SiteStorage legacy cleanup keeps PDF page position key', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'inspection_pdf_last_page:s1': 8,
+        'drawing_pdf_last_page:pdf:/tmp/s1.pdf': 7,
+        'drawing_old': 'legacy',
+      });
+
+      await SiteStorage.loadSites();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('inspection_pdf_last_page:s1'), 8);
+      expect(prefs.getInt('drawing_pdf_last_page:pdf:/tmp/s1.pdf'), isNull);
+      expect(prefs.getString('drawing_old'), isNull);
+    });
   });
 }

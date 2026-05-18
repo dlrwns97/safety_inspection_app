@@ -108,7 +108,8 @@ void main() {
           normalizedX: 0.2,
           normalizedY: 0.2,
           activeCategory: DefectCategory.generalCrack,
-          showDefectDetailsDialog: (_, __) async => null,
+          showDefectDetailsDialog: (dialogContext, markerPosition) async =>
+              null,
         );
 
         expect(updated, isNull);
@@ -138,13 +139,14 @@ void main() {
           normalizedX: 0.3,
           normalizedY: 0.4,
           activeCategory: DefectCategory.waterLeakage,
-          showDefectDetailsDialog: (_, __) async => DefectDetails(
-            structuralMember: '보',
-            crackType: '',
-            widthMm: 0,
-            lengthMm: 0,
-            cause: '',
-          ),
+          showDefectDetailsDialog: (dialogContext, markerPosition) async =>
+              DefectDetails(
+                structuralMember: '보',
+                crackType: '',
+                widthMm: 0,
+                lengthMm: 0,
+                cause: '',
+              ),
         );
 
         expect(updated, isNotNull);

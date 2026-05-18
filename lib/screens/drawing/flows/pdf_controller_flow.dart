@@ -12,10 +12,12 @@ final ReplacePdfUseCase _replacePdfUseCase = ReplacePdfUseCase();
 Future<PdfControllerLoadResult?> loadPdfControllerForSite({
   required Site site,
   required PdfController? previousController,
+  int initialPage = 1,
 }) async {
   return _loadPdfControllerUseCase.execute(
     site: site,
     previousController: previousController,
+    initialPage: initialPage,
   );
 }
 

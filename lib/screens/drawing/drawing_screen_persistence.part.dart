@@ -54,11 +54,13 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
           ..addAll(clearedPageSizes);
       }
 
-      _pageCount = pageCount;
-
-      final targetPage = restoredPage > 0 ? restoredPage : currentPage;
+      final targetPage = restoredPage > 0
+          ? restoredPage
+          : _pdfPageNavigationController.normalizePage(currentPage);
+      _pageCount = _pdfPageNavigationController.normalizePage(pageCount);
       _currentPage = targetPage;
-      _pendingPdfRestorePage = targetPage > 1 ? targetPage : null;
+      _pendingPdfRestorePage = _pdfPageNavigationController
+          .pendingRestorePageFor(targetPage);
       _didRetryPendingPdfRestoreJump = false;
     });
   }
@@ -85,6 +87,8 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
       site: _site,
 
       previousController: previousController,
+
+      initialPage: restoredPage,
     );
 
     if (!mounted || result == null) {
@@ -132,13 +136,15 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
 
         _pdfPageSizes.clear();
 
-        _currentPage = 1;
-        _pendingPdfRestorePage = null;
-        _didRetryPendingPdfRestoreJump = false;
+        final pageState = _pdfPageNavigationController
+            .resetAfterPdfReplacement();
+        _currentPage = pageState.currentPage;
+        _pendingPdfRestorePage = pageState.pendingRestorePage;
+        _didRetryPendingPdfRestoreJump = pageState.didRetryPendingRestoreJump;
         unawaited(_persistCurrentPdfPage(page: 1));
         _schedulePersistCurrentPdfPageToSite(page: 1);
 
-        _pageCount = 1;
+        _pageCount = pageState.pageCount;
 
         _pdfLoadError = null;
 
@@ -336,6 +342,9 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
         _site.lastViewedPdfPage == safePage) {
       return;
     }
+    if (_site.lastViewedPdfPage != safePage) {
+      _site = _site.copyWith(lastViewedPdfPage: safePage);
+    }
     _queuedPdfPageForSitePersist = safePage;
     _persistPdfPageSiteTask = _persistPdfPageSiteTask.then((_) async {
       final targetPage = _queuedPdfPageForSitePersist;
@@ -344,9 +353,6 @@ extension _DrawingScreenPersistenceLogic on _DrawingScreenState {
         return;
       }
       if (_site.drawingType != DrawingType.pdf) {
-        return;
-      }
-      if (_site.lastViewedPdfPage == targetPage) {
         return;
       }
       final updatedSite = _site.copyWith(lastViewedPdfPage: targetPage);

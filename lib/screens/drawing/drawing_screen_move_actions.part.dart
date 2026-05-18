@@ -302,9 +302,8 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
 
     final destRect = overlaySize == null
         ? null
-        : _pdfDestRectForPageOverlay(
-            pageIndex: pageIndex,
-
+        : _pdfViewportController.destinationRectForOverlay(
+            pageSize: _pdfPageSizes[pageIndex],
             overlaySize: overlaySize,
           );
 
@@ -319,28 +318,6 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
 
       destRect: destRect,
     );
-  }
-
-  Rect _pdfDestRectForPageOverlay({
-    required int pageIndex,
-
-    required Size overlaySize,
-  }) {
-    final pageSize = _pdfPageSizes[pageIndex];
-
-    if (pageSize == null || pageSize.isEmpty || overlaySize.isEmpty) {
-      return Offset.zero & overlaySize;
-    }
-
-    final fitted = applyBoxFit(BoxFit.contain, pageSize, overlaySize);
-
-    final destSize = fitted.destination;
-
-    final dx = (overlaySize.width - destSize.width) / 2;
-
-    final dy = (overlaySize.height - destSize.height) / 2;
-
-    return Offset(dx, dy) & destSize;
   }
 
   void _handleMoveCanvasPanUpdate(DragUpdateDetails details) {
@@ -971,22 +948,21 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
   }
 
   void _handlePdfPageChanged(int page) {
-    final normalizedPage = page <= 0 ? 1 : page;
-    final pendingRestorePage = _pendingPdfRestorePage;
-    if (pendingRestorePage != null) {
-      if (normalizedPage == pendingRestorePage) {
-        _pendingPdfRestorePage = null;
-        _didRetryPendingPdfRestoreJump = false;
-      } else if (pendingRestorePage > 1 && normalizedPage == 1) {
-        if (!_didRetryPendingPdfRestoreJump) {
-          _didRetryPendingPdfRestoreJump = true;
-          _pdfController?.jumpToPage(pendingRestorePage);
-          return;
-        }
-        _pendingPdfRestorePage = null;
-        _didRetryPendingPdfRestoreJump = false;
-      }
+    final decision = _pdfPageNavigationController.handlePageChanged(
+      reportedPage: page,
+      pendingRestorePage: _pendingPdfRestorePage,
+      didRetryPendingRestoreJump: _didRetryPendingPdfRestoreJump,
+    );
+    _pendingPdfRestorePage = decision.pendingRestorePage;
+    _didRetryPendingPdfRestoreJump = decision.didRetryPendingRestoreJump;
+    final jumpToPage = decision.jumpToPage;
+    if (jumpToPage != null) {
+      _pdfController?.jumpToPage(jumpToPage);
     }
+    if (!decision.shouldApplyPage) {
+      return;
+    }
+    final normalizedPage = decision.currentPage;
 
     _setPdfState(() {
       _currentPage = normalizedPage;
@@ -1038,14 +1014,18 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
     if (!mounted) {
       return;
     }
-    final requestedRestorePage = _pendingPdfRestorePage;
-    final basePage =
-        requestedRestorePage ?? (_currentPage <= 0 ? 1 : _currentPage);
-    final resolvedPage = basePage.clamp(1, pageCount).toInt();
+    final pageState = _pdfPageNavigationController.resolveLoadedPage(
+      restoredPage: _pendingPdfRestorePage ?? 0,
+      currentPage: _currentPage,
+      pageCount: pageCount,
+    );
+    final resolvedPage = pageState.currentPage;
 
     _setPdfState(() {
-      _pageCount = pageCount;
+      _pageCount = pageState.pageCount;
       _currentPage = resolvedPage;
+      _pendingPdfRestorePage = pageState.pendingRestorePage;
+      _didRetryPendingPdfRestoreJump = pageState.didRetryPendingRestoreJump;
 
       _pdfLoadError = null;
 
@@ -1066,8 +1046,8 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
         _pdfController?.jumpToPage(resolvedPage);
       });
     } else {
-      _pendingPdfRestorePage = null;
-      _didRetryPendingPdfRestoreJump = false;
+      _pendingPdfRestorePage = pageState.pendingRestorePage;
+      _didRetryPendingPdfRestoreJump = pageState.didRetryPendingRestoreJump;
     }
     unawaited(_persistCurrentPdfPage(page: resolvedPage));
     _schedulePersistCurrentPdfPageToSite(page: resolvedPage);
@@ -1101,7 +1081,10 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
   }
 
   void _handlePrevPage() {
-    final nextPage = (_currentPage - 1).clamp(1, _pageCount).toInt();
+    final nextPage = _pdfPageNavigationController.previousPage(
+      currentPage: _currentPage,
+      pageCount: _pageCount,
+    );
 
     _safeSetState(() => _currentPage = nextPage);
 
@@ -1111,7 +1094,10 @@ extension _DrawingScreenMoveActionsLogic on _DrawingScreenState {
   }
 
   void _handleNextPage() {
-    final nextPage = (_currentPage + 1).clamp(1, _pageCount).toInt();
+    final nextPage = _pdfPageNavigationController.nextPage(
+      currentPage: _currentPage,
+      pageCount: _pageCount,
+    );
 
     _safeSetState(() => _currentPage = nextPage);
 

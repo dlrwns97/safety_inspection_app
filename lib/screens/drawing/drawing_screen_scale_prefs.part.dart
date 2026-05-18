@@ -3,7 +3,8 @@ part of 'drawing_screen.dart';
 const String _kMarkerScaleKey = 'drawing_marker_scale_percent';
 const String _kLabelScaleKey = 'drawing_label_scale_percent';
 const String _kScaleLockKey = 'drawing_scale_locked';
-const String _kPdfLastPageKey = 'drawing_pdf_last_page';
+const String _kPdfLastPageKey = 'inspection_pdf_last_page';
+const String _kLegacyPdfLastPageKey = 'drawing_pdf_last_page';
 
 extension _DrawingScreenScalePrefs on _DrawingScreenState {
   String _drawingIdentityKey(Site site) {
@@ -32,7 +33,7 @@ extension _DrawingScreenScalePrefs on _DrawingScreenState {
   String _pdfLastPageKeyFor(Site site) => '$_kPdfLastPageKey:${site.id}';
 
   String _pdfLastPageLegacyKeyFor(Site site) =>
-      '$_kPdfLastPageKey:${_drawingIdentityKey(site)}';
+      '$_kLegacyPdfLastPageKey:${_drawingIdentityKey(site)}';
 
   void resetScaleState() {
     _markerScale = 1.0;
@@ -115,19 +116,17 @@ extension _DrawingScreenScalePrefs on _DrawingScreenState {
       return 1;
     }
     final prefs = await SharedPreferences.getInstance();
-    final keyCandidates = <String>[
-      _pdfLastPageKeyFor(site),
-      _pdfLastPageLegacyKeyFor(site),
-    ];
-    for (final key in keyCandidates) {
-      final restored = prefs.getInt(key);
-      if (restored != null && restored > 0) {
-        return restored;
-      }
+    final restored = prefs.getInt(_pdfLastPageKeyFor(site));
+    if (restored != null && restored > 0) {
+      return restored;
     }
     final fallback = site.lastViewedPdfPage;
     if (fallback != null && fallback > 0) {
       return fallback;
+    }
+    final legacyRestored = prefs.getInt(_pdfLastPageLegacyKeyFor(site));
+    if (legacyRestored != null && legacyRestored > 0) {
+      return legacyRestored;
     }
     return 1;
   }
@@ -137,8 +136,24 @@ extension _DrawingScreenScalePrefs on _DrawingScreenState {
       return;
     }
     final safePage = page <= 0 ? 1 : page;
+    final targetSiteId = _site.id;
+    final siteSnapshot = _site;
+    final sequence = ++_pdfPagePersistSequence;
+    if (_site.lastViewedPdfPage != safePage) {
+      _site = _site.copyWith(lastViewedPdfPage: safePage);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_pdfLastPageKeyFor(_site), safePage);
     await prefs.setInt(_pdfLastPageLegacyKeyFor(_site), safePage);
+    final updatedSite = await _persistPdfPagePositionUseCase.execute(
+      site: siteSnapshot,
+      page: safePage,
+    );
+    if (!mounted ||
+        _site.id != targetSiteId ||
+        sequence != _pdfPagePersistSequence) {
+      return;
+    }
+    _site = updatedSite;
   }
 }

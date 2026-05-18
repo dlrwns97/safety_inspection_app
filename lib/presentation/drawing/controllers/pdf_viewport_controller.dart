@@ -4,6 +4,20 @@ import 'package:safety_inspection_app/presentation/drawing/models/pdf_viewport_s
 class PdfViewportController {
   const PdfViewportController();
 
+  Rect destinationRectForOverlay({
+    required Size? pageSize,
+    required Size overlaySize,
+  }) {
+    if (pageSize == null || pageSize.isEmpty || overlaySize.isEmpty) {
+      return Offset.zero & overlaySize;
+    }
+    final fitted = applyBoxFit(BoxFit.contain, pageSize, overlaySize);
+    final destSize = fitted.destination;
+    final dx = (overlaySize.width - destSize.width) / 2;
+    final dy = (overlaySize.height - destSize.height) / 2;
+    return Offset(dx, dy) & destSize;
+  }
+
   Matrix4 buildPhotoViewChildMatrix(PdfViewportSnapshot snapshot) {
     final viewportCenter = snapshot.viewportSize.center(Offset.zero);
     final childCenter = snapshot.childSize.center(Offset.zero);
