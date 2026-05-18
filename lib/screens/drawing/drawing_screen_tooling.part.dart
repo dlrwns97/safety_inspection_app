@@ -4,7 +4,7 @@ const String _kDrawingSettingsPrefix = 'drawing';
 
 extension _DrawingScreenTooling on _DrawingScreenState {
   int _clampPresetIndex(int index) {
-    return index.clamp(0, _presets.length - 1).toInt();
+    return _toolSettingsController.clampPresetIndex(index, _presets.length);
   }
 
   StrokeStyle? get _activeStrokeStyle {
@@ -29,34 +29,27 @@ extension _DrawingScreenTooling on _DrawingScreenState {
   Color? get _activeShapeFillColor => _shapeFillColorByType[_activeShapeType];
 
   StrokeToolKind get _activeToolKindForToolbar {
-    if (_activeTool == DrawingTool.areaEraser ||
-        _activeTool == DrawingTool.strokeEraser) {
-      return StrokeToolKind.eraser;
-    }
-    if (_activeTool == DrawingTool.shape) {
-      return StrokeToolKind.shape;
-    }
-    return _activeFamily == ToolFamily.highlighter
-        ? StrokeToolKind.highlighter
-        : StrokeToolKind.pen;
+    return _toolSettingsController.activeToolKindForToolbar(
+      activeTool: _activeTool,
+      activeFamily: _activeFamily,
+    );
   }
 
   StrokeToolKind? get _selectedToolKindForToolbar {
-    if (!_isFreeDrawMode) {
-      return null;
-    }
-    if (_activeTool == DrawingTool.pen && _activePresetIndex == null) {
-      return null;
-    }
-    return _activeToolKindForToolbar;
+    return _toolSettingsController.selectedToolKindForToolbar(
+      isFreeDrawMode: _isFreeDrawMode,
+      activeTool: _activeTool,
+      activePresetIndex: _activePresetIndex,
+      activeFamily: _activeFamily,
+    );
   }
 
   List<int> _buildRecentColors(List<int> current, int nextArgb) {
-    final nextRgb = Color(nextArgb).withAlpha(0xFF).toARGB32();
-    final updated = <int>[nextRgb, ...current.where((argb) => argb != nextRgb)];
-    return updated
-        .take(_DrawingScreenState._kMaxRecentColors)
-        .toList(growable: false);
+    return _toolSettingsController.buildRecentColors(
+      current,
+      nextArgb,
+      maxColors: _DrawingScreenState._kMaxRecentColors,
+    );
   }
 
   void _pushRecentColor(int argb) {
@@ -69,38 +62,23 @@ extension _DrawingScreenTooling on _DrawingScreenState {
   }
 
   bool _isHighlighterFamilyVariant(PenVariant variant) {
-    return _DrawingScreenState.highlighterVariants.contains(variant);
+    return _toolSettingsController.isHighlighterFamilyVariant(variant);
   }
 
   PenUiType _penUiTypeFromVariant(PenVariant variant) {
-    return switch (variant) {
-      PenVariant.fountainPen => PenUiType.fountainPen,
-      PenVariant.calligraphyPen => PenUiType.calligraphy,
-      PenVariant.pencil => PenUiType.pencil,
-      _ => PenUiType.pen,
-    };
+    return _toolSettingsController.penUiTypeFromVariant(variant);
   }
 
   PenVariant _penVariantFromUiType(PenUiType type) {
-    return switch (type) {
-      PenUiType.pen => PenVariant.pen,
-      PenUiType.fountainPen => PenVariant.fountainPen,
-      PenUiType.calligraphy => PenVariant.calligraphyPen,
-      PenUiType.pencil => PenVariant.pencil,
-    };
+    return _toolSettingsController.penVariantFromUiType(type);
   }
 
   HighlighterUiType _highlighterUiTypeFromVariant(PenVariant variant) {
-    return variant == PenVariant.marker
-        ? HighlighterUiType.marker
-        : HighlighterUiType.highlighter;
+    return _toolSettingsController.highlighterUiTypeFromVariant(variant);
   }
 
   PenVariant _highlighterVariantFromUiType(HighlighterUiType type) {
-    return switch (type) {
-      HighlighterUiType.highlighter => PenVariant.highlighter,
-      HighlighterUiType.marker => PenVariant.marker,
-    };
+    return _toolSettingsController.highlighterVariantFromUiType(type);
   }
 
   void _seedVariantStateMaps() {
@@ -471,23 +449,18 @@ extension _DrawingScreenTooling on _DrawingScreenState {
       return;
     }
     final normalizedIndex = _clampPresetIndex(index);
-    final baseStyle = _presets[normalizedIndex];
-    if (_activeFamily == ToolFamily.highlighter) {
-      _presets[normalizedIndex] = baseStyle.copyWith(
-        kind: StrokeToolKind.highlighter,
-        variant: _highlighterVariantFromUiType(_activeHighlighterType),
-        widthPx: _currentHlWidth,
-        opacity: _currentHlOpacity,
-        argbColor: _currentHlColor.toARGB32(),
-      );
-      return;
-    }
-    _presets[normalizedIndex] = baseStyle.copyWith(
-      kind: StrokeToolKind.pen,
-      variant: _penVariantFromUiType(_activePenType),
-      widthPx: _currentPenWidth,
-      argbColor: _currentPenColor.toARGB32(),
-    );
+    _presets[normalizedIndex] = _toolSettingsController
+        .syncCurrentFamilyStyleToPreset(
+          baseStyle: _presets[normalizedIndex],
+          activeFamily: _activeFamily,
+          activePenType: _activePenType,
+          activeHighlighterType: _activeHighlighterType,
+          currentPenWidth: _currentPenWidth,
+          currentPenColor: _currentPenColor,
+          currentHighlighterWidth: _currentHlWidth,
+          currentHighlighterOpacity: _currentHlOpacity,
+          currentHighlighterColor: _currentHlColor,
+        );
   }
 
   void _switchPenType(PenUiType newType) {

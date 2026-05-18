@@ -278,7 +278,7 @@
 
 - `Step 9-1`: 완료
 - `Step 9-2`: 완료
-- `Step 9-3`: 대기
+- `Step 9-3`: 완료
 - `Step 9-4`: 대기
 - `Step 9-5`: 대기
 
@@ -376,6 +376,8 @@
 
 ### Step 9-3. Tool Settings Controller 분리
 
+상태: 완료
+
 대상:
 
 - `drawing_screen_tooling.part.dart`
@@ -388,17 +390,29 @@
 
 - 펜/형광펜/도형/지우개 설정 상태를 controller 또는 ViewModel로 분리
 - 자유선과 형광펜의 독립 설정 정책을 테스트 가능하게 고정
+- `ToolSettingsController`를 추가해 툴바 선택, preset index clamp, 최근 색상, 펜/형광펜 variant 매핑, 현재 family style 동기화 정책을 분리
+- `DrawingScreen`의 기존 tooling extension은 화면 상태 연결용 wrapper로 축소
+- 펜/형광펜 style 동기화가 서로의 두께/색상/투명도 설정을 오염시키지 않도록 단위 테스트로 고정
+- 펜/형광펜/지우개 설정 팝업 콜백 동작을 widget test로 보강해 수동 테스트 범위를 축소
 
 검증:
 
-- 신규 unit test 추가
-- `flutter test`
+- `dart analyze lib test`: No issues found
+- `flutter test test/presentation/drawing/controllers/tool_settings_controller_test.dart test/presentation/drawing/widgets/tool_settings_popup_test.dart`: all pass
+- `flutter test`: 123개 all pass
 
 수동 확인:
 
-- `D-01`: 펜/형광펜 색상/두께/투명도
-- `D-03`: 지우개
-- `D-07`: 직교/스냅 설정 독립성
+- `D-01`: 펜/형광펜 색상/두께/투명도 PASS
+- `D-03`: 지우개 설정/모드 전환 PASS
+- `D-07`: 직교/스냅 설정 독립성 PASS
+
+결과:
+
+- `tool_settings_controller.dart` 신규 생성
+- `tool_settings_controller_test.dart` 신규 생성
+- `tool_settings_popup_test.dart` 신규 생성
+- 자동 테스트 커버리지 확대로 앞으로 실제 기기에서만 확인 가능한 항목만 사용자 수동 확인 대상으로 유지
 
 ### Step 9-4. DrawingScreen Shell 경량화
 
@@ -733,8 +747,8 @@
 
 추천 시작점:
 
-1. `Phase 9 / Step 9-3`부터 시작한다.
-2. Tool Settings Controller 흐름을 분리한다.
+1. `Phase 9 / Step 9-4`부터 시작한다.
+2. DrawingScreen Shell 경량화를 진행한다.
 3. Step 단위로 테스트와 수동 확인을 반복한다.
 4. DrawingScreen 관련 part 파일의 책임과 줄 수를 계속 줄인다.
 

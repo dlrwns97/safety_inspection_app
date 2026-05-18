@@ -63,6 +63,7 @@ import 'package:safety_inspection_app/presentation/drawing/controllers/marker_in
 import 'package:safety_inspection_app/presentation/drawing/controllers/marker_action_coordinator.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pdf_page_navigation_controller.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pdf_viewport_controller.dart';
+import 'package:safety_inspection_app/presentation/drawing/controllers/tool_settings_controller.dart';
 import 'package:safety_inspection_app/presentation/drawing/models/pdf_viewport_snapshot.dart';
 import 'package:safety_inspection_app/presentation/drawing/controllers/pointer_intent_router.dart';
 import 'package:safety_inspection_app/presentation/drawing/states/gesture_state.dart';
@@ -184,6 +185,7 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final MarkerActionCoordinator _markerActionCoordinator;
   late final PdfPageNavigationController _pdfPageNavigationController;
   late final PdfViewportController _pdfViewportController;
+  late final ToolSettingsController _toolSettingsController;
   late final DrawingRepository _drawingRepository;
   late final SiteRepository _siteRepository;
   late final PdfPageSizeCacheRepository _pdfPageSizeCacheRepository;
@@ -213,10 +215,6 @@ class _DrawingScreenState extends State<DrawingScreen>
   late final List<StrokeStyle> _presets = StrokePresets.defaults();
   static const double _kDefaultHighlighterOpacity = 0.35;
   static const double _kDefaultMarkerOpacity = 0.80;
-  static const Set<PenVariant> highlighterVariants = <PenVariant>{
-    PenVariant.highlighter,
-    PenVariant.marker,
-  };
   late final ValueNotifier<PenVariant> _penVariantNotifier;
   late final ValueNotifier<double> _penWidthNotifier;
   late final ValueNotifier<Color> _penColorNotifier;
@@ -259,6 +257,7 @@ class _DrawingScreenState extends State<DrawingScreen>
     _markerActionCoordinator = const MarkerActionCoordinator();
     _pdfPageNavigationController = const PdfPageNavigationController();
     _pdfViewportController = const PdfViewportController();
+    _toolSettingsController = const ToolSettingsController();
     _drawingRepository = widget.drawingRepository ?? DrawingFileRepository();
     _siteRepository = widget.siteRepository ?? SitePrefsRepository();
     _pdfPageSizeCacheRepository =
